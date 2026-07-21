@@ -27,8 +27,19 @@ Example (24 GB M-series MacBook, MPS):
     python train/train_full.py --data-dir data/bridge --data-dir data/libero \\
         --stage-a-epochs 2 --stage-b-epochs 3 --device auto
 
+Ablations (paper.md E6/E7; ``--tag`` keeps their checkpoints from clobbering
+the main run):
+
+    python train/train_full.py --data-dir data/bridge --data-dir data/libero \\
+        --ablate-evidence-fade --tag nofade --stage-a-epochs 2 --stage-b-epochs 3 --device auto
+
+    python train/train_full.py --data-dir data/bridge --data-dir data/libero \\
+        --ablate-grounding --tag noground --stage-a-epochs 2 --stage-b-epochs 3 --device auto
+
 Checkpoints: ``checkpoints/full_stageA.pt`` / ``full_stageB.pt`` (all module
-state_dicts + config + normalization pointer). ``--resume`` reloads them.
+state_dicts + config + normalization pointer), or
+``full_stageA_<tag>.pt`` / ``full_stageB_<tag>.pt`` when ``--tag`` is given.
+``--resume`` reloads them (honoring ``--tag``).
 """
 
 from __future__ import annotations
@@ -77,7 +88,34 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--checkpoint-dir", default="./checkpoints")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--trm-d", type=int, default=1024, help="RecursiveTRM width")
+    p.add_argument("--ablate-grounding", action="store_true",
+                   help="E7 (paper.md Claim 6): zero box_weight and centers everywhere in "
+                        "_episode_real_paths, training the frame-only variant (no boxes, no "
+                        "geometry) at matched params.")
+    p.add_argument("--ablate-evidence-fade", action="store_true",
+                   help="E6 (paper.md Claim 4): sets cfg.modality_dropout=0 (via "
+                        "dataclasses.replace) before building fusion, training without the "
+                        "evidence-fade dream-regime regularizer.")
+    p.add_argument("--tag", type=str, default="",
+                   help="Suffix appended to checkpoint filenames (full_stageA_<tag>.pt / "
+                        "full_stageB_<tag>.pt) so ablation runs do not clobber the main run.")
     return p.parse_args(argv)
+
+
+def _tagged_name(name: str, tag: str) -> str:
+    """Inserts an optional ``--tag`` suffix before a checkpoint's ``.pt`` extension.
+
+    Args:
+        name: Base checkpoint filename, e.g. ``"full_stageA.pt"``.
+        tag: ``args.tag``; empty string leaves ``name`` unchanged.
+
+    Returns:
+        ``name`` with ``_<tag>`` inserted before the extension when ``tag`` is set.
+    """
+    if not tag:
+        return name
+    stem, ext = name.rsplit(".", 1)
+    return f"{stem}_{tag}.{ext}"
 
 
 class _MultiDataset:
@@ -97,11 +135,17 @@ class _MultiDataset:
         return self.sets[i][j]
 
 
-def _episode_real_paths(episode, fusion, drift, device):
+def _episode_real_paths(episode, fusion, drift, device, ablate_grounding: bool = False):
     """Per-t grounded fused matrices + drift codes for one episode.
 
     Drift is stateful/sequential, so this always sweeps the full episode in
     order. Returns per-step tensors on ``device`` (batch dim 1).
+
+    Args:
+        ablate_grounding: E7 (paper.md Claim 6) ablation -- when True, the
+            box_weight and both box centers are zeroed before fusion, so the
+            box + geometry tokens contribute nothing and fusion trains on
+            the frame embedding (+ text + last action) alone.
     """
     T = episode["frame_embs"].shape[0]
     text = episode["text_tokens"].unsqueeze(0)
@@ -112,14 +156,21 @@ def _episode_real_paths(episode, fusion, drift, device):
             episode["pwm_targets"][t - 1, 0].unsqueeze(0)
             if t > 0 else episode["pwm_targets"].new_zeros(1, episode["pwm_targets"].shape[-1])
         )
+        box_weight = episode["box_weights"][t].unsqueeze(0)
+        source_center = episode["source_centers"][t].unsqueeze(0)
+        target_center = episode["target_centers"][t].unsqueeze(0)
+        if ablate_grounding:
+            box_weight = torch.zeros_like(box_weight)
+            source_center = torch.zeros_like(source_center)
+            target_center = torch.zeros_like(target_center)
         fused_all.append(fusion(
             text,
             episode["frame_embs"][t].unsqueeze(0),
             episode["source_box_embs"][t].unsqueeze(0),
             episode["target_box_embs"][t].unsqueeze(0),
-            episode["source_centers"][t].unsqueeze(0),
-            episode["target_centers"][t].unsqueeze(0),
-            box_weight=episode["box_weights"][t].unsqueeze(0),
+            source_center,
+            target_center,
+            box_weight=box_weight,
             last_action=last_action,
         ))
         delta_all.append(drift(episode["frame_embs"][t].unsqueeze(0)))
@@ -179,7 +230,9 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
             T = episode["frame_embs"].shape[0]
             if T < 2:
                 continue
-            fused_all, delta_all = _episode_real_paths(episode, fusion, drift, device)
+            fused_all, delta_all = _episode_real_paths(
+                episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
+            )
             ts = list(range(T - 1))
             rng.shuffle(ts)
             ts = ts[: args.segments_per_episode]
@@ -200,7 +253,7 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
         print(f"[stage A] epoch {epoch}/{args.stage_a_epochs} | train {run_loss / max(n_seg,1):.4f} "
               f"| val {val:.4f} vs persistence {persistence:.4f} ({verdict}) "
               f"| {time.time()-t0:.0f}s | ticks/meas={ticks}", flush=True)
-        save(args, cfg, "full_stageA.pt", fusion=fusion, drift=drift, trm=trm)
+        save(args, cfg, _tagged_name("full_stageA.pt", args.tag), fusion=fusion, drift=drift, trm=trm)
 
 
 @torch.no_grad()
@@ -218,7 +271,9 @@ def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> tuple[
         T = episode["frame_embs"].shape[0]
         if T < 2:
             continue
-        fused_all, delta_all = _episode_real_paths(episode, fusion, drift, device)
+        fused_all, delta_all = _episode_real_paths(
+            episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
+        )
         for t in range(0, T - 1, max(1, (T - 1) // 4)):
             target = episode["frame_embs"][t + 1].unsqueeze(0)
             pred = _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, ticks)
@@ -253,7 +308,9 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             T = episode["frame_embs"].shape[0]
             if T < 2:
                 continue
-            fused_all, delta_all = _episode_real_paths(episode, fusion, drift, device)
+            fused_all, delta_all = _episode_real_paths(
+                episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
+            )
             preds = []
             for t in range(T):
                 next_emb = trm(fused_all[t], delta_all[t],
@@ -272,7 +329,8 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
 
         print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | bc {run_bc / max(n,1):.4f} "
               f"| smooth {run_sm / max(n,1):.4f} | {time.time()-t0:.0f}s", flush=True)
-        save(args, cfg, "full_stageB.pt", fusion=fusion, drift=drift, trm=trm, planner=planner)
+        save(args, cfg, _tagged_name("full_stageB.pt", args.tag),
+             fusion=fusion, drift=drift, trm=trm, planner=planner)
 
 
 def save(args, cfg, name, **modules) -> None:
@@ -289,9 +347,17 @@ def save(args, cfg, name, **modules) -> None:
 def main(argv=None) -> None:
     args = parse_args(argv)
     cfg: MicroVLAConfig = DEFAULT_CONFIG
+    if args.ablate_evidence_fade:
+        # E6 (paper.md Claim 4): train without the evidence-fade dream-regime
+        # regularizer. Must happen before SlotResonanceFusion is constructed
+        # -- it reads cfg.modality_dropout once, at __init__.
+        cfg = dataclasses.replace(cfg, modality_dropout=0.0)
     device = resolve_device(args.device)
     torch.manual_seed(args.seed)
-    print(f"training on {device} | data: {args.data_dir}")
+    print(f"training on {device} | data: {args.data_dir}"
+          f"{' | ablate-grounding' if args.ablate_grounding else ''}"
+          f"{' | ablate-evidence-fade' if args.ablate_evidence_fade else ''}"
+          f"{f' | tag={args.tag}' if args.tag else ''}")
 
     data = _MultiDataset(args.data_dir, args.val_frac, args.seed)
     print(f"episodes: train {len(data.train_index)}, val {len(data.val_index)}")
@@ -301,7 +367,7 @@ def main(argv=None) -> None:
     trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
     planner = ChronoQueryPlanner(cfg).to(device)
 
-    ckpt_a = Path(args.checkpoint_dir) / "full_stageA.pt"
+    ckpt_a = Path(args.checkpoint_dir) / _tagged_name("full_stageA.pt", args.tag)
     if args.resume and ckpt_a.exists():
         state = torch.load(ckpt_a, map_location=device, weights_only=True)
         fusion.load_state_dict(state["fusion"])

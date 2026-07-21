@@ -33,6 +33,29 @@ dev = [
 data = [
     "h5py",
 ]
+# LIBERO/robosuite closed-loop eval harness (E3). See eval/SIM_SETUP.md for
+# the full install story, pitfalls, and exact version pins this was
+# validated against on macOS ARM. mujoco must stay pinned <3.4 (robosuite's
+# controller code breaks on the mj_fullM() signature change in newer mujoco
+# Python bindings); numpy must land in [2.1, 2.5) to satisfy both numba's
+# ceiling and tensorflow's floor if tensorflow is also installed. The
+# `libero` package here (PyPI, HF's Lifelong-Robot-Learning/LIBERO mirror)
+# gives the benchmark/task registry only — it pins robosuite==1.4.0
+# internally and its env classes will NOT import against robosuite>=1.5
+# (see SIM_SETUP.md pitfall 8), and it ships no 3D assets (pitfall 7/"Not
+# attempted"). Actually instantiating a physics env currently needs a
+# separate venv with robosuite==1.4.0 plus an asset fetch — not installed
+# by this extra.
+sim = [
+    "mujoco==3.3.0",
+    "robosuite==1.5.2",
+    "libero==0.1.1",
+    "bddl==1.0.1",
+    "gymnasium",
+    "cloudpickle",
+    "future",
+    "jupytext",
+]
 
 [tool.setuptools.packages.find]
 include = ["microvla*"]

@@ -307,6 +307,40 @@ python -m preprocess.libero /data/libero_object  data/libero_object   # fine-tun
 python train/train_planner.py --data-dir data/bridge --device auto    # MPS on Apple silicon
 ```
 
+## Evaluation
+
+`eval/` closes the loop: `eval/policy.py::MicroVLAPolicy` wraps `JEPALoop` into
+a duck-typed `reset(instruction)` / `act(frame_rgb) -> action` policy (owning
+the `perception_period` real/dream schedule itself, independent of
+`cfg.tick_hz`/`cfg.real_frame_hz`, since that schedule is the E4 sweep knob),
+`eval/libero_eval.py::run_eval` drives it through a LIBERO suite (real sim,
+or the dependency-free `MockLiberoEnv` via `--mock-env`), `eval/sweep.py`
+runs the full perception-rate x {ours, persistence, linear} grid (paper.md
+E4/E5, with the τ→failure AUROC folded in for free), and `eval/scorecard.py`
+scores a checkpoint offline against a converted dataset's val split
+(rollout error vs persistence, innovation norms, planner BC loss — no env
+needed).
+
+```bash
+# Closed-loop LIBERO eval, one suite, real checkpoint:
+python -m eval.libero_eval --checkpoint checkpoints/full_stageB.pt \
+    --norm-stats data/libero/norm_stats.json --suite libero_object
+
+# Same, but dependency-free (no LIBERO/robosuite install, no sim, no
+# network) -- this is what CI runs; `--checkpoint none` also skips loading
+# trained weights for a pure harness smoke test:
+python -m eval.libero_eval --mock-env --checkpoint none --suite libero_object --n-trials 3
+
+# The perception-rate sweep (the paper's central result) against the mock env:
+python -m eval.sweep --mock-env --checkpoint none --periods 1 5 15 --n-trials 3
+
+# Offline scorecard: rollout error / innovation norms / BC loss, no sim at all:
+python eval/scorecard.py --checkpoint checkpoints/full_stageB.pt --data-dir data/libero
+```
+
+`eval_results/` (gitignored) collects the JSONL telemetry and JSON summaries
+from all three.
+
 ## Repo layout
 
 ```

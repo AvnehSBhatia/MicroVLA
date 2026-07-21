@@ -29,6 +29,9 @@ runs/
 *.npz
 data/
 
+# Eval outputs (telemetry JSONL + results JSON from eval/libero_eval.py)
+eval_results/
+
 # OS / editor
 .DS_Store
 .idea/

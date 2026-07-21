@@ -94,6 +94,10 @@ the emitted plan.
 - Plan orientation is **rows = timesteps (5), columns = servos (7)**. When the user says
   "5x7" they may state it either way — confirm against `plan_steps`/`num_servos` in config
   rather than assuming.
+- **Eval code must always keep a `--mock-env` path runnable without sim deps** — no LIBERO/
+  robosuite install, no network, no cv2 (see `eval/libero_eval.py::MockLiberoEnv`). Baselines
+  (`PersistenceTRM`, `LinearExtrapolationTRM`) live in `eval/` (`eval/baselines.py`), never in
+  `microvla/trm/`, which stays interface + mock + spec only.
 
 ## Layout
 
@@ -104,4 +108,6 @@ the emitted plan.
 episode `.npz` keys in `train/dataset.py`) · `preprocess/` (LIBERO + BridgeData V2
 converters, TinyVLA teacher distillation — never downloads data; `--dry-run` uses
 mocks; keep heavy deps (h5py, cv2) lazy and `norm_stats.json` paired with any
-checkpoint) · `tests/`.
+checkpoint) · `eval/` (closed-loop eval stack: `policy.py::MicroVLAPolicy`,
+`libero_eval.py::run_eval` + `MockLiberoEnv`, `baselines.py`, `sweep.py`,
+`scorecard.py`) · `tests/`.
