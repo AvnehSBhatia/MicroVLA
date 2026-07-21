@@ -41,11 +41,16 @@ the emitted plan.
 
 ## Hard rules
 
-- **The TRM is an open slot.** `microvla/trm/` may contain only the `TRMBase` interface,
-  `MockTRM`, and `TRM_SPEC.md`. Do not implement the real TRM or any TRM training code —
-  it is being built externally against `TRM_SPEC.md` (contract: `(fused [B,32,5],
-  state_delta [B,256]) -> [B,512]`, ~10M params). Its loss is documented in the spec and in
-  `train/losses.py::trm_loss_documentation()` but must stay unimplemented here.
+- **The TRM package is an interface-only slot; the real TRM lives at root `TRM.py`.**
+  `microvla/trm/` contains only the `TRMBase` interface, `MockTRM`, and `TRM_SPEC.md` —
+  keep it that way. The real implementation is `TRM.py::RecursiveTRM` (~9.5M params,
+  weight-tied recursion + FiLM drift conditioning, deliberately outside the package;
+  maintained by a collaborator — coordinate before restructuring it). Contract:
+  `(fused [B,32,5], state_delta [B,256]) -> [B,512]`; plug in via
+  `JEPALoop.build_real(trm=RecursiveTRM(cfg))`. Its training uses the external
+  deep-supervision loop via `refine_forward` with the spec §4 loss (`TRM.py::spec_loss`);
+  `python TRM.py` runs its self-test (param audit, contract checks, overfit smoke,
+  JEPA drop-in). `train/` still contains no TRM training code.
 - **Parameter budget is enforced.** Fusion ≤ 5.0M, drift ≤ 1.5M, planner ≤ 2.5M, total
   < `cfg.trainable_param_budget` (9M). `tests/test_param_budget.py` and the audit will fail
   the build otherwise; do not raise a cap without the user asking.
