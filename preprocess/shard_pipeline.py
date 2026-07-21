@@ -140,14 +140,29 @@ class _StatsReservoir:
         return ActionNormalizer.fit([np.stack(self.rows, axis=0)])
 
 
-def _download(url: str, dest: Path) -> Path:
-    """Downloads ``url`` with curl (resumable, fail-on-error)."""
+def _download(url: str, dest: Path, attempts: int = 4) -> Path:
+    """Downloads ``url`` with curl, surviving mid-transfer resets.
+
+    CDN stream resets (curl exits 56/92/18) abort a transfer without being
+    covered by ``--retry`` alone; each python-level attempt resumes the
+    partial file (``-C -``), so progress is never lost across resets.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["curl", "-L", "--fail", "--retry", "3", "-C", "-", "-o", str(dest), url],
-        check=True,
-    )
-    return dest
+    last_err: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            subprocess.run(
+                ["curl", "-sSL", "--fail", "-C", "-",
+                 "--retry", "5", "--retry-all-errors", "--retry-delay", "5",
+                 "--connect-timeout", "30", "-o", str(dest), url],
+                check=True,
+            )
+            return dest
+        except subprocess.CalledProcessError as err:  # transient reset: resume
+            last_err = err
+            logger.warning("download attempt %d/%d failed (curl %s), resuming: %s",
+                           attempt, attempts, err.returncode, url)
+    raise RuntimeError(f"download failed after {attempts} resume attempts: {url}") from last_err
 
 
 def _extract(archive: Path, dest: Path) -> Path:
@@ -235,14 +250,20 @@ def convert_shard(
 
 def finalize(out_dir: Path, reservoir: _StatsReservoir, manifest: list[dict],
              label_source: str) -> None:
-    """Fits global stats and rewrites every episode's pwm_targets in place."""
+    """Fits global stats and rewrites every episode's pwm_targets in place.
+
+    The RAW chunks are preserved under ``pwm_targets_raw`` so a later resume
+    (more shards -> new global stats) re-normalizes from raw instead of
+    double-normalizing already-finalized episodes.
+    """
     normalizer = reservoir.fit()
     normalizer.save(out_dir / "norm_stats.json")
     for entry in manifest:
         path = out_dir / entry["file"]
         with np.load(path) as data:
             arrays = {k: data[k] for k in data.files}
-        raw = arrays["pwm_targets"]
+        raw = arrays.get("pwm_targets_raw", arrays["pwm_targets"])
+        arrays["pwm_targets_raw"] = raw
         arrays["pwm_targets"] = normalizer(raw.reshape(-1, raw.shape[-1])).reshape(raw.shape)
         np.savez_compressed(path, **arrays)
     (out_dir / "manifest.json").write_text(
@@ -295,35 +316,71 @@ def run_shards(
 
     builder = EpisodeBuilder(cfg, mock=mock, device=device)
     reservoir = _StatsReservoir()
-    manifest: list[dict] = []
 
+    # --- Durable resume state: a crash or network failure must never cost
+    # completed shards. Episodes already on disk are skipped; the manifest is
+    # replayed from a JSONL journal; the stats reservoir is re-seeded from the
+    # existing episodes' (still-raw) action chunks.
+    done_file = out / "_done_shards.txt"
+    journal = out / "_manifest.jsonl"
+    done: set[str] = set(done_file.read_text().splitlines()) if done_file.exists() else set()
+    manifest: list[dict] = []
+    if journal.exists():
+        manifest = [json.loads(line) for line in journal.read_text().splitlines() if line.strip()]
+        for entry in manifest:
+            path = out / entry["file"]
+            if path.exists():
+                with np.load(path) as data:
+                    pwm = data["pwm_targets_raw"] if "pwm_targets_raw" in data.files else data["pwm_targets"]
+                reservoir.add(pwm.reshape(-1, pwm.shape[-1])[:: max(1, cfg.plan_steps)])
+        if done:
+            logger.info("resuming: %d shards done, %d episodes journaled", len(done), len(manifest))
+
+    failed: list[str] = []
     for i, shard in enumerate(shards):
+        if shard in done:
+            continue
         local = Path(shard)
         is_local = local.exists()
         logger.info("shard %d/%d: %s", i + 1, len(shards), shard)
 
-        if is_local:
-            shard_root = local if local.is_dir() else _extract_guarded(local, work, guard, delete_archive=False)
-        else:
-            # Remote: reserve headroom for download + extraction coexisting.
-            # Without a size hint we require 40% of the budget free — pick
-            # shards well under that.
-            guard.ensure(0.4 * budget_gb, f"downloading shard {shard}")
-            archive = downloader(shard, work / Path(shard.split("?")[0]).name)
-            shard_root = _extract_guarded(archive, work / f"shard_{i}", guard, delete_archive=True)
+        try:
+            if is_local:
+                shard_root = local if local.is_dir() else _extract_guarded(local, work, guard, delete_archive=False)
+            else:
+                # Remote: reserve headroom for download + extraction coexisting.
+                guard.ensure(0.4 * budget_gb, f"downloading shard {shard}")
+                archive = downloader(shard, work / Path(shard.split("?")[0]).name)
+                shard_root = _extract_guarded(archive, work / f"shard_{i}", guard, delete_archive=True)
 
-        n = convert_shard(
-            _episode_iter_for(dataset, shard_root, **(reader_kwargs or {})),
-            out, builder, reservoir, manifest,
-            teacher=teacher, limit=limit_per_shard,
-        )
-        logger.info("  shard done: %d episodes (disk used %.2f / %.0f GB)",
-                    n, guard.used_gb(), budget_gb)
+            n_before = len(manifest)
+            n = convert_shard(
+                _episode_iter_for(dataset, shard_root, **(reader_kwargs or {})),
+                out, builder, reservoir, manifest,
+                teacher=teacher, limit=limit_per_shard,
+            )
+            with journal.open("a") as f:
+                for entry in manifest[n_before:]:
+                    f.write(json.dumps(entry) + "\n")
+            with done_file.open("a") as f:
+                f.write(shard + "\n")
+            logger.info("  shard done: %d episodes (disk used %.2f / %.0f GB)",
+                        n, guard.used_gb(), budget_gb)
+        except RuntimeError as err:
+            if "disk budget" in str(err):
+                raise  # the hard cap is never soft-skipped
+            failed.append(shard)
+            logger.error("  shard FAILED (skipping, will retry on next run): %s", err)
+        finally:
+            if not is_local and work.exists():
+                shutil.rmtree(work)  # raw shard gone before the next download
 
-        if not is_local and work.exists():
-            shutil.rmtree(work)  # raw shard gone before the next download
         guard.ensure(0.0, "post-shard check")
 
+    if failed:
+        logger.warning("%d/%d shards failed this run; re-run the same command to "
+                       "retry just those (completed shards are journaled)",
+                       len(failed), len(shards))
     if not manifest:
         raise RuntimeError("no episodes converted — check shard contents/layout")
     finalize(out, reservoir, manifest,
