@@ -88,6 +88,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--checkpoint-dir", default="./checkpoints")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--trm-d", type=int, default=1024, help="RecursiveTRM width")
+    p.add_argument("--max-horizon", type=int, default=6,
+                   help="stage A: max data-rate rollout horizon (grows 1->max across "
+                        "epochs per TRM_SPEC section 5). Episodes shorter than horizon+1 "
+                        "are skipped.")
+    p.add_argument("--gamma", type=float, default=0.9,
+                   help="stage A: discount for the per-step rollout loss sum_k gamma^(k-1)*L_k.")
     p.add_argument("--ablate-grounding", action="store_true",
                    help="E7 (paper.md Claim 6): zero box_weight and centers everywhere in "
                         "_episode_real_paths, training the frame-only variant (no boxes, no "
@@ -177,47 +183,103 @@ def _episode_real_paths(episode, fusion, drift, device, ablate_grounding: bool =
     return fused_all, delta_all
 
 
-def _rollout(episode, t, fused_t, delta_t, fusion, trm, cfg, ticks: int):
-    """Deployment-exact latent rollout from real frame t to a prediction of t+1.
+def _rollout(episode, t, fused_t, delta_t, fusion, trm, cfg, horizon: int,
+             gamma: float = 0.9, ablate_grounding: bool = False):
+    """Data-rate multi-step rollout: predict frames[t+1..t+H], each supervised.
 
-    Call 1 uses the grounded fused matrix; calls 2..ticks re-fuse the fed-back
-    (standardized) prediction with the HELD boxes of frame t at
-    staleness-decayed evidence weights — exactly ``JEPALoop``'s dream path.
+    This is the TRM_SPEC.md section-5 rollout objective — the one that actually
+    tests and trains against COMPOUNDING error (an earlier version dreamed many
+    internal ticks toward the single target frame[t+1] with no intermediate
+    supervision, which drifted and never beat persistence). Here each step is
+    one real-data (2 Hz) frame:
+
+    * Step 1 is grounded (the real boxes/drift at t, ``fused_t``/``delta_t``).
+    * Steps 2..H are open-loop dreams: the fed-back standardized prediction
+      becomes the frame token, boxes are HELD from t at staleness-decayed
+      weight (deployment has no future boxes), the executed action is the
+      recorded ``pwm_targets`` (teacher-forced), and the drift code is held
+      (no new measurement during a rollout — matches the deployment loop).
+
+    Returns the discounted mean spec_loss over the H supervised steps. Caller
+    guarantees ``t + horizon < T``.
     """
     text = episode["text_tokens"].unsqueeze(0)
-    last_action = episode["pwm_targets"][t, 0].unsqueeze(0)  # executing this chunk
-    latent = episode["frame_embs"][t].unsqueeze(0)
-    ctx = [latent.squeeze(0)]
+    frames = episode["frame_embs"]
+    T = frames.shape[0]
 
-    pred = trm(fused_t, delta_t, latent,
-               context=torch.stack(ctx, 0).unsqueeze(0))
-    for k in range(1, ticks):
+    def _boxes(idx, fade):
+        z2 = frames.new_zeros(1, 2)
+        if ablate_grounding:
+            return (frames.new_zeros(1, cfg.vis_dim), frames.new_zeros(1, cfg.vis_dim),
+                    z2, z2, frames.new_zeros(1, 2))
+        return (episode["source_box_embs"][idx].unsqueeze(0),
+                episode["target_box_embs"][idx].unsqueeze(0),
+                episode["source_centers"][idx].unsqueeze(0),
+                episode["target_centers"][idx].unsqueeze(0),
+                episode["box_weights"][idx].unsqueeze(0) * fade)
+
+    latent = frames[t].unsqueeze(0)
+    ctx = [latent.squeeze(0)]
+    fused_k, delta_k = fused_t, delta_t
+    loss = torch.zeros((), device=frames.device)
+    wsum = 0.0
+    for k in range(1, horizon + 1):
+        pred = trm(fused_k, delta_k, latent,
+                   context=torch.stack(ctx[-cfg.context_window:], 0).unsqueeze(0))
+        w = gamma ** (k - 1)
+        loss = loss + w * spec_loss(pred, frames[t + k].unsqueeze(0))
+        wsum += w
+        if k == horizon:
+            break
+        # Feed back for the next step (open-loop dream).
         latent = standardize(pred)
         ctx.append(latent.squeeze(0).detach())
-        fade = cfg.staleness_decay ** k
-        fused_dream = fusion(
-            text,
-            latent,
-            episode["source_box_embs"][t].unsqueeze(0),
-            episode["target_box_embs"][t].unsqueeze(0),
-            episode["source_centers"][t].unsqueeze(0),
-            episode["target_centers"][t].unsqueeze(0),
-            box_weight=episode["box_weights"][t].unsqueeze(0) * fade,
-            last_action=last_action,
-        )
-        pred = trm(fused_dream, delta_t, latent,
-                   context=torch.stack(ctx[-cfg.context_window:], 0).unsqueeze(0))
-    return pred
+        sbe, tbe, sc, tc, bw = _boxes(t, cfg.staleness_decay ** k)
+        act_idx = min(t + k, T - 1)
+        last_action = episode["pwm_targets"][act_idx, 0].unsqueeze(0)
+        fused_k = fusion(text, latent, sbe, tbe, sc, tc, box_weight=bw, last_action=last_action)
+        # delta_k held: no measurement during the rollout.
+    return loss / wsum
+
+
+def _horizon_for_epoch(epoch: int, epochs: int, max_horizon: int) -> int:
+    """Scheduled rollout horizon: grow 1 -> max_horizon across the epochs.
+
+    TRM_SPEC.md section 5 mandates a curriculum (start 1-step, grow) so the
+    world model learns single-step prediction before being asked to control
+    compounding error over a long open-loop rollout.
+    """
+    if epochs <= 1:
+        return max_horizon
+    frac = (epoch - 1) / (epochs - 1)
+    return max(1, round(1 + (max_horizon - 1) * frac))
+
+
+def _persistence_loss(episode, t, horizon, cfg, gamma) -> float:
+    """Discounted 'predict no change' baseline over the same H-step horizon.
+
+    Uses the exact discounted-mean normalization :func:`_rollout` uses, so the
+    two numbers are directly comparable. The world model must beat this to
+    have learned any scene dynamics.
+    """
+    frames = episode["frame_embs"]
+    cur = frames[t].unsqueeze(0)
+    loss, wsum = 0.0, 0.0
+    for k in range(1, horizon + 1):
+        w = gamma ** (k - 1)
+        loss += w * float(spec_loss(cur, frames[t + k].unsqueeze(0)))
+        wsum += w
+    return loss / wsum
 
 
 def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
-    """World-model training: rollout prediction of the next real embedding."""
-    ticks = args.ticks_per_meas or int(round(cfg.tick_hz / cfg.real_frame_hz))
+    """World-model training: scheduled-horizon data-rate rollout (TRM_SPEC S5)."""
     params = [*fusion.parameters(), *drift.parameters(), *trm.parameters()]
     opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-2)
     rng = random.Random(args.seed)
 
     for epoch in range(1, args.stage_a_epochs + 1):
+        H = _horizon_for_epoch(epoch, args.stage_a_epochs, args.max_horizon)
         fusion.train(); drift.train(); trm.train()
         order = list(data.train_index)
         rng.shuffle(order)
@@ -228,37 +290,39 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
         for key in order:
             episode = {k: v.to(device) for k, v in data.get(key).items()}
             T = episode["frame_embs"].shape[0]
-            if T < 2:
+            if T < H + 1:
                 continue
             fused_all, delta_all = _episode_real_paths(
                 episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
             )
-            ts = list(range(T - 1))
+            ts = list(range(T - H))
             rng.shuffle(ts)
             ts = ts[: args.segments_per_episode]
+            if not ts:
+                continue
 
             opt.zero_grad()
             loss = torch.zeros((), device=device)
             for t in ts:
-                pred = _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, ticks)
-                loss = loss + spec_loss(pred, episode["frame_embs"][t + 1].unsqueeze(0))
-            loss = loss / max(len(ts), 1)
+                loss = loss + _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm,
+                                       cfg, H, args.gamma, args.ablate_grounding)
+            loss = loss / len(ts)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
             opt.step()
             run_loss += float(loss.detach()); n_seg += 1
 
-        val, persistence = evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks)
+        val, persistence = evaluate_world(args, cfg, data, fusion, drift, trm, device, H)
         verdict = "BEATS persistence" if val < persistence else "not yet below persistence"
-        print(f"[stage A] epoch {epoch}/{args.stage_a_epochs} | train {run_loss / max(n_seg,1):.4f} "
+        print(f"[stage A] epoch {epoch}/{args.stage_a_epochs} | H={H} | train {run_loss / max(n_seg,1):.4f} "
               f"| val {val:.4f} vs persistence {persistence:.4f} ({verdict}) "
-              f"| {time.time()-t0:.0f}s | ticks/meas={ticks}", flush=True)
+              f"| {time.time()-t0:.0f}s", flush=True)
         save(args, cfg, _tagged_name("full_stageA.pt", args.tag), fusion=fusion, drift=drift, trm=trm)
 
 
 @torch.no_grad()
-def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> tuple[float, float]:
-    """Val rollout loss AND the persistence baseline (predict next = current).
+def evaluate_world(args, cfg, data, fusion, drift, trm, device, horizon) -> tuple[float, float]:
+    """Val H-step rollout loss AND the discounted persistence baseline.
 
     The pass/fail bar for "the world model learned anything": val loss must
     drop BELOW the persistence baseline — otherwise the TRM is just leaning
@@ -269,16 +333,15 @@ def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> tuple[
     for key in data.val_index[:64]:
         episode = {k: v.to(device) for k, v in data.get(key).items()}
         T = episode["frame_embs"].shape[0]
-        if T < 2:
+        if T < horizon + 1:
             continue
         fused_all, delta_all = _episode_real_paths(
             episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
         )
-        for t in range(0, T - 1, max(1, (T - 1) // 4)):
-            target = episode["frame_embs"][t + 1].unsqueeze(0)
-            pred = _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, ticks)
-            losses.append(float(spec_loss(pred, target)))
-            base.append(float(spec_loss(episode["frame_embs"][t].unsqueeze(0), target)))
+        for t in range(0, T - horizon, max(1, (T - horizon) // 4)):
+            losses.append(float(_rollout(episode, t, fused_all[t], delta_all[t], fusion, trm,
+                                         cfg, horizon, args.gamma, args.ablate_grounding)))
+            base.append(_persistence_loss(episode, t, horizon, cfg, args.gamma))
     n = max(len(losses), 1)
     return sum(losses) / n, sum(base) / n
 
