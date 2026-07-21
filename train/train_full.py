@@ -195,16 +195,24 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
             opt.step()
             run_loss += float(loss.detach()); n_seg += 1
 
-        val = evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks)
+        val, persistence = evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks)
+        verdict = "BEATS persistence" if val < persistence else "not yet below persistence"
         print(f"[stage A] epoch {epoch}/{args.stage_a_epochs} | train {run_loss / max(n_seg,1):.4f} "
-              f"| val {val:.4f} | {time.time()-t0:.0f}s | ticks/meas={ticks}", flush=True)
+              f"| val {val:.4f} vs persistence {persistence:.4f} ({verdict}) "
+              f"| {time.time()-t0:.0f}s | ticks/meas={ticks}", flush=True)
         save(args, cfg, "full_stageA.pt", fusion=fusion, drift=drift, trm=trm)
 
 
 @torch.no_grad()
-def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> float:
+def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> tuple[float, float]:
+    """Val rollout loss AND the persistence baseline (predict next = current).
+
+    The pass/fail bar for "the world model learned anything": val loss must
+    drop BELOW the persistence baseline — otherwise the TRM is just leaning
+    on its residual skip connection.
+    """
     fusion.eval(); drift.eval(); trm.eval()
-    losses = []
+    losses, base = [], []
     for key in data.val_index[:64]:
         episode = {k: v.to(device) for k, v in data.get(key).items()}
         T = episode["frame_embs"].shape[0]
@@ -212,9 +220,12 @@ def evaluate_world(args, cfg, data, fusion, drift, trm, device, ticks) -> float:
             continue
         fused_all, delta_all = _episode_real_paths(episode, fusion, drift, device)
         for t in range(0, T - 1, max(1, (T - 1) // 4)):
+            target = episode["frame_embs"][t + 1].unsqueeze(0)
             pred = _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, ticks)
-            losses.append(float(spec_loss(pred, episode["frame_embs"][t + 1].unsqueeze(0))))
-    return sum(losses) / max(len(losses), 1)
+            losses.append(float(spec_loss(pred, target)))
+            base.append(float(spec_loss(episode["frame_embs"][t].unsqueeze(0), target)))
+    n = max(len(losses), 1)
+    return sum(losses) / n, sum(base) / n
 
 
 def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
