@@ -11,14 +11,29 @@ modality dropout, so dream mode is a trained mode, not an untested fallback.
     camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ─── perceive + corrector.on_measurement
                   └─ other 14 ticks ──────── DREAM TICK ─── corrector.correct(pending_pred)
                                                                       │
-                              fusion -> drift -> TRM -> next_emb ────┘
+              fusion(…, held boxes x decayed weight, last action) ───┘
+                    -> TRM(fused, held drift code, current latent) -> next_emb
                                                                       │
-                                            planner(next_emb) * corrector.trust -> plan
+        plan = tau * planner(next_emb) + (1 - tau) * previous plan  (hold-blend)
+        executed action = plan[0], fed back to fusion next tick
+
+v3 semantics (per the architecture review):
+    * Box evidence is HELD from the last real tick during dreams, with its
+      weight decayed by ``staleness_decay ** k`` — objects don't teleport in
+      33 ms, so v2's zeroing threw away near-perfect information.
+    * The drift encoder steps on REAL ticks only; its code is held constant
+      across dreams (state change is a summary of *measured* evidence).
+    * Low trust blends the plan toward the previously emitted plan (hold),
+      never toward servo-neutral: scaling absolute PWM targets toward zero
+      would command a real motion to the mid-range pose.
+    * The dream latent is re-standardized after correction so fusion always
+      sees the canonical embedding space it was trained on.
 """
 
 from __future__ import annotations
 
 import logging
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable, List, Optional
 
@@ -30,8 +45,10 @@ from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.jepa.corrector import InnovationCorrector
 from microvla.perception.yolo_world import Perception
 from microvla.planner.chrono_planner import ChronoQueryPlanner
+from microvla.perception.command_parser import strip_article
 from microvla.trm.interface import TRMBase
 from microvla.trm.mock_trm import MockTRM
+from microvla.utils.embedding import standardize
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, no runtime import cost
     from microvla.perception.text_encoder import TaskEncoding
@@ -55,9 +72,11 @@ class TickResult:
             one step ahead; carried forward as the next tick's
             ``pending_pred``.
         plan: ``[plan_steps, num_servos]`` = ``[5, 7]`` in ``[-1, 1]``,
-            already scaled by ``trust``.
-        trust: Current corrector trust ``tau`` (the scale factor applied to
-            ``plan``).
+            already trust-blended: ``tau * new_plan + (1 - tau) * previous
+            emitted plan`` (low trust holds the current commands rather than
+            moving toward servo-neutral). Row 0 is the action executed this
+            tick; rows 1+ are the receding horizon at 1-tick spacing.
+        trust: Current corrector trust ``tau`` (the blend factor).
         perception: The raw dual-box :class:`Perception` on real ticks;
             ``None`` on dream ticks (no camera frame was consumed).
     """
@@ -116,6 +135,15 @@ class JEPALoop:
         self._task: Optional["TaskEncoding"] = None
         self._pending_pred: Optional[torch.Tensor] = None
         self._seen_real: bool = False
+        # Held evidence between real ticks (v3):
+        self._last_percept: Optional[Perception] = None   # last REAL boxes
+        self._last_state_delta: Optional[torch.Tensor] = None  # [1, state_dim]
+        self._dream_k: int = 0                            # dream ticks since real
+        self._last_plan: Optional[torch.Tensor] = None    # [plan_steps, num_servos]
+        self._last_action: Optional[torch.Tensor] = None  # [num_servos], executed row 0
+        # Rolling window of the latents that drove recent ticks (oldest ->
+        # newest), handed to the TRM as its context window each call.
+        self._latent_ctx: deque[torch.Tensor] = deque(maxlen=cfg.context_window)
 
     def set_task(self, text: str) -> None:
         """Sets the language task for the episode.
@@ -140,12 +168,21 @@ class JEPALoop:
         parsed = self._task.parsed
         # One active class when the command has no distinct destination —
         # duplicate class strings would otherwise occupy two class ids.
-        classes = [parsed.source] if parsed.source == parsed.target else [parsed.source, parsed.target]
+        # Detector class prompts are article-stripped ("the red cup" ->
+        # "red cup"); the embeddings keep the full phrases.
+        src, tgt = strip_article(parsed.source), strip_article(parsed.target)
+        classes = [src] if src == tgt else [src, tgt]
         self.perception.set_classes(classes)
         self.drift.reset()
         self.corrector.reset()
         self._pending_pred = None
         self._seen_real = False
+        self._last_percept = None
+        self._last_state_delta = None
+        self._dream_k = 0
+        self._last_plan = None
+        self._last_action = None
+        self._latent_ctx.clear()
 
     def tick(self, frame_bgr=None) -> TickResult:
         """Advances the loop by one 30 Hz tick.
@@ -175,13 +212,24 @@ class JEPALoop:
             text_tokens = self._task.tokens().unsqueeze(0)  # [1, 3, text_dim]
             is_real = frame_bgr is not None
 
+            last_action = (
+                self._last_action.unsqueeze(0)
+                if self._last_action is not None
+                else torch.zeros(1, self.cfg.num_servos)
+            )
+
             if is_real:
                 percept = self.perception.perceive(frame_bgr)
-                frame_emb = percept.frame_emb  # [vis_dim]
+                frame_emb = percept.frame_emb  # [vis_dim], standardized
 
                 if self._pending_pred is not None:
                     self.corrector.on_measurement(self._pending_pred, frame_emb)
 
+                # Evidence weight per role = detection confidence (fresh).
+                box_weight = torch.tensor(
+                    [[percept.source.confidence, percept.target.confidence]],
+                    dtype=torch.float32,
+                )
                 fused = self.fusion(
                     text_tokens,
                     frame_emb.unsqueeze(0),
@@ -189,12 +237,18 @@ class JEPALoop:
                     percept.target.emb.unsqueeze(0),
                     percept.source.center.unsqueeze(0),
                     percept.target.center.unsqueeze(0),
-                    dream=False,
+                    box_weight=box_weight,
+                    last_action=last_action,
                 )  # [1, 32, 5]
+
+                # Drift steps on measured evidence only.
                 state_delta = self.drift(frame_emb.unsqueeze(0))  # [1, 256]
+                self._last_state_delta = state_delta
 
                 latent = frame_emb
                 out_perception: Optional[Perception] = percept
+                self._last_percept = percept
+                self._dream_k = 0
                 self._seen_real = True
             else:
                 if not self._seen_real:
@@ -204,29 +258,60 @@ class JEPALoop:
                         "tick(frame_bgr=...) at least once after set_task()."
                     )
                 assert self._pending_pred is not None  # implied by _seen_real
-                latent = self.corrector.correct(self._pending_pred)  # [vis_dim]
+                assert self._last_percept is not None and self._last_state_delta is not None
 
-                zero_box = torch.zeros(1, self.cfg.vis_dim, dtype=latent.dtype)
-                zero_center = torch.zeros(1, 2, dtype=latent.dtype)
+                # Corrected latent, re-standardized into the canonical space
+                # fusion/TRM were trained on.
+                latent = standardize(self.corrector.correct(self._pending_pred))
 
+                # Hold the last REAL boxes; fade their evidence weight with
+                # staleness (objects don't teleport between measurements).
+                self._dream_k += 1
+                held = self._last_percept
+                fade = self.cfg.staleness_decay ** self._dream_k
+                box_weight = torch.tensor(
+                    [[held.source.confidence * fade, held.target.confidence * fade]],
+                    dtype=torch.float32,
+                )
                 fused = self.fusion(
                     text_tokens,
                     latent.unsqueeze(0),
-                    zero_box,
-                    zero_box,
-                    zero_center,
-                    zero_center,
-                    dream=True,
+                    held.source.emb.unsqueeze(0),
+                    held.target.emb.unsqueeze(0),
+                    held.source.center.unsqueeze(0),
+                    held.target.center.unsqueeze(0),
+                    box_weight=box_weight,
+                    last_action=last_action,
                 )  # [1, 32, 5]
-                state_delta = self.drift(latent.unsqueeze(0))  # [1, 256]
+
+                # Drift code held: no measurement, no state update.
+                state_delta = self._last_state_delta
 
                 out_perception = None
 
-            next_emb = self.trm(fused, state_delta)  # [1, 512]
+            # TRM context window: the latents that drove the previous ticks.
+            context = (
+                torch.stack(list(self._latent_ctx), dim=0).unsqueeze(0)  # [1, K, 512]
+                if self._latent_ctx
+                else None
+            )
+            next_emb = self.trm(fused, state_delta, latent.unsqueeze(0), context=context)
             next_emb_unbatched = next_emb.squeeze(0)  # [512]
             self._pending_pred = next_emb_unbatched
+            self._latent_ctx.append(latent)
 
-            plan = self.planner(next_emb) * self.corrector.trust  # [1, plan_steps, num_servos]
+            raw_plan = self.planner(next_emb).squeeze(0)  # [plan_steps, num_servos]
+
+            # Trust-blend toward HOLD (the previously emitted plan), never
+            # toward zero: zero is a real commanded pose (servo mid-range),
+            # not the absence of motion.
+            tau = self.corrector.trust
+            if self._last_plan is None:
+                plan = raw_plan
+            else:
+                plan = tau * raw_plan + (1.0 - tau) * self._last_plan
+            self._last_plan = plan
+            self._last_action = plan[0]  # row 0 is executed this tick
 
         return TickResult(
             is_real=is_real,
@@ -234,7 +319,7 @@ class JEPALoop:
             fused=fused.squeeze(0),
             state_delta=state_delta.squeeze(0),
             next_emb=next_emb_unbatched,
-            plan=plan.squeeze(0),
+            plan=plan,
             trust=self.corrector.trust,
             perception=out_perception,
         )

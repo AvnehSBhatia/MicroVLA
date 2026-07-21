@@ -8,8 +8,9 @@ total** — that turn "task text + video stream" into normalized 7-servo PWM
 plans. A 30 Hz JEPA-style latent rollout runs real perception at 2 Hz and
 fills the other 14-of-every-15 ticks with a corrected world-model
 prediction, so the control loop stays fast even though the detector doesn't.
-A ~10M-param Tiny Recursive Model (TRM) slot sits in the middle of the
-stack, fully specified but built externally.
+A ~10M-param Tiny Recursive Model (TRM) sits in the middle of the stack —
+interface and spec in `microvla/trm/`, real implementation at the repo root
+(`TRM.py::RecursiveTRM`, ~9.5M params, residual world model).
 
 `DESIGN.md` is the binding architecture contract; this README is the tour.
 
@@ -28,20 +29,26 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
               │     target box: emb [512] + center [2]   (per-class best box)     │
               └─ other 14 ticks ─── DREAM TICK ────────────────────────────────┐  │
                     frame token = corrected TRM prediction [512]               │  │
-                    box + geometry tokens zeroed (same path as                 │  │
-                    train-time modality_dropout → dream mode is trained)       ▼  ▼
-  SlotResonanceFusion: 32 slots cross-attend over
-      [cmd | src | tgt | frame | src-box | tgt-box | geometry] ──► fused [32, 5]
+                    boxes HELD from last real tick, evidence weight            │  │
+                    decayed by staleness (trained via modality_dropout         │  │
+                    evidence fade — the same weighting continuum)              ▼  ▼
+  SlotResonanceFusion: 32 slots cross-attend over 8 role-tagged tokens
+      [cmd | src | tgt | frame | src-box | tgt-box | geometry | last action]
+      (box/geometry tokens scaled by confidence × freshness)  ──► fused [32, 5]
                                                                         │
-  AnchoredDriftEncoder (anchor = first REAL frame, GRU accum) ──► state_delta [256]
+  AnchoredDriftEncoder (anchor = first REAL frame, GRU accum,
+                        steps on REAL ticks only)             ──► state_delta [256]
                                                                         │
-  TRM — OPEN SLOT (~10M, built externally)                             ▼
-      forward(fused [B,32,5], state_delta [B,256]) -> next_emb [B,512]
+  TRM (TRM.py::RecursiveTRM, ~9.5M — residual world model)             ▼
+      forward(fused [B,32,5], state_delta [B,256], current_emb [B,512])
+        -> next_emb [B,512]  (= current + predicted change)
                      │
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
-  ChronoQueryPlanner(next_emb [512]) ──► plan [5, 7] in [-1, 1], scaled by trust τ
-      rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM
+  ChronoQueryPlanner(next_emb [512]) ──► raw plan [5, 7] in [-1, 1]
+      emitted plan = τ·raw + (1−τ)·previous plan (trust HOLD-blend)
+      rows = 5 sequential timesteps (1/30 s apart; row 0 executed now,
+      fed back as the action token), cols = 7 servos, normalized PWM
 ```
 
 Two ways to run the stack:
@@ -55,41 +62,49 @@ Two ways to run the stack:
 ## What is novel in each trainable module
 
 **Slot Resonance Fusion** (`microvla/fusion/slot_fusion.py`, ≤5.0M params,
-target ~4.5M). Seven role-tagged tokens — 3 text tokens (command, source,
-target), the frame token, the source-box token, the target-box token, and a
+target ~4.5M). Eight role-tagged tokens — 3 text tokens (command, source,
+target), the frame token, the source-box token, the target-box token, a
 Fourier-encoded geometry token built from `[fourier(src_center),
-fourier(tgt_center), fourier(tgt_center − src_center)]` — are projected to a
-shared `d_model=384` space with a learned per-position role embedding. The
-COMMAND embedding FiLM-modulates (scale + shift) the frame and box tokens,
-so *what* the robot was told to do reshapes how it looks at the scene before
-attention even runs. 32 learned slot queries then run 3 rounds of
-pre-LN multi-head cross-attention over the 7 tokens, and a shared low-rank
-head compresses every slot down to 5 numbers — the tiny, structured
-`[32, 5]` interface the TRM consumes.
+fourier(tgt_center), fourier(tgt_center − src_center), box_weights]`, and an
+action token carrying the previously executed servo command — are projected
+to a shared `d_model=384` space with a learned per-position role embedding.
+The COMMAND embedding FiLM-modulates (scale + shift) the frame and box
+tokens, so *what* the robot was told to do reshapes how it looks at the
+scene before attention even runs. 32 learned slot queries then run 3 rounds
+of pre-LN multi-head cross-attention over the 8 tokens, and a shared
+low-rank head compresses every slot down to 5 numbers — the tiny,
+structured `[32, 5]` interface the TRM consumes.
 
-The genuinely novel bit is that **dream mode is not a separate inference
-hack — it's the same code path as training-time modality dropout.**
-Whenever `dream=True` *or* a per-sample Bernoulli draw at probability
-`cfg.modality_dropout` fires during training, the source-box, target-box,
-and geometry tokens are zeroed and the frame token is all the model gets
-(plus text). At inference, the JEPA loop's dream ticks pass the
-*corrected TRM prediction* as that frame token through the exact same
-branch. Because modality dropout is trained with `modality_dropout=0.3` by
-default, the network has already learned to plan from a degraded,
-detector-free observation — dreaming isn't a fallback the model has never
-seen, it's a regime it was explicitly optimized for.
+The genuinely novel bit is **continuous evidence weighting shared between
+training and dreaming.** Every box token (and the geometry token) is scaled
+by `box_weight = confidence × freshness`: real ticks pass the detector's
+confidence, dream ticks hold the last real boxes and decay their weight by
+`staleness_decay^k` (objects don't teleport in 33 ms — zeroing them, as v2
+did, threw away near-perfect information), and a genuinely missed detection
+passes weight 0 — which also disambiguates the center-frame fallback from a
+real object at frame center. Train-time `modality_dropout` fades the same
+weights by a random factor, so by the time the JEPA loop dreams, the network
+has been trained on the entire evidence-decay continuum it will actually
+see. An eighth **action token** carries the previously executed servo
+command (plan row 0), so the world model learns *controlled* dynamics — it
+knows what the arm was just told to do.
 
 **Anchored Drift Encoder** (`microvla/aux_state/drift_encoder.py`, ≤1.5M
-params, target ~0.9M). Rather than encoding absolute scene state, it anchors
-on the first REAL frame of the episode and encodes *drift*:
-`[frame_emb − anchor, frame_emb ⊙ anchor]` (`[B, 1024]`), projected and
-sigmoid-gated, then accumulated by a `GRUCell(256, 256)` whose hidden state
-is detached between steps. The output — LayerNorm'd `state_delta [256]` — is
-"how far has the world moved since the task started," exactly the progress
-signal a recurrent predictor needs. Because dream ticks feed it the
-corrected latent (not raw detections), the drift encoder effectively runs at
-the full 30 Hz tick rate while its anchor stays pinned to the last real
-measurement.
+params, ~0.73M). Rather than encoding absolute scene state, it encodes
+*multi-timescale drift* against a **context window**: a rolling memory of
+the last 8 real-frame embeddings plus the episode anchor (the first REAL
+frame). Each step builds one drift token per reference — anchor, and lags
+1/2/4/8 frames (≈0.5–4 s at 2 Hz) — from `[emb − ref, emb ⊙ ref]` with a
+shared projection and learned horizon embeddings; a learned-query attention
+pool reads the window, a sigmoid gate filters it, and a `GRUCell(256, 256)`
+still accumulates context older than the window. The LayerNorm'd
+`state_delta [256]` is "how the world has been moving, at every timescale
+that matters," not just a first-vs-latest diff. It steps on REAL ticks only
+— held constant across dream ticks — so the summary integrates measured
+evidence, never accumulated imagination. The TRM additionally receives its
+own **latent context window** (the last 8 tick latents, compressed by two
+learned fast/slow decay profiles inside `RecursiveTRM`), so the world model
+sees recent trajectory, not just the current instant.
 
 **Chrono-Query Planner** (`microvla/planner/chrono_planner.py`, ≤2.5M
 params, target ~1.6M). The predicted next-frame embedding is reshaped into 8
@@ -104,14 +119,17 @@ training loss.
 A Kalman-lite complementary filter that is the glue making dream ticks safe.
 On every real measurement it computes the innovation
 `e = real_emb − pending_pred` and EMAs it into a correction vector
-`c ← β·c + (1−β)·e`, and sets a trust score
-`τ = sigmoid(trust_temperature · (cosine(pred, real) − 0.5))` — high when
-the last prediction actually matched reality, low when it didn't. Each
-subsequent dream tick applies a *decaying* fraction of that correction,
-`pred + decay^k · c`, so the influence of a stale measurement fades out
-across the 14-tick gap instead of persisting undamped. `τ` also directly
-scales the emitted plan (`plan = planner(next_emb) * τ`), so the robot backs
-off its own confidence exactly when its world model has been drifting.
+`c ← β·c + (1−β)·e`, and sets a **self-calibrating** trust score from the
+error *ratio*: `τ = exp(−½·(‖e‖/err_bar)²·temp/4)`, where `err_bar` is an
+EMA of recent innovation norms. There is deliberately no fixed cosine
+threshold — standardized frame embeddings of a near-static scene are always
+highly correlated, so absolute-cosine trust would saturate; instead the TRM
+is compared against its *own recent accuracy*. Each dream tick applies a
+*decaying* fraction of the correction, `pred + decay^k · c` (then
+re-standardized into the canonical space). Low trust **hold-blends** the
+plan — `τ·new + (1−τ)·previous` — freezing current commands rather than
+scaling absolute PWM targets toward the mid-range pose (which would be a
+real, possibly large, commanded motion).
 
 ## JEPA at 30 Hz
 
@@ -120,8 +138,9 @@ The control loop (`microvla/jepa/loop.py`) ticks at `cfg.tick_hz = 30`. Every
 **real tick**: YOLO-World-S actually runs on the camera frame at
 `cfg.real_frame_hz = 2` Hz, producing grounded source/target boxes. The
 other 14 of every 15 ticks are **dream ticks**: no frame is consumed; the
-corrected TRM prediction from the previous tick is fed back through
-fusion's dream path (see above) and a new prediction is produced. Story: **2
+corrected (re-standardized) TRM prediction from the previous tick becomes
+the frame token, the last real boxes are held with staleness-decayed
+evidence weights, and a new prediction is produced. Story: **2
 Hz real perception, 28 Hz latent dreaming** — the servo plan updates at the
 full 30 Hz tick rate even though the camera/detector only contributes once
 every half second.
@@ -141,7 +160,8 @@ keeps the 14-tick-long open-loop stretches from drifting unchecked.
 
 | item | budget |
 |---|---:|
-| YOLO-World-S (frozen, incl. its CLIP text tower, used once per task) | ~13M |
+| YOLO-World-S detector (frozen, resident at runtime) | ~13M |
+| CLIP text tower (separate ~63M model; runs ONCE per task at `set_classes`, precomputable offline — NOT resident on-device) | 0 resident |
 | TRM (open slot, reserved) | 10M |
 | **Trainable heads total (hard cap `cfg.trainable_param_budget`)** | **9M** |
 | — SlotResonanceFusion | ≤5.0M (target ~4.5M) |
@@ -161,30 +181,31 @@ python -m microvla.utils.param_audit
 
 ## The TRM slot (handoff)
 
-The TRM predicts the *next* YOLO-World frame embedding from the fused
-task/perception matrix and the drift code. Its I/O contract, 10M budget,
-recommended Tiny-Recursive-Model architecture, and (documented-only)
-training loss are specified in
-[`microvla/trm/TRM_SPEC.md`](microvla/trm/TRM_SPEC.md). To slot a real TRM
-into the deployment loop, subclass `TRMBase` and pass it to
-`JEPALoop.build_real`:
+The TRM predicts the *next* frame embedding (residually, on top of the
+current one) from the fused task/perception matrix, the drift code, and the
+current latent. Contract, 10M param budget, **FLOPs budget**, recommended
+architecture, and (documented-only) training loss live in
+[`microvla/trm/TRM_SPEC.md`](microvla/trm/TRM_SPEC.md) — read the
+"CONTRACT CHANGE (v3)" box first. The real implementation already exists at
+the repo root: `TRM.py::RecursiveTRM` (~9.5M params, weight-tied recursion,
+FiLM drift conditioning, single-pass inference). Wire it in with:
 
 ```python
-import torch.nn as nn
-from microvla import JEPALoop, TRMBase, DEFAULT_CONFIG
+from microvla import JEPALoop, DEFAULT_CONFIG
+from TRM import RecursiveTRM
 
+loop = JEPALoop.build_real(DEFAULT_CONFIG, trm=RecursiveTRM(DEFAULT_CONFIG))
+loop.set_task("move can to ball")
+```
+
+Any alternative implementation just subclasses `TRMBase`:
+
+```python
 class MyTRM(TRMBase):
-    def __init__(self, cfg):
-        super().__init__()
-        ...  # ~10M params: embed fused [32,5] as 32 tokens, condition on
-        # state_delta [256] (prepended token or FiLM), recurse a weight-tied
-        # block K~4-8 times, head -> 512. See TRM_SPEC.md.
-
-    def forward(self, fused, state_delta):
-        # fused [B, 32, 5], state_delta [B, 256] -> next_emb [B, 512]
+    def forward(self, fused, state_delta, current_emb):
+        # fused [B,32,5], state_delta [B,256], current_emb [B,512]
+        # -> next_emb [B,512]  (return current_emb + predicted_delta)
         ...
-
-loop = JEPALoop.build_real(DEFAULT_CONFIG, trm=MyTRM(DEFAULT_CONFIG))
 ```
 
 If no TRM is passed, `build_real` logs a warning and falls back to the

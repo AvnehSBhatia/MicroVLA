@@ -165,3 +165,83 @@ class TestInnovationCorrector:
         orthogonal.on_measurement(pred, real_orthogonal)
 
         assert orthogonal.trust < aligned.trust
+
+
+class TestV3Behaviors:
+    """Fixes from the architecture review: self-calibrating trust, plan
+    hold-blending, action feedback, and held (not zeroed) dream evidence."""
+
+    def test_trust_is_self_calibrating(self):
+        """A typical-sized error keeps tau moderate; a spike tanks it."""
+        corr = InnovationCorrector(CFG)
+        base = torch.randn(CFG.vis_dim)
+        # Establish a baseline of similar-sized innovations.
+        for _ in range(5):
+            corr.on_measurement(base, base + 0.1 * torch.randn(CFG.vis_dim))
+        tau_baseline = corr.trust
+        # A 20x error spike must produce much lower trust than baseline.
+        corr.on_measurement(base, base + 2.0 * torch.randn(CFG.vis_dim))
+        assert corr.trust < tau_baseline * 0.5
+        # Near-zero error must push trust toward 1.
+        corr.on_measurement(base, base + 1e-4 * torch.randn(CFG.vis_dim))
+        assert corr.trust > 0.9
+
+    def test_low_trust_blends_toward_previous_plan_not_zero(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        first = loop.tick(_frame(0))
+        # Force distrust and take a dream tick: the emitted plan must stay
+        # close to the previously emitted plan, NOT collapse toward zero.
+        loop.corrector.tau = 0.0
+        dream = loop.tick(None)
+        assert torch.allclose(dream.plan, first.plan, atol=1e-6)
+        assert dream.plan.abs().sum() > 0 or first.plan.abs().sum() == 0
+
+    def test_plan_row0_feeds_back_as_last_action(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        result = loop.tick(_frame(0))
+        assert loop._last_action is not None
+        assert torch.allclose(loop._last_action, result.plan[0])
+
+    def test_dream_ticks_hold_last_real_boxes_with_decaying_weight(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        real = loop.tick(_frame(0))
+        assert real.perception is not None
+        held_conf = real.perception.source.confidence
+        loop.tick(None)
+        loop.tick(None)
+        # After 2 dream ticks the internal staleness counter must be 2 and
+        # the held percept must still be the real tick's.
+        assert loop._dream_k == 2
+        assert loop._last_percept is real.perception
+        expected_w = held_conf * CFG.staleness_decay**2
+        assert 0.0 < expected_w < held_conf
+
+    def test_dream_latent_is_standardized(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        loop.tick(_frame(0))
+        dream = loop.tick(None)
+        assert abs(float(dream.latent.mean())) < 1e-3
+        assert abs(float(dream.latent.std(unbiased=False)) - 1.0) < 1e-2
+
+    def test_drift_code_held_constant_across_dream_ticks(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        loop.tick(_frame(0))
+        d1 = loop.tick(None).state_delta
+        d2 = loop.tick(None).state_delta
+        assert torch.equal(d1, d2), "drift must not step on dream ticks"
+
+    def test_trm_context_window_fills_and_caps(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        loop.tick(_frame(0))
+        assert len(loop._latent_ctx) == 1
+        for i in range(CFG.context_window + 3):
+            loop.tick(None)
+        assert len(loop._latent_ctx) == CFG.context_window
+        loop.set_task("grab the mug")
+        assert len(loop._latent_ctx) == 0, "set_task must clear the context window"

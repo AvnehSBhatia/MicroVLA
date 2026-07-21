@@ -32,26 +32,35 @@ class TRMBase(nn.Module, abc.ABC):
           the output of
           :class:`~microvla.fusion.slot_fusion.SlotResonanceFusion`. Each of
           the 32 rows is a learned slot's low-rank summary of the current
-          (text, frame, box, geometry) observation on a real tick, or of the
-          dream-mode observation (frame token = corrected TRM prediction,
-          box/geometry tokens zeroed) on a dream tick; values are
-          unconstrained reals.
+          (text, frame, boxes, geometry, action) observation on a real tick,
+          or of the dream observation (frame token = corrected TRM
+          prediction; held last-real boxes at staleness-decayed evidence
+          weight) on a dream tick; values are unconstrained reals.
         * ``state_delta``: ``[B, cfg.state_dim=256]`` float32 — the output of
           :class:`~microvla.aux_state.drift_encoder.AnchoredDriftEncoder`, a
           LayerNorm'd code summarizing how far the scene has drifted from the
           episode's anchor (first REAL) frame. Exactly zero on the anchor
-          frame itself (zero drift by definition). At dream ticks the drift
-          encoder is fed the corrected latent, so this runs at the full
-          ``cfg.tick_hz`` (30 Hz), not just at real-frame rate.
+          frame itself (zero drift by definition). Updated on REAL ticks only
+          (held constant across dream ticks) so it summarizes measured
+          evidence, not accumulated imagination.
+        * ``current_emb``: ``[B, cfg.vis_dim=512]`` float32 — the frame
+          embedding driving THIS tick (real standardized YOLO embedding on a
+          real tick; corrected, re-standardized TRM latent on a dream tick).
+          Giving the TRM the current latent directly removes the 160-float
+          fusion bottleneck from the prediction path: the TRM predicts the
+          CHANGE of the scene, not a from-scratch reconstruction.
 
     Output:
         * ``next_emb``: ``[B, cfg.vis_dim=512]`` float32 — the predicted
-          YOLO-World-S frame embedding (GAP of the SPPF/P5 map) of the frame
-          expected **one tick ahead**. This tensor is fed directly to
-          :class:`~microvla.planner.chrono_planner.ChronoQueryPlanner` and,
-          at inference, becomes the next tick's "pending prediction" —
-          corrected and re-fed through ``fused`` on the following dream tick,
-          or checked against the next real measurement by the
+          frame embedding of the tick **one step ahead**, in the same
+          canonical standardized space as ``current_emb`` (see
+          ``microvla/utils/embedding.py``). Implementations SHOULD compute a
+          residual internally (``next_emb = current_emb + delta``) — that is
+          the convention the spec loss and the JEPA loop are designed
+          around. This tensor is fed to the planner and, at inference,
+          becomes the next tick's "pending prediction" — corrected and
+          re-fed on the following dream tick, or checked against the next
+          real measurement by the
           :class:`~microvla.jepa.corrector.InnovationCorrector`.
 
     Behavioral requirements:
@@ -71,14 +80,29 @@ class TRMBase(nn.Module, abc.ABC):
     """
 
     @abc.abstractmethod
-    def forward(self, fused: torch.Tensor, state_delta: torch.Tensor) -> torch.Tensor:
-        """Predict the next-tick YOLO embedding.
+    def forward(
+        self,
+        fused: torch.Tensor,
+        state_delta: torch.Tensor,
+        current_emb: torch.Tensor,
+        context: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Predict the next-tick frame embedding (residual convention).
 
         Args:
             fused: ``[B, 32, 5]`` fused slot matrix from SlotResonanceFusion.
             state_delta: ``[B, 256]`` drift code from AnchoredDriftEncoder.
+            current_emb: ``[B, 512]`` standardized frame embedding driving
+                this tick.
+            context: Optional ``[B, K, 512]`` rolling window of the latents
+                that drove the previous ``K <= cfg.context_window`` ticks,
+                oldest -> newest (the JEPA loop maintains and supplies it).
+                ``None`` means no history is available (episode start);
+                implementations must remain stateless — the context window
+                is state the CALLER owns, handed in per call.
 
         Returns:
-            ``[B, 512]`` predicted next-tick YOLO-World frame embedding.
+            ``[B, 512]`` predicted next-tick frame embedding (standardized
+            space; implementations should return ``current_emb + delta``).
         """
         raise NotImplementedError

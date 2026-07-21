@@ -1,10 +1,52 @@
 # TRM_SPEC.md — Tiny Recursive Model handoff (v2)
 
+> ## ⚠ CONTRACT CHANGE (v3) — read this first
+>
+> The architecture review changed the slot contract. `TRM.py::RecursiveTRM` at the
+> repo root already implements all of this; if you are iterating on that file, the
+> deltas below are what changed and why. Section 1's code block and section 4's loss
+> are superseded where they conflict with this box.
+>
+> 1. **Third input — `current_emb [B, 512]`.** `forward(fused, state_delta,
+>    current_emb) -> next_emb`. The frame embedding driving the current tick is now a
+>    direct input. Rationale: without it the TRM had to reconstruct the 512-d scene
+>    through fusion's 160-float bottleneck before it could predict anything — the
+>    dominant error source. `RecursiveTRM` injects it as 32 per-slot chunks of 16
+>    concatenated to the fused rows (+16K params).
+> 2. **Residual convention.** Return `current_emb + delta`. Predict the *change* of
+>    the scene, not a from-scratch reconstruction. `MockTRM` does this too.
+> 3. **Canonical standardized space.** Perception now standardizes every embedding
+>    (zero mean / unit std per vector, `microvla/utils/embedding.py`). Targets need
+>    no LayerNorm at loss time, and the loss is **scale-honest**:
+>    `L = 1.0 * (1 − cosine(ŷ, y)) + 0.5 * MSE(ŷ, y)` on **raw** (already
+>    standardized) vectors. The previous LayerNorm-inside-the-loss version was blind
+>    to scale/offset errors that then poisoned the JEPA feedback loop.
+> 4. **Action-conditioned observations.** Fusion now carries the previously executed
+>    servo command as an 8th token, so the fused matrix finally tells the TRM what
+>    the controller just did — controlled dynamics are learnable. Nothing changes in
+>    your code, but expect (and exploit) much better rollout accuracy.
+> 5. **Dream evidence is held, not zeroed.** Dream-tick fused inputs now carry the
+>    last real boxes with staleness-decayed weights, and the drift code is held
+>    constant between measurements (updated on real ticks only).
+> 6. **Context window input (v3.1).** `forward(..., context=None)` — an optional
+>    `[B, K, 512]` window of the latents that drove the previous `K ≤
+>    cfg.context_window` ticks (oldest → newest), maintained and supplied by the
+>    caller (`JEPALoop`), so the TRM sees recent trajectory, not just the current
+>    instant. `RecursiveTRM` compresses it with two learned softmax decay profiles
+>    (fast/slow context reads) into history latents injected per-slot. The model
+>    must stay stateless — never cache the window internally.
+> 7. **FLOPs budget, not just params: ≤ ~350 MFLOPs per forward.** Params ≠ compute
+>    for a weight-tied recursive model. Measured: the v2 default (`n_sup=3` at
+>    inference) cost ~57 ms per tick on a fast laptop core — a Pi 5 tick budget is
+>    33 ms *total*. `forward()` must run ONE refinement pass at inference
+>    (`n_sup_infer=1`; deep-supervision passes are a training-time device via
+>    `refine_forward`). For the Pi 5 target, profile `d=512, T=2, n_inner=4` + int8.
+
 This is the build spec for the TRM open slot: the world-model core that predicts the
 next-tick YOLO-World frame embedding from the current fused observation and drift state.
-It is **not implemented in this repo** — `microvla/trm/mock_trm.py::MockTRM` is a dumb
-linear placeholder that exists only so the pipeline and JEPA loop run end-to-end before
-the real model lands. Build against this document and `microvla/trm/interface.py`; the
+The package `microvla/trm/` holds only the interface, the `MockTRM` stub, and this
+spec; the real implementation lives at the repo root (`TRM.py::RecursiveTRM`, built
+against this document). Build against this document and `microvla/trm/interface.py`; the
 rest of MicroVLA (`DESIGN.md`) is context, not a second source of truth for this slot.
 
 All dimensions referenced below come from `microvla/config.py` (`MicroVLAConfig`):
@@ -18,17 +60,19 @@ hardcode.
 
 ```python
 class TRMBase(nn.Module, abc.ABC):
-    def forward(self, fused: torch.Tensor, state_delta: torch.Tensor) -> torch.Tensor:
+    def forward(self, fused, state_delta, current_emb, context=None) -> torch.Tensor:
         # fused        [B, 32, 5]   float32  — SlotResonanceFusion output
         # state_delta  [B, 256]     float32  — AnchoredDriftEncoder output
-        # returns       [B, 512]    float32  — predicted next-tick frame_emb
+        # current_emb  [B, 512]     float32  — standardized latent driving this tick
+        # context      [B, K, 512]  float32 or None — window of previous tick latents
+        # returns       [B, 512]    float32  — next-tick frame_emb (current_emb + delta)
 ```
 
 - `fused` rows are 32 learned slots, each a 5-wide low-rank summary of the current
-  (text, frame, box, geometry) observation. On a real tick these come from grounded
-  perception; on a dream tick the frame token is the *previous* corrected TRM
-  prediction and the box/geometry tokens are zeroed (same fusion code path as
-  train-time `modality_dropout` — see section 5).
+  (text, frame, boxes, geometry, action) observation. On a real tick these come from
+  grounded perception; on a dream tick the frame token is the *previous* corrected TRM
+  prediction and the held last-real boxes carry staleness-decayed evidence weights
+  (the same weighting continuum as train-time `modality_dropout` — see section 5).
 - `state_delta` is a 256-d LayerNorm'd code from the GRU-based drift encoder, anchored
   to the first REAL frame of the episode. It is exactly zero on that anchor frame.
 - Output `next_emb` is consumed by two places: `ChronoQueryPlanner(next_emb) -> plan`,
@@ -54,9 +98,9 @@ class MyTRM(TRMBase):
     def __init__(self, cfg):
         super().__init__()
         ...
-    def forward(self, fused, state_delta):
+    def forward(self, fused, state_delta, current_emb, context=None):
         ...
-        return next_emb
+        return current_emb + delta
 
 loop = JEPALoop.build_real(trm=MyTRM(cfg))          # 30 Hz deployment path
 pipe = MicroVLAPipeline.build_real(trm=MyTRM(cfg))  # 2 Hz debug harness
@@ -78,7 +122,7 @@ the enforced side of this table):
 
 | item | params |
 |---|---|
-| YOLO-World-S (frozen, incl. CLIP text tower, used once per task) | ~13M |
+| YOLO-World-S detector (frozen, resident; its ~63M CLIP text tower runs once per task, offline-precomputable, not resident) | ~13M |
 | **TRM (this spec)** | **10M** |
 | Trainable heads (fusion ≤5.0M + drift ≤1.5M + planner ≤2.5M, hard cap 9M) | 9M |
 | **Total deployed** | **~32M** |
@@ -183,8 +227,9 @@ across a rollout, not just its loss, as a collapse canary.
 At inference the TRM does not just do one-step prediction — it runs **up to 14-step
 open-loop rollouts** between real measurements (`cfg.dream_ticks_per_real` at the
 default 30/2 Hz split). Each dream tick's prediction is fed back through fusion's
-dream path (`dream=True`, frame token = `InnovationCorrector.correct(prev pred)`,
-box/geometry tokens zeroed) to produce the *next* tick's input. If you only ever train
+dream path (frame token = re-standardized `InnovationCorrector.correct(prev pred)`,
+held last-real boxes at `confidence * staleness_decay**k` evidence weight) to produce
+the *next* tick's input. If you only ever train
 the TRM on isolated one-step `(fused, state_delta) -> next_emb` pairs, you are training
 a model that has never seen its own predictions come back as input — the very first
 dream tick in a real rollout already puts it off its training distribution, errors
@@ -199,7 +244,7 @@ on a schedule — linear, or +1 every fixed number of epochs — until it reache
 TRM exactly as `JEPALoop.tick()` would on a dream tick: previous prediction ->
 `corrector.correct` (or a straight-through/no-corrector variant if you want a stricter
 lower bound — either way, exercise the fusion dream path with the fed-back
-prediction) -> `fused` (dream=True) -> TRM -> `next_emb`. Compute the §4 loss `L_h` at
+prediction) -> `fused` (dream evidence weights) -> TRM -> `next_emb`. Compute the §4 loss `L_h` at
 each step against the real frame embedding actually observed `h` ticks ahead (you need
 rollout-aligned ground truth per step, not just at the end — sample training clips at
 the full `tick_hz` and hold out every real-frame target along the way), and combine

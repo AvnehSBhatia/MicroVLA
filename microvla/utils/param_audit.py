@@ -28,7 +28,10 @@ IMPORTANT — how to read the ledger:
     harvested once per task by ``ClipTaskEncoder`` (see
     ``perception/text_encoder.py``). There is no separate text-encoder line
     in this ledger anymore; its cost is folded into the YOLO-World-S line
-    below (the CLIP text tower is part of the YOLO-World-S checkpoint).
+    below. Honest accounting: the CLIP text tower ultralytics invokes at
+    set_classes() is a separate ~63M model — it is NOT inside the ~13M
+    detector count. It runs once per task and its 3 output embeddings can
+    be precomputed offline, so it need not be resident on-device.
 """
 
 from __future__ import annotations

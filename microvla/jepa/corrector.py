@@ -15,12 +15,18 @@ Mechanics:
       an accumulator ``c`` (EMA factor ``correction_beta``), so ``c`` tracks a
       slowly-drifting estimate of "how wrong the TRM tends to be right now"
       rather than reacting to single-frame noise.
-    * The same measurement also updates a scalar **trust** ``tau`` — a
-      sigmoid of the (temperature-scaled, centered) cosine similarity between
-      the prediction and the measurement. High agreement -> tau near 1 (the
-      TRM is tracking reality well); near-orthogonal vectors -> tau near 0
-      (the TRM has lost the plot). Downstream, ``tau`` scales the emitted
-      plan so the robot commits less motion when confidence is low.
+    * The same measurement also updates a scalar **trust** ``tau``, computed
+      from the *self-calibrating error ratio*: the innovation norm divided by
+      an EMA of past innovation norms, mapped through
+      ``tau = exp(-0.5 * ratio^2 * trust_temperature / 4)``. A typical-sized
+      error gives tau ~= 0.61; errors far below the running norm -> tau -> 1;
+      errors far above it -> tau -> 0. This deliberately avoids any fixed
+      cosine threshold: real (standardized) frame embeddings of a mostly
+      static scene are always highly correlated, so an absolute-cosine trust
+      would saturate high and never discriminate — the ratio compares the
+      TRM against its OWN recent accuracy instead. Downstream, ``tau``
+      blends the emitted plan toward hold (see ``JEPALoop.tick``) so the
+      robot commits less NEW motion when confidence is low.
     * On every DREAM tick, :meth:`correct` adds the accumulated correction to
       the raw TRM prediction, but geometrically decayed by
       ``correction_decay ** k`` where ``k`` is the number of dream ticks
@@ -38,30 +44,18 @@ loop deals in a single running latent per episode, not a batch.
 
 from __future__ import annotations
 
+import math
+
 import torch
-import torch.nn.functional as F
 
 from microvla.config import MicroVLAConfig
 
-_COSINE_EPS = 1e-8
+_EPS = 1e-8
 
-
-def _safe_cosine(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    """Numerically safe cosine similarity between two unbatched vectors.
-
-    Uses ``torch.nn.functional.cosine_similarity`` with a small ``eps`` added
-    to the denominator norm product, so a near-zero-norm vector (e.g. a
-    corrected latent that happens to cancel out) yields a well-defined
-    similarity instead of a NaN/Inf from dividing by zero.
-
-    Args:
-        a: ``[vis_dim]`` float32 tensor.
-        b: ``[vis_dim]`` float32 tensor, same shape as ``a``.
-
-    Returns:
-        0-dim float32 tensor, the cosine similarity in ``[-1, 1]``.
-    """
-    return F.cosine_similarity(a, b, dim=0, eps=_COSINE_EPS)
+#: EMA factor for the running innovation-norm baseline (slower than the
+#: correction EMA: the baseline should reflect "typical" error, not react to
+#: single spikes — spikes are exactly what trust must detect).
+_ERR_BAR_BETA = 0.9
 
 
 class InnovationCorrector:
@@ -82,17 +76,20 @@ class InnovationCorrector:
         self.c: torch.Tensor = torch.zeros(cfg.vis_dim, dtype=torch.float32)
         self.tau: float = 1.0
         self.k: int = 0
+        self.err_bar: float | None = None  # EMA of innovation norms
 
     def reset(self) -> None:
-        """Resets the innovation accumulator, trust, and dream-tick counter.
+        """Resets the accumulator, trust, error baseline, and tick counter.
 
         Called at the start of every episode (``c=0``, so the very first
         dream tick before any measurement applies zero correction; ``tau=1``
-        so the plan is fully trusted until evidence says otherwise; ``k=0``).
+        so the plan is fully trusted until evidence says otherwise;
+        ``err_bar=None`` so the baseline re-calibrates to the new episode).
         """
         self.c = torch.zeros(self.cfg.vis_dim, dtype=torch.float32)
         self.tau = 1.0
         self.k = 0
+        self.err_bar = None
 
     def on_measurement(self, pred_emb: torch.Tensor, real_emb: torch.Tensor) -> None:
         """Updates the correction and trust from a real-frame measurement.
@@ -102,16 +99,22 @@ class InnovationCorrector:
                 ``next_emb`` the loop carried forward from the previous
                 tick). Skipped by the caller if no such prediction exists
                 yet (i.e. this is the very first real frame of the episode).
-            real_emb: ``[vis_dim]`` actual YOLO-World frame embedding
-                observed this tick.
+            real_emb: ``[vis_dim]`` actual (standardized) YOLO-World frame
+                embedding observed this tick.
         """
         e = real_emb - pred_emb
         beta = self.cfg.correction_beta
         self.c = beta * self.c + (1.0 - beta) * e
-        cosine = _safe_cosine(pred_emb, real_emb)
-        self.tau = float(
-            torch.sigmoid(self.cfg.trust_temperature * (cosine - 0.5)).item()
-        )
+
+        # Self-calibrating trust: compare this innovation against the running
+        # norm of recent innovations rather than any fixed threshold.
+        err = float(e.norm().item())
+        if self.err_bar is None:
+            self.err_bar = err
+        else:
+            self.err_bar = _ERR_BAR_BETA * self.err_bar + (1.0 - _ERR_BAR_BETA) * err
+        ratio = err / (self.err_bar + _EPS)
+        self.tau = math.exp(-0.5 * ratio * ratio * (self.cfg.trust_temperature / 4.0))
         self.k = 0
 
     def correct(self, pred_emb: torch.Tensor) -> torch.Tensor:

@@ -7,7 +7,7 @@ the classes that need them, so importing this package requires only
 YOLO-World's own CLIP text tower (``ClipTaskEncoder``).
 """
 
-from microvla.perception.command_parser import ParsedCommand, parse_command
+from microvla.perception.command_parser import ParsedCommand, parse_command, strip_article
 from microvla.perception.text_encoder import (
     ClipTaskEncoder,
     MockTaskEncoder,
@@ -24,6 +24,7 @@ from microvla.perception.yolo_world import (
 __all__ = [
     "VideoStreamSampler",
     "parse_command",
+    "strip_article",
     "ParsedCommand",
     "TaskEncoding",
     "ClipTaskEncoder",

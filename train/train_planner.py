@@ -119,11 +119,21 @@ def run_episode(
         target_box_emb = episode["target_box_embs"][t].unsqueeze(0)  # [1, vis_dim]
         source_center = episode["source_centers"][t].unsqueeze(0)  # [1, 2]
         target_center = episode["target_centers"][t].unsqueeze(0)  # [1, 2]
+        box_weight = episode["box_weights"][t].unsqueeze(0)  # [1, 2]
 
-        # dream=False: this is grounded (real-perception) training data; the
-        # dream/modality-dropout path is still exercised via fusion's own
-        # train-time Bernoulli draw (cfg.modality_dropout), the SAME code
-        # path JEPA dream ticks use at inference.
+        # Previously EXECUTED action (teacher-forced): row 0 of the previous
+        # timestep's target plan; zeros at episode start. This mirrors the
+        # JEPA loop, where fusion's action token carries plan[0] of the last
+        # emitted plan.
+        if t == 0:
+            last_action = torch.zeros(1, episode["pwm_targets"].shape[-1])
+        else:
+            last_action = episode["pwm_targets"][t - 1, 0].unsqueeze(0)
+
+        # Grounded (real-perception) training data; the dream regime is still
+        # exercised via fusion's own train-time evidence fade
+        # (cfg.modality_dropout), the SAME weighting path JEPA dream ticks
+        # use at inference with staleness-decayed weights.
         fused = fusion(
             text_tokens,
             frame_emb,
@@ -131,14 +141,21 @@ def run_episode(
             target_box_emb,
             source_center,
             target_center,
-            dream=False,
+            box_weight=box_weight,
+            last_action=last_action,
         )  # [1, 32, 5]
         state_delta = drift(frame_emb)  # [1, 256]
         # ------------------------------------------------------------------
-        # TRM SLOT: MockTRM stands in for the real ~10M-param TRM.
-        # Swap in any TRMBase implementation here; nothing else changes.
+        # TRM SLOT: MockTRM stands in for the real ~10M-param TRM
+        # (TRM.py::RecursiveTRM). Swap in any TRMBase implementation here;
+        # nothing else changes. NOTE the training order that actually works:
+        # 1) train the TRM self-supervised on unlabeled video first
+        #    (TRM_SPEC.md rollout training), THEN 2) train fusion + planner
+        #    jointly with the trained TRM in this slot. Heads trained through
+        #    the frozen random MockTRM below are scaffolding only — their
+        #    weights will NOT transfer to a real TRM.
         # ------------------------------------------------------------------
-        next_emb = trm(fused, state_delta)  # [1, 512]
+        next_emb = trm(fused, state_delta, frame_emb)  # [1, 512]
         plan = planner(next_emb)  # [1, plan_steps, num_servos]
         preds.append(plan.squeeze(0))
     return torch.stack(preds, dim=0)  # [T, plan_steps, num_servos]

@@ -74,18 +74,18 @@ def modality_consistency_loss(
 ) -> torch.Tensor:
     """Optional fusion modality-dropout / dream-mode consistency term.
 
-    Encourages the fusion output computed with the box/geometry tokens
-    dropped (``dream=True``, or train-time ``modality_dropout`` Bernoulli
-    draw — the SAME code path in ``SlotResonanceFusion``) to stay close to
-    the full-modality (grounded) output, so predictions degrade gracefully
+    Encourages the fusion output computed with faded box evidence (low
+    ``box_weight``, or the train-time ``modality_dropout`` fade — the SAME
+    weighting path in ``SlotResonanceFusion``) to stay close to the
+    full-evidence (grounded) output, so predictions degrade gracefully
     across JEPA dream ticks and when the detector misses.
 
     Args:
         fused_full: Fusion output ``[B, fused_rows=32, fused_cols=5]`` with
-            all modality tokens present (``dream=False``).
-        fused_dropped: Fusion output with box/geometry tokens dropped (same
-            shape, ``dream=True`` or dropout-triggered). Should come from a
-            forward pass in train mode.
+            full box evidence (``box_weight`` at confidence).
+        fused_dropped: Fusion output with faded evidence (same shape, low
+            ``box_weight`` or dropout-triggered). Should come from a forward
+            pass in train mode.
 
     Returns:
         Scalar MSE between the two fused outputs; ``fused_full`` is detached
@@ -109,13 +109,17 @@ def trm_loss_documentation() -> str:
         "TRM training loss (DOCUMENTED ONLY — NOT IMPLEMENTED HERE; see "
         "microvla/trm/TRM_SPEC.md for the authoritative spec):\n"
         "\n"
-        "  Contract: y_hat = TRM(fused_t [B,32,5], state_delta_t [B,256]) "
-        "-> next_emb [B,512].\n"
-        "  Target: y = the *actual* YOLO-World frame_emb of the next REAL "
-        "(2 Hz) frame ([vis_dim]=512).\n"
+        "  Contract (v3): y_hat = TRM(fused_t [B,32,5], state_delta_t [B,256], "
+        "current_emb_t [B,512]) -> next_emb [B,512],\n"
+        "  with the RESIDUAL convention y_hat = current_emb + delta.\n"
+        "  Target: y = the *actual* standardized YOLO-World frame_emb of the "
+        "next REAL (2 Hz) frame ([vis_dim]=512).\n"
         "\n"
         "  L = 1.0 * (1 - cosine(y_hat, y)) + 0.5 * MSE(y_hat, y)\n"
-        "  computed on LayerNorm-standardized targets.\n"
+        "  on RAW vectors — perception already standardizes every embedding\n"
+        "  (microvla/utils/embedding.py), so the loss is scale-honest; do NOT\n"
+        "  re-normalize inside the loss (that would forgive scale/offset errors\n"
+        "  that break the JEPA feedback loop at inference).\n"
         "\n"
         "  Optional: an in-batch InfoNCE term treating (y_hat_i, y_i) as the\n"
         "  positive pair and other batch targets as negatives, to sharpen the\n"

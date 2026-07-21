@@ -24,6 +24,8 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 
+from microvla.utils.embedding import standardize
+
 
 @dataclass
 class BoxObs:
@@ -159,7 +161,13 @@ class YoloWorldPerception:
                     "not run as expected."
                 )
             feat = self._feat.float()  # [1, C, Hf, Wf]
-            frame_emb = feat.mean(dim=(2, 3)).squeeze(0).detach().cpu().float()  # GAP -> [C]
+            # GAP -> [C], then standardized: ALL embeddings leaving perception
+            # live in the canonical zero-mean/unit-std space (see
+            # microvla/utils/embedding.py) so TRM feedback stays in-distribution
+            # and losses/innovations are scale-honest.
+            frame_emb = standardize(
+                feat.mean(dim=(2, 3)).squeeze(0).detach().cpu().float()
+            )
 
             frame_h, frame_w = frame_bgr.shape[:2]
             best_by_class: dict[int, tuple[float, torch.Tensor]] = {}
@@ -204,7 +212,7 @@ class YoloWorldPerception:
                     dtype=torch.float32,
                 )
                 return BoxObs(
-                    emb=box_emb.detach().cpu().float(),
+                    emb=standardize(box_emb.detach().cpu().float()),
                     center=center,
                     xyxy=box_xyxy.detach().cpu().float(),
                     confidence=conf,
@@ -334,9 +342,10 @@ class MockYoloWorldPerception:
         generator = torch.Generator()
         generator.manual_seed(seed)
         embs = torch.randn(3 * self.vis_dim, generator=generator, dtype=torch.float32)
-        frame_emb = embs[: self.vis_dim].contiguous()
-        source_emb = embs[self.vis_dim : 2 * self.vis_dim].contiguous()
-        target_emb = embs[2 * self.vis_dim :].contiguous()
+        # Standardized like the real perception's outputs (canonical space).
+        frame_emb = standardize(embs[: self.vis_dim].contiguous())
+        source_emb = standardize(embs[self.vis_dim : 2 * self.vis_dim].contiguous())
+        target_emb = standardize(embs[2 * self.vis_dim :].contiguous())
 
         def _unit(lo: int) -> float:
             """Uniform [0, 1) value from two digest bytes at offset ``lo``."""

@@ -45,17 +45,29 @@ class MicroVLAConfig:
         n_planner_blocks: Cross-attention rounds the planner queries run.
         n_fourier: Frequency pairs for the Fourier encoding of each box
             center (source, target, and their relative displacement).
-        modality_dropout: Train-time probability of zeroing the box and
-            geometry tokens in fusion. This is the SAME code path used by
-            JEPA dream ticks at inference, so keep it > 0 when training.
+        modality_dropout: Train-time probability of FADING the box evidence
+            (box tokens + geometry) by a random factor in [0, 1) — the same
+            evidence-weighting path JEPA dream ticks use with stale,
+            confidence-decayed boxes, so keep it > 0 when training.
         tick_hz: Control-loop rate. Every tick produces a plan.
         real_frame_hz: Rate of real YOLO perception; ticks in between are
             dream ticks driven by the corrected TRM prediction.
         correction_beta: EMA factor for the innovation (drift-correction)
             vector accumulated at each real frame.
         correction_decay: Per-dream-tick decay of the applied correction.
-        trust_temperature: Sharpness of the innovation-cosine -> trust
-            mapping that gates the emitted plan magnitude.
+        staleness_decay: Per-dream-tick decay of the held (last-real) box
+            evidence weights fed to fusion during dreams.
+        trust_temperature: Sharpness of the corrector's self-calibrating
+            error-ratio -> trust mapping (tau = exp(-0.5 * ratio^2 *
+            temperature / 4); default 4 gives tau ~= 0.61 at a typical-sized
+            innovation, -> 1 when tracking well, -> 0 when diverged).
+        context_window: Length K of the rolling context windows: the drift
+            encoder's memory of recent REAL-frame embeddings (K frames at
+            real_frame_hz = 4 s of state-change context) and the JEPA loop's
+            window of recent tick latents passed to the TRM.
+        drift_horizons: Lag offsets (in real frames) the drift encoder
+            compares the current embedding against, in addition to the
+            episode anchor — multi-timescale state change.
         trainable_param_budget: Hard cap on fusion + drift + planner params.
             Ledger: 32M total - ~13M frozen YOLO-World-S - 10M reserved TRM
             leaves ~9M for the trainable heads (see utils/param_audit.py).
@@ -80,7 +92,10 @@ class MicroVLAConfig:
     real_frame_hz: float = 2.0
     correction_beta: float = 0.7
     correction_decay: float = 0.9
+    staleness_decay: float = 0.9
     trust_temperature: float = 4.0
+    context_window: int = 8
+    drift_horizons: tuple[int, ...] = (1, 2, 4, 8)
     trainable_param_budget: int = 9_000_000
 
     @property

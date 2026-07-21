@@ -45,22 +45,41 @@ the emitted plan.
   `microvla/trm/` contains only the `TRMBase` interface, `MockTRM`, and `TRM_SPEC.md` —
   keep it that way. The real implementation is `TRM.py::RecursiveTRM` (~9.5M params,
   weight-tied recursion + FiLM drift conditioning, deliberately outside the package;
-  maintained by a collaborator — coordinate before restructuring it). Contract:
-  `(fused [B,32,5], state_delta [B,256]) -> [B,512]`; plug in via
-  `JEPALoop.build_real(trm=RecursiveTRM(cfg))`. Its training uses the external
-  deep-supervision loop via `refine_forward` with the spec §4 loss (`TRM.py::spec_loss`);
-  `python TRM.py` runs its self-test (param audit, contract checks, overfit smoke,
-  JEPA drop-in). `train/` still contains no TRM training code.
+  maintained by a collaborator — coordinate before restructuring it). v3 contract:
+  `(fused [B,32,5], state_delta [B,256], current_emb [B,512], context=None [B,K,512])
+  -> [B,512]` with the **residual convention** (`return current_emb + delta`); the
+  `context` window of recent tick latents is caller-owned state (the loop maintains
+  it) — the TRM itself must stay stateless; plug in via
+  `JEPALoop.build_real(trm=RecursiveTRM(cfg))`. `forward()` runs ONE refinement pass
+  (`n_sup_infer=1`) — the deep-supervision passes are training-only via
+  `refine_forward` + `TRM.py::spec_loss` (cosine + raw MSE, no LayerNorm in the loss).
+  `python TRM.py` runs its self-test. `train/` still contains no TRM training code.
+- **Canonical embedding space.** Perception standardizes every visual embedding
+  (zero mean / unit std per vector, `microvla/utils/embedding.py::standardize`) at the
+  boundary; the JEPA loop re-standardizes corrected dream latents. Never feed a raw
+  (un-standardized) embedding into fusion/drift/TRM, and never add normalization
+  inside the TRM loss — the space is already canonical and the loss must stay
+  scale-honest.
 - **Parameter budget is enforced.** Fusion ≤ 5.0M, drift ≤ 1.5M, planner ≤ 2.5M, total
   < `cfg.trainable_param_budget` (9M). `tests/test_param_budget.py` and the audit will fail
   the build otherwise; do not raise a cap without the user asking.
-- **Dream mode == modality dropout.** `SlotResonanceFusion` must keep `dream=True` and
-  train-time `modality_dropout` on one shared code path (same multiplicative mask over the
-  source-box/target-box/geometry tokens). This training-inference alignment is a core design
-  claim; don't special-case one side.
-- **Drift encoder semantics.** First forward after `reset()` stores the anchor and returns
-  an exactly-zero code without stepping the GRU; hidden is detached between steps; runtime
-  state lives in plain attributes (never buffers/parameters).
+- **Dream evidence == modality-dropout fade, one shared path.** `SlotResonanceFusion`
+  weights the box + geometry tokens by `box_weight` (confidence × freshness in [0,1]);
+  dream ticks pass held last-real boxes with `confidence * staleness_decay**k`, missed
+  detections pass 0, and train-time `modality_dropout` fades the same weights by a
+  random factor. Do NOT reintroduce binary zeroing or a separate dream flag — this
+  training-inference alignment is a core design claim. Fusion's 8th token is the
+  previously executed action (plan row 0) and is never faded.
+- **Trust semantics.** The corrector's trust is a self-calibrating error *ratio* (EMA of
+  innovation norms), and low trust HOLD-blends the plan toward the previously emitted
+  plan — never multiply absolute PWM targets toward zero (that commands a real motion
+  to servo mid-range).
+- **Drift encoder semantics.** First forward after `reset()` stores the anchor, seeds the
+  context window, and returns an exactly-zero code without stepping the GRU; hidden is
+  detached between steps; runtime state (anchor, window deque, hidden) lives in plain
+  attributes (never buffers/parameters). It is called on REAL ticks only; the JEPA loop
+  holds its code across dream ticks. Multi-horizon lags come from `cfg.drift_horizons`
+  against a `cfg.context_window`-deep memory of real-frame embeddings.
 - Tests must stay CPU-only, mock-only, no network, no cv2. Use `MockTaskEncoder` /
   `MockYoloWorldPerception` / `MockTRM` (all deterministic, hash-seeded).
 - Plan orientation is **rows = timesteps (5), columns = servos (7)**. When the user says

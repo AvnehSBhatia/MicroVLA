@@ -31,9 +31,10 @@ class MockTRM(TRMBase):
         predict anything meaningful.
 
     Flattens the fused slot matrix ``[B, 32, 5]`` to ``[B, 160]``,
-    concatenates the drift code ``[B, 256]`` to get ``[B, 416]``, and applies
-    one ``Linear(416, 512)`` to produce the (meaningless) "predicted"
-    next-tick embedding. Honors the
+    concatenates the drift code ``[B, 256]`` to get ``[B, 416]``, applies one
+    ``Linear(416, 512)``, and adds the result to ``current_emb`` (the
+    residual convention from the TRMBase contract — even the mock predicts a
+    change, not a reconstruction). Honors the
     :class:`~microvla.trm.interface.TRMBase` I/O contract exactly so it is
     drop-in swappable.
 
@@ -47,16 +48,26 @@ class MockTRM(TRMBase):
         in_dim = cfg.fused_rows * cfg.fused_cols + cfg.state_dim  # 32*5 + 256 = 416
         self.proj = nn.Linear(in_dim, cfg.vis_dim)
 
-    def forward(self, fused: torch.Tensor, state_delta: torch.Tensor) -> torch.Tensor:
-        """Map (fused, state_delta) to a placeholder next-tick embedding.
+    def forward(
+        self,
+        fused: torch.Tensor,
+        state_delta: torch.Tensor,
+        current_emb: torch.Tensor,
+        context: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Map inputs to a placeholder residual next-tick embedding.
 
         Args:
             fused: ``[B, 32, 5]`` fused slot matrix.
             state_delta: ``[B, 256]`` drift code.
+            current_emb: ``[B, 512]`` current standardized frame embedding.
+            context: Optional latent context window — accepted for contract
+                compatibility and IGNORED (this is a stub).
 
         Returns:
-            ``[B, 512]`` placeholder next-tick embedding.
+            ``[B, 512]`` placeholder next-tick embedding
+            (``current_emb + linear delta``).
         """
-        flat = fused.flatten(start_dim=1)                # [B, 160]
+        flat = fused.flatten(start_dim=1)                 # [B, 160]
         x = torch.cat([flat, state_delta], dim=-1)        # [B, 416]
-        return self.proj(x)                               # [B, 512]
+        return current_emb + self.proj(x)                 # [B, 512]

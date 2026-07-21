@@ -29,6 +29,7 @@ import torch
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
+from microvla.perception.command_parser import strip_article
 from microvla.perception.video_stream import VideoStreamSampler
 from microvla.perception.yolo_world import Perception
 from microvla.planner.chrono_planner import ChronoQueryPlanner
@@ -103,6 +104,10 @@ class MicroVLAPipeline:
         self.trm = trm
         self.planner = planner
         self._task: Optional["TaskEncoding"] = None
+        self._last_action: Optional[torch.Tensor] = None  # [num_servos], plan row 0
+        from collections import deque
+
+        self._latent_ctx: "deque[torch.Tensor]" = deque(maxlen=cfg.context_window)
 
     def set_task(self, text: str) -> None:
         """Sets the language task for the episode.
@@ -119,16 +124,22 @@ class MicroVLAPipeline:
         parsed = self._task.parsed
         # One active class when the command has no distinct destination —
         # duplicate class strings would otherwise occupy two class ids.
-        classes = [parsed.source] if parsed.source == parsed.target else [parsed.source, parsed.target]
+        # Detector class prompts are article-stripped; embeddings keep the
+        # full phrases.
+        src, tgt = strip_article(parsed.source), strip_article(parsed.target)
+        classes = [src] if src == tgt else [src, tgt]
         self.perception.set_classes(classes)
         self.drift.reset()
+        self._last_action = None
+        self._latent_ctx.clear()
 
     def step(self, frame_bgr) -> StepResult:
         """Runs a single real frame through the whole stack.
 
-        Exactly a JEPA real tick (grounded fusion, ``dream=False``) without
-        the innovation corrector: no ``on_measurement`` bookkeeping and no
-        trust scaling on the returned plan.
+        Exactly a JEPA real tick (grounded fusion at full detection-confidence
+        evidence weight) without the innovation corrector: no
+        ``on_measurement`` bookkeeping and no trust blending on the returned
+        plan.
 
         Args:
             frame_bgr: ``np.ndarray`` HxWx3 uint8 BGR frame.
@@ -158,6 +169,15 @@ class MicroVLAPipeline:
             source_center = percept.source.center.unsqueeze(0)          # [1, 2]
             target_center = percept.target.center.unsqueeze(0)          # [1, 2]
 
+            box_weight = torch.tensor(
+                [[percept.source.confidence, percept.target.confidence]],
+                dtype=torch.float32,
+            )
+            last_action = (
+                self._last_action.unsqueeze(0)
+                if self._last_action is not None
+                else torch.zeros(1, self.cfg.num_servos)
+            )
             fused = self.fusion(
                 text_tokens,
                 frame_emb,
@@ -165,11 +185,19 @@ class MicroVLAPipeline:
                 target_emb,
                 source_center,
                 target_center,
-                dream=False,
+                box_weight=box_weight,
+                last_action=last_action,
             )                                                            # [1, 32, 5]
             state_delta = self.drift(frame_emb)                          # [1, 256]
-            next_emb = self.trm(fused, state_delta)                      # [1, 512]
+            context = (
+                torch.stack(list(self._latent_ctx), dim=0).unsqueeze(0)
+                if self._latent_ctx
+                else None
+            )
+            next_emb = self.trm(fused, state_delta, frame_emb, context=context)  # [1, 512]
             plan = self.planner(next_emb)                                # [1, plan_steps, num_servos]
+            self._last_action = plan.squeeze(0)[0]  # row 0 is executed
+            self._latent_ctx.append(frame_emb.squeeze(0))
 
         return StepResult(
             perception=percept,

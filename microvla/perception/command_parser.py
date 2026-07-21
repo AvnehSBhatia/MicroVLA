@@ -99,6 +99,25 @@ def _normalize(text: str) -> str:
     return cleaned.strip()
 
 
+def strip_article(phrase: str) -> str:
+    """Drops a leading article for use as a detector class prompt.
+
+    "the red cup" -> "red cup". CLIP text/box alignment in open-vocab
+    detectors is slightly stronger on bare noun phrases, so detection class
+    prompts are article-stripped while the full phrases (articles intact)
+    are still what gets embedded for fusion's text tokens.
+
+    Args:
+        phrase: A noun phrase, already lowercased/normalized.
+
+    Returns:
+        The phrase without a leading "the"/"a"/"an" (unchanged if the
+        article is the whole phrase).
+    """
+    stripped = re.sub(r"^(?:the|a|an)\s+", "", phrase)
+    return stripped if stripped else phrase
+
+
 def parse_command(text: str) -> ParsedCommand:
     """Parses a free-text instruction into a verb + ordered source/target.
 

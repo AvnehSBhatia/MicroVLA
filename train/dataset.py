@@ -7,8 +7,14 @@ Episodes are ``.npz`` files with the v2 keys defined in DESIGN.md:
     target_box_embs    [T, vis_dim]                  — target-box embeddings
     source_centers     [T, 2]                        — source (cx, cy) in [0, 1]
     target_centers     [T, 2]                        — target (cx, cy) in [0, 1]
+    box_weights        [T, 2]                        — per-role evidence weight in [0, 1]
+                                                       (detection confidence; 0 = missed)
     text_tokens        [3, text_dim]                 — (command, source, target) CLIP tokens
     pwm_targets        [T, plan_steps, num_servos]   — normalized PWM plans in [-1, 1]
+
+All embeddings are stored in the canonical standardized space (zero mean /
+unit std per vector — see microvla/utils/embedding.py), matching what
+perception emits at inference.
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ EPISODE_KEYS: tuple[str, ...] = (
     "target_box_embs",
     "source_centers",
     "target_centers",
+    "box_weights",
     "text_tokens",
     "pwm_targets",
 )
@@ -108,10 +115,17 @@ def make_synthetic_episode(
     """
     rng = np.random.default_rng(seed)
 
-    # Frame embeddings: anchor + slow random walk (cumulative small steps).
+    def _standardize(x: np.ndarray) -> np.ndarray:
+        """Per-vector zero-mean/unit-std, matching perception's canonical space."""
+        mean = x.mean(axis=-1, keepdims=True)
+        std = x.std(axis=-1, keepdims=True)
+        return ((x - mean) / (std + 1e-6)).astype(np.float32)
+
+    # Frame embeddings: anchor + slow random walk (cumulative small steps),
+    # standardized like real perception output.
     anchor = rng.normal(0.0, 1.0, size=(cfg.vis_dim,))
     steps = rng.normal(0.0, 0.05, size=(T, cfg.vis_dim))
-    frame_embs = (anchor[None, :] + np.cumsum(steps, axis=0)).astype(np.float32)
+    frame_embs = _standardize(anchor[None, :] + np.cumsum(steps, axis=0))
 
     # Source/target box embeddings: track the frame embedding with small,
     # distinct, stable offsets (as if two different objects were detected).
@@ -119,12 +133,8 @@ def make_synthetic_episode(
     target_offset = rng.normal(0.0, 0.1, size=(cfg.vis_dim,))
     source_noise = rng.normal(0.0, 0.02, size=(T, cfg.vis_dim))
     target_noise = rng.normal(0.0, 0.02, size=(T, cfg.vis_dim))
-    source_box_embs = (frame_embs + source_offset[None, :] + source_noise).astype(
-        np.float32
-    )
-    target_box_embs = (frame_embs + target_offset[None, :] + target_noise).astype(
-        np.float32
-    )
+    source_box_embs = _standardize(frame_embs + source_offset[None, :] + source_noise)
+    target_box_embs = _standardize(frame_embs + target_offset[None, :] + target_noise)
 
     # Box centers: source and target each wander smoothly but drift toward a
     # shared meeting point over the episode ("move can to ball").
@@ -168,12 +178,17 @@ def make_synthetic_episode(
         axis=0,
     ).astype(np.float32)
 
+    # Evidence weights: mostly-confident detections with occasional dips
+    # (mimicking flaky small-object confidence on a real detector).
+    box_weights = rng.uniform(0.75, 0.95, size=(T, 2)).astype(np.float32)
+
     return {
         "frame_embs": frame_embs,
         "source_box_embs": source_box_embs,
         "target_box_embs": target_box_embs,
         "source_centers": source_centers,
         "target_centers": target_centers,
+        "box_weights": box_weights,
         "text_tokens": text_tokens,
         "pwm_targets": pwm_targets,
     }

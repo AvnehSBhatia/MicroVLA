@@ -24,20 +24,27 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
               │     target box: emb [512] + center [2]   (per-class best box)      │
               └─ other 14 ticks ─── DREAM TICK ────────────────────────────────┐   │
                     frame token = corrected TRM prediction [512]               │   │
-                    box + geometry tokens zeroed (same path as                 │   │
-                    train-time modality_dropout → dream mode is trained)       ▼   ▼
-  SlotResonanceFusion: 32 slots cross-attend over
-      [cmd | src | tgt | frame | src-box | tgt-box | geometry] ──► fused [32, 5]
+                    boxes HELD from last real tick, evidence weight            │   │
+                    decayed by staleness (same weighting path as               │   │
+                    train-time modality_dropout evidence fade)                 ▼   ▼
+  SlotResonanceFusion: 32 slots cross-attend over 8 role-tagged tokens
+      [cmd | src | tgt | frame | src-box | tgt-box | geometry | last action]
+      (box/geometry tokens scaled by confidence x freshness)  ──► fused [32, 5]
                                                                         │
-  AnchoredDriftEncoder (anchor = first REAL frame, GRU accum) ──► state_delta [256]
+  AnchoredDriftEncoder (anchor = first REAL frame, GRU accum,
+                        steps on REAL ticks only, held during dreams) ──► state_delta [256]
                                                                         │
-  ╔═ TRM — OPEN SLOT (~10M, built externally) ═╗                        ▼
-  ║ forward(fused [B,32,5], state_delta [B,256]) -> next_emb [B,512]    ║
-  ╚═════════════════════════════════════════════════════════════════════╝
+  ╔═ TRM — real impl at repo root TRM.py (~9.5M) ═════════════════════════════╗
+  ║ forward(fused [B,32,5], state_delta [B,256], current_emb [B,512])          ║
+  ║   -> next_emb [B,512]   (RESIDUAL: current + predicted change;             ║
+  ║    all embeddings in the canonical standardized space)                     ║
+  ╚════════════════════════════════════════════════════════════════════════════╝
                      │
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
-  ChronoQueryPlanner(next_emb [512]) ──► plan [5, 7] in [-1, 1], scaled by trust τ
+  ChronoQueryPlanner(next_emb [512]) ──► raw plan [5, 7] in [-1, 1]
+      emitted plan = τ·raw + (1−τ)·previous plan  (trust HOLD-blend, never →0)
+      row 0 is executed this tick and fed back as fusion's action token
       rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM
 ```
 
@@ -45,7 +52,8 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
 
 | item | budget |
 |---|---|
-| YOLO-World-S (frozen, incl. its CLIP text tower used once per task) | ~13M |
+| YOLO-World-S detector (frozen, resident at runtime) | ~13M |
+| CLIP text tower (separate ~63M model; runs ONCE per task at `set_classes`, precomputable offline — NOT resident on-device) | 0 resident |
 | TRM (open slot, reserved) | 10M |
 | Trainable heads total (HARD CAP `cfg.trainable_param_budget`) | 9M |
 | — SlotResonanceFusion | ≤ 5.0M (target ~4.5M) |
@@ -143,6 +151,11 @@ Implementation notes (real class, mechanics carried over from v1 where noted):
 - Missing class → fallback `BoxObs(emb=frame_emb.clone(), center=(0.5, 0.5), xyxy=zeros,
   confidence=0.0)`. One active class (source==target) → both roles share the same BoxObs.
 - All under `torch.no_grad()`, detached CPU float32 outputs.
+- v3: `frame_emb` and every box emb are STANDARDIZED (zero mean / unit std per
+  vector, `microvla/utils/embedding.py`) before leaving perception — the canonical
+  embedding space every downstream consumer (fusion, drift, TRM, corrector) lives in.
+- Detector class prompts are article-stripped via `strip_article` ("the red cup" ->
+  "red cup"); embeddings keep the full phrases.
 
 ### `microvla/perception/video_stream.py` — UNCHANGED from v1 (keep the integer-counter
 emit rule). Default `target_fps` now reads `DEFAULT_CONFIG.real_frame_hz`.
@@ -152,9 +165,19 @@ emit rule). Default `target_fps` now reads `DEFAULT_CONFIG.real_frame_hz`.
 class SlotResonanceFusion(nn.Module):
     def __init__(self, cfg: MicroVLAConfig): ...
     def forward(self, text_tokens, frame_emb, source_box_emb, target_box_emb,
-                source_center, target_center, dream: bool = False) -> torch.Tensor:
-        # text_tokens [B, 3, 512]; *_emb [B, 512]; *_center [B, 2] → fused [B, 32, 5]
+                source_center, target_center,
+                box_weight=None, last_action=None) -> torch.Tensor:
+        # text_tokens [B, 3, 512]; *_emb [B, 512] (standardized); *_center [B, 2]
+        # box_weight [B, 2] in [0,1] (confidence x freshness; None -> ones)
+        # last_action [B, num_servos] in [-1,1] (None -> zeros) → fused [B, 32, 5]
 ```
+v3 evidence weighting replaces the v2 binary dream flag: box tokens scale with their
+per-role weight (geometry with the mean; weights also appended to the geometry
+features), weight 0 nulls a missed detection, and the train-time `modality_dropout`
+fades weights by a per-sample uniform factor — the SAME continuum dream ticks produce
+with `confidence * staleness_decay**k` on held boxes. An 8th ACTION token
+(`Linear(num_servos, d_model)` of the previously executed plan row) makes controlled
+dynamics learnable; it is never faded.
 Method (novel — slot competition over FiLM-conditioned, role-tagged modality tokens):
 - 7 tokens at `d_model=384`: 3 text tokens (one shared `Linear(text_dim, d_model)`),
   frame token, source-box token, target-box token (one shared `Linear(vis_dim, d_model)`),
@@ -164,32 +187,40 @@ Method (novel — slot competition over FiLM-conditioned, role-tagged modality t
 - Learned ROLE embedding table `[7, d_model]` added per token position (order is explicit).
 - FiLM: `Linear(text_dim, 2*d_model)` from the COMMAND embedding (`text_tokens[:, 0]`)
   produces scale/shift applied to the frame, source-box, and target-box tokens.
-- `dream=True` OR train-time modality_dropout (per-sample Bernoulli): zero the source-box,
-  target-box, and geometry tokens — the SAME code path, so dream mode is a trained mode.
-  (In dream mode the caller passes the corrected TRM latent as `frame_emb`.)
+- Evidence weighting (v3): `box_weight` scales the box tokens (geometry by the mean) and
+  is appended to the geometry features; train-time modality_dropout fades the same
+  weights by a per-sample uniform factor — one continuum shared with dream ticks (held
+  boxes at `confidence * staleness_decay**k`; the caller passes the corrected TRM
+  latent as `frame_emb`). The action token is never faded.
 - 32 learned slot queries `[32, d_model]`; `n_fusion_blocks=3` rounds of pre-LN
   `nn.MultiheadAttention(d_model, n_heads=8, batch_first=True)` cross-attention
   (slots=queries, 7 tokens=keys/values) each + pre-LN GELU MLP (hidden `d_model*2`), residuals.
 - Shared head per slot: `Linear(d_model, 64) → GELU → Linear(64, fused_cols)` → `[B, 32, 5]`.
 - Params ≤ 5.0M (target ~4.5M).
 
-### `microvla/aux_state/drift_encoder.py` — Anchored Drift Encoder v2 (scaled)
-Same design as v1 (keep the v1 semantics EXACTLY: anchor stored on first forward after
-reset; first call returns an exactly-zero code without stepping the GRU; hidden detached
-each step; silent re-reset on batch-size change; runtime state as plain attributes), with
-scaled dims: drift features `cat([emb - anchor, emb * anchor])` [B, 2*vis_dim=1024] →
-`Linear(1024, state_dim=256)` → GELU → sigmoid gate `Linear(256, 256)` from the projection →
-`nn.GRUCell(256, 256)` → output `LayerNorm(hidden)` [B, 256]. Params ≤ 1.5M (target ~0.9M).
-`forward(frame_emb [B,512]) -> [B,256]`. NOTE: at dream ticks the pipeline feeds this the
-CORRECTED latent, so it runs at 30 Hz; its anchor is always the first REAL frame.
+### `microvla/aux_state/drift_encoder.py` — Anchored Drift Encoder v4 (windowed)
+Semantics preserved: anchor stored on first forward after reset; first call returns an
+exactly-zero code without stepping the GRU; hidden detached each step; silent re-reset
+(debug-logged) on batch-size change; runtime state as plain attributes. v4 adds a
+**multi-horizon context window**: a rolling deque of the last `cfg.context_window` (8)
+real-frame embeddings. Per step, one drift token per reference — the anchor plus each lag
+in `cfg.drift_horizons` (1, 2, 4, 8 frames ≈ 0.5–4 s at 2 Hz; lags clamp to the filled
+window) — each `GELU(Linear(cat([emb-ref, emb*ref]), 256))` + a learned horizon
+embedding; a single learned-query softmax attention pool reads the tokens; sigmoid gate;
+`GRUCell(256, 256)` still accumulates beyond the window; output `LayerNorm(hidden)`
+[B, 256]. Params ≤ 1.5M. `forward(frame_emb [B,512]) -> [B,256]`. The JEPA loop calls
+this on REAL ticks only and holds the code across dreams, so the window contains only
+measured evidence.
 
 ### `microvla/trm/` — OPEN SLOT (interface + mock + spec ONLY; do NOT build the real TRM)
 ```python
 # interface.py
 class TRMBase(nn.Module, abc.ABC):
     @abc.abstractmethod
-    def forward(self, fused: torch.Tensor, state_delta: torch.Tensor) -> torch.Tensor:
-        # fused [B, 32, 5], state_delta [B, 256] → next_emb [B, 512]
+    def forward(self, fused, state_delta, current_emb) -> torch.Tensor:
+        # fused [B, 32, 5], state_delta [B, 256], current_emb [B, 512]
+        # → next_emb [B, 512]  (residual convention: current_emb + delta,
+        #   canonical standardized space)
 
 # mock_trm.py
 class MockTRM(TRMBase):
@@ -225,10 +256,15 @@ plan = `tanh(cumsum(deltas, dim=1))` → `[B, 5, 7]` in [-1, 1]. Params ≤ 2.5M
 ```python
 class InnovationCorrector:
     def __init__(self, cfg: MicroVLAConfig): ...
-    def reset(self) -> None: ...                 # c=0, tau=1.0, k=0
+    def reset(self) -> None: ...                 # c=0, tau=1.0, k=0, err_bar=None
     def on_measurement(self, pred_emb: torch.Tensor, real_emb: torch.Tensor) -> None:
         # innovation e = real - pred; c ← beta*c + (1-beta)*e
-        # tau ← sigmoid(trust_temperature * (cosine(pred, real) - 0.5)); k ← 0
+        # SELF-CALIBRATING trust: err_bar ← EMA of ||e||;
+        # tau ← exp(-0.5 * (||e||/err_bar)^2 * trust_temperature/4); k ← 0
+        # (no fixed cosine threshold — real standardized frame embeddings of a
+        # near-static scene are always highly correlated, so absolute-cosine
+        # trust would saturate; the ratio compares the TRM to its OWN recent
+        # accuracy instead)
     def correct(self, pred_emb: torch.Tensor) -> torch.Tensor:
         # returns pred + (correction_decay ** k) * c; then k += 1
     @property
@@ -246,7 +282,9 @@ class TickResult:
     fused: torch.Tensor        # [32, 5]
     state_delta: torch.Tensor  # [256]
     next_emb: torch.Tensor     # [512] raw TRM prediction for the next tick
-    plan: torch.Tensor         # [5, 7] in [-1,1], ALREADY scaled by trust
+    plan: torch.Tensor         # [5, 7] in [-1,1], trust-BLENDED (see tick);
+                               # row 0 = action executed this tick, rows 1+ =
+                               # receding horizon at 1-tick (1/30 s) spacing
     trust: float
     perception: Perception | None  # only on real ticks
 
@@ -255,15 +293,22 @@ class JEPALoop:
     def set_task(self, text: str) -> None:
         # encode task (sets YOLO classes), reset drift + corrector + internal latent state
     def tick(self, frame_bgr=None) -> TickResult:
-        # REAL tick (frame given): perceive; if a pending prediction exists,
-        #   corrector.on_measurement(pending_pred, real frame_emb); fusion grounded
-        #   (dream=False, real boxes+geometry); drift(frame_emb); trm → next_emb;
-        #   pending_pred = next_emb.
-        # DREAM tick (None): latent = corrector.correct(pending_pred); fusion dream=True
-        #   with frame_emb=latent and zeros for boxes/centers; drift(latent); trm → next_emb;
-        #   pending_pred = next_emb. Raises RuntimeError if no real frame has been seen yet.
-        # Every tick: plan = planner(next_emb) * corrector.trust. eval mode, torch.no_grad,
-        # unsqueeze/squeeze batch dim internally.
+        # REAL tick (frame given): perceive (standardized embs); if a pending
+        #   prediction exists, corrector.on_measurement(pending_pred, frame_emb);
+        #   fusion grounded with box_weight = detection confidences and
+        #   last_action = row 0 of the previously emitted plan; drift(frame_emb)
+        #   (drift steps on REAL ticks ONLY); hold percept + state_delta; k=0.
+        # DREAM tick (None): latent = standardize(corrector.correct(pending_pred));
+        #   fusion with the HELD last-real boxes/centers and
+        #   box_weight = held confidences * staleness_decay**k (k = dream ticks
+        #   since the last real frame); state_delta = held value.
+        #   Raises RuntimeError if no real frame has been seen yet.
+        # Every tick: next_emb = trm(fused, state_delta, latent) [residual];
+        #   raw = planner(next_emb); emitted plan = tau*raw + (1-tau)*previous
+        #   emitted plan (HOLD-blend — low trust freezes commands, never scales
+        #   absolute PWM toward the mid-range pose); plan row 0 becomes
+        #   last_action for the next tick. eval mode, torch.no_grad,
+        #   unsqueeze/squeeze batch dim internally.
     def run(self, frames, text: str) -> list[TickResult]:
         # frames: iterable at tick_hz (30 fps). Every int(round(tick_hz/real_frame_hz))-th
         # tick (0, 15, 30, ...) is REAL; others are dream ticks (frame ignored → None).
@@ -310,8 +355,8 @@ module under its individual cap. Runnable via `python -m microvla.utils.param_au
 ### `tests/` (pytest, CPU-only, mocks only, no network, no cv2)
 - `test_command_parser.py` (NEW): ≥12 patterns incl. order sensitivity ("move can to ball"
   vs "move ball to can" swap source/target), no-destination fallback, articles preserved.
-- `test_shapes.py`: v2 shapes for all modules at B∈{1,4}; fusion dream=True works with
-  zeroed boxes; plan in [-1,1].
+- `test_shapes.py`: shapes for all modules at B∈{1,4}; fusion evidence weighting
+  (fade, zero-weight nulling, action token); plan in [-1,1].
 - `test_pipeline.py`: mock 2 Hz pipeline end-to-end (v2 types); drift reset semantics;
   mock determinism.
 - `test_jepa_loop.py` (NEW): build_mock loop; 61 frames at 30 fps → ticks 0,15,30,45,60

@@ -46,33 +46,58 @@ class TestSlotResonanceFusion:
             assert fused.shape == (batch, CFG.fused_rows, CFG.fused_cols)
             assert torch.isfinite(fused).all()
 
-    def test_dream_mode_with_zeroed_boxes(self):
+    def test_faded_evidence_with_held_boxes(self):
+        """Dream regime: held boxes with decayed weight (v3 evidence fade)."""
         fusion = SlotResonanceFusion(CFG)
         batch = 2
         text_tokens = torch.randn(batch, CFG.n_text_tokens, CFG.text_dim)
         frame_emb = torch.randn(batch, CFG.vis_dim)  # corrected TRM latent in real use
-        zeros_box = torch.zeros(batch, CFG.vis_dim)
-        zeros_center = torch.zeros(batch, 2)
+        held_box = torch.randn(batch, CFG.vis_dim)
+        held_center = torch.rand(batch, 2)
 
         fused = fusion(
             text_tokens,
             frame_emb,
-            zeros_box,
-            zeros_box,
-            zeros_center,
-            zeros_center,
-            dream=True,
+            held_box,
+            held_box,
+            held_center,
+            held_center,
+            box_weight=torch.full((batch, 2), 0.9 * CFG.staleness_decay**3),
+            last_action=torch.zeros(batch, CFG.num_servos),
         )
         assert fused.shape == (batch, CFG.fused_rows, CFG.fused_cols)
         assert torch.isfinite(fused).all()
 
-    def test_dream_flag_changes_output(self):
+    def test_box_weight_changes_output(self):
         fusion = SlotResonanceFusion(CFG)
-        fusion.eval()  # avoid train-time Bernoulli dropout muddying the comparison
+        fusion.eval()  # avoid train-time evidence fade muddying the comparison
         inputs = _fusion_inputs(batch=2, seed=7)
-        grounded = fusion(*inputs, dream=False)
-        dreamed = fusion(*inputs, dream=True)
-        assert not torch.allclose(grounded, dreamed)
+        full = fusion(*inputs, box_weight=torch.ones(2, 2))
+        faded = fusion(*inputs, box_weight=torch.zeros(2, 2))
+        assert not torch.allclose(full, faded)
+
+    def test_zero_weight_disambiguates_missing_detection(self):
+        """weight=0 must null the box tokens regardless of their content."""
+        fusion = SlotResonanceFusion(CFG)
+        fusion.eval()
+        batch = 2
+        text_tokens = torch.randn(batch, CFG.n_text_tokens, CFG.text_dim)
+        frame_emb = torch.randn(batch, CFG.vis_dim)
+        centers = torch.full((batch, 2), 0.5)
+        zero_w = torch.zeros(batch, 2)
+        a = fusion(text_tokens, frame_emb, torch.randn(batch, CFG.vis_dim),
+                   torch.randn(batch, CFG.vis_dim), centers, centers, box_weight=zero_w)
+        b = fusion(text_tokens, frame_emb, torch.randn(batch, CFG.vis_dim),
+                   torch.randn(batch, CFG.vis_dim), centers, centers, box_weight=zero_w)
+        assert torch.allclose(a, b), "zero-weight boxes must not leak content"
+
+    def test_last_action_changes_output(self):
+        fusion = SlotResonanceFusion(CFG)
+        fusion.eval()
+        inputs = _fusion_inputs(batch=2, seed=7)
+        idle = fusion(*inputs, last_action=torch.zeros(2, CFG.num_servos))
+        moving = fusion(*inputs, last_action=torch.full((2, CFG.num_servos), 0.5))
+        assert not torch.allclose(idle, moving)
 
 
 class TestAnchoredDriftEncoder:
@@ -118,7 +143,8 @@ class TestMockTRM:
         trm = MockTRM(CFG)
         fused = torch.randn(2, CFG.fused_rows, CFG.fused_cols)
         state_delta = torch.randn(2, CFG.state_dim)
-        next_emb = trm(fused, state_delta)
+        current_emb = torch.randn(2, CFG.vis_dim)
+        next_emb = trm(fused, state_delta, current_emb)
         assert next_emb.shape == (2, CFG.vis_dim)
         assert torch.isfinite(next_emb).all()
 
@@ -128,8 +154,23 @@ class TestMockTRM:
             next_emb = trm(
                 torch.randn(batch, CFG.fused_rows, CFG.fused_cols),
                 torch.randn(batch, CFG.state_dim),
+                torch.randn(batch, CFG.vis_dim),
             )
             assert next_emb.shape == (batch, CFG.vis_dim)
+
+    def test_residual_convention(self):
+        """next = current + delta: zeroing the delta path must return current."""
+        trm = MockTRM(CFG)
+        with torch.no_grad():
+            trm.proj.weight.zero_()
+            trm.proj.bias.zero_()
+        current = torch.randn(3, CFG.vis_dim)
+        out = trm(
+            torch.randn(3, CFG.fused_rows, CFG.fused_cols),
+            torch.randn(3, CFG.state_dim),
+            current,
+        )
+        assert torch.allclose(out, current)
 
 
 class TestChronoQueryPlanner:
