@@ -1,0 +1,302 @@
+# MicroVLA v2
+
+A micro vision-language-action (VLA) pipeline: a single frozen off-the-shelf
+detector — YOLO-World-S — supplies both open-vocabulary vision *and*
+language grounding (its own internal CLIP text tower), feeding a set of
+small, novel trainable heads — hard-capped at **9M trainable parameters
+total** — that turn "task text + video stream" into normalized 7-servo PWM
+plans. A 30 Hz JEPA-style latent rollout runs real perception at 2 Hz and
+fills the other 14-of-every-15 ticks with a corrected world-model
+prediction, so the control loop stays fast even though the detector doesn't.
+A ~10M-param Tiny Recursive Model (TRM) slot sits in the middle of the
+stack, fully specified but built externally.
+
+`DESIGN.md` is the binding architecture contract; this README is the tour.
+
+## Architecture
+
+```
+                        ┌── once per task ─────────────────────────────────┐
+"move can to ball" ──►  │ parse_command: source="can", target="ball"       │
+                        │ YOLO-World CLIP text tower (via set_classes) ──► │
+                        │ 3 ordered CLIP embs [512]: command, source, target
+                        └──────────────────────────────┬───────────────────┘
+                                                       │
+camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼───────────────────────────┐
+              │   YOLO-World-S (frozen): frame_emb [512] (GAP of SPPF map)         │
+              │     source box: emb [512] + center [2]                            │
+              │     target box: emb [512] + center [2]   (per-class best box)     │
+              └─ other 14 ticks ─── DREAM TICK ────────────────────────────────┐  │
+                    frame token = corrected TRM prediction [512]               │  │
+                    box + geometry tokens zeroed (same path as                 │  │
+                    train-time modality_dropout → dream mode is trained)       ▼  ▼
+  SlotResonanceFusion: 32 slots cross-attend over
+      [cmd | src | tgt | frame | src-box | tgt-box | geometry] ──► fused [32, 5]
+                                                                        │
+  AnchoredDriftEncoder (anchor = first REAL frame, GRU accum) ──► state_delta [256]
+                                                                        │
+  TRM — OPEN SLOT (~10M, built externally)                             ▼
+      forward(fused [B,32,5], state_delta [B,256]) -> next_emb [B,512]
+                     │
+                     ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
+                     ▼
+  ChronoQueryPlanner(next_emb [512]) ──► plan [5, 7] in [-1, 1], scaled by trust τ
+      rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM
+```
+
+Two ways to run the stack:
+
+* **`JEPALoop`** — the deployment path: 30 Hz ticks, real perception at
+  2 Hz, dream ticks in between (see [JEPA at 30 Hz](#jepa-at-30-hz) below).
+* **`MicroVLAPipeline`** — the simple 2 Hz real-only path (`step()` is
+  exactly a JEPA real tick without the corrector). Handy for offline
+  debugging and as the TRM builder's minimal harness.
+
+## What is novel in each trainable module
+
+**Slot Resonance Fusion** (`microvla/fusion/slot_fusion.py`, ≤5.0M params,
+target ~4.5M). Seven role-tagged tokens — 3 text tokens (command, source,
+target), the frame token, the source-box token, the target-box token, and a
+Fourier-encoded geometry token built from `[fourier(src_center),
+fourier(tgt_center), fourier(tgt_center − src_center)]` — are projected to a
+shared `d_model=384` space with a learned per-position role embedding. The
+COMMAND embedding FiLM-modulates (scale + shift) the frame and box tokens,
+so *what* the robot was told to do reshapes how it looks at the scene before
+attention even runs. 32 learned slot queries then run 3 rounds of
+pre-LN multi-head cross-attention over the 7 tokens, and a shared low-rank
+head compresses every slot down to 5 numbers — the tiny, structured
+`[32, 5]` interface the TRM consumes.
+
+The genuinely novel bit is that **dream mode is not a separate inference
+hack — it's the same code path as training-time modality dropout.**
+Whenever `dream=True` *or* a per-sample Bernoulli draw at probability
+`cfg.modality_dropout` fires during training, the source-box, target-box,
+and geometry tokens are zeroed and the frame token is all the model gets
+(plus text). At inference, the JEPA loop's dream ticks pass the
+*corrected TRM prediction* as that frame token through the exact same
+branch. Because modality dropout is trained with `modality_dropout=0.3` by
+default, the network has already learned to plan from a degraded,
+detector-free observation — dreaming isn't a fallback the model has never
+seen, it's a regime it was explicitly optimized for.
+
+**Anchored Drift Encoder** (`microvla/aux_state/drift_encoder.py`, ≤1.5M
+params, target ~0.9M). Rather than encoding absolute scene state, it anchors
+on the first REAL frame of the episode and encodes *drift*:
+`[frame_emb − anchor, frame_emb ⊙ anchor]` (`[B, 1024]`), projected and
+sigmoid-gated, then accumulated by a `GRUCell(256, 256)` whose hidden state
+is detached between steps. The output — LayerNorm'd `state_delta [256]` — is
+"how far has the world moved since the task started," exactly the progress
+signal a recurrent predictor needs. Because dream ticks feed it the
+corrected latent (not raw detections), the drift encoder effectively runs at
+the full 30 Hz tick rate while its anchor stays pinned to the last real
+measurement.
+
+**Chrono-Query Planner** (`microvla/planner/chrono_planner.py`, ≤2.5M
+params, target ~1.6M). The predicted next-frame embedding is reshaped into 8
+memory tokens of width 64, projected to `d_plan=256`; 5 learned time-query
+tokens carrying a fixed sinusoidal step encoding cross-attend over that
+memory for 3 rounds. Crucially the head predicts per-step **deltas**, and
+the plan is `tanh(cumsum(deltas, dim=1))` — smoothness and sequential
+consistency are built into the decoding itself, not just penalized by a
+training loss.
+
+**Innovation Corrector** (`microvla/jepa/corrector.py`, 0 learned params).
+A Kalman-lite complementary filter that is the glue making dream ticks safe.
+On every real measurement it computes the innovation
+`e = real_emb − pending_pred` and EMAs it into a correction vector
+`c ← β·c + (1−β)·e`, and sets a trust score
+`τ = sigmoid(trust_temperature · (cosine(pred, real) − 0.5))` — high when
+the last prediction actually matched reality, low when it didn't. Each
+subsequent dream tick applies a *decaying* fraction of that correction,
+`pred + decay^k · c`, so the influence of a stale measurement fades out
+across the 14-tick gap instead of persisting undamped. `τ` also directly
+scales the emitted plan (`plan = planner(next_emb) * τ`), so the robot backs
+off its own confidence exactly when its world model has been drifting.
+
+## JEPA at 30 Hz
+
+The control loop (`microvla/jepa/loop.py`) ticks at `cfg.tick_hz = 30`. Every
+`round(tick_hz / real_frame_hz) = 15`th tick (`0, 15, 30, 45, ...`) is a
+**real tick**: YOLO-World-S actually runs on the camera frame at
+`cfg.real_frame_hz = 2` Hz, producing grounded source/target boxes. The
+other 14 of every 15 ticks are **dream ticks**: no frame is consumed; the
+corrected TRM prediction from the previous tick is fed back through
+fusion's dream path (see above) and a new prediction is produced. Story: **2
+Hz real perception, 28 Hz latent dreaming** — the servo plan updates at the
+full 30 Hz tick rate even though the camera/detector only contributes once
+every half second.
+
+**Why this is a reasonable compute trade, not a hack:** YOLO-World-S is a
+~13M-parameter convolutional detector run over a full camera frame — by far
+the most expensive op in the stack, and it only runs at 2 Hz. A dream tick
+runs only the trainable heads plus the TRM: `SlotResonanceFusion +
+AnchoredDriftEncoder + ChronoQueryPlanner + TRM ≈ 4.5M + 0.9M + 1.6M + 10M
+≈ 17M` params of small attention blocks and a GRU cell operating on
+`[32, 5]`/`[256]`/`[512]`-sized tensors — no image ever touches them. That
+combination is light enough to run at 28 Hz on CPU, which is what makes the
+30 Hz plan-update rate achievable without a GPU, while the InnovationCorrector
+keeps the 14-tick-long open-loop stretches from drifting unchecked.
+
+## The v2 parameter ledger
+
+| item | budget |
+|---|---:|
+| YOLO-World-S (frozen, incl. its CLIP text tower, used once per task) | ~13M |
+| TRM (open slot, reserved) | 10M |
+| **Trainable heads total (hard cap `cfg.trainable_param_budget`)** | **9M** |
+| — SlotResonanceFusion | ≤5.0M (target ~4.5M) |
+| — AnchoredDriftEncoder | ≤1.5M (target ~0.9M) |
+| — ChronoQueryPlanner | ≤2.5M (target ~1.6M) |
+| InnovationCorrector | 0 (no learned params) |
+
+MiniLM is gone in v2 — text comes from YOLO-World's own CLIP text tower, so
+there's no separate ~22.7M language encoder to carry. Total deployed ≈
+13 + 10 + ~7 ≈ 30M, under the 32M envelope. Run the audit yourself:
+
+```bash
+python -m microvla.utils.param_audit
+```
+
+`tests/test_param_budget.py` enforces the same caps in CI.
+
+## The TRM slot (handoff)
+
+The TRM predicts the *next* YOLO-World frame embedding from the fused
+task/perception matrix and the drift code. Its I/O contract, 10M budget,
+recommended Tiny-Recursive-Model architecture, and (documented-only)
+training loss are specified in
+[`microvla/trm/TRM_SPEC.md`](microvla/trm/TRM_SPEC.md). To slot a real TRM
+into the deployment loop, subclass `TRMBase` and pass it to
+`JEPALoop.build_real`:
+
+```python
+import torch.nn as nn
+from microvla import JEPALoop, TRMBase, DEFAULT_CONFIG
+
+class MyTRM(TRMBase):
+    def __init__(self, cfg):
+        super().__init__()
+        ...  # ~10M params: embed fused [32,5] as 32 tokens, condition on
+        # state_delta [256] (prepended token or FiLM), recurse a weight-tied
+        # block K~4-8 times, head -> 512. See TRM_SPEC.md.
+
+    def forward(self, fused, state_delta):
+        # fused [B, 32, 5], state_delta [B, 256] -> next_emb [B, 512]
+        ...
+
+loop = JEPALoop.build_real(DEFAULT_CONFIG, trm=MyTRM(DEFAULT_CONFIG))
+```
+
+If no TRM is passed, `build_real` logs a warning and falls back to the
+`MockTRM` stub (a single `Linear(416, 512)`, ~0.21M params) so the loop
+still runs end-to-end.
+
+### TRM training loss (documented, NOT implemented)
+
+No TRM training code exists in this repository. The documented loss
+(`train.losses.trm_loss_documentation()`, authoritative version in
+`microvla/trm/TRM_SPEC.md`): the predicted `next_emb` is regressed onto the
+*actual* YOLO frame embedding of the next REAL frame with
+
+```
+L = 1.0 * (1 - cosine(y_hat, y)) + 0.5 * MSE(y_hat, y)   # on LayerNorm-standardized targets
+```
+
+plus an optional in-batch InfoNCE term, with an EMA/stop-grad target-encoder
+note in case the YOLO backbone is ever fine-tuned (collapse risk). Multi-step
+rollout training is **mandatory**, not optional: at inference the TRM runs
+~14-step open-loop dream rollouts between real measurements, with each
+prediction fed back through fusion's dream path exactly as the JEPA loop
+does. Training must reproduce that feedback loop with a scheduled horizon
+`H` (start at 1, grow to 14) and a discounted loss `sum_h 0.95^h * L_h` —
+single-step-only training will compound error the InnovationCorrector alone
+cannot save.
+
+## Quickstart
+
+Commands below assume you're at the repo root.
+
+```bash
+# Core install (torch + numpy only; mock pipeline, JEPA loop, tests, and
+# training scaffold all work with this alone)
+pip install -e ".[dev]"
+
+# Run the test suite (CPU-only, mocks, no downloads, no cv2)
+pytest
+
+# Audit the v2 parameter ledger (asserts the 9M cap + per-module caps)
+python -m microvla.utils.param_audit
+
+# Smoke-train the heads on synthetic episodes (CPU, checkpoints -> ./checkpoints/)
+python train/train_planner.py
+# ...with the dream/modality-dropout path exercised at a non-default rate:
+python train/train_planner.py --modality-dropout 0.5
+```
+
+Real inference with YOLO-World weights (installs the heavy perception stack;
+`yolov8s-worldv2.pt` downloads on first use):
+
+```bash
+pip install -e ".[perception]"
+```
+
+```python
+from microvla import MicroVLAPipeline
+
+# 2 Hz real-only path: simplest way to sanity-check real perception.
+pipe = MicroVLAPipeline.build_real(device="cpu")  # add trm=MyTRM(cfg) when ready
+results = pipe.run("demo.mp4", "pick up the red block", max_steps=20)
+for r in results:
+    print(r.plan)  # [5, 7] normalized PWM targets in [-1, 1]
+```
+
+```python
+from microvla import JEPALoop
+
+# 30 Hz deployment path: real YOLO perception at 2 Hz, TRM-driven dream
+# ticks fill the other 14 of every 15 ticks.
+loop = JEPALoop.build_real(device="cpu")  # add trm=MyTRM(cfg) when ready
+results = loop.run(camera_frames_at_30hz, "pick up the red block")
+for tick in results:
+    print(tick.is_real, tick.trust, tick.plan)  # plan already trust-scaled
+```
+
+## Repo layout
+
+```
+microvla/
+  config.py                    # canonical dims (single source of truth)
+  pipeline.py                  # MicroVLAPipeline + StepResult (2 Hz real-only path)
+  perception/                  # command_parser, video sampler, CLIP task encoder, YOLO-World (+ mocks)
+  fusion/                      # SlotResonanceFusion
+  aux_state/                   # AnchoredDriftEncoder
+  trm/                         # TRMBase, MockTRM, TRM_SPEC.md (open slot)
+  jepa/                        # JEPALoop, InnovationCorrector (30 Hz deployment path)
+  planner/                     # ChronoQueryPlanner
+  utils/param_audit.py         # v2 ledger + budget assertion
+train/                         # losses, EpisodeDataset, BC training scaffold
+tests/                         # CPU-only, mock-only pytest suite
+```
+
+## Evaluation targets (paper / demo goals)
+
+The claims this system is built to demonstrate, in the order they should be
+proven:
+
+1. **Task success at micro scale.** Success rate on a defined pick/push task
+   suite (sim first — e.g. PushT-style or a Meta-World subset — then a real
+   7-servo rig), with the whole deployed stack ≈ 30M params. Baselines:
+   plain 2 Hz behavior cloning (no world model) and a quantized large-VLA
+   teacher, if distillation is used.
+2. **The rollout ablation table** (this is the scientific core):
+   corrector on/off, dream-training (`modality_dropout > 0`) on/off,
+   TRM rollout horizon 1 vs 14, fused matrix 8x5 vs 32x5. Each row is a
+   success-rate delta that shows the corresponding design choice carries
+   real weight.
+3. **Edge latency/energy.** Per-tick latency at 30 Hz and per-frame YOLO
+   latency at 2 Hz on a Raspberry Pi 5 (int8 perception at 416px, optional
+   Hailo AI HAT), plus watts — against any published small VLA on the same
+   board.
+4. **Trust telemetry.** Corrector trust (tau) correlating with actual task
+   failure — evidence the system knows when its imagination has diverged
+   (and, via trust-scaled plans, acts conservatively when it does).

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microvla"
+version = "0.2.0"
+description = "Micro vision-language-action pipeline: a frozen YOLO-World-S detector (its own CLIP text tower supplies language grounding) feeding <=9M-param trainable heads, a 30 Hz JEPA latent rollout, and an open ~10M TRM slot."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "MicroVLA contributors" }]
+keywords = ["vla", "robotics", "vision-language-action", "yolo-world", "jepa", "trm"]
+dependencies = [
+    "torch",
+    "numpy",
+]
+
+[project.optional-dependencies]
+# Real perception front-end (frozen YOLO-World-S detector + its CLIP text
+# tower). The core package imports with only torch + numpy; these are loaded
+# lazily by the real perception/encoder classes.
+perception = [
+    "ultralytics",
+    "opencv-python",
+    "torchvision",
+]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["microvla*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

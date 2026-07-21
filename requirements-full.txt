@@ -1,0 +1,10 @@
+# Everything: core + real perception front-end + test runner.
+# No sentence-transformers/MiniLM in v2: text grounding comes from
+# YOLO-World's own CLIP text tower (harvested via set_classes), so there is
+# no separate language-model dependency.
+torch
+numpy
+ultralytics
+opencv-python
+torchvision
+pytest

@@ -1,0 +1,7 @@
+# Core runtime: the package imports and the mock pipeline / JEPA loop / tests
+# run with just these (heavy perception deps are lazy — see
+# requirements-full.txt). No sentence-transformers/MiniLM in v2: text
+# grounding comes from YOLO-World's own CLIP text tower, loaded lazily by
+# microvla/perception/text_encoder.py's ClipTaskEncoder.
+torch
+numpy
