@@ -92,4 +92,7 @@ the emitted plan.
 `microvla/fusion/` · `microvla/aux_state/` (drift encoder; dir is aux_state, not aux) ·
 `microvla/trm/` (open slot) · `microvla/jepa/` (loop + corrector, deployment path) ·
 `microvla/planner/` · `microvla/pipeline.py` (2 Hz debug path) · `train/` (BC scaffold;
-episode `.npz` keys in `train/dataset.py`) · `tests/`.
+episode `.npz` keys in `train/dataset.py`) · `preprocess/` (LIBERO + BridgeData V2
+converters, TinyVLA teacher distillation — never downloads data; `--dry-run` uses
+mocks; keep heavy deps (h5py, cv2) lazy and `norm_stats.json` paired with any
+checkpoint) · `tests/`.

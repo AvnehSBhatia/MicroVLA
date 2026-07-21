@@ -282,6 +282,25 @@ for tick in results:
     print(tick.is_real, tick.trust, tick.plan)  # plan already trust-scaled
 ```
 
+## Data: BridgeData V2 (pretrain) + LIBERO (fine-tune/eval)
+
+`preprocess/` converts both datasets into MicroVLA's `.npz` episode format
+offline — the frozen perception stack runs once at conversion time, so
+**training never touches images** and episodes are ~1000× smaller than raw
+video. Both datasets are 7-DoF (Δxyz, Δrpy, gripper) = `num_servos=7`; frames
+are subsampled to 2 Hz with the same cadence as the online sampler; actions
+are quantile-normalized (`norm_stats.json` — keep it with checkpoints) and
+chunked into the 5-row plan windows. Optional **TinyVLA teacher distillation**
+(`--teacher tinyvla`) relabels actions with a pretrained VLA, cached per
+episode. Nothing is downloaded automatically. Full guide:
+[`preprocess/README.md`](preprocess/README.md).
+
+```bash
+python -m preprocess.bridge /data/bridgedata_raw data/bridge          # pretrain set
+python -m preprocess.libero /data/libero_object  data/libero_object   # fine-tune/eval
+python train/train_planner.py --data-dir data/bridge
+```
+
 ## Repo layout
 
 ```
@@ -296,6 +315,7 @@ microvla/
   planner/                     # ChronoQueryPlanner
   utils/param_audit.py         # v2 ledger + budget assertion
 train/                         # losses, EpisodeDataset, BC training scaffold
+preprocess/                    # LIBERO + BridgeData V2 -> .npz converters, TinyVLA teacher
 tests/                         # CPU-only, mock-only pytest suite
 ```
 

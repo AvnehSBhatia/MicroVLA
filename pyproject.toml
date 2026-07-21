@@ -28,6 +28,11 @@ perception = [
 dev = [
     "pytest",
 ]
+# Offline dataset preprocessing (preprocess/): LIBERO hdf5 reading. Bridge's
+# raw reader needs cv2, which comes with the perception extra.
+data = [
+    "h5py",
+]
 
 [tool.setuptools.packages.find]
 include = ["microvla*"]
