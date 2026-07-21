@@ -29,29 +29,55 @@ _MOVE_VERBS = (
     "slide",
     "drag",
     "take",
+    "pour",
+    "stack",
+    "set",
+    "drop",
+    "insert",
+    "transfer",
 )
 
 #: Prepositions linking source and destination in the "verb X prep Y" pattern.
-#: Sorted longest-first so multi-word phrases ("in front of") are tried before
-#: any shorter phrase that happens to share a prefix.
+#: Sorted longest-first so multi-word phrases ("on top of") are tried before
+#: any shorter phrase that happens to share a prefix ("on").
 _PREPOSITIONS = sorted(
     (
         "to",
         "onto",
         "on",
+        "on top of",
         "into",
         "in",
+        "inside",
+        "inside of",
         "near",
         "next to",
+        "beside",
         "toward",
         "towards",
         "at",
         "by",
         "behind",
         "in front of",
+        "out of",
+        "off of",
+        "off",
+        "under",
+        "underneath",
+        "over",
+        "above",
+        "against",
     ),
     key=len,
     reverse=True,
+)
+
+#: Leading spatial wrappers stripped when deriving a DETECTABLE noun phrase
+#: ("right side of the table" -> "the table"): open-vocab detectors ground
+#: objects, not regions.
+_LOCATION_WRAPPER_RE = re.compile(
+    r"^(?:(?:the\s+)?(?:left|right|top|bottom|front|back|middle|center|edge|side|corner)"
+    r"(?:\s+(?:side|edge|corner|part|half))?\s+of\s+)+"
 )
 
 #: Directional suffixes for the bare "push X <direction>" pattern.
@@ -100,22 +126,38 @@ def _normalize(text: str) -> str:
 
 
 def strip_article(phrase: str) -> str:
-    """Drops a leading article for use as a detector class prompt.
+    """Derives a DETECTABLE noun phrase for use as a detector class prompt.
 
-    "the red cup" -> "red cup". CLIP text/box alignment in open-vocab
-    detectors is slightly stronger on bare noun phrases, so detection class
-    prompts are article-stripped while the full phrases (articles intact)
-    are still what gets embedded for fusion's text tokens.
+    Open-vocab detectors ground *objects*, not regions or clauses, and CLIP
+    text/box alignment is strongest on short bare noun phrases. Real
+    teleop annotations ("right side of the table on top of the block",
+    "small spoon from basket") need three cleanups, applied in order:
+
+    1. Strip leading spatial wrappers: "right side of the table" -> "the table".
+    2. Cut trailing prepositional clauses: "the table on top of the block" ->
+       "the table"; "spoon from basket" -> "spoon".
+    3. Strip a leading article: "the table" -> "table".
+
+    The FULL phrase (untouched) is still what gets CLIP-embedded for fusion's
+    text tokens — only the detection prompt is simplified.
 
     Args:
         phrase: A noun phrase, already lowercased/normalized.
 
     Returns:
-        The phrase without a leading "the"/"a"/"an" (unchanged if the
-        article is the whole phrase).
+        A short detector-friendly noun phrase (never empty; falls back to
+        the input).
     """
-    stripped = re.sub(r"^(?:the|a|an)\s+", "", phrase)
-    return stripped if stripped else phrase
+    p = _LOCATION_WRAPPER_RE.sub("", phrase).strip()
+    clause = re.split(
+        r"\s+(?:" + "|".join(re.escape(x) for x in _PREPOSITIONS) + r"|from|of|that|which)\s+",
+        p,
+        maxsplit=1,
+    )[0].strip()
+    if clause:
+        p = clause
+    stripped = re.sub(r"^(?:the|a|an)\s+", "", p).strip()
+    return stripped or phrase
 
 
 def parse_command(text: str) -> ParsedCommand:
@@ -137,6 +179,10 @@ def parse_command(text: str) -> ParsedCommand:
     match = _VERB_PREP_RE.match(cleaned)
     if match:
         verb, source, _prep, target = match.groups()
+        # "put the spoon from the basket to the tray": the origin clause
+        # belongs to neither role — the object is the head, the destination
+        # is the final target.
+        source = re.split(r"\s+from\s+", source, maxsplit=1)[0]
         return ParsedCommand(raw=text, verb=verb, source=source.strip(), target=target.strip())
 
     match = _PUSH_DIRECTION_RE.match(cleaned)

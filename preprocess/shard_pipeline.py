@@ -151,7 +151,12 @@ def _download(url: str, dest: Path) -> Path:
 
 
 def _extract(archive: Path, dest: Path) -> Path:
-    """Extracts zip/tar archives; plain directories pass through."""
+    """Extracts zip/tar archives; plain files and directories pass through.
+
+    Plain (non-archive) files — LIBERO ``.hdf5`` task files, Bridge RLDS
+    ``.tfrecord`` shards — are themselves the shard root: readers accept a
+    file path as ``root``.
+    """
     dest.mkdir(parents=True, exist_ok=True)
     if archive.is_dir():
         return archive
@@ -162,7 +167,7 @@ def _extract(archive: Path, dest: Path) -> Path:
         with tarfile.open(archive) as t:
             t.extractall(dest, filter="data")
     else:
-        raise ValueError(f"unsupported shard archive: {archive.name}")
+        return archive  # plain-file shard (hdf5 / tfrecord); deleted with workdir
     archive.unlink()  # free the archive's disk before conversion
     return dest
 
@@ -172,11 +177,17 @@ def _episode_iter_for(dataset: str, root: Path, **kwargs) -> Iterator[SourceEpis
         from preprocess.bridge import iter_bridge_episodes
 
         return iter_bridge_episodes(root, **kwargs)
+    if dataset == "bridge_rlds":
+        from preprocess.bridge_rlds import iter_bridge_rlds_episodes
+
+        return iter_bridge_rlds_episodes(root, **kwargs)
     if dataset == "libero":
         from preprocess.libero import iter_libero_episodes
 
         return iter_libero_episodes(root, **kwargs)
-    raise ValueError(f"unknown dataset {dataset!r} (expected 'bridge' or 'libero')")
+    raise ValueError(
+        f"unknown dataset {dataset!r} (expected 'bridge', 'bridge_rlds', or 'libero')"
+    )
 
 
 def convert_shard(
@@ -337,7 +348,7 @@ def _extract_guarded(archive: Path, dest: Path, guard: BudgetGuard,
             with tarfile.open(archive) as t:
                 t.extractall(dest, filter="data")
             return dest
-        raise ValueError(f"unsupported shard archive: {archive.name}")
+        return archive  # plain-file shard (hdf5 / tfrecord), used in place
     return _extract(archive, dest)
 
 
@@ -345,7 +356,7 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("shard_list", help="text file: one shard URL/path per line (# comments)")
     parser.add_argument("out", help="output directory for .npz episodes")
-    parser.add_argument("--dataset", choices=["bridge", "libero"], required=True)
+    parser.add_argument("--dataset", choices=["bridge", "bridge_rlds", "libero"], required=True)
     parser.add_argument("--budget-gb", type=float, default=10.0)
     parser.add_argument("--workdir", default=".shard_tmp")
     parser.add_argument("--device", default="cpu", help="'mps' on Apple silicon")
@@ -355,6 +366,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--teacher-checkpoint", default=None)
     parser.add_argument("--teacher-repo", default=None)
     parser.add_argument("--teacher-cache", default=None)
+    parser.add_argument(
+        "--rlds-meta", default=None,
+        help="bridge_rlds only: directory holding features.json/dataset_info.json "
+        "(default <out>/_rlds_meta)",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -364,12 +380,16 @@ def main(argv: list[str] | None = None) -> None:
     ]
     teacher = build_teacher(args.teacher, args.teacher_checkpoint, args.teacher_repo,
                             args.teacher_cache, device=args.device)
+    reader_kwargs = {}
+    if args.dataset == "bridge_rlds":
+        reader_kwargs["features_dir"] = args.rlds_meta or str(Path(args.out) / "_rlds_meta")
     run_shards(
         shards, args.out, args.dataset,
         budget_gb=args.budget_gb, workdir=args.workdir,
         mock=args.dry_run, device=args.device,
         teacher=teacher, teacher_cache_dir=args.teacher_cache,
         limit_per_shard=args.limit_per_shard,
+        reader_kwargs=reader_kwargs,
     )
 
 

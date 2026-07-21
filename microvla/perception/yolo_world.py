@@ -76,12 +76,19 @@ class YoloWorldPerception:
     Args:
         weights: Ultralytics weights name or path for ``YOLOWorld``.
         device: Torch device string for inference.
+        det_conf: Detection confidence threshold. Deliberately low (0.10):
+            open-vocab phrase prompts score weaker than closed-set classes,
+            and downstream consumers weight every box by its confidence
+            (``box_weights``), so admitting weak evidence is safe while
+            discarding it is not recoverable.
 
     Raises:
         RuntimeError: If no SPPF module exists in the loaded model.
     """
 
-    def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu") -> None:
+    def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
+                 det_conf: float = 0.10) -> None:
+        self.det_conf = det_conf
         # Lazy imports: ultralytics + torchvision are heavy optional deps.
         from torchvision.ops import roi_align
         from ultralytics import YOLOWorld
@@ -153,14 +160,19 @@ class YoloWorldPerception:
         """
         with torch.no_grad():
             self._feat = None
-            results = self.model.predict(frame_bgr, device=self.device, verbose=False)
+            results = self.model.predict(
+                frame_bgr, device=self.device, conf=self.det_conf, verbose=False
+            )
 
             if self._feat is None:
                 raise RuntimeError(
                     "SPPF hook captured no feature map; the model forward did "
                     "not run as expected."
                 )
-            feat = self._feat.float()  # [1, C, Hf, Wf]
+            # Pull the map to CPU float32 immediately: ROIAlign/pooling run on
+            # CPU regardless of detector device (torchvision MPS kernel
+            # coverage is incomplete, and the map is tiny).
+            feat = self._feat.float().cpu()  # [1, C, Hf, Wf]
             # GAP -> [C], then standardized: ALL embeddings leaving perception
             # live in the canonical zero-mean/unit-std space (see
             # microvla/utils/embedding.py) so TRM feedback stays in-distribution

@@ -187,6 +187,11 @@ class EpisodeBuilder:
 
             self.perception = YoloWorldPerception(device=device)
             self.task_encoder = ClipTaskEncoder(self.perception)
+        # CLIP text encoding costs ~1-2 s per call; datasets repeat the same
+        # instruction across many demos (LIBERO: 50 demos/instruction), so
+        # cache TaskEncodings and skip redundant set_classes calls.
+        self._task_cache: dict[str, object] = {}
+        self._active_classes: list[str] | None = None
 
     def build(self, episode: SourceEpisode, normalizer: ActionNormalizer) -> dict[str, np.ndarray]:
         """Converts one raw episode into the MicroVLA .npz key dict.
@@ -211,10 +216,16 @@ class EpisodeBuilder:
                 f"cfg.num_servos ({self.cfg.num_servos}); remap in the dataset reader."
             )
 
-        task = self.task_encoder.encode(episode.instruction)
+        task = self._task_cache.get(episode.instruction)
+        if task is None:
+            task = self.task_encoder.encode(episode.instruction)
+            self._task_cache[episode.instruction] = task
         parsed = task.parsed
         src, tgt = strip_article(parsed.source), strip_article(parsed.target)
-        self.perception.set_classes([src] if src == tgt else [src, tgt])
+        classes = [src] if src == tgt else [src, tgt]
+        if classes != self._active_classes:
+            self.perception.set_classes(classes)
+            self._active_classes = classes
 
         indices = subsample_indices(
             len(episode.frames), episode.source_hz, self.cfg.real_frame_hz

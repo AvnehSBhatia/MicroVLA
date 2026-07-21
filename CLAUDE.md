@@ -59,7 +59,10 @@ the emitted plan.
   `JEPALoop.build_real(trm=RecursiveTRM(cfg))`. `forward()` runs ONE refinement pass
   (`n_sup_infer=1`) — the deep-supervision passes are training-only via
   `refine_forward` + `TRM.py::spec_loss` (cosine + raw MSE, no LayerNorm in the loss).
-  `python TRM.py` runs its self-test. `train/` still contains no TRM training code.
+  `python TRM.py` runs its self-test. TRM training is now IN-REPO (user-sanctioned,
+  2026-07-21): `train/train_full.py` stage A trains fusion+drift+TRM with
+  deployment-exact 15-tick rollouts between real frames; stage B behavior-clones the
+  planner through the frozen world model.
 - **Canonical embedding space.** Perception standardizes every visual embedding
   (zero mean / unit std per vector, `microvla/utils/embedding.py::standardize`) at the
   boundary; the JEPA loop re-standardizes corrected dream latents. Never feed a raw

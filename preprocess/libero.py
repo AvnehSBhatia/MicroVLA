@@ -106,7 +106,7 @@ def iter_libero_episodes(
     import h5py  # lazy heavy dep (``pip install microvla[data]``)
 
     root = Path(root)
-    files = sorted(root.rglob("*.hdf5"))
+    files = [root] if root.is_file() else sorted(root.rglob("*.hdf5"))
     if not files:
         raise FileNotFoundError(f"no .hdf5 files under {root}")
 
