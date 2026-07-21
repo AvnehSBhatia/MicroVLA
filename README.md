@@ -296,9 +296,15 @@ episode. Nothing is downloaded automatically. Full guide:
 [`preprocess/README.md`](preprocess/README.md).
 
 ```bash
+# Disk-capped workflow (hard 10 GB budget, incl. downloads): stream shards —
+# download one, convert, delete raw, repeat — with a hard usage guard.
+python -m preprocess.shard_pipeline shards.txt data/bridge --dataset bridge --budget-gb 10 --device mps
+
+# Or, with local copies already on disk:
 python -m preprocess.bridge /data/bridgedata_raw data/bridge          # pretrain set
 python -m preprocess.libero /data/libero_object  data/libero_object   # fine-tune/eval
-python train/train_planner.py --data-dir data/bridge
+
+python train/train_planner.py --data-dir data/bridge --device auto    # MPS on Apple silicon
 ```
 
 ## Repo layout

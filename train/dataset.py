@@ -206,5 +206,8 @@ def save_episode(path: str | Path, episode: dict[str, np.ndarray]) -> Path:
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(path, **episode)
+    # Compressed: the disk budget is hard-capped (see memory/CLAUDE.md — 10 GB
+    # total ever); zlib buys ~15-30% on float32 embeddings for negligible
+    # load-time cost.
+    np.savez_compressed(path, **episode)
     return path if path.suffix == ".npz" else path.with_suffix(path.suffix + ".npz")

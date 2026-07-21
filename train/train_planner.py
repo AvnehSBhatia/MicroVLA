@@ -83,7 +83,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="./checkpoints",
         help="Where to save checkpoints.",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="'auto' picks Apple-silicon MPS when available, else CPU; or "
+        "pass an explicit torch device string ('cpu', 'mps', 'cuda').",
+    )
     return parser.parse_args(argv)
+
+
+def resolve_device(spec: str) -> torch.device:
+    """Maps the --device flag to a torch.device.
+
+    Args:
+        spec: 'auto' (MPS if available, else CPU) or an explicit device.
+
+    Returns:
+        The resolved device.
+    """
+    if spec != "auto":
+        return torch.device(spec)
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 
 def run_episode(
@@ -126,7 +149,7 @@ def run_episode(
         # JEPA loop, where fusion's action token carries plan[0] of the last
         # emitted plan.
         if t == 0:
-            last_action = torch.zeros(1, episode["pwm_targets"].shape[-1])
+            last_action = episode["pwm_targets"].new_zeros(1, episode["pwm_targets"].shape[-1])
         else:
             last_action = episode["pwm_targets"][t - 1, 0].unsqueeze(0)
 
@@ -167,7 +190,8 @@ def main(argv: list[str] | None = None) -> None:
     cfg: MicroVLAConfig = dataclasses.replace(
         DEFAULT_CONFIG, modality_dropout=args.modality_dropout
     )
-    device = torch.device("cpu")  # CPU-safe by construction
+    device = resolve_device(args.device)
+    print(f"training on device: {device}")
 
     # Data: use the provided directory, or generate synthetic episodes.
     if args.data_dir is not None:
@@ -211,7 +235,7 @@ def main(argv: list[str] | None = None) -> None:
         epoch_smooth = 0.0
         epoch_total = 0.0
         for idx in range(len(dataset)):
-            episode = dataset[idx]
+            episode = {k: v.to(device) for k, v in dataset[idx].items()}
             preds = run_episode(episode, fusion, drift, trm, planner)
             targets = episode["pwm_targets"]
 

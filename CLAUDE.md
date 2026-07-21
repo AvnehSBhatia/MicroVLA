@@ -41,6 +41,12 @@ the emitted plan.
 
 ## Hard rules
 
+- **Disk budget: 10 GB total, ever** — including transient download/extraction
+  state. Never bulk-download datasets; all data tooling goes through
+  `preprocess/shard_pipeline.py` (`BudgetGuard`-enforced download → convert →
+  delete). Episodes are compressed `.npz`. Training happens on a 24 GB
+  M-series MacBook: prefer `--device mps`/`auto`, no CUDA assumptions.
+
 - **The TRM package is an interface-only slot; the real TRM lives at root `TRM.py`.**
   `microvla/trm/` contains only the `TRMBase` interface, `MockTRM`, and `TRM_SPEC.md` —
   keep it that way. The real implementation is `TRM.py::RecursiveTRM` (~9.5M params,

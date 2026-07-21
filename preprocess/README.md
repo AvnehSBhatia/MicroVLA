@@ -64,6 +64,36 @@ Notes:
 - TRM rollout training needs no extra keys: the next-real-frame target is
   `frame_embs[t+1]` of the same episode.
 
+## The 10 GB disk budget workflow (shard pipeline)
+
+Hard project constraint: **total disk usage never exceeds 10 GB, including
+transient download state.** Full Bridge raw (~1–2 TB) must never land on disk
+at once — use the shard pipeline, which streams download → convert → delete:
+
+```bash
+# shards.txt: one per-domain archive URL (or local path) per line, # comments.
+# Pick shards individually smaller than ~40% of the budget (download +
+# extraction briefly coexist).
+python -m preprocess.shard_pipeline shards.txt data/bridge --dataset bridge \
+    --budget-gb 10 --device mps
+```
+
+- `BudgetGuard` counts the output dir + scratch workdir + teacher cache and
+  **refuses any step that would exceed the cap** (clear error, nothing partial
+  left behind at the budget's expense).
+- Raw shards are deleted the moment their episodes are written; archives are
+  deleted right after extraction.
+- **Normalization is deferred**: shards are converted with raw action chunks
+  plus a reservoir-sampled global stats accumulator; a finalize pass fits ONE
+  quantile normalizer and rewrites every episode — per-shard stats would give
+  each shard different action scaling and silently corrupt training.
+- Episodes are `np.savez_compressed`; the full converted Bridge corpus is
+  ~5–6 GB, LIBERO ~1 GB — both fit inside the budget with room for
+  checkpoints.
+- On the 24 GB M-series MacBook: `--device mps` for conversion, and
+  `python train/train_planner.py --device auto` picks MPS automatically.
+  Budget the wall-clock, not the RAM — the converted corpus loads trivially.
+
 ## Teacher distillation (TinyVLA)
 
 Any converter can relabel actions with a larger pretrained VLA instead of the
