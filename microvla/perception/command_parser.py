@@ -67,6 +67,7 @@ _PREPOSITIONS = sorted(
         "over",
         "above",
         "against",
+        "between",
     ),
     key=len,
     reverse=True,
@@ -89,11 +90,23 @@ _VERB_PREP_RE = re.compile(
     + r")\s+(.+)$"
 )
 _PUSH_DIRECTION_RE = re.compile(r"^push\s+(.+?)\s+(" + _DIRECTION + r")$")
+#: Compound pick-and-place ("pick up the X and place it in the Y") — the
+#: dominant LIBERO instruction template; must match before the bare pick-up
+#: pattern or the whole clause becomes the object.
+_PICK_PLACE_RE = re.compile(
+    r"^(pick up|grab|grasp|take|lift)\s+(.+?)\s+and\s+(?:place|put|drop|set)\s+"
+    r"(?:it|them)\s+(?:" + "|".join(re.escape(p) for p in _PREPOSITIONS) + r")\s+(.+)$"
+)
 _PICK_UP_RE = re.compile(r"^pick up\s+(.+)$")
 _GRAB_GRASP_LIFT_RE = re.compile(r"^(grab|grasp|lift)\s+(.+)$")
 _POINT_RE = re.compile(r"^point\s+(?:at|to)\s+(.+)$")
 _GO_TO_RE = re.compile(r"^go to\s+(.+)$")
 _LOOK_AT_RE = re.compile(r"^look at\s+(.+)$")
+#: Articulated-object commands ("open the top drawer [and ...]") — the object
+#: is the grounding target; any trailing "and ..." clause is secondary.
+_ARTICULATE_RE = re.compile(
+    r"^(open|close|shut|turn on|turn off|press|toggle)\s+(.+?)(?:\s+and\s+.+)?$"
+)
 
 _TRAILING_PUNCT_RE = re.compile(r"[.!?]+$")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -176,6 +189,11 @@ def parse_command(text: str) -> ParsedCommand:
     """
     cleaned = _normalize(text)
 
+    match = _PICK_PLACE_RE.match(cleaned)
+    if match:
+        verb, source, target = match.groups()
+        return ParsedCommand(raw=text, verb=verb, source=source.strip(), target=target.strip())
+
     match = _VERB_PREP_RE.match(cleaned)
     if match:
         verb, source, _prep, target = match.groups()
@@ -215,5 +233,11 @@ def parse_command(text: str) -> ParsedCommand:
     if match:
         obj = match.group(1).strip()
         return ParsedCommand(raw=text, verb="look at", source=obj, target=obj)
+
+    match = _ARTICULATE_RE.match(cleaned)
+    if match:
+        verb, obj = match.groups()
+        obj = obj.strip()
+        return ParsedCommand(raw=text, verb=verb, source=obj, target=obj)
 
     return ParsedCommand(raw=text, verb="do", source=cleaned, target=cleaned)
