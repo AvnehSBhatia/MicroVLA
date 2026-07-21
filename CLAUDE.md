@@ -1,4 +1,6 @@
-# MicroVLA — agent instructions
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Micro vision-language-action stack (~30M params deployed) targeting a Raspberry Pi 5 with a
 7-servo rig. `DESIGN.md` is the **binding architecture contract** — read it before changing
@@ -10,9 +12,14 @@ never hardcode a dim that exists there.
 
 ```bash
 .venv/bin/python -m pytest tests -q            # full suite (CPU-only, mocks, no network)
+.venv/bin/python -m pytest tests/test_jepa_loop.py -q                  # one file
+.venv/bin/python -m pytest tests/test_shapes.py::TestChronoQueryPlanner -q  # one class/test (-k works too)
 .venv/bin/python -m microvla.utils.param_audit # asserts the 9M cap + per-module caps
 .venv/bin/python train/train_planner.py --epochs 2 --episodes 4   # smoke train
 ```
+
+Fresh setup if `.venv` is missing: `python3 -m venv .venv && .venv/bin/pip install torch numpy pytest`
+(or `pip install -e ".[dev]"`). There is no linter configured.
 
 The venv at `.venv` has only `torch`, `numpy`, `pytest`. Keep it that way: `import microvla`
 must always succeed with torch+numpy alone. Heavy deps (`ultralytics`, `cv2`, `torchvision`)
