@@ -81,14 +81,21 @@ class YoloWorldPerception:
             and downstream consumers weight every box by its confidence
             (``box_weights``), so admitting weak evidence is safe while
             discarding it is not recoverable.
+        min_side: Frames whose short side is below this are bicubically
+            upscaled before detection. Dataset frames are often tiny
+            (LIBERO 128px, Bridge 256px) and the detector is starved at
+            native size — measured on LIBERO: basket 0.00 -> 0.57 confidence
+            at 4x. Returned ``xyxy`` are in the (possibly upscaled) frame's
+            pixels; normalized centers are unaffected.
 
     Raises:
         RuntimeError: If no SPPF module exists in the loaded model.
     """
 
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
-                 det_conf: float = 0.10) -> None:
+                 det_conf: float = 0.10, min_side: int = 512) -> None:
         self.det_conf = det_conf
+        self.min_side = min_side
         # Lazy imports: ultralytics + torchvision are heavy optional deps.
         from torchvision.ops import roi_align
         from ultralytics import YOLOWorld
@@ -158,6 +165,17 @@ class YoloWorldPerception:
             class is active (source == target), both roles share the same
             ``BoxObs``.
         """
+        short = min(frame_bgr.shape[0], frame_bgr.shape[1])
+        if short < self.min_side:
+            import cv2  # lazy: present wherever the real detector runs
+
+            scale = self.min_side / short
+            frame_bgr = cv2.resize(
+                frame_bgr,
+                (round(frame_bgr.shape[1] * scale), round(frame_bgr.shape[0] * scale)),
+                interpolation=cv2.INTER_CUBIC,
+            )
+
         with torch.no_grad():
             self._feat = None
             results = self.model.predict(
