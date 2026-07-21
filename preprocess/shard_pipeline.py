@@ -428,6 +428,17 @@ def main(argv: list[str] | None = None) -> None:
         help="bridge_rlds only: directory holding features.json/dataset_info.json "
         "(default <out>/_rlds_meta)",
     )
+    parser.add_argument(
+        "--libero-camera", default="agentview_rgb",
+        help="libero only: observation stream (eye_in_hand_rgb = wrist cam — "
+        "4x the dynamics signal and far better grounding than agentview on "
+        "these 128px sim renders)",
+    )
+    parser.add_argument(
+        "--libero-no-rotate", action="store_true",
+        help="libero only: skip the 180-degree rotation (wrist cam is stored "
+        "correctly oriented; agentview is not)",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -440,6 +451,9 @@ def main(argv: list[str] | None = None) -> None:
     reader_kwargs = {}
     if args.dataset == "bridge_rlds":
         reader_kwargs["features_dir"] = args.rlds_meta or str(Path(args.out) / "_rlds_meta")
+    if args.dataset == "libero":
+        reader_kwargs["camera"] = args.libero_camera
+        reader_kwargs["rotate_180"] = not args.libero_no_rotate
     run_shards(
         shards, args.out, args.dataset,
         budget_gb=args.budget_gb, workdir=args.workdir,

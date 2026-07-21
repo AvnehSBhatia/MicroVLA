@@ -13,9 +13,12 @@ BUDGET=6   # GB tracked by the pipeline (out dirs + workdirs); total repo
            # footprint incl. venv (~2.3 GB) stays under the 10 GB cap.
 STATUS=0
 
-echo "=== LIBERO (object+spatial+goal) ==="
+echo "=== LIBERO (object+spatial+goal, wrist camera) ==="
+# eye_in_hand: 4x the world-model signal and 90% vs 2% grounding compared to
+# the 128px agentview; stored correctly oriented (no rotation).
 if ! $PY -m preprocess.shard_pipeline libero_shards.txt data/libero \
     --dataset libero --budget-gb $BUDGET --workdir .shard_tmp_libero \
+    --libero-camera eye_in_hand_rgb --libero-no-rotate \
     --device mps 2>&1 | tee logs/convert_libero.log | grep -E "INFO shard|shard done|FAILED|finalized|resuming"; then
   echo "LIBERO pipeline exited nonzero (see logs/convert_libero.log)"; STATUS=1
 fi
