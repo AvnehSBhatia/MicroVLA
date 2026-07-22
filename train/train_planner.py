@@ -104,6 +104,10 @@ def resolve_device(spec: str) -> torch.device:
     """
     if spec != "auto":
         return torch.device(spec)
+    # ROCm PyTorch presents AMD GPUs (e.g. MI300X) through the torch.cuda API,
+    # so this branch covers both NVIDIA CUDA and AMD ROCm.
+    if torch.cuda.is_available():
+        return torch.device("cuda")
     if torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
