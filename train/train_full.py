@@ -24,8 +24,11 @@ flags concatenate datasets.
 
 Example (24 GB M-series MacBook, MPS):
 
+    # Early-stopping run (recommended): horizon ramps 1->6 over 4 warmup epochs,
+    # then holds at 6 and stops when val stops improving; best checkpoint kept.
     python train/train_full.py --data-dir data/bridge --data-dir data/libero \\
-        --stage-a-epochs 2 --stage-b-epochs 3 --device auto
+        --stage-a-epochs 30 --warmup-epochs 4 --max-horizon 6 --patience 3 \\
+        --stage-b-epochs 3 --device auto
 
 Ablations (paper.md E6/E7; ``--tag`` keeps their checkpoints from clobbering
 the main run):
@@ -70,7 +73,19 @@ def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data-dir", action="append", required=True,
                    help="converted episode dir; repeat to concatenate datasets")
-    p.add_argument("--stage-a-epochs", type=int, default=2)
+    p.add_argument("--stage-a-epochs", type=int, default=2,
+                   help="HARD CAP on stage-A epochs (safety). With early stopping on, "
+                        "training usually stops well before this; set high (e.g. 30) for "
+                        "an early-stop run. Set 0 to skip stage A.")
+    p.add_argument("--warmup-epochs", type=int, default=4,
+                   help="stage A: epochs over which the rollout horizon ramps 1->max-horizon; "
+                        "after warmup, horizon holds at max and early stopping is armed.")
+    p.add_argument("--patience", type=int, default=3,
+                   help="stage A early stop: halt if val rollout loss does not improve by "
+                        "--min-delta for this many consecutive AT-MAX-HORIZON epochs. 0 "
+                        "disables early stopping (train the full --stage-a-epochs cap).")
+    p.add_argument("--min-delta", type=float, default=1e-4,
+                   help="stage A early stop: minimum val-loss improvement to reset patience.")
     p.add_argument("--stage-b-epochs", type=int, default=3)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--joint", action="store_true",
@@ -249,10 +264,23 @@ def _horizon_for_epoch(epoch: int, epochs: int, max_horizon: int) -> int:
     world model learns single-step prediction before being asked to control
     compounding error over a long open-loop rollout.
     """
+    # NOTE: "epochs" here is the WARMUP length (see _scheduled_horizon), not the
+    # total run length, so the ramp is independent of early stopping.
     if epochs <= 1:
+        return max_horizon
+    if epoch >= epochs:
         return max_horizon
     frac = (epoch - 1) / (epochs - 1)
     return max(1, round(1 + (max_horizon - 1) * frac))
+
+
+def _scheduled_horizon(epoch: int, warmup_epochs: int, max_horizon: int) -> int:
+    """Rollout horizon for an epoch: ramp 1->max over warmup, then hold at max.
+
+    Decoupled from the total run length so early stopping can add epochs at the
+    max horizon without changing the curriculum.
+    """
+    return _horizon_for_epoch(epoch, warmup_epochs, max_horizon)
 
 
 def _persistence_loss(episode, t, horizon, cfg, gamma) -> float:
@@ -273,13 +301,24 @@ def _persistence_loss(episode, t, horizon, cfg, gamma) -> float:
 
 
 def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
-    """World-model training: scheduled-horizon data-rate rollout (TRM_SPEC S5)."""
+    """World-model training: scheduled-horizon rollout (TRM_SPEC S5) + early stop.
+
+    Horizon ramps 1->max over ``--warmup-epochs``, then holds at max. Once at
+    max horizon, validation loss is monitored: the BEST checkpoint is kept, and
+    training halts after ``--patience`` epochs without a ``--min-delta``
+    improvement (or at the ``--stage-a-epochs`` hard cap). The saved
+    ``full_stageA.pt`` is always the best-val model, not the last.
+    """
     params = [*fusion.parameters(), *drift.parameters(), *trm.parameters()]
     opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-2)
     rng = random.Random(args.seed)
+    ckpt_name = _tagged_name("full_stageA.pt", args.tag)
 
+    best_val = float("inf")
+    stale = 0
     for epoch in range(1, args.stage_a_epochs + 1):
-        H = _horizon_for_epoch(epoch, args.stage_a_epochs, args.max_horizon)
+        H = _scheduled_horizon(epoch, args.warmup_epochs, args.max_horizon)
+        at_max = H >= args.max_horizon
         fusion.train(); drift.train(); trm.train()
         order = list(data.train_index)
         rng.shuffle(order)
@@ -314,10 +353,37 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
 
         val, persistence = evaluate_world(args, cfg, data, fusion, drift, trm, device, H)
         verdict = "BEATS persistence" if val < persistence else "not yet below persistence"
-        print(f"[stage A] epoch {epoch}/{args.stage_a_epochs} | H={H} | train {run_loss / max(n_seg,1):.4f} "
-              f"| val {val:.4f} vs persistence {persistence:.4f} ({verdict}) "
+
+        # Best-checkpoint + early stopping are only meaningful at the fixed max
+        # horizon (during warmup, val rises as the task gets harder by design).
+        tag = ""
+        if not at_max:
+            save(args, cfg, ckpt_name, fusion=fusion, drift=drift, trm=trm)  # keep last during ramp
+        else:
+            if val < best_val - args.min_delta:
+                best_val = val
+                stale = 0
+                save(args, cfg, ckpt_name, fusion=fusion, drift=drift, trm=trm)  # keep BEST
+                tag = " *best*"
+            else:
+                stale += 1
+                tag = f" (no improve {stale}/{args.patience})"
+
+        print(f"[stage A] epoch {epoch} | H={H} | train {run_loss / max(n_seg,1):.4f} "
+              f"| val {val:.4f} vs persistence {persistence:.4f} ({verdict}){tag} "
               f"| {time.time()-t0:.0f}s", flush=True)
-        save(args, cfg, _tagged_name("full_stageA.pt", args.tag), fusion=fusion, drift=drift, trm=trm)
+
+        if at_max and args.patience > 0 and stale >= args.patience:
+            print(f"[stage A] early stop: no val improvement for {args.patience} epochs "
+                  f"at H={args.max_horizon}. Best val {best_val:.4f}. Restoring best checkpoint.",
+                  flush=True)
+            break
+
+    # Ensure the in-memory modules reflect the BEST saved checkpoint before
+    # stage B trains on top of them.
+    if Path(args.checkpoint_dir, ckpt_name).exists():
+        st = torch.load(Path(args.checkpoint_dir, ckpt_name), map_location=device, weights_only=True)
+        fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
 
 
 @torch.no_grad()
