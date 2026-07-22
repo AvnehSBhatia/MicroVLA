@@ -36,3 +36,13 @@ eval_results/
 .DS_Store
 .idea/
 .vscode/
+
+# Scratch download/extraction dirs (raw shards — must NEVER be committed)
+.shard_tmp/
+.shard_tmp_*/
+*.hdf5
+*.tfrecord*
+# Runtime logs, checkpoints dir, task outputs
+logs/
+checkpoints/
+*.output
