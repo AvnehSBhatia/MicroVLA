@@ -185,11 +185,4 @@ intermediate supervision) scored 2.6x WORSE than persistence — so the
 scheduled-horizon data-rate objective is itself load-bearing (a free ablation
 for Claim 4's family).
 
-**Known issue — epoch 4 (H=6) MPS stall.** The 4th stage-A epoch degraded ~10x
-(3.9h vs epoch 3's 23min) with the process alive/computing but no progress —
-MPS memory degradation over a 4.7h process compounding with the deeper H=6
-rollout graph. Mitigations to apply before the final stage-A run: checkpoint +
-restart per epoch (fresh MPS context), or torch.mps.empty_cache() between
-episodes, or reduce segments-per-episode at high H. The epoch-3 checkpoint
-(+19% at H=4) is a valid world model and is what stage B trains on; H=6
-refinement is deferred, not essential to the "it learns" verdict.
+**Epoch-4 (H=6) interruption — RESOLVED (not a code issue).** The 4th stage-A epoch appeared to stall ~10x; root cause was the laptop LID CLOSING, which sleeps the Mac — `etime` counted ~3.9h of wall-clock sleep, not compute. No MPS/algorithm problem. Re-run under `caffeinate -s` with the lid open completes the full 1->6 curriculum. The epoch-3 checkpoint (+19% at H=4) is preserved as full_stageA_ep3_backup.pt.
