@@ -165,7 +165,10 @@ def score_rollout(cfg, data, fusion, drift, trm, device, ks, max_episodes):
         ``per_k[k]`` is ``{"trm": [...], "persistence": [...]}`` spec_loss
         samples and the innovation lists hold raw L2 norms.
     """
+    from train.train_full import _persistence_loss
+
     max_k = max(ks)
+    gamma = 0.9
     per_k = {k: {"trm": [], "persistence": []} for k in ks}
     innovation_trm: list[float] = []
     innovation_persistence: list[float] = []
@@ -179,21 +182,23 @@ def score_rollout(cfg, data, fusion, drift, trm, device, ks, max_episodes):
         fused_all, delta_all = _episode_real_paths(episode, fusion, drift, device)
         n_episodes += 1
 
+        # v3 _rollout returns the discounted H-step loss (not a prediction) and
+        # requires t + k < T, so anchors are bounded per k.
+        for k in ks:
+            for t in range(0, max(T - k, 0), max(1, (T - 1) // 4)):
+                per_k[k]["trm"].append(
+                    float(_rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, k, gamma)))
+                per_k[k]["persistence"].append(_persistence_loss(episode, t, k, cfg, gamma))
+
+        # Innovation-norm distribution (b): 1-step prediction error vs
+        # persistence's, matching what InnovationCorrector sees at each real tick.
         for t in range(0, T - 1, max(1, (T - 1) // 4)):
             current = episode["frame_embs"][t].unsqueeze(0)
             target = episode["frame_embs"][t + 1].unsqueeze(0)
-            persistence_loss = float(spec_loss(current, target))
-            persistence_innov = float(torch.linalg.vector_norm(current - target, dim=-1).squeeze(0))
-
-            for k in ks:
-                pred = _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm, cfg, k)
-                per_k[k]["trm"].append(float(spec_loss(pred, target)))
-                per_k[k]["persistence"].append(persistence_loss)
-                if k == max_k:
-                    innovation_trm.append(
-                        float(torch.linalg.vector_norm(pred - target, dim=-1).squeeze(0))
-                    )
-                    innovation_persistence.append(persistence_innov)
+            pred1 = trm(fused_all[t], delta_all[t], current)
+            innovation_trm.append(float(torch.linalg.vector_norm(pred1 - target, dim=-1).squeeze(0)))
+            innovation_persistence.append(
+                float(torch.linalg.vector_norm(current - target, dim=-1).squeeze(0)))
 
     return per_k, innovation_trm, innovation_persistence, n_episodes
 
