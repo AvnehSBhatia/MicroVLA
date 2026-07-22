@@ -82,7 +82,10 @@ def cap_vram(device: torch.device, max_gb: float) -> None:
         return
     total = torch.cuda.get_device_properties(device).total_memory / 1024**3
     frac = min(1.0, max_gb / total)
-    torch.cuda.set_per_process_memory_fraction(frac, device)
+    # set_per_process_memory_fraction requires an explicit device index;
+    # torch.device("cuda") has none, so resolve to the current device.
+    idx = device.index if device.index is not None else torch.cuda.current_device()
+    torch.cuda.set_per_process_memory_fraction(frac, idx)
     print(f"VRAM cap: {max_gb:.0f} GB of {total:.0f} GB total (fraction {frac:.3f})", flush=True)
 
 
