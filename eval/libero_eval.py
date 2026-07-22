@@ -178,6 +178,8 @@ def _real_tasks(suite: str) -> list[_TaskSpec]:
         ValueError: If ``suite`` is not a known benchmark key.
     """
     try:
+        from eval._libero_compat import prepare_libero
+        prepare_libero()
         from libero.libero import benchmark
     except ImportError as e:  # pragma: no cover - exercised only without libero
         raise ImportError(
@@ -232,6 +234,8 @@ def _run_real_trial(
     policy, task: _TaskSpec, trial_seed: int, max_steps: int, camera: str,
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``."""
+    from eval._libero_compat import prepare_libero
+    prepare_libero()
     from libero.libero.envs import OffScreenRenderEnv
 
     env = OffScreenRenderEnv(

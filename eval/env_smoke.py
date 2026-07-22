@@ -38,8 +38,11 @@ def main(argv=None) -> None:
     if "MUJOCO_GL" not in os.environ:
         # Linux GPU box: egl is the headless renderer (osmesa is the CPU fallback).
         os.environ["MUJOCO_GL"] = "egl"
-    os.environ.setdefault("LIBERO_CONFIG_PATH", "/tmp/libero_home")
     print(f"MUJOCO_GL={os.environ['MUJOCO_GL']}")
+
+    # torch>=2.6 weights_only + LIBERO config shims (before any libero import).
+    from eval._libero_compat import prepare_libero
+    prepare_libero()
 
     # 1. registry
     from libero.libero import benchmark
