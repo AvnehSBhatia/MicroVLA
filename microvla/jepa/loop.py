@@ -300,7 +300,8 @@ class JEPALoop:
             self._pending_pred = next_emb_unbatched
             self._latent_ctx.append(latent)
 
-            raw_plan = self.planner(next_emb).squeeze(0)  # [plan_steps, num_servos]
+            raw_plan = self.planner(next_emb, current_emb=latent.unsqueeze(0),
+                                    state_delta=state_delta, fused=fused).squeeze(0)  # [plan_steps, num_servos]
 
             # Trust-blend toward HOLD (the previously emitted plan), never
             # toward zero: zero is a real commanded pose (servo mid-range),

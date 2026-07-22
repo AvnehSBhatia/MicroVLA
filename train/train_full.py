@@ -442,9 +442,10 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             )
             preds = []
             for t in range(T):
-                next_emb = trm(fused_all[t], delta_all[t],
-                               episode["frame_embs"][t].unsqueeze(0))
-                preds.append(planner(next_emb).squeeze(0))
+                cur = episode["frame_embs"][t].unsqueeze(0)
+                next_emb = trm(fused_all[t], delta_all[t], cur)
+                preds.append(planner(next_emb, current_emb=cur,
+                                     state_delta=delta_all[t], fused=fused_all[t]).squeeze(0))
             preds = torch.stack(preds, 0)
             loss = total_planner_loss(preds, episode["pwm_targets"], smooth_weight=0.1)
             opt.zero_grad()

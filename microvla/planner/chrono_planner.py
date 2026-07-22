@@ -141,6 +141,19 @@ class ChronoQueryPlanner(nn.Module):
         # Memory path: chunk of next_emb -> d_plan token.
         self.mem_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
 
+        # --- Rich conditioning (v2): the planner used to see ONLY the predicted
+        # next_emb, a severe bottleneck for action prediction. It now ALSO
+        # attends over the CURRENT latent (where things are now), the grounded
+        # FUSED matrix (boxes, geometry, task text, last action — the whole
+        # observation), and the drift STATE (task progress). All are available
+        # at both training and 30 Hz inference. A per-source type embedding
+        # tags each memory group. Passing None for any keeps the old behavior
+        # (backward compatible for tests / the minimal contract).
+        self.cur_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
+        self.fused_proj = nn.Linear(cfg.fused_cols, cfg.d_plan)
+        self.state_proj = nn.Linear(cfg.state_dim, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(4, cfg.d_plan) * cfg.d_plan**-0.5)
+
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
         self.time_queries = nn.Parameter(torch.zeros(cfg.plan_steps, cfg.d_plan))
@@ -159,12 +172,22 @@ class ChronoQueryPlanner(nn.Module):
         # Per-step head predicting servo DELTAS (integrated by cumsum).
         self.delta_head = nn.Linear(cfg.d_plan, cfg.num_servos)
 
-    def forward(self, next_emb: torch.Tensor) -> torch.Tensor:
-        """Plans a servo trajectory from the predicted next-frame embedding.
+    def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
+                state_delta: torch.Tensor | None = None,
+                fused: torch.Tensor | None = None) -> torch.Tensor:
+        """Plans a servo trajectory from the prediction + current observation.
 
         Args:
             next_emb: ``[B, vis_dim]`` TRM output (predicted next-frame
                 embedding).
+            current_emb: ``[B, vis_dim]`` the latent driving this tick (real
+                standardized frame emb, or corrected dream latent). Optional.
+            state_delta: ``[B, state_dim]`` drift code (task progress). Optional.
+            fused: ``[B, fused_rows, fused_cols]`` grounded observation from
+                SlotResonanceFusion (boxes, geometry, task text, last action).
+                Optional. Passing all three is strongly recommended — the
+                planner is far more accurate with the current observation than
+                with the prediction alone.
 
         Returns:
             ``plan``: ``[B, plan_steps, num_servos]`` normalized PWM targets,
@@ -174,9 +197,18 @@ class ChronoQueryPlanner(nn.Module):
             raise ValueError(f"expected next_emb of shape [B, {self.cfg.vis_dim}], got {tuple(next_emb.shape)}")
         batch = next_emb.shape[0]
 
-        # [B, vis_dim] -> [B, 8, 64] -> [B, 8, d_plan] memory tokens.
-        memory = next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim)
-        memory = self.mem_proj(memory)
+        # Prediction tokens (always present): [B, 8, d_plan].
+        mem_parts = [self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                     + self.type_emb[0]]
+        if current_emb is not None:
+            mem_parts.append(
+                self.cur_proj(current_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                + self.type_emb[1])
+        if fused is not None:
+            mem_parts.append(self.fused_proj(fused) + self.type_emb[2])   # [B, 32, d_plan]
+        if state_delta is not None:
+            mem_parts.append(self.state_proj(state_delta).unsqueeze(1) + self.type_emb[3])  # [B, 1, d_plan]
+        memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.
         queries = (self.time_queries + self.time_encoding).unsqueeze(0)

@@ -195,7 +195,8 @@ class MicroVLAPipeline:
                 else None
             )
             next_emb = self.trm(fused, state_delta, frame_emb, context=context)  # [1, 512]
-            plan = self.planner(next_emb)                                # [1, plan_steps, num_servos]
+            plan = self.planner(next_emb, current_emb=frame_emb, state_delta=state_delta,
+                                fused=fused)                             # [1, plan_steps, num_servos]
             self._last_action = plan.squeeze(0)[0]  # row 0 is executed
             self._latent_ctx.append(frame_emb.squeeze(0))
 

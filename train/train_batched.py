@@ -61,6 +61,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--max-horizon", type=int, default=6)
     p.add_argument("--gamma", type=float, default=0.9)
     p.add_argument("--patience", type=int, default=3)
+    p.add_argument("--lr-patience", type=int, default=2,
+                   help="halve LR after this many at-max-horizon epochs without val "
+                        "improvement (< --patience, so LR drops before early stop).")
     p.add_argument("--min-delta", type=float, default=1e-4)
     p.add_argument("--stage-b-epochs", type=int, default=3)
     p.add_argument("--segments-per-episode", type=int, default=3)
@@ -73,6 +76,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--checkpoint-dir", default="./checkpoints")
     p.add_argument("--tag", type=str, default="")
     p.add_argument("--ablate-grounding", action="store_true")
+    p.add_argument("--load-stage-a", type=str, default=None,
+                   help="path to a trained full_stageA.pt: load the world model and skip "
+                        "stage A, retraining ONLY the planner (e.g. after a planner change).")
     return p.parse_args(argv)
 
 
@@ -217,6 +223,11 @@ def evaluate(val_buckets, fusion, drift, trm, cfg, H, gamma, ablate, batch_size,
 def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
     params = [*fusion.parameters(), *drift.parameters(), *trm.parameters()]
     opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-2)
+    # Halve the LR when val plateaus (at max horizon), so a high initial LR
+    # gets fast early progress then settles to a finer minimum instead of
+    # oscillating. Pairs with early stopping: LR reduces before patience trips.
+    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt, mode="min", factor=0.5, patience=args.lr_patience, min_lr=1e-5)
     rng = random.Random(args.seed)
     ckpt = _tagged_name("full_stageA.pt", args.tag)
     best, stale = float("inf"), 0
@@ -253,9 +264,12 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
             save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm); tag = " *best*"
         else:
             stale += 1; tag = f" (no improve {stale}/{args.patience})"
+        if at_max:
+            sched.step(val)  # only at fixed horizon (val rises during warmup by design)
+        lr_now = opt.param_groups[0]["lr"]
         peak = (f" | peakVRAM {torch.cuda.max_memory_allocated(device)/1024**3:.1f}GB"
                 if device.type == "cuda" else "")
-        print(f"[stage A] epoch {epoch} | H={H} | train {run/max(nb,1):.4f} "
+        print(f"[stage A] epoch {epoch} | H={H} | lr {lr_now:.1e} | train {run/max(nb,1):.4f} "
               f"| val {val:.4f} vs persistence {pers:.4f} ({verdict}){tag} "
               f"| {time.time()-t0:.0f}s{peak}", flush=True)
         if device.type == "cuda":
@@ -285,8 +299,10 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
                 fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
             preds = []
             for t in range(T):
-                next_emb = trm(fused_all[t], delta_all[t], batch["frame_embs"][:, t])
-                preds.append(planner(next_emb))  # [B, 5, 7]
+                cur = batch["frame_embs"][:, t]
+                next_emb = trm(fused_all[t], delta_all[t], cur)
+                preds.append(planner(next_emb, current_emb=cur,
+                                     state_delta=delta_all[t], fused=fused_all[t]))  # [B, 5, 7]
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             target = batch["pwm_targets"]               # [B, T, 5, 7]
             loss = total_planner_loss(preds.reshape(-1, *preds.shape[2:]),
@@ -319,6 +335,13 @@ def main(argv=None) -> None:
     drift = AnchoredDriftEncoder(cfg).to(device)
     trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
     planner = ChronoQueryPlanner(cfg).to(device)
+
+    if args.load_stage_a:
+        # Retrain ONLY the policy: load the trained world model, skip stage A.
+        st = torch.load(args.load_stage_a, map_location=device, weights_only=True)
+        fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
+        print(f"loaded world model from {args.load_stage_a}; skipping stage A", flush=True)
+        args.stage_a_epochs = 0
 
     if args.stage_a_epochs > 0:
         stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device)
