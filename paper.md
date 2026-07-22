@@ -166,3 +166,30 @@ the probability someone tries.
 - [ ] E3 LIBERO harness (robosuite on macOS ARM; fallback: Linux box/cloud eval)
 - [ ] E4 the sweep
 - [ ] Deploy phase (ONNX → Hailo → int8 QAT → E10)
+
+## Training log & known issues (E1)
+
+**Stage A (world model) — VALIDATED.** Bridge+LIBERO, scheduled-horizon rollout
+(TRM_SPEC S5), MPS. The pre-registered "beats persistence" bar cleared, and the
+margin WIDENS with horizon — the signature of a real dynamics model and direct
+early evidence for Claim 2:
+
+| epoch | H | val spec_loss | persistence | margin |
+|---|---|---|---|---|
+| 1 | 1 | 0.0084 | 0.0082 | -2% (parity) |
+| 2 | 3 | 0.0117 | 0.0132 | +11% |
+| 3 | 4 | 0.0119 | 0.0147 | **+19%** |
+
+The pilot's pre-fix recipe (fixed multi-dream toward a single target, no
+intermediate supervision) scored 2.6x WORSE than persistence — so the
+scheduled-horizon data-rate objective is itself load-bearing (a free ablation
+for Claim 4's family).
+
+**Known issue — epoch 4 (H=6) MPS stall.** The 4th stage-A epoch degraded ~10x
+(3.9h vs epoch 3's 23min) with the process alive/computing but no progress —
+MPS memory degradation over a 4.7h process compounding with the deeper H=6
+rollout graph. Mitigations to apply before the final stage-A run: checkpoint +
+restart per epoch (fresh MPS context), or torch.mps.empty_cache() between
+episodes, or reduce segments-per-episode at high H. The epoch-3 checkpoint
+(+19% at H=4) is a valid world model and is what stage B trains on; H=6
+refinement is deferred, not essential to the "it learns" verdict.
