@@ -49,7 +49,10 @@ def main(argv=None) -> None:
     ap.add_argument("--norm-stats", required=True)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--max-steps", type=int, default=300)
-    ap.add_argument("--res", type=int, default=256, help="render height/width (px)")
+    ap.add_argument("--res", type=int, default=128,
+                    help="render height/width (px). osmesa is CPU software "
+                         "rendering, so cost scales ~res^2; 128 matches the "
+                         "eval. Bump to 256/384 only if you can wait.")
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--out-dir", default="eval_results/videos")
     ap.add_argument("--seed", type=int, default=None,
