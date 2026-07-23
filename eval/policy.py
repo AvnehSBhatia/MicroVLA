@@ -205,9 +205,15 @@ class MicroVLAPolicy:
         """
         self.perception_period = max(1, int(perception_period))
         self.device = device
+        # The heavy YOLO-World perception runs on `device` (GPU when asked),
+        # but it detaches its outputs to CPU. The tiny trainable heads (~17M)
+        # therefore run on CPU too, so everything the loop feeds through them
+        # is on one device — no mismatch, and the GPU still accelerates the
+        # only expensive part (detection). heads_device stays CPU regardless.
+        heads_device = "cpu"
         self.normalizer = ActionNormalizer.load(norm_stats)
 
-        state, ckpt_used, is_stage_b = _load_checkpoint_state(checkpoint, device)
+        state, ckpt_used, is_stage_b = _load_checkpoint_state(checkpoint, heads_device)
         self.checkpoint_path = str(ckpt_used) if ckpt_used is not None else None
         self.is_stage_b = is_stage_b
 
@@ -242,10 +248,10 @@ class MicroVLAPolicy:
             if is_stage_b:
                 planner.load_state_dict(state["planner"])
 
-        fusion.to(device).eval()
-        drift.to(device).eval()
-        trm.to(device).eval()
-        planner.to(device).eval()
+        fusion.to(heads_device).eval()
+        drift.to(heads_device).eval()
+        trm.to(heads_device).eval()
+        planner.to(heads_device).eval()
 
         if perception is None or task_encoder is None:
             real_perception, real_task_encoder = _build_real_perception(device)
