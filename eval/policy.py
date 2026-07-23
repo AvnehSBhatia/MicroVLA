@@ -123,21 +123,51 @@ def _load_checkpoint_state(
 
 
 def _load_relaxed(module, sd, name: str) -> None:
-    """Loads ``sd`` into ``module`` tolerantly (strict=False), warning on drift.
+    """Loads ``sd`` into ``module`` tolerantly, warning on architecture drift.
 
-    A checkpoint trained before the v4 box head (TRM ``box_head``, planner
-    ``box_proj``/5-row ``type_emb``) is missing those keys. Rather than crash,
-    load everything that matches and leave the new heads at their random init —
-    so an OLD checkpoint still runs (record video, eval, probe) before a
-    retrain. Missing/unexpected keys are logged loudly because with a random
-    box head the planner's box conditioning is meaningless until retrained.
+    A checkpoint trained before the v4 box head is BOTH missing keys (TRM
+    ``box_head``, planner ``box_proj``) AND shape-mismatched (planner
+    ``type_emb`` grew 4->5 rows). ``strict=False`` tolerates the former but
+    still raises on the latter, so this:
+
+      * loads every key whose shape matches,
+      * PREFIX-COPIES a checkpoint tensor into a param that only grew along its
+        leading dim (``type_emb[4]`` -> the first 4 rows of ``type_emb[5]``),
+        preserving the trained rows and leaving the new row (the box type) at
+        init,
+      * drops anything else and leaves genuinely-new params (``box_head``,
+        ``box_proj``) at their random init.
+
+    So an OLD checkpoint still runs (video, eval, probe) before a retrain.
+    Everything skipped/partial is logged loudly — the box conditioning is
+    meaningless until the box head is trained.
     """
-    result = module.load_state_dict(sd, strict=False)
-    if result.missing_keys or result.unexpected_keys:
+    model_sd = module.state_dict()
+    to_load: dict = {}
+    partial: list[str] = []
+    dropped: list[str] = []
+    for k, v in sd.items():
+        if k not in model_sd:
+            dropped.append(k)
+            continue
+        tgt = model_sd[k]
+        if tgt.shape == v.shape:
+            to_load[k] = v
+        elif (tgt.dim() == v.dim() and tgt.shape[1:] == v.shape[1:]
+              and v.shape[0] <= tgt.shape[0]):
+            grown = tgt.clone()
+            grown[: v.shape[0]] = v            # keep trained rows, new rows stay at init
+            to_load[k] = grown
+            partial.append(f"{k} {tuple(v.shape)}->{tuple(tgt.shape)}")
+        else:
+            dropped.append(k)
+    result = module.load_state_dict(to_load, strict=False)
+    new_at_init = list(result.missing_keys)
+    if new_at_init or partial or dropped or result.unexpected_keys:
         logger.warning(
-            "%s: checkpoint loaded with strict=False (predates current "
-            "architecture — RETRAIN to populate). missing=%s unexpected=%s",
-            name, list(result.missing_keys), list(result.unexpected_keys),
+            "%s: checkpoint predates current architecture — RETRAIN to populate. "
+            "at-init(new)=%s partial(prefix-copied)=%s dropped=%s unexpected=%s",
+            name, new_at_init, partial, dropped, list(result.unexpected_keys),
         )
 
 
