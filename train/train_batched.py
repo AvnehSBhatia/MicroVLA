@@ -60,6 +60,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--warmup-epochs", type=int, default=4)
     p.add_argument("--max-horizon", type=int, default=6)
     p.add_argument("--gamma", type=float, default=0.9)
+    p.add_argument("--box-loss-weight", type=float, default=0.5,
+                   help="weight on the v4 TRM box-prediction spec_loss in stage A "
+                        "(0 disables it). Target = recorded source_box_embs[t+k].")
     p.add_argument("--patience", type=int, default=3)
     p.add_argument("--lr-patience", type=int, default=2,
                    help="halve LR after this many at-max-horizon epochs without val "
@@ -154,8 +157,15 @@ def real_paths(batch, fusion, drift, cfg, ablate):
     return fused_all, delta_all
 
 
-def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate):
-    """Batched H-step data-rate rollout loss (mean over batch + discounted steps)."""
+def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate, box_w=0.0):
+    """Batched H-step data-rate rollout loss (mean over batch + discounted steps).
+
+    ``box_w > 0`` adds the v4 TRM box-prediction term: at every rollout step the
+    TRM also predicts the next-tick SOURCE box embedding, supervised (same
+    discounted spec_loss) against the recorded ``source_box_embs[t+k]``. Kept
+    OUT of the val objective (``box_w=0`` there) so val stays frame-only and
+    directly comparable to the frame-only persistence baseline.
+    """
     text = batch["text_tokens"]
     frames = batch["frame_embs"]
     T = frames.shape[1]
@@ -163,12 +173,17 @@ def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate):
     ctx = [latent]
     fused_k, delta_k = fused_t, delta_t
     loss = torch.zeros((), device=frames.device)
+    box_loss = torch.zeros((), device=frames.device)
     wsum = 0.0
+    want_box = box_w > 0.0
     for k in range(1, H + 1):
         context = torch.stack(ctx[-cfg.context_window:], dim=1)  # [B, K, 512]
-        pred = trm(fused_k, delta_k, latent, context=context)
+        out = trm(fused_k, delta_k, latent, context=context, return_box=want_box)
+        pred, box = out if want_box else (out, None)
         w = gamma ** (k - 1)
         loss = loss + w * spec_loss(pred, frames[:, t + k])
+        if want_box:
+            box_loss = box_loss + w * spec_loss(box, batch["source_box_embs"][:, t + k])
         wsum += w
         if k == H:
             break
@@ -178,7 +193,10 @@ def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate):
         act_idx = min(t + k, T - 1)
         last_action = batch["pwm_targets"][:, act_idx, 0]
         fused_k = fusion(text, latent, sbe, tbe, sc, tc, box_weight=bw, last_action=last_action)
-    return loss / wsum
+    total = loss / wsum
+    if want_box:
+        total = total + box_w * (box_loss / wsum)
+    return total
 
 
 def persistence(batch, t, H, gamma) -> float:
@@ -246,7 +264,8 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
             loss = torch.zeros((), device=device)
             for t in ts:
                 loss = loss + rollout(batch, t, fused_all[t], delta_all[t], fusion, trm,
-                                      cfg, H, args.gamma, args.ablate_grounding)
+                                      cfg, H, args.gamma, args.ablate_grounding,
+                                      box_w=args.box_loss_weight)
             loss = loss / len(ts)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
@@ -300,9 +319,9 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
             preds, grips = [], []
             for t in range(T):
                 cur = batch["frame_embs"][:, t]
-                next_emb = trm(fused_all[t], delta_all[t], cur)
+                next_emb, next_box = trm(fused_all[t], delta_all[t], cur, return_box=True)
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
-                                     fused=fused_all[t], return_aux=True)
+                                     fused=fused_all[t], pred_box_emb=next_box, return_aux=True)
                 preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]

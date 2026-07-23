@@ -107,6 +107,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage A: max data-rate rollout horizon (grows 1->max across "
                         "epochs per TRM_SPEC section 5). Episodes shorter than horizon+1 "
                         "are skipped.")
+    p.add_argument("--box-loss-weight", type=float, default=0.5,
+                   help="weight on the v4 TRM box-prediction spec_loss in stage A "
+                        "(0 disables it). Target = recorded source_box_embs[t+k].")
     p.add_argument("--gamma", type=float, default=0.9,
                    help="stage A: discount for the per-step rollout loss sum_k gamma^(k-1)*L_k.")
     p.add_argument("--ablate-grounding", action="store_true",
@@ -199,7 +202,7 @@ def _episode_real_paths(episode, fusion, drift, device, ablate_grounding: bool =
 
 
 def _rollout(episode, t, fused_t, delta_t, fusion, trm, cfg, horizon: int,
-             gamma: float = 0.9, ablate_grounding: bool = False):
+             gamma: float = 0.9, ablate_grounding: bool = False, box_w: float = 0.0):
     """Data-rate multi-step rollout: predict frames[t+1..t+H], each supervised.
 
     This is the TRM_SPEC.md section-5 rollout objective — the one that actually
@@ -237,12 +240,18 @@ def _rollout(episode, t, fused_t, delta_t, fusion, trm, cfg, horizon: int,
     ctx = [latent.squeeze(0)]
     fused_k, delta_k = fused_t, delta_t
     loss = torch.zeros((), device=frames.device)
+    box_loss = torch.zeros((), device=frames.device)
     wsum = 0.0
+    want_box = box_w > 0.0
     for k in range(1, horizon + 1):
-        pred = trm(fused_k, delta_k, latent,
-                   context=torch.stack(ctx[-cfg.context_window:], 0).unsqueeze(0))
+        out = trm(fused_k, delta_k, latent,
+                  context=torch.stack(ctx[-cfg.context_window:], 0).unsqueeze(0),
+                  return_box=want_box)
+        pred, box = out if want_box else (out, None)
         w = gamma ** (k - 1)
         loss = loss + w * spec_loss(pred, frames[t + k].unsqueeze(0))
+        if want_box:
+            box_loss = box_loss + w * spec_loss(box, episode["source_box_embs"][t + k].unsqueeze(0))
         wsum += w
         if k == horizon:
             break
@@ -254,7 +263,10 @@ def _rollout(episode, t, fused_t, delta_t, fusion, trm, cfg, horizon: int,
         last_action = episode["pwm_targets"][act_idx, 0].unsqueeze(0)
         fused_k = fusion(text, latent, sbe, tbe, sc, tc, box_weight=bw, last_action=last_action)
         # delta_k held: no measurement during the rollout.
-    return loss / wsum
+    total = loss / wsum
+    if want_box:
+        total = total + box_w * (box_loss / wsum)
+    return total
 
 
 def _horizon_for_epoch(epoch: int, epochs: int, max_horizon: int) -> int:
@@ -344,7 +356,8 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
             loss = torch.zeros((), device=device)
             for t in ts:
                 loss = loss + _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm,
-                                       cfg, H, args.gamma, args.ablate_grounding)
+                                       cfg, H, args.gamma, args.ablate_grounding,
+                                       box_w=args.box_loss_weight)
             loss = loss / len(ts)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
@@ -443,9 +456,9 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             preds, grips = [], []
             for t in range(T):
                 cur = episode["frame_embs"][t].unsqueeze(0)
-                next_emb = trm(fused_all[t], delta_all[t], cur)
+                next_emb, next_box = trm(fused_all[t], delta_all[t], cur, return_box=True)
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
-                                     fused=fused_all[t], return_aux=True)
+                                     fused=fused_all[t], pred_box_emb=next_box, return_aux=True)
                 preds.append(plan.squeeze(0)); grips.append(grip.squeeze(0))
             preds = torch.stack(preds, 0)               # [T, 5, 7]
             grips = torch.stack(grips, 0)               # [T, 5]
