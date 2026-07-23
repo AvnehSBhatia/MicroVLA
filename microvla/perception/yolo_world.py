@@ -100,6 +100,13 @@ class YoloWorldPerception:
         from torchvision.ops import roi_align
         from ultralytics import YOLOWorld
 
+        # Ultralytics logs a WARNING via its own logger on every predict()
+        # because we pass half=False (deprecated flag, but the only way to force
+        # fp32 on ROCm where half kernels segfault). Silence that logger so a
+        # long eval isn't drowned in identical warnings — it hides the summary.
+        import logging
+        logging.getLogger("ultralytics").setLevel(logging.ERROR)
+
         self._roi_align = roi_align
         self.device = device
         # Public: ClipTaskEncoder reaches through this to call
