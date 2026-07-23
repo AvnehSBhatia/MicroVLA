@@ -194,7 +194,12 @@ class TestV3Behaviors:
         # close to the previously emitted plan, NOT collapse toward zero.
         loop.corrector.tau = 0.0
         dream = loop.tick(None)
-        assert torch.allclose(dream.plan, first.plan, atol=1e-6)
+        # POSE dims HOLD to the previously emitted plan under zero trust (never
+        # collapse toward zero). The gripper column is NOT blended — it is a
+        # fresh hard +/-1 decision each tick by design (loop sets
+        # plan[:, -1] = sign(raw_plan[:, -1])), so it may differ from `first`.
+        assert torch.allclose(dream.plan[:, :-1], first.plan[:, :-1], atol=1e-6)
+        assert torch.all((dream.plan[:, -1] == 1.0) | (dream.plan[:, -1] == -1.0))
         assert dream.plan.abs().sum() > 0 or first.plan.abs().sum() == 0
 
     def test_plan_row0_feeds_back_as_last_action(self):
