@@ -120,6 +120,16 @@ class YoloWorldPerception:
         self._input_hw: Optional[Tuple[int, int]] = None  # network (H_in, W_in)
         # Ordered ACTIVE detection classes; role i == class id i.
         self._active_classes: list[str] = []
+        # Optional role -> ordered class-id preference (set by set_role_prompts).
+        # When non-empty this OVERRIDES the positional role==class-id mapping:
+        # role 0 (source) / role 1 (target) each pick the first class id in
+        # their preference list that produced a detection. This is how the
+        # spatial disambiguator survives to the box: the FULL phrase ("black
+        # bowl between the plate and the ramekin") is a higher-preference class
+        # than the bare noun ("black bowl"), so a region YOLO-World's own
+        # region-text head matched to the full phrase wins over an arbitrary
+        # same-noun box picked by raw confidence.
+        self._role_class_ids: list[list[int]] = []
 
         detection_model = self.model.model  # underlying nn.Module
         for p in detection_model.parameters():
@@ -156,6 +166,53 @@ class YoloWorldPerception:
         with torch.no_grad():
             self.model.set_classes(list(classes))
         self._active_classes = list(classes)
+        # Positional API: clear any role->class-id preference so perceive()
+        # uses the plain role==class-id mapping.
+        self._role_class_ids = []
+
+    def set_role_prompts(
+        self, source: list[str], target: Optional[list[str]] = None
+    ) -> None:
+        """Sets per-role detection prompts in preference order (spatial grounding).
+
+        Each role is given an ordered list of prompts, most-specific first,
+        e.g. ``source=["black bowl between the plate and the ramekin",
+        "black bowl"]``. All distinct prompts across both roles become the
+        model's active open-vocab classes (deduplicated, so a phrase shared by
+        both roles is embedded once), and each role records the class ids of
+        its prompts in preference order. In :meth:`perceive`, a role takes the
+        best box of the FIRST of its prompts that detected anything — the full
+        relational phrase when the frozen region-text head grounded it, else
+        the bare noun for recall. This keeps the box (its center drives
+        reaching) aligned with the spatial clause instead of an arbitrary
+        same-noun detection.
+
+        Args:
+            source: Ordered source-role prompts, most specific first.
+            target: Ordered target-role prompts; ``None`` when source == target
+                (a single-role task), in which case the target shares the
+                source's grounded box.
+        """
+        roles = [list(source)] + ([list(target)] if target is not None else [])
+        classes: list[str] = []
+        index: dict[str, int] = {}
+        role_ids: list[list[int]] = []
+        for prompts in roles:
+            ids: list[int] = []
+            for prompt in prompts:
+                prompt = prompt.strip()
+                if not prompt:
+                    continue
+                if prompt not in index:
+                    index[prompt] = len(classes)
+                    classes.append(prompt)
+                if index[prompt] not in ids:
+                    ids.append(index[prompt])
+            role_ids.append(ids)
+        with torch.no_grad():
+            self.model.set_classes(list(classes))
+        self._active_classes = list(classes)
+        self._role_class_ids = role_ids
 
     def perceive(self, frame_bgr: "np.ndarray") -> Perception:
         """Runs detection on one frame and extracts per-class SPPF-map embeddings.
@@ -259,18 +316,32 @@ class YoloWorldPerception:
                     confidence=conf,
                 )
 
-            n_active = len(self._active_classes)
-            if n_active >= 2:
-                source = _box_for_class(0)
-                target = _box_for_class(1)
-            elif n_active == 1:
-                box = _box_for_class(0)
-                source = box
-                target = box
+            def _box_for_role(role_idx: int) -> BoxObs:
+                # Preference order: take the best box of the first prompt
+                # (most specific -> bare noun) that actually detected anything.
+                for cid in self._role_class_ids[role_idx]:
+                    if best_by_class.get(cid) is not None:
+                        return _box_for_class(cid)
+                return _fallback()
+
+            if self._role_class_ids:
+                # Role-prompt API (spatial grounding): role -> preferred class id.
+                source = _box_for_role(0)
+                target = _box_for_role(1) if len(self._role_class_ids) > 1 else source
             else:
-                fallback = _fallback()
-                source = fallback
-                target = fallback
+                # Legacy positional API: role i == class id i.
+                n_active = len(self._active_classes)
+                if n_active >= 2:
+                    source = _box_for_class(0)
+                    target = _box_for_class(1)
+                elif n_active == 1:
+                    box = _box_for_class(0)
+                    source = box
+                    target = box
+                else:
+                    fallback = _fallback()
+                    source = fallback
+                    target = fallback
 
             return Perception(frame_emb=frame_emb, source=source, target=target)
 
@@ -358,6 +429,25 @@ class MockYoloWorldPerception:
             classes: ``[source]`` or ``[source, target]``.
         """
         self.active_classes = list(classes)
+
+    def set_role_prompts(
+        self, source: list[str], target: Optional[list[str]] = None
+    ) -> None:
+        """Mock analogue of :meth:`YoloWorldPerception.set_role_prompts`.
+
+        The mock's boxes are deterministic orbits independent of the prompt
+        text, so this only records how many roles are active (one primary
+        prompt per role) for API parity; the returned source/target boxes are
+        unchanged.
+
+        Args:
+            source: Ordered source-role prompts (only the first is recorded).
+            target: Ordered target-role prompts, or ``None`` for source==target.
+        """
+        active = [source[0]] if source else []
+        if target is not None and target:
+            active.append(target[0])
+        self.active_classes = active
 
     def perceive(self, frame_bgr: "np.ndarray") -> Perception:
         """Produces two deterministic, distinctly-orbiting pseudo-detections.

@@ -56,6 +56,23 @@ if TYPE_CHECKING:  # pragma: no cover - typing only, no runtime import cost
 logger = logging.getLogger(__name__)
 
 
+def _role_prompts(phrase: str) -> list[str]:
+    """Ordered detection prompts for one role: full phrase, then bare noun.
+
+    The full phrase carries any spatial disambiguator ("black bowl between the
+    plate and the ramekin"); the article/clause-stripped noun ("black bowl") is
+    the recall fallback. Deduplicated so a phrase with no clause (``"the can"``
+    -> ``"can"``) still yields both distinct prompts, while an already-bare
+    phrase collapses to one.
+    """
+    prompts: list[str] = []
+    for p in (phrase, strip_article(phrase)):
+        p = p.strip()
+        if p and p not in prompts:
+            prompts.append(p)
+    return prompts
+
+
 @dataclass
 class TickResult:
     """Everything produced for one 30 Hz control tick.
@@ -166,13 +183,17 @@ class JEPALoop:
         """
         self._task = self.task_encoder.encode(text)
         parsed = self._task.parsed
-        # One active class when the command has no distinct destination —
-        # duplicate class strings would otherwise occupy two class ids.
-        # Detector class prompts are article-stripped ("the red cup" ->
-        # "red cup"); the embeddings keep the full phrases.
-        src, tgt = strip_article(parsed.source), strip_article(parsed.target)
-        classes = [src] if src == tgt else [src, tgt]
-        self.perception.set_classes(classes)
+        # Per-role detection prompts in preference order: the FULL phrase first
+        # (so the frozen region-text head can disambiguate "black bowl between
+        # the plate and the ramekin" from the other black bowls), then the
+        # article-stripped bare noun ("black bowl") as a recall fallback. The
+        # text-token EMBEDDINGS still use the full phrases (harvested by the
+        # task encoder); only the detection prompts are role-ordered here.
+        # source == target -> a single role; the target shares its box.
+        same = parsed.source == parsed.target
+        source_prompts = _role_prompts(parsed.source)
+        target_prompts = None if same else _role_prompts(parsed.target)
+        self.perception.set_role_prompts(source_prompts, target_prompts)
         self.drift.reset()
         self.corrector.reset()
         self._pending_pred = None

@@ -138,6 +138,8 @@ class Perception:
 class YoloWorldPerception:
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu"): ...
     def set_classes(self, classes: list[str]) -> None: ...  # ordered; role i == class i
+    def set_role_prompts(self, source: list[str], target: list[str] | None) -> None: ...
+        # per-role prompts in preference order (full phrase first, bare noun fallback)
     def perceive(self, frame_bgr: "np.ndarray") -> Perception: ...
 
 class MockYoloWorldPerception:
@@ -156,6 +158,16 @@ Implementation notes (real class, mechanics carried over from v1 where noted):
   embedding space every downstream consumer (fusion, drift, TRM, corrector) lives in.
 - Detector class prompts are article-stripped via `strip_article` ("the red cup" ->
   "red cup"); embeddings keep the full phrases.
+- Spatial grounding (Feature 1): `set_role_prompts([full_phrase, bare_noun], ...)` gives each
+  role an ordered prompt list. `perceive` grounds a role to the best box of the FIRST prompt
+  that detected anything — so the FULL relational phrase ("black bowl between the plate and the
+  ramekin") wins when the frozen region-text head grounds it, and the bare noun ("black bowl")
+  is the recall fallback. This keeps the grounded box (its center drives reaching) aligned with
+  the spatial clause instead of an arbitrary same-noun box picked by raw confidence — the fix
+  for LIBERO-spatial disambiguation. The JEPA loop builds role prompts from the parsed command
+  (`_role_prompts`) and calls this; `set_classes` (positional role==class-id) remains for the
+  legacy path and clears the role mapping. Adds NO trainable params (rides the frozen detector),
+  so it improves an already-trained checkpoint at eval with no re-bake.
 
 ### `microvla/perception/video_stream.py` — UNCHANGED from v1 (keep the integer-counter
 emit rule). Default `target_fps` now reads `DEFAULT_CONFIG.real_frame_hz`.
