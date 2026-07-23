@@ -46,6 +46,9 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
   ChronoQueryPlanner(next_emb [512], pred_box_emb=next_box [512]) ──► raw plan [5, 7] in [-1, 1]
+      two-stage: stage 1 predicts the 5 future 3D EEF coords (xyz waypoints = plan[...,:3]);
+      stage 2 derives orientation + gripper CONDITIONED on those waypoints. Same [5,7] output,
+      same split loss (pose MSE supervises the waypoints, BCE the gripper) — no loop/trainer change.
       emitted plan = τ·raw + (1−τ)·previous plan  (trust HOLD-blend, never →0)
       row 0 is executed this tick and fed back as fusion's action token
       rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM

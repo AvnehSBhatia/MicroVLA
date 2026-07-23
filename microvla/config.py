@@ -81,6 +81,7 @@ class MicroVLAConfig:
     fused_cols: int = 5
     plan_steps: int = 5
     num_servos: int = 7
+    waypoint_dim: int = 3  # planner stage 1: the 3D (xyz) end-effector coords
     d_model: int = 384
     d_plan: int = 256
     n_heads: int = 8

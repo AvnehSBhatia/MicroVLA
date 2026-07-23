@@ -21,12 +21,20 @@ explicit points in time** and integrating motion between them:
    blocks over the memory tokens (residual attention + residual GELU MLP),
    letting each timestep extract the part of the predicted future relevant to
    its moment.
-4. Crucially, the per-step head predicts **deltas** (per-step servo velocity),
-   not absolute positions. The final plan is
-   ``tanh(cumsum(deltas, dim=1))``: cumulative integration makes step ``t`` an
-   explicit function of every step before it — trajectories are *strictly
-   sequential by construction* — while small per-step deltas yield smooth
-   motion and the outer ``tanh`` guarantees normalized PWM in ``[-1, 1]``.
+4. Crucially, the per-step head predicts **deltas** (per-step velocity), not
+   absolute positions. The final plan is ``tanh(cumsum(deltas, dim=1))``:
+   cumulative integration makes step ``t`` an explicit function of every step
+   before it — trajectories are *strictly sequential by construction* — while
+   small per-step deltas yield smooth motion and the outer ``tanh`` guarantees
+   normalized PWM in ``[-1, 1]``.
+5. **Two-stage decode.** Stage 1 predicts the 5 future **3D end-effector
+   coordinates** (the xyz waypoint trajectory) via the delta+cumsum above.
+   Stage 2 then derives the *rest* of the servo move — orientation and the
+   gripper — **conditioned on those waypoints** (the predicted 3D path is
+   projected back into the query features), so the hand commits to *where* it
+   is going before deciding how to orient and whether to grasp. The waypoints
+   are literally the translation dims (0..``waypoint_dim``-1) of the emitted
+   plan, so no extra loss is needed — the existing pose MSE supervises them.
 
 v2 scales this to ``d_plan=256``, ``n_planner_blocks=3``, ``n_heads=8``; the
 caller (``JEPALoop`` / ``MicroVLAPipeline``) additionally scales the returned
@@ -175,14 +183,23 @@ class ChronoQueryPlanner(nn.Module):
         )
         self.final_norm = nn.LayerNorm(cfg.d_plan)
 
-        # SPLIT action head. The gripper (last servo) is sharply bimodal
-        # (open/close); MSE-regressing it averages the modes and the policy
-        # never commits to closing -> nothing gets grasped (diagnosed at eval).
-        # So the pose dims (0..num_servos-2) keep the smooth delta+cumsum
-        # regression, and the gripper gets a per-step CLASSIFICATION logit
-        # (BCE-trained, thresholded to +/-1 at inference) that forces a decision.
+        # TWO-STAGE action head. Stage 1 predicts explicit 3D end-effector
+        # WAYPOINTS (the xyz translation trajectory); stage 2 derives the rest
+        # of the servo move — orientation and the gripper — CONDITIONED on those
+        # waypoints, so the hand commits to *where* it is going before deciding
+        # how to orient and whether to grasp. The waypoints ARE the translation
+        # dims of the plan (dims 0..waypoint_dim-1). The gripper (last servo) is
+        # a per-step CLASSIFICATION logit (BCE-trained, thresholded to +/-1),
+        # since MSE averages its bimodal open/close and the hand never commits.
         self.n_pose = cfg.num_servos - 1
-        self.pose_head = nn.Linear(cfg.d_plan, self.n_pose)   # continuous deltas
+        self.waypoint_dim = min(cfg.waypoint_dim, self.n_pose)   # 3 (xyz)
+        self.n_orient = self.n_pose - self.waypoint_dim          # 3 (rpy)
+        # Stage 1: 3D waypoint (translation) deltas.
+        self.waypoint_head = nn.Linear(cfg.d_plan, self.waypoint_dim)
+        # Stage 2 conditioning: inject the predicted 3D path back into features.
+        self.wp_proj = nn.Linear(self.waypoint_dim, cfg.d_plan)
+        # Stage 2 heads: orientation (if any) + gripper, from waypoint-conditioned feats.
+        self.orient_head = nn.Linear(cfg.d_plan, self.n_orient) if self.n_orient > 0 else None
         self.grip_head = nn.Linear(cfg.d_plan, 1)             # per-step open/close logit
 
     def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
@@ -247,13 +264,28 @@ class ChronoQueryPlanner(nn.Module):
 
         feats = self.final_norm(queries)  # [B, plan_steps, d_plan]
 
-        # Pose dims: per-step deltas -> smooth, strictly sequential trajectory.
-        pose = torch.tanh(torch.cumsum(self.pose_head(feats), dim=1))  # [B, T, n_pose]
+        # STAGE 1: the next `plan_steps` 3D end-effector coordinates, as a
+        # cumulative relative-position trajectory (per-step deltas -> cumsum ->
+        # tanh, so it is smooth, strictly sequential, and bounded to the
+        # normalized action space). These waypoints are the translation part of
+        # the plan (dims 0..waypoint_dim-1).
+        waypoints = torch.tanh(torch.cumsum(self.waypoint_head(feats), dim=1))  # [B, T, 3]
+
+        # STAGE 2: derive the rest of the servo move FROM the waypoints. Inject
+        # the predicted 3D path into the features so orientation and the gripper
+        # are conditioned on where the hand is planned to go (e.g. close as the
+        # waypoint arrives at the grasp point).
+        h = feats + self.wp_proj(waypoints)
+        if self.orient_head is not None:
+            orient = torch.tanh(torch.cumsum(self.orient_head(h), dim=1))  # [B, T, n_orient]
+            pose = torch.cat([waypoints, orient], dim=-1)                  # [B, T, n_pose]
+        else:
+            pose = waypoints
 
         # Gripper: per-step open/close logit -> hard +/-1 decision at inference
         # (BCE-trained via the returned logits). Hard decision is what makes
         # the hand actually close instead of hedging toward "open".
-        grip_logit = self.grip_head(feats).squeeze(-1)          # [B, T]
+        grip_logit = self.grip_head(h).squeeze(-1)              # [B, T]
         grip = torch.where(grip_logit > 0, torch.ones_like(grip_logit),
                            -torch.ones_like(grip_logit))         # [B, T] in {-1,+1}
 
