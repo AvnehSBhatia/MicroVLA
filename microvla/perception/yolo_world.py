@@ -178,8 +178,12 @@ class YoloWorldPerception:
 
         with torch.no_grad():
             self._feat = None
+            # half=False forces fp32 inference. Ultralytics defaults to
+            # half-precision on GPU, and ROCm/HIP half kernels are a common
+            # cause of a hard segfault mid-detection on AMD GPUs (MI300X);
+            # fp32 is safe and the detector is not the compute bottleneck.
             results = self.model.predict(
-                frame_bgr, device=self.device, conf=self.det_conf, verbose=False
+                frame_bgr, device=self.device, conf=self.det_conf, half=False, verbose=False
             )
 
             if self._feat is None:
