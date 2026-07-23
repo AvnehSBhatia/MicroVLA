@@ -1,0 +1,18 @@
+{
+  "suite": "libero_object",
+  "per_task": {
+    "pick_up_the_alphabet_soup_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_cream_cheese_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_salad_dressing_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_bbq_sauce_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_ketchup_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_tomato_sauce_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_butter_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_milk_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_chocolate_pudding_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_orange_juice_and_place_it_in_the_basket": 0.0
+  },
+  "mean_success": 0.0,
+  "n_trials": 3,
+  "telemetry_path": "eval_results/libero_object_real_1784705516828_telemetry.jsonl"
+}
