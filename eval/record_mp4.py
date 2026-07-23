@@ -12,8 +12,10 @@ each run.
         --device cuda:0 --max-steps 300
 
 Writes one ``.mp4`` per episode into ``--out-dir`` (default eval_results/videos).
-Agentview is rotated 180° so it renders right-side up (LIBERO's agentview is
-mounted upside down); the policy itself only ever sees the un-rotated wrist cam.
+Each frame is BOTH cameras side by side: the third-person agentview (LEFT, what
+is really happening) and the wrist ``eye_in_hand`` camera (RIGHT, exactly what
+the policy sees). Agentview is rotated 180° so it renders right-side up
+(LIBERO's agentview is mounted upside down); the wrist cam is un-rotated.
 """
 
 from __future__ import annotations
@@ -23,6 +25,30 @@ import random
 from pathlib import Path
 
 import numpy as np
+
+
+def _label(img, text, cv2):
+    """Draws a small caption in the top-left of an RGB uint8 frame (in place)."""
+    scale = max(0.35, img.shape[0] / 400.0)
+    org = (4, int(14 * scale) + 2)
+    # black outline then yellow text, so it's legible on any background.
+    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 3, cv2.LINE_AA)
+    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 0), 1, cv2.LINE_AA)
+    return img
+
+
+def _side_by_side(agent_rgb, wrist_rgb, cv2):
+    """Third-person (left) + wrist/policy view (right), captioned, concatenated."""
+    agent = np.ascontiguousarray(agent_rgb).astype(np.uint8)
+    wrist = np.ascontiguousarray(wrist_rgb).astype(np.uint8)
+    # Match heights if the two cameras ever differ in size (they don't by default).
+    if agent.shape[0] != wrist.shape[0]:
+        h = min(agent.shape[0], wrist.shape[0])
+        agent, wrist = agent[:h], wrist[:h]
+    _label(agent, "3rd person", cv2)
+    _label(wrist, "wrist (policy sees this)", cv2)
+    sep = np.zeros((agent.shape[0], 2, 3), np.uint8)  # thin divider
+    return np.concatenate([agent, sep, wrist], axis=1)
 
 
 def _write_mp4(path: str, frames, fps: int) -> None:
@@ -92,6 +118,7 @@ def main(argv=None) -> None:
         env = OffScreenRenderEnv(
             bddl_file_name=str(bddl), camera_heights=args.res, camera_widths=args.res
         )
+        import cv2  # lazy: box-only (present wherever the real env renders)
         try:
             obs = env.reset()
             if len(inits) > 0:
@@ -100,10 +127,12 @@ def main(argv=None) -> None:
 
             frames, success = [], False
             for step in range(args.max_steps):
-                wrist = np.asarray(obs["robot0_eye_in_hand_image"])
+                wrist = np.asarray(obs["robot0_eye_in_hand_image"])  # policy's view
                 action = np.asarray(policy.act(wrist), dtype=np.float32)
-                # agentview is mounted upside down -> rotate 180 for viewing
-                frames.append(np.rot90(np.asarray(obs["agentview_image"]), 2).copy())
+                # agentview is mounted upside down -> rotate 180 for viewing.
+                agent = np.rot90(np.asarray(obs["agentview_image"]), 2)
+                # Side by side: 3rd person (left) + wrist/policy view (right).
+                frames.append(_side_by_side(agent, wrist, cv2))
                 obs, _r, done, _info = env.step(action)
                 if hasattr(env, "check_success") and env.check_success():
                     success = True
