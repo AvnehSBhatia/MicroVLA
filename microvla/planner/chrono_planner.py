@@ -152,7 +152,13 @@ class ChronoQueryPlanner(nn.Module):
         self.cur_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
         self.fused_proj = nn.Linear(cfg.fused_cols, cfg.d_plan)
         self.state_proj = nn.Linear(cfg.state_dim, cfg.d_plan)
-        self.type_emb = nn.Parameter(torch.randn(4, cfg.d_plan) * cfg.d_plan**-0.5)
+        # v4: the TRM's predicted next-tick SOURCE box embedding — where the
+        # grasp target is HEADED — projected into memory tokens like cur/next.
+        # Chunked the same way (vis_dim -> n_mem_tokens x mem_token_dim) so the
+        # planner attends over a forward-looking estimate of the object it must
+        # reach, not just the held stale box carried in `fused`.
+        self.box_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(5, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -182,6 +188,7 @@ class ChronoQueryPlanner(nn.Module):
     def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
                 state_delta: torch.Tensor | None = None,
                 fused: torch.Tensor | None = None,
+                pred_box_emb: torch.Tensor | None = None,
                 return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
@@ -196,6 +203,9 @@ class ChronoQueryPlanner(nn.Module):
                 Optional. Passing all three is strongly recommended — the
                 planner is far more accurate with the current observation than
                 with the prediction alone.
+            pred_box_emb: ``[B, vis_dim]`` the TRM's predicted next-tick SOURCE
+                box embedding (v4, ``trm(..., return_box=True)``). Optional; a
+                forward-looking estimate of the object to grasp.
 
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
@@ -222,6 +232,10 @@ class ChronoQueryPlanner(nn.Module):
             mem_parts.append(self.fused_proj(fused) + self.type_emb[2])   # [B, 32, d_plan]
         if state_delta is not None:
             mem_parts.append(self.state_proj(state_delta).unsqueeze(1) + self.type_emb[3])  # [B, 1, d_plan]
+        if pred_box_emb is not None:
+            mem_parts.append(
+                self.box_proj(pred_box_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                + self.type_emb[4])   # [B, 8, d_plan]
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.

@@ -47,6 +47,11 @@ class MockTRM(TRMBase):
         self.cfg = cfg
         in_dim = cfg.fused_rows * cfg.fused_cols + cfg.state_dim  # 32*5 + 256 = 416
         self.proj = nn.Linear(in_dim, cfg.vis_dim)
+        # Placeholder box head (v4 contract parity) — low-rank so the mock stays
+        # a tiny stub (the real box head lives in TRM.py::RecursiveTRM).
+        self.box_proj = nn.Sequential(
+            nn.Linear(in_dim, 32), nn.Linear(32, cfg.vis_dim)
+        )
 
     def forward(
         self,
@@ -54,6 +59,7 @@ class MockTRM(TRMBase):
         state_delta: torch.Tensor,
         current_emb: torch.Tensor,
         context: torch.Tensor | None = None,
+        return_box: bool = False,
     ) -> torch.Tensor:
         """Map inputs to a placeholder residual next-tick embedding.
 
@@ -63,11 +69,17 @@ class MockTRM(TRMBase):
             current_emb: ``[B, 512]`` current standardized frame embedding.
             context: Optional latent context window — accepted for contract
                 compatibility and IGNORED (this is a stub).
+            return_box: When ``True`` also return a placeholder next-tick box
+                embedding (contract parity with the real TRM v4).
 
         Returns:
             ``[B, 512]`` placeholder next-tick embedding
-            (``current_emb + linear delta``).
+            (``current_emb + linear delta``), or ``(next_emb, next_box)`` when
+            ``return_box``.
         """
         flat = fused.flatten(start_dim=1)                 # [B, 160]
         x = torch.cat([flat, state_delta], dim=-1)        # [B, 416]
-        return current_emb + self.proj(x)                 # [B, 512]
+        next_emb = current_emb + self.proj(x)             # [B, 512]
+        if return_box:
+            return next_emb, self.box_proj(x)             # [B, 512], [B, 512]
+        return next_emb

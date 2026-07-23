@@ -118,6 +118,14 @@ class RecursiveTRM(TRMBase):
 
         self.out_norm = nn.LayerNorm(d)
         self.head = nn.Linear(d, cfg.vis_dim)        # pooled token -> residual delta [512]
+        # Box-prediction head (v4): predicts the next-tick SOURCE box embedding
+        # (the object to grasp) from the same pooled latent, so the planner sees
+        # where the grasp target is HEADED instead of only a held, staleness-
+        # decayed box. Non-residual (regresses the standardized box emb directly);
+        # bottlenecked (d->256->512) to stay inside the 10M TRM reserve.
+        self.box_head = nn.Sequential(
+            nn.Linear(d, 256), nn.GELU(), nn.Linear(256, cfg.vis_dim)
+        )
 
     def init_states(self, b):
         y = self.y_init.expand(b, self.L, self.d)
@@ -169,28 +177,50 @@ class RecursiveTRM(TRMBase):
                     y, z = self.refine_once(x, y, z)
         return y, z
 
+    def _pool(self, y):
+        """Pooled, normed latent shared by the frame and box readouts."""
+        return self.out_norm(y.mean(dim=1))                            # [B, d]
+
     def decode(self, y, current_emb):
         """Residual readout: current embedding plus the predicted change."""
-        return current_emb + self.head(self.out_norm(y.mean(dim=1)))   # [B, 512]
+        return current_emb + self.head(self._pool(y))                  # [B, 512]
 
-    def refine_forward(self, fused, state_delta, current_emb, y, z, context=None):
-        """One deep-supervision pass (training API, mirrors step2's forward)."""
+    def refine_forward(self, fused, state_delta, current_emb, y, z, context=None,
+                       return_box=False):
+        """One deep-supervision pass (training API, mirrors step2's forward).
+
+        With ``return_box`` also emits the predicted next-tick SOURCE box
+        embedding ``[B, 512]`` (4-tuple ``(next_emb, next_box, y, z)``);
+        otherwise the original 3-tuple ``(next_emb, y, z)``.
+        """
         x = self.observe(fused, state_delta, current_emb, context)
         y, z = self.deep_refine(x, y, z)
-        return self.decode(y, current_emb), y.detach(), z.detach()
+        pooled = self._pool(y)
+        next_emb = current_emb + self.head(pooled)
+        if return_box:
+            return next_emb, self.box_head(pooled), y.detach(), z.detach()
+        return next_emb, y.detach(), z.detach()
 
-    def forward(self, fused, state_delta, current_emb, context=None):
+    def forward(self, fused, state_delta, current_emb, context=None, return_box=False):
         """TRMBase contract: (fused, state_delta, current_emb, context) -> next_emb.
 
         Runs `n_sup_infer` passes (default 1 — the extra deep-supervision
-        passes are for training; at inference they cost 3x latency).
+        passes are for training; at inference they cost 3x latency). With
+        ``return_box=True`` returns ``(next_emb, next_box)`` where ``next_box``
+        ``[B, 512]`` is the predicted next-tick SOURCE box embedding (v4).
         """
         y, z = self.init_states(fused.shape[0])
+        next_box = None
         for _ in range(self.n_sup_infer):
-            next_emb, y, z = self.refine_forward(
-                fused, state_delta, current_emb, y, z, context=context
-            )
-        return next_emb
+            if return_box:
+                next_emb, next_box, y, z = self.refine_forward(
+                    fused, state_delta, current_emb, y, z, context=context, return_box=True
+                )
+            else:
+                next_emb, y, z = self.refine_forward(
+                    fused, state_delta, current_emb, y, z, context=context
+                )
+        return (next_emb, next_box) if return_box else next_emb
 
 
 def spec_loss(pred, tgt):

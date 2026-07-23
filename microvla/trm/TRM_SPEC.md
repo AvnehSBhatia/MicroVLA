@@ -41,6 +41,18 @@
 >    33 ms *total*. `forward()` must run ONE refinement pass at inference
 >    (`n_sup_infer=1`; deep-supervision passes are a training-time device via
 >    `refine_forward`). For the Pi 5 target, profile `d=512, T=2, n_inner=4` + int8.
+> 8. **Box-prediction head (v4).** `forward(..., return_box=True) -> (next_emb,
+>    next_box)`. `next_box [B, 512]` is the predicted next-tick **SOURCE** box
+>    embedding (the object to grasp), read from the same pooled latent by a
+>    bottlenecked head (`d→256→512`, ~394K params — TRM now ~9.94M, still < 10M).
+>    Non-residual: it regresses the standardized `source_box_embs[t+1]` directly.
+>    The planner conditions on it (`pred_box_emb=`) so it sees where the grasp
+>    target is HEADED, not just a held staleness-decayed box; the JEPA loop
+>    requests it every tick. `refine_forward(..., return_box=True)` yields it for
+>    training — Stage A adds a box `spec_loss` term (target `source_box_embs[t+k]`)
+>    alongside the frame loss over the same rollout. `return_box=False` is the
+>    unchanged v3 behavior; `MockTRM` and the eval baselines implement the flag as
+>    a stub (box = a cheap projection / `current_emb`).
 
 This is the build spec for the TRM open slot: the world-model core that predicts the
 next-tick YOLO-World frame embedding from the current fused observation and drift state.

@@ -34,15 +34,18 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
   AnchoredDriftEncoder (anchor = first REAL frame, GRU accum,
                         steps on REAL ticks only, held during dreams) ──► state_delta [256]
                                                                         │
-  ╔═ TRM — real impl at repo root TRM.py (~9.5M) ═════════════════════════════╗
-  ║ forward(fused [B,32,5], state_delta [B,256], current_emb [B,512])          ║
+  ╔═ TRM — real impl at repo root TRM.py (~9.9M) ═════════════════════════════╗
+  ║ forward(fused [B,32,5], state_delta [B,256], current_emb [B,512],          ║
+  ║         return_box=False)                                                   ║
   ║   -> next_emb [B,512]   (RESIDUAL: current + predicted change;             ║
   ║    all embeddings in the canonical standardized space)                     ║
+  ║   -> (next_emb, next_box [B,512]) when return_box  (v4: predicted next-tick║
+  ║    SOURCE box emb, non-residual; the loop requests it every tick)          ║
   ╚════════════════════════════════════════════════════════════════════════════╝
                      │
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
-  ChronoQueryPlanner(next_emb [512]) ──► raw plan [5, 7] in [-1, 1]
+  ChronoQueryPlanner(next_emb [512], pred_box_emb=next_box [512]) ──► raw plan [5, 7] in [-1, 1]
       emitted plan = τ·raw + (1−τ)·previous plan  (trust HOLD-blend, never →0)
       row 0 is executed this tick and fed back as fusion's action token
       rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM

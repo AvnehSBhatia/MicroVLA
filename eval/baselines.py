@@ -57,6 +57,7 @@ class PersistenceTRM(TRMBase):
         state_delta: torch.Tensor,
         current_emb: torch.Tensor,
         context: torch.Tensor | None = None,
+        return_box: bool = False,
     ) -> torch.Tensor:
         """Returns ``current_emb`` unchanged (``fused``/``state_delta``/
         ``context`` accepted for contract compatibility and ignored).
@@ -66,11 +67,14 @@ class PersistenceTRM(TRMBase):
             state_delta: ``[B, 256]`` drift code. Ignored.
             current_emb: ``[B, 512]`` current standardized frame embedding.
             context: Optional ``[B, K, 512]`` latent context window. Ignored.
+            return_box: When ``True`` also returns a "no-change" box prediction
+                (``current_emb``), for v4 contract parity.
 
         Returns:
-            ``current_emb``, verbatim — the zero-delta prediction.
+            ``current_emb``, verbatim — the zero-delta prediction (or
+            ``(current_emb, current_emb)`` when ``return_box``).
         """
-        return current_emb
+        return (current_emb, current_emb) if return_box else current_emb
 
 
 class LinearExtrapolationTRM(TRMBase):
@@ -98,6 +102,7 @@ class LinearExtrapolationTRM(TRMBase):
         state_delta: torch.Tensor,
         current_emb: torch.Tensor,
         context: torch.Tensor | None = None,
+        return_box: bool = False,
     ) -> torch.Tensor:
         """Linearly extrapolates from the last two latents in ``context``.
 
@@ -110,12 +115,16 @@ class LinearExtrapolationTRM(TRMBase):
                 the previous tick's latent and the "velocity"
                 ``current_emb - context[:, -1]`` is added again. Ignored
                 (falls back to zero-delta) when ``None`` or ``K == 0``.
+            return_box: When ``True`` also returns a "no-change" box prediction
+                (``current_emb``), for v4 contract parity.
 
         Returns:
             ``[B, 512]``: ``current_emb + (current_emb - context[:, -1])``
-            with context, else ``current_emb``.
+            with context, else ``current_emb`` (or a ``(next_emb, box)`` pair
+            when ``return_box``, ``box = current_emb``).
         """
         if context is None or context.shape[1] == 0:
-            return current_emb
+            return (current_emb, current_emb) if return_box else current_emb
         previous = context[:, -1]
-        return current_emb + (current_emb - previous)
+        next_emb = current_emb + (current_emb - previous)
+        return (next_emb, current_emb) if return_box else next_emb

@@ -86,6 +86,7 @@ class TRMBase(nn.Module, abc.ABC):
         state_delta: torch.Tensor,
         current_emb: torch.Tensor,
         context: torch.Tensor | None = None,
+        return_box: bool = False,
     ) -> torch.Tensor:
         """Predict the next-tick frame embedding (residual convention).
 
@@ -100,9 +101,18 @@ class TRMBase(nn.Module, abc.ABC):
                 ``None`` means no history is available (episode start);
                 implementations must remain stateless — the context window
                 is state the CALLER owns, handed in per call.
+            return_box: When ``True``, ALSO predict the next-tick SOURCE box
+                embedding (the object to grasp) and return ``(next_emb,
+                next_box)`` (v4). The planner conditions on ``next_box`` so it
+                sees where the grasp target is HEADED rather than only a held,
+                staleness-decayed box; the JEPA loop requests it every tick.
+                Default ``False`` returns only ``next_emb`` (back-compatible).
 
         Returns:
             ``[B, 512]`` predicted next-tick frame embedding (standardized
-            space; implementations should return ``current_emb + delta``).
+            space; implementations should return ``current_emb + delta``), or
+            ``(next_emb [B, 512], next_box [B, 512])`` when ``return_box``.
+            ``next_box`` is in the same canonical standardized space as the
+            baked ``source_box_embs`` (non-residual is acceptable).
         """
         raise NotImplementedError
