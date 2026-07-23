@@ -49,10 +49,17 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import os
 import random
 import sys
 import time
 from pathlib import Path
+
+# ROCm's hipBLASLt throws INTERNAL_ERROR on some GEMM shapes (e.g. the v4 TRM
+# box head's 256x512 backward), corrupting the BLAS state -> a fatal
+# `hipblasCreate ALLOC_FAILED`. Force the stable rocBLAS path. HIP-only var
+# (no-op on CUDA); must be set BEFORE importing torch; override by exporting it.
+os.environ.setdefault("TORCH_BLAS_PREFER_HIPBLASLT", "0")
 
 import torch
 
