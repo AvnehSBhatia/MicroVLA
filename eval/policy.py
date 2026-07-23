@@ -122,6 +122,25 @@ def _load_checkpoint_state(
     )
 
 
+def _load_relaxed(module, sd, name: str) -> None:
+    """Loads ``sd`` into ``module`` tolerantly (strict=False), warning on drift.
+
+    A checkpoint trained before the v4 box head (TRM ``box_head``, planner
+    ``box_proj``/5-row ``type_emb``) is missing those keys. Rather than crash,
+    load everything that matches and leave the new heads at their random init —
+    so an OLD checkpoint still runs (record video, eval, probe) before a
+    retrain. Missing/unexpected keys are logged loudly because with a random
+    box head the planner's box conditioning is meaningless until retrained.
+    """
+    result = module.load_state_dict(sd, strict=False)
+    if result.missing_keys or result.unexpected_keys:
+        logger.warning(
+            "%s: checkpoint loaded with strict=False (predates current "
+            "architecture — RETRAIN to populate). missing=%s unexpected=%s",
+            name, list(result.missing_keys), list(result.unexpected_keys),
+        )
+
+
 def _build_real_perception(device: str):
     """Lazily builds the real ``YoloWorldPerception`` + ``ClipTaskEncoder``.
 
@@ -241,12 +260,12 @@ class MicroVLAPolicy:
                 trm = MockTRM(cfg)
 
         if state is not None:
-            fusion.load_state_dict(state["fusion"])
-            drift.load_state_dict(state["drift"])
+            _load_relaxed(fusion, state["fusion"], "fusion")
+            _load_relaxed(drift, state["drift"], "drift")
             if not trm_overridden:
-                trm.load_state_dict(state["trm"])
+                _load_relaxed(trm, state["trm"], "trm")
             if is_stage_b:
-                planner.load_state_dict(state["planner"])
+                _load_relaxed(planner, state["planner"], "planner")
 
         fusion.to(heads_device).eval()
         drift.to(heads_device).eval()
