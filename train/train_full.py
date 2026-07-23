@@ -64,7 +64,7 @@ from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from train.dataset import EpisodeDataset
-from train.losses import planner_bc_loss, smoothness_loss, total_planner_loss
+from train.losses import planner_bc_loss, smoothness_loss, split_planner_loss, total_planner_loss
 from train.train_planner import resolve_device
 from TRM import RecursiveTRM, spec_loss
 
@@ -440,25 +440,28 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             fused_all, delta_all = _episode_real_paths(
                 episode, fusion, drift, device, ablate_grounding=args.ablate_grounding
             )
-            preds = []
+            preds, grips = [], []
             for t in range(T):
                 cur = episode["frame_embs"][t].unsqueeze(0)
                 next_emb = trm(fused_all[t], delta_all[t], cur)
-                preds.append(planner(next_emb, current_emb=cur,
-                                     state_delta=delta_all[t], fused=fused_all[t]).squeeze(0))
-            preds = torch.stack(preds, 0)
-            loss = total_planner_loss(preds, episode["pwm_targets"], smooth_weight=0.1)
+                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
+                                     fused=fused_all[t], return_aux=True)
+                preds.append(plan.squeeze(0)); grips.append(grip.squeeze(0))
+            preds = torch.stack(preds, 0)               # [T, 5, 7]
+            grips = torch.stack(grips, 0)               # [T, 5]
+            target = episode["pwm_targets"]
+            loss = split_planner_loss(preds, grips, target, smooth_weight=0.1)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_([p for g in groups for p in g["params"]], args.grad_clip)
             opt.step()
             with torch.no_grad():
-                run_bc += float(planner_bc_loss(preds, episode["pwm_targets"]))
-                run_sm += float(smoothness_loss(preds))
+                run_bc += float(loss)
+                run_sm += float(((grips > 0) == (target[..., -1] > 0)).float().mean())  # grip acc
             n += 1
 
-        print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | bc {run_bc / max(n,1):.4f} "
-              f"| smooth {run_sm / max(n,1):.4f} | {time.time()-t0:.0f}s", flush=True)
+        print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run_bc / max(n,1):.4f} "
+              f"| grip_acc {run_sm / max(n,1):.3f} | {time.time()-t0:.0f}s", flush=True)
         save(args, cfg, _tagged_name("full_stageB.pt", args.tag),
              fusion=fusion, drift=drift, trm=trm, planner=planner)
 

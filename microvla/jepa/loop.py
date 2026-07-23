@@ -305,12 +305,15 @@ class JEPALoop:
 
             # Trust-blend toward HOLD (the previously emitted plan), never
             # toward zero: zero is a real commanded pose (servo mid-range),
-            # not the absence of motion.
+            # not the absence of motion. The gripper is a hard +/-1 decision,
+            # so blending it would produce a meaningless fractional command;
+            # keep the current gripper decision (sign) unblended.
             tau = self.corrector.trust
             if self._last_plan is None:
                 plan = raw_plan
             else:
                 plan = tau * raw_plan + (1.0 - tau) * self._last_plan
+                plan[:, -1] = torch.sign(raw_plan[:, -1])  # gripper stays hard +/-1
             self._last_plan = plan
             self._last_action = plan[0]  # row 0 is executed this tick
 

@@ -169,12 +169,20 @@ class ChronoQueryPlanner(nn.Module):
         )
         self.final_norm = nn.LayerNorm(cfg.d_plan)
 
-        # Per-step head predicting servo DELTAS (integrated by cumsum).
-        self.delta_head = nn.Linear(cfg.d_plan, cfg.num_servos)
+        # SPLIT action head. The gripper (last servo) is sharply bimodal
+        # (open/close); MSE-regressing it averages the modes and the policy
+        # never commits to closing -> nothing gets grasped (diagnosed at eval).
+        # So the pose dims (0..num_servos-2) keep the smooth delta+cumsum
+        # regression, and the gripper gets a per-step CLASSIFICATION logit
+        # (BCE-trained, thresholded to +/-1 at inference) that forces a decision.
+        self.n_pose = cfg.num_servos - 1
+        self.pose_head = nn.Linear(cfg.d_plan, self.n_pose)   # continuous deltas
+        self.grip_head = nn.Linear(cfg.d_plan, 1)             # per-step open/close logit
 
     def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
                 state_delta: torch.Tensor | None = None,
-                fused: torch.Tensor | None = None) -> torch.Tensor:
+                fused: torch.Tensor | None = None,
+                return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
         Args:
@@ -189,9 +197,15 @@ class ChronoQueryPlanner(nn.Module):
                 planner is far more accurate with the current observation than
                 with the prediction alone.
 
+            return_aux: if True, also return the per-step gripper logits
+                ``[B, plan_steps]`` (needed for the BCE training loss). Callers
+                that only execute the plan (loop/pipeline) leave this False.
+
         Returns:
-            ``plan``: ``[B, plan_steps, num_servos]`` normalized PWM targets,
-            every value in ``[-1, 1]`` (guaranteed by the outer ``tanh``).
+            ``plan``: ``[B, plan_steps, num_servos]`` in ``[-1, 1]`` — pose dims
+            are ``tanh(cumsum(deltas))`` (smooth, sequential), the gripper dim
+            is a hard ``+/-1`` decision. If ``return_aux``, returns
+            ``(plan, grip_logits)``.
         """
         if next_emb.dim() != 2 or next_emb.shape[1] != self.cfg.vis_dim:
             raise ValueError(f"expected next_emb of shape [B, {self.cfg.vis_dim}], got {tuple(next_emb.shape)}")
@@ -217,9 +231,21 @@ class ChronoQueryPlanner(nn.Module):
         for block in self.blocks:
             queries = block(queries, memory)
 
-        # Per-step deltas, integrated into a strictly sequential trajectory.
-        deltas = self.delta_head(self.final_norm(queries))  # [B, T, num_servos]
-        plan = torch.tanh(torch.cumsum(deltas, dim=1))
+        feats = self.final_norm(queries)  # [B, plan_steps, d_plan]
+
+        # Pose dims: per-step deltas -> smooth, strictly sequential trajectory.
+        pose = torch.tanh(torch.cumsum(self.pose_head(feats), dim=1))  # [B, T, n_pose]
+
+        # Gripper: per-step open/close logit -> hard +/-1 decision at inference
+        # (BCE-trained via the returned logits). Hard decision is what makes
+        # the hand actually close instead of hedging toward "open".
+        grip_logit = self.grip_head(feats).squeeze(-1)          # [B, T]
+        grip = torch.where(grip_logit > 0, torch.ones_like(grip_logit),
+                           -torch.ones_like(grip_logit))         # [B, T] in {-1,+1}
+
+        plan = torch.cat([pose, grip.unsqueeze(-1)], dim=-1)     # [B, T, num_servos]
+        if return_aux:
+            return plan, grip_logit
         return plan
 
 

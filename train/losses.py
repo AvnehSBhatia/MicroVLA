@@ -68,6 +68,42 @@ def total_planner_loss(
     return planner_bc_loss(pred, target) + smooth_weight * smoothness_loss(pred)
 
 
+def split_planner_loss(
+    plan: torch.Tensor,
+    grip_logit: torch.Tensor,
+    target: torch.Tensor,
+    smooth_weight: float = 0.1,
+    grip_weight: float = 1.0,
+) -> torch.Tensor:
+    """Split-head planner loss: MSE on pose dims + BCE on the gripper.
+
+    The gripper (last servo) is a sharply bimodal open/close action that MSE
+    averages into a mushy "never quite close". Training it as a per-step binary
+    classification (BCE on the logit) instead forces a decision.
+
+    Args:
+        plan: Planner output ``[..., plan_steps, num_servos]`` — pose dims
+            (``:num_servos-1``) are the differentiable ``tanh(cumsum)`` values;
+            the last (gripper) column is a hard +/-1 (ignored by this loss,
+            which supervises the gripper through ``grip_logit``).
+        grip_logit: Per-step gripper logits ``[..., plan_steps]`` from
+            ``ChronoQueryPlanner(..., return_aux=True)``.
+        target: Ground-truth ``pwm_targets`` ``[..., plan_steps, num_servos]``.
+        smooth_weight: Weight on the pose second-difference smoothness term.
+        grip_weight: Weight on the gripper BCE term.
+
+    Returns:
+        Scalar loss ``MSE(pose) + grip_weight*BCE(grip) + smooth_weight*smooth(pose)``.
+    """
+    pose_pred = plan[..., :-1]
+    pose_target = target[..., :-1]
+    grip_target = (target[..., -1] > 0).float()  # open(<=0) -> 0, close(>0) -> 1
+    mse = F.mse_loss(pose_pred, pose_target)
+    bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
+    smooth = smoothness_loss(pose_pred)
+    return mse + grip_weight * bce + smooth_weight * smooth
+
+
 def modality_consistency_loss(
     fused_full: torch.Tensor,
     fused_dropped: torch.Tensor,

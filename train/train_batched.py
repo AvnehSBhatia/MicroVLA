@@ -43,7 +43,7 @@ from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from train.dataset import EPISODE_KEYS, EpisodeDataset
-from train.losses import planner_bc_loss, smoothness_loss, total_planner_loss
+from train.losses import planner_bc_loss, smoothness_loss, split_planner_loss, total_planner_loss
 from train.train_full import _scheduled_horizon, _tagged_name, save
 from train.train_planner import resolve_device
 from TRM import RecursiveTRM, spec_loss
@@ -293,28 +293,31 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
 
     for epoch in range(1, args.stage_b_epochs + 1):
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
-        bc = sm = 0.0; nb = 0; t0 = time.time()
+        run = 0.0; grip_acc = 0.0; nb = 0; t0 = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             with torch.no_grad():
                 fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
-            preds = []
+            preds, grips = [], []
             for t in range(T):
                 cur = batch["frame_embs"][:, t]
                 next_emb = trm(fused_all[t], delta_all[t], cur)
-                preds.append(planner(next_emb, current_emb=cur,
-                                     state_delta=delta_all[t], fused=fused_all[t]))  # [B, 5, 7]
+                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
+                                     fused=fused_all[t], return_aux=True)
+                preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
+            grips = torch.stack(grips, dim=1)          # [B, T, 5]
             target = batch["pwm_targets"]               # [B, T, 5, 7]
-            loss = total_planner_loss(preds.reshape(-1, *preds.shape[2:]),
-                                      target.reshape(-1, *target.shape[2:]), smooth_weight=0.1)
+            P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
+            Y = target.reshape(-1, *target.shape[2:])
+            loss = split_planner_loss(P, G, Y, smooth_weight=0.1)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
-                bc += float(planner_bc_loss(preds.reshape(-1, *preds.shape[2:]),
-                                            target.reshape(-1, *target.shape[2:])))
-                sm += float(smoothness_loss(preds.reshape(-1, *preds.shape[2:])))
+                run += float(loss)
+                # gripper decision accuracy vs the demo (are we learning to close?)
+                grip_acc += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
             nb += 1
-        print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | bc {bc/max(nb,1):.4f} "
-              f"| smooth {sm/max(nb,1):.4f} | {time.time()-t0:.0f}s", flush=True)
+        print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
+              f"| grip_acc {grip_acc/max(nb,1):.3f} | {time.time()-t0:.0f}s", flush=True)
         save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm, planner=planner)
 
 
