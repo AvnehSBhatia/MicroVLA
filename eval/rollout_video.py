@@ -48,9 +48,12 @@ def main(argv=None) -> None:
     inits = np.asarray(bench.get_task_init_states(args.task))
     print(f"task: {task.language!r}")
 
-    env = OffScreenRenderEnv(bddl_file_name=str(bddl), camera_heights=256, camera_widths=256)
+    # Build the policy BEFORE the env (matches libero_eval's working order —
+    # creating the osmesa GL context after torch/HIP init avoids a segfault),
+    # and render at 128 (the size the eval and env_smoke used successfully).
     policy = MicroVLAPolicy(checkpoint=args.checkpoint, norm_stats=args.norm_stats,
                             device=args.device)
+    env = OffScreenRenderEnv(bddl_file_name=str(bddl), camera_heights=128, camera_widths=128)
     try:
         obs = env.reset()
         if len(inits) > 0:
