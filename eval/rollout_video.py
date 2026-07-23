@@ -38,9 +38,8 @@ def main(argv=None) -> None:
 
     from eval._libero_compat import prepare_libero
     prepare_libero()
-    from libero.libero import benchmark
-    from libero.libero.envs import OffScreenRenderEnv
-    from eval.policy import MicroVLAPolicy
+    from libero.libero import benchmark          # registry only — no mujoco/GL
+    from eval.policy import MicroVLAPolicy        # torch + ultralytics FIRST
 
     bench = benchmark.get_benchmark_dict()[args.suite]()
     task = bench.get_task(args.task)
@@ -48,11 +47,13 @@ def main(argv=None) -> None:
     inits = np.asarray(bench.get_task_init_states(args.task))
     print(f"task: {task.language!r}")
 
-    # Build the policy BEFORE the env (matches libero_eval's working order —
-    # creating the osmesa GL context after torch/HIP init avoids a segfault),
-    # and render at 128 (the size the eval and env_smoke used successfully).
+    # CRITICAL ORDER (matches libero_eval, which runs without segfaulting):
+    # build the torch/YOLO policy, and only THEN import + construct the
+    # robosuite/mujoco env. Importing mujoco's GL stack before torch is
+    # initialized segfaults. Render at 128 (the size env_smoke/eval used).
     policy = MicroVLAPolicy(checkpoint=args.checkpoint, norm_stats=args.norm_stats,
                             device=args.device)
+    from libero.libero.envs import OffScreenRenderEnv
     env = OffScreenRenderEnv(bddl_file_name=str(bddl), camera_heights=128, camera_widths=128)
     try:
         obs = env.reset()
