@@ -145,8 +145,25 @@ class ActionNormalizer:
         x = (np.asarray(actions, dtype=np.float64) - self.q_low) / self._span
         return np.clip(2.0 * x - 1.0, -1.0, 1.0).astype(np.float32)
 
-    def inverse(self, normalized: np.ndarray) -> np.ndarray:
-        x = (np.asarray(normalized, dtype=np.float64) + 1.0) / 2.0
+    def inverse(self, normalized: np.ndarray, zero_center: bool = False) -> np.ndarray:
+        """Maps a normalized action back to raw units.
+
+        Default: the exact inverse of ``__call__`` (``x=-1 -> q_low``,
+        ``x=+1 -> q_high``), so a neutral output ``x=0`` maps to the RANGE
+        MIDPOINT ``(q_low+q_high)/2`` — which is NOT zero motion when the
+        quantiles are asymmetric. For a delta-action policy that regresses
+        toward neutral, that midpoint is a constant per-step drift.
+
+        ``zero_center=True`` instead scales by the half-span and drops the
+        offset (``x=0 -> 0`` motion, ``x=±1 -> ±span/2``), so a collapsed /
+        neutral policy output means STAY STILL rather than drift. Diagnostic /
+        mitigation for the drift-into-wall failure; the principled fix is to
+        train against zero-centered (symmetric) targets.
+        """
+        x = np.asarray(normalized, dtype=np.float64)
+        if zero_center:
+            return (x * (self._span / 2.0)).astype(np.float32)
+        x = (x + 1.0) / 2.0
         return (x * self._span + self.q_low).astype(np.float32)
 
     def save(self, path: str | Path) -> None:

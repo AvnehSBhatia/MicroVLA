@@ -83,6 +83,9 @@ def main(argv=None) -> None:
     ap.add_argument("--out-dir", default="eval_results/videos")
     ap.add_argument("--seed", type=int, default=None,
                     help="omit for a genuinely random pick each run")
+    ap.add_argument("--zero-center-actions", action="store_true",
+                    help="denormalize actions zero-centered (x=0 -> no motion), so a "
+                         "collapsed policy stays still instead of drifting into a wall.")
     args = ap.parse_args(argv)
 
     from eval._libero_compat import prepare_libero
@@ -103,7 +106,7 @@ def main(argv=None) -> None:
     # policy BEFORE importing the robosuite/mujoco env, or mujoco's GL stack
     # segfaults. Build the policy ONCE and reuse it across episodes.
     policy = MicroVLAPolicy(checkpoint=args.checkpoint, norm_stats=args.norm_stats,
-                            device=args.device)
+                            device=args.device, zero_center_actions=args.zero_center_actions)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)

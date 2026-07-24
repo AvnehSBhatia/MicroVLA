@@ -219,6 +219,7 @@ class MicroVLAPolicy:
         device: str = "cpu",
         perception=None,
         task_encoder=None,
+        zero_center_actions: bool = False,
     ) -> None:
         """Builds the policy.
 
@@ -253,6 +254,7 @@ class MicroVLAPolicy:
                 ``task_encoder`` is given, the other is still built for real.
         """
         self.perception_period = max(1, int(perception_period))
+        self.zero_center_actions = bool(zero_center_actions)
         self.device = device
         # The heavy YOLO-World perception runs on `device` (GPU when asked),
         # but it detaches its outputs to CPU. The tiny trainable heads (~17M)
@@ -355,7 +357,9 @@ class MicroVLAPolicy:
         result = self.loop.tick(frame_bgr)
 
         plan = result.plan  # [plan_steps, num_servos], already trust-blended
-        action = self.normalizer.inverse(plan[0].detach().cpu().numpy())
+        action = self.normalizer.inverse(
+            plan[0].detach().cpu().numpy(), zero_center=self.zero_center_actions
+        )
 
         self.telemetry.append({
             "tick_index": self._tick_index,

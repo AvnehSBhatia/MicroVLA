@@ -368,6 +368,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             device=args.device,
             perception=perception,
             task_encoder=task_encoder,
+            zero_center_actions=args.zero_center_actions,
         )
 
     return factory
@@ -389,6 +390,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--perception-period", type=int, default=15)
     p.add_argument("--device", default="cpu")
     p.add_argument("--out-dir", default="eval_results")
+    p.add_argument("--zero-center-actions", action="store_true",
+                   help="denormalize actions zero-centered (x=0 -> no motion) so a "
+                        "collapsed/neutral policy stays still instead of drifting into a "
+                        "wall. Diagnostic for the asymmetric-quantile drift; a proper fix "
+                        "trains against symmetric targets.")
     return p.parse_args(argv)
 
 
