@@ -166,7 +166,14 @@ class ChronoQueryPlanner(nn.Module):
         # planner attends over a forward-looking estimate of the object it must
         # reach, not just the held stale box carried in `fused`.
         self.box_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
-        self.type_emb = nn.Parameter(torch.randn(5, cfg.d_plan) * cfg.d_plan**-0.5)
+        # v5: RAW grounding geometry — (src_center, tgt_center, box_weights)
+        # [B, 6] — handed to the planner directly. For a wrist camera the
+        # target's position in frame IS the visual-servo error vector; before
+        # v5 it reached the planner only through fusion's 160-float matrix,
+        # trained for frame prediction, which starved control of metric
+        # geometry (diagnosed via replay_probe: 8x magnitude collapse).
+        self.geom_proj = nn.Linear(6, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(6, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -206,6 +213,7 @@ class ChronoQueryPlanner(nn.Module):
                 state_delta: torch.Tensor | None = None,
                 fused: torch.Tensor | None = None,
                 pred_box_emb: torch.Tensor | None = None,
+                geometry: torch.Tensor | None = None,
                 return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
@@ -223,6 +231,10 @@ class ChronoQueryPlanner(nn.Module):
             pred_box_emb: ``[B, vis_dim]`` the TRM's predicted next-tick SOURCE
                 box embedding (v4, ``trm(..., return_box=True)``). Optional; a
                 forward-looking estimate of the object to grasp.
+            geometry: ``[B, 6]`` raw grounding geometry — ``(src_cx, src_cy,
+                tgt_cx, tgt_cy, w_src, w_tgt)`` — centers in ``[0, 1]`` wrist-
+                frame coordinates plus their evidence weights (v5). The direct
+                visual-servo signal; optional.
 
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
@@ -253,6 +265,8 @@ class ChronoQueryPlanner(nn.Module):
             mem_parts.append(
                 self.box_proj(pred_box_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
                 + self.type_emb[4])   # [B, 8, d_plan]
+        if geometry is not None:
+            mem_parts.append(self.geom_proj(geometry).unsqueeze(1) + self.type_emb[5])  # [B, 1, d_plan]
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.

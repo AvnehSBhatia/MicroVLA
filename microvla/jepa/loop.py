@@ -23,9 +23,11 @@ v3 semantics (per the architecture review):
       33 ms, so v2's zeroing threw away near-perfect information.
     * The drift encoder steps on REAL ticks only; its code is held constant
       across dreams (state change is a summary of *measured* evidence).
-    * Low trust blends the plan toward the previously emitted plan (hold),
-      never toward servo-neutral: scaling absolute PWM targets toward zero
-      would command a real motion to the mid-range pose.
+    * Low trust is action-space aware (v5, ``cfg.action_space``): for DELTA
+      actions (LIBERO/Bridge) it BRAKES — attenuates the plan toward zero
+      motion, since holding a delta is momentum that perpetuates drift; for
+      ABSOLUTE PWM targets it HOLD-blends toward the previously emitted plan
+      and never scales toward zero (zero commands servo mid-range).
     * The dream latent is re-standardized after correction so fusion always
       sees the canonical embedding space it was trained on.
 """
@@ -43,7 +45,7 @@ from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.jepa.corrector import InnovationCorrector
-from microvla.perception.yolo_world import Perception
+from microvla.perception.yolo_world import BoxObs, Perception
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.perception.command_parser import strip_article
 from microvla.trm.interface import TRMBase
@@ -158,6 +160,13 @@ class JEPALoop:
         self._dream_k: int = 0                            # dream ticks since real
         self._last_plan: Optional[torch.Tensor] = None    # [plan_steps, num_servos]
         self._last_action: Optional[torch.Tensor] = None  # [num_servos], executed row 0
+        # v5: last-known box per role across REAL ticks + how many consecutive
+        # real frames that role has MISSED. A real-tick detection miss holds
+        # the last-known box at cfg.miss_decay**age weight instead of resetting
+        # to the (0.5, 0.5)/weight-0 fallback — the wrist camera loses the
+        # object exactly at approach/grasp, when geometry matters most.
+        self._held_boxes: list[Optional[BoxObs]] = [None, None]
+        self._miss_age: list[int] = [0, 0]
         # Rolling window of the latents that drove recent ticks (oldest ->
         # newest), handed to the TRM as its context window each call.
         self._latent_ctx: deque[torch.Tensor] = deque(maxlen=cfg.context_window)
@@ -203,6 +212,8 @@ class JEPALoop:
         self._dream_k = 0
         self._last_plan = None
         self._last_action = None
+        self._held_boxes = [None, None]
+        self._miss_age = [0, 0]
         self._latent_ctx.clear()
 
     def tick(self, frame_bgr=None) -> TickResult:
@@ -240,17 +251,52 @@ class JEPALoop:
             )
 
             if is_real:
-                percept = self.perception.perceive(frame_bgr)
-                frame_emb = percept.frame_emb  # [vis_dim], standardized
+                raw_percept = self.perception.perceive(frame_bgr)
+                frame_emb = raw_percept.frame_emb  # [vis_dim], standardized
 
                 if self._pending_pred is not None:
                     self.corrector.on_measurement(self._pending_pred, frame_emb)
 
-                # Evidence weight per role = detection confidence (fresh).
+                # v5 miss-hold: a role whose detection MISSED this real tick
+                # keeps its last-known box at miss_decay**age weight instead of
+                # resetting to the (0.5, 0.5)/weight-0 fallback. A hit refreshes
+                # the held box and resets the age.
+                eff_boxes: list[BoxObs] = []
+                for i, obs in enumerate((raw_percept.source, raw_percept.target)):
+                    if obs.confidence > 0.0:
+                        self._held_boxes[i] = obs
+                        self._miss_age[i] = 0
+                        eff_boxes.append(obs)
+                    elif self._held_boxes[i] is not None:
+                        self._miss_age[i] += 1
+                        held_box = self._held_boxes[i]
+                        eff_boxes.append(BoxObs(
+                            emb=held_box.emb,
+                            center=held_box.center,
+                            xyxy=held_box.xyxy,
+                            confidence=held_box.confidence
+                            * self.cfg.miss_decay ** self._miss_age[i],
+                        ))
+                    else:
+                        eff_boxes.append(obs)  # genuine cold miss: fallback stands
+                percept = Perception(
+                    frame_emb=frame_emb, source=eff_boxes[0], target=eff_boxes[1]
+                )
+
+                # Evidence weight per role = detection confidence (fresh or
+                # miss-held-and-decayed).
                 box_weight = torch.tensor(
                     [[percept.source.confidence, percept.target.confidence]],
                     dtype=torch.float32,
                 )
+                # Raw geometry for the planner (v5): src/tgt centers + weights —
+                # for a wrist camera the target's frame position IS the visual-
+                # servo error vector; hand it to the planner directly instead of
+                # only through fusion's bottleneck.
+                geom = torch.cat(
+                    [percept.source.center.unsqueeze(0),
+                     percept.target.center.unsqueeze(0), box_weight], dim=-1
+                )  # [1, 6]
                 fused = self.fusion(
                     text_tokens,
                     frame_emb.unsqueeze(0),
@@ -294,6 +340,10 @@ class JEPALoop:
                     [[held.source.confidence * fade, held.target.confidence * fade]],
                     dtype=torch.float32,
                 )
+                geom = torch.cat(
+                    [held.source.center.unsqueeze(0),
+                     held.target.center.unsqueeze(0), box_weight], dim=-1
+                )  # [1, 6] — held centers, staleness-faded weights
                 fused = self.fusion(
                     text_tokens,
                     latent.unsqueeze(0),
@@ -325,16 +375,25 @@ class JEPALoop:
 
             raw_plan = self.planner(next_emb, current_emb=latent.unsqueeze(0),
                                     state_delta=state_delta, fused=fused,
-                                    pred_box_emb=next_box).squeeze(0)  # [plan_steps, num_servos]
+                                    pred_box_emb=next_box,
+                                    geometry=geom).squeeze(0)  # [plan_steps, num_servos]
 
-            # Trust-blend toward HOLD (the previously emitted plan), never
-            # toward zero: zero is a real commanded pose (servo mid-range),
-            # not the absence of motion. The gripper is a hard +/-1 decision,
-            # so blending it would produce a meaningless fractional command;
-            # keep the current gripper decision (sign) unblended.
+            # Trust semantics depend on the ACTION SPACE (v5):
+            #   * "delta" (LIBERO/Bridge EEF deltas): zero IS "no motion", so
+            #     low trust BRAKES — attenuates the commanded motion toward a
+            #     stop. Holding the previous plan here would be momentum: a
+            #     delta held is a motion continued, which perpetuates drift.
+            #   * "absolute" (the Pi's PWM rig): zero is a real commanded pose
+            #     (servo mid-range), so low trust HOLD-blends toward the
+            #     previously emitted plan and NEVER scales toward zero.
+            # The gripper is a hard +/-1 decision either way; blending it would
+            # produce a meaningless fractional command.
             tau = self.corrector.trust
             if self._last_plan is None:
                 plan = raw_plan
+            elif self.cfg.action_space == "delta":
+                plan = tau * raw_plan
+                plan[:, -1] = torch.sign(raw_plan[:, -1])  # gripper stays hard +/-1
             else:
                 plan = tau * raw_plan + (1.0 - tau) * self._last_plan
                 plan[:, -1] = torch.sign(raw_plan[:, -1])  # gripper stays hard +/-1

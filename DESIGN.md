@@ -45,11 +45,20 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
                      │
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
-  ChronoQueryPlanner(next_emb [512], pred_box_emb=next_box [512]) ──► raw plan [5, 7] in [-1, 1]
+  ChronoQueryPlanner(next_emb [512], pred_box_emb=next_box [512],
+                     geometry=[src_c, tgt_c, weights] [6]) ──► raw plan [5, 7] in [-1, 1]
+      geometry (v5): raw grounding centers + weights handed to the planner DIRECTLY —
+      for a wrist camera the target's frame position is the visual-servo error vector;
+      previously it only reached the planner through fusion's 160-float bottleneck
+      (trained for frame prediction), which starved control of metric geometry.
       two-stage: stage 1 predicts the 5 future 3D EEF coords (xyz waypoints = plan[...,:3]);
       stage 2 derives orientation + gripper CONDITIONED on those waypoints. Same [5,7] output,
       same split loss (pose MSE supervises the waypoints, BCE the gripper) — no loop/trainer change.
-      emitted plan = τ·raw + (1−τ)·previous plan  (trust HOLD-blend, never →0)
+      trust is ACTION-SPACE AWARE (v5, cfg.action_space):
+        "delta" (LIBERO/Bridge; zero = no motion): emitted plan = τ·raw — low trust BRAKES
+          toward a stop (holding a delta is momentum and perpetuates drift)
+        "absolute" (Pi PWM rig; zero = servo mid-range): emitted plan = τ·raw + (1−τ)·previous
+          plan (HOLD-blend, never scaled toward zero)
       row 0 is executed this tick and fed back as fusion's action token
       rows = 5 sequential timesteps, cols = 7 servos, values = normalized PWM
 ```
@@ -164,6 +173,16 @@ Implementation notes (real class, mechanics carried over from v1 where noted):
   embedding space every downstream consumer (fusion, drift, TRM, corrector) lives in.
 - Detector class prompts are article-stripped via `strip_article` ("the red cup" ->
   "red cup"); embeddings keep the full phrases.
+- Real-tick miss hold (v5): a role whose detection MISSES on a real tick keeps its
+  last-known box at `cfg.miss_decay ** age` weight (age = consecutive missed real frames)
+  instead of resetting to the (0.5, 0.5)/weight-0 fallback — the wrist camera loses the
+  object exactly at approach/grasp, when geometry matters most. Held per role in the
+  JEPALoop (`_held_boxes`/`_miss_age`), refreshed on any hit, cleared by `set_task`.
+- Symmetric action space (v5): baked `pwm_targets` are normalized so **0 <=> zero motion**
+  (`preprocess/renorm_symmetric.py`; `norm_stats.json` has `q_low = -q_high`). The original
+  quantile min-max mapped neutral output to the (nonzero) range midpoint — a collapsed
+  policy then commanded a constant drift. Never bake a new dataset with an asymmetric
+  action mapping.
 - Spatial grounding (Feature 1): `set_role_prompts([full_phrase, bare_noun], ...)` gives each
   role an ordered prompt list. `perceive` grounds a role to the best box of the FIRST prompt
   that detected anything — so the FULL relational phrase ("black bowl between the plate and the
@@ -321,12 +340,15 @@ class JEPALoop:
         #   box_weight = held confidences * staleness_decay**k (k = dream ticks
         #   since the last real frame); state_delta = held value.
         #   Raises RuntimeError if no real frame has been seen yet.
-        # Every tick: next_emb = trm(fused, state_delta, latent) [residual];
-        #   raw = planner(next_emb); emitted plan = tau*raw + (1-tau)*previous
-        #   emitted plan (HOLD-blend — low trust freezes commands, never scales
-        #   absolute PWM toward the mid-range pose); plan row 0 becomes
-        #   last_action for the next tick. eval mode, torch.no_grad,
-        #   unsqueeze/squeeze batch dim internally.
+        # Every tick: (next_emb, next_box) = trm(..., return_box=True) [residual];
+        #   raw = planner(next_emb, current_emb, state_delta, fused,
+        #   pred_box_emb=next_box, geometry=[src_c, tgt_c, weights]);
+        #   trust is ACTION-SPACE AWARE (v5): "delta" -> emitted = tau*raw
+        #   (low trust BRAKES toward zero motion; holding a delta is momentum);
+        #   "absolute" -> emitted = tau*raw + (1-tau)*previous plan (HOLD-blend,
+        #   never scaled toward the mid-range pose). Gripper column is always a
+        #   hard +/-1 (sign of raw). Plan row 0 becomes last_action for the next
+        #   tick. eval mode, torch.no_grad, unsqueeze/squeeze batch internally.
     def run(self, frames, text: str) -> list[TickResult]:
         # frames: iterable at tick_hz (30 fps). Every int(round(tick_hz/real_frame_hz))-th
         # tick (0, 15, 30, ...) is REAL; others are dream ticks (frame ignored → None).

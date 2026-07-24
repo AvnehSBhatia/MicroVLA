@@ -87,8 +87,10 @@ def main(argv=None) -> None:
                            last_action=last_action)
             delta = drift(cur)
             next_emb, next_box = trm(fused, delta, cur, return_box=True)
+            geom = torch.cat([t("source_centers")[i], t("target_centers")[i],
+                              t("box_weights")[i]]).unsqueeze(0)  # [1, 6]
             plan = planner(next_emb, current_emb=cur, state_delta=delta,
-                           fused=fused, pred_box_emb=next_box)  # [1,5,7]
+                           fused=fused, pred_box_emb=next_box, geometry=geom)  # [1,5,7]
             emitted.append(plan[0, 0].cpu().numpy())   # executed action (row 0)
             demo.append(pwm[i, 0].cpu().numpy())        # demo action at this step
 

@@ -74,6 +74,7 @@ def split_planner_loss(
     target: torch.Tensor,
     smooth_weight: float = 0.1,
     grip_weight: float = 1.0,
+    row0_weight: float = 1.0,
 ) -> torch.Tensor:
     """Split-head planner loss: MSE on pose dims + BCE on the gripper.
 
@@ -91,14 +92,24 @@ def split_planner_loss(
         target: Ground-truth ``pwm_targets`` ``[..., plan_steps, num_servos]``.
         smooth_weight: Weight on the pose second-difference smoothness term.
         grip_weight: Weight on the gripper BCE term.
+        row0_weight: Extra pose-MSE weight on plan ROW 0 — the only row that is
+            ever executed at deployment (the 30 Hz loop replans every tick and
+            runs row 0). Weights are normalized to mean 1 so the loss scale
+            stays comparable across settings; ``1.0`` = uniform (old behavior).
 
     Returns:
-        Scalar loss ``MSE(pose) + grip_weight*BCE(grip) + smooth_weight*smooth(pose)``.
+        Scalar loss ``wMSE(pose) + grip_weight*BCE(grip) + smooth_weight*smooth(pose)``.
     """
     pose_pred = plan[..., :-1]
     pose_target = target[..., :-1]
     grip_target = (target[..., -1] > 0).float()  # open(<=0) -> 0, close(>0) -> 1
-    mse = F.mse_loss(pose_pred, pose_target)
+    if row0_weight != 1.0:
+        w = pose_pred.new_ones(pose_pred.shape[-2])
+        w[0] = row0_weight
+        w = w / w.mean()
+        mse = ((pose_pred - pose_target).pow(2) * w.unsqueeze(-1)).mean()
+    else:
+        mse = F.mse_loss(pose_pred, pose_target)
     bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
     smooth = smoothness_loss(pose_pred)
     return mse + grip_weight * bce + smooth_weight * smooth

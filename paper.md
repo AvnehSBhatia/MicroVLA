@@ -186,3 +186,43 @@ scheduled-horizon data-rate objective is itself load-bearing (a free ablation
 for Claim 4's family).
 
 **Epoch-4 (H=6) interruption — RESOLVED (not a code issue).** The 4th stage-A epoch appeared to stall ~10x; root cause was the laptop LID CLOSING, which sleeps the Mac — `etime` counted ~3.9h of wall-clock sleep, not compute. No MPS/algorithm problem. Re-run under `caffeinate -s` with the lid open completes the full 1->6 curriculum. The epoch-3 checkpoint (+19% at H=4) is preserved as full_stageA_ep3_backup.pt.
+## Action-interface diagnosis (E3 closed-loop, 2026-07-23) — the v5 redesign
+
+First closed-loop LIBERO evals scored 0/10 (object AND spatial) with a
+signature failure: the arm drifts diagonally and slams into the wall while the
+scene sits untouched. The diagnosis chain (each step evidence-backed, all
+tooling in-repo) is itself paper material — a case study in why VLA evals fail
+for interface reasons before model reasons:
+
+1. **Language exonerated** (`eval/lang_probe.py`): text embeddings AND emitted
+   actions vary per instruction — no CLIP-harvest bug, language is wired.
+2. **Policy collapse quantified** (`eval/replay_probe.py`): on in-distribution
+   baked embeddings, teacher-forced, the planner's per-dim output std is ~8x
+   smaller than the demo action std (0.03–0.09 vs 0.36–0.59) with decent
+   directional correlation (~0.7) — classic MSE-BC regression-to-the-mean,
+   pointing at feature starvation, not optimization failure.
+3. **Drift mechanism #1 — asymmetric normalization**: quantile min-max maps a
+   NEUTRAL normalized action to the (nonzero) range midpoint: a collapsed
+   policy constantly commands +dx/+dy/+yaw. Fixed by symmetric re-normalization
+   (`preprocess/renorm_symmetric.py`): 0 <=> zero motion.
+4. **Drift mechanism #2 — trust HOLD on deltas is momentum**: `tau*raw +
+   (1-tau)*last_plan` was designed for absolute PWM; for DELTA actions a held
+   plan is a *continued motion*, so low trust perpetuated the drift. Fixed:
+   action-space-aware trust (`cfg.action_space`), "delta" mode BRAKES (tau*raw).
+5. **Feature starvation — geometry bottleneck**: the planner received box
+   centers only through fusion's 160-float matrix (trained for FRAME
+   prediction). For a wrist camera the target's frame position IS the
+   visual-servo error vector; v5 hands (src_center, tgt_center, weights)
+   to the planner directly.
+6. **Perception gap at the grasp moment**: real-tick detection misses reset
+   geometry to a (0.5,0.5)/weight-0 fallback exactly when the object fills or
+   leaves the wrist view; v5 holds the last-known box per role at
+   `miss_decay**age` weight.
+7. **Train/deploy regime mismatch**: stage B trained the planner ONLY on
+   real-tick features, yet at 30 Hz deployment 14/15 executed actions come from
+   planner(dream features). v5 adds dream-consistent stage B (`--dream-frac`).
+
+Known open item (needs a re-bake through the BudgetGuard pipeline): NO
+PROPRIOCEPTION — the policy emits deltas with zero knowledge of arm state, so
+residual drift cannot self-correct; adding baked EEF pose is the next
+structural fix if v5 closed-loop numbers stay at zero.

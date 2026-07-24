@@ -76,6 +76,16 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "improvement (< --patience, so LR drops before early stop).")
     p.add_argument("--min-delta", type=float, default=1e-4)
     p.add_argument("--stage-b-epochs", type=int, default=3)
+    p.add_argument("--dream-frac", type=float, default=0.0,
+                   help="stage B: fraction of steps trained in the DREAM regime "
+                        "(current latent = TRM prediction, held/faded boxes) the "
+                        "planner actually runs in 14/15 ticks at deployment. "
+                        "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--smooth-weight", type=float, default=0.05,
+                   help="pose smoothness (jerk) penalty weight in stage B.")
+    p.add_argument("--row0-weight", type=float, default=2.0,
+                   help="extra pose-MSE weight on plan row 0 — the only row "
+                        "executed at deployment (mean-normalized; 1.0 = uniform).")
     p.add_argument("--segments-per-episode", type=int, default=3)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--grad-clip", type=float, default=1.0)
@@ -317,6 +327,11 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
     rng = random.Random(args.seed + 1)
     ckpt = _tagged_name("full_stageB.pt", args.tag)
 
+    # Mid-dream evidence fade for --dream-frac steps: at deployment the planner
+    # runs on dream features for 14 of every 15 ticks; use the fade of a
+    # mid-rollout dream tick as the representative training regime.
+    period_fade = cfg.staleness_decay ** max(1, cfg.dream_ticks_per_real // 2)
+
     for epoch in range(1, args.stage_b_epochs + 1):
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
         run = 0.0; grip_acc = 0.0; nb = 0; t0 = time.time()
@@ -325,17 +340,38 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
                 fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
             preds, grips = [], []
             for t in range(T):
-                cur = batch["frame_embs"][:, t]
-                next_emb, next_box = trm(fused_all[t], delta_all[t], cur, return_box=True)
-                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
-                                     fused=fused_all[t], pred_box_emb=next_box, return_aux=True)
+                # Dream-consistent stage B (v5): with prob --dream-frac, train
+                # this step in the DREAM regime the planner actually runs in at
+                # 30 Hz — current latent = the (standardized) TRM prediction
+                # from t-1, boxes held from t-1 at mid-dream fade, drift held.
+                dream = t > 0 and rng.random() < args.dream_frac
+                with torch.no_grad():
+                    if dream:
+                        prev = batch["frame_embs"][:, t - 1]
+                        cur = standardize(trm(fused_all[t - 1], delta_all[t - 1], prev))
+                        sbe, tbe, sc, tc, bw = _boxes(batch, t - 1, period_fade, cfg,
+                                                      args.ablate_grounding)
+                        fused_t = fusion(batch["text_tokens"], cur, sbe, tbe, sc, tc,
+                                         box_weight=bw,
+                                         last_action=batch["pwm_targets"][:, t - 1, 0])
+                        delta_t = delta_all[t - 1]
+                    else:
+                        cur = batch["frame_embs"][:, t]
+                        sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
+                        fused_t, delta_t = fused_all[t], delta_all[t]
+                    next_emb, next_box = trm(fused_t, delta_t, cur, return_box=True)
+                geom = torch.cat([sc, tc, bw], dim=-1)              # [B, 6]
+                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_t,
+                                     fused=fused_t, pred_box_emb=next_box,
+                                     geometry=geom, return_aux=True)
                 preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]
             target = batch["pwm_targets"]               # [B, T, 5, 7]
             P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
             Y = target.reshape(-1, *target.shape[2:])
-            loss = split_planner_loss(P, G, Y, smooth_weight=0.1)
+            loss = split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
+                                      row0_weight=args.row0_weight)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
                 run += float(loss)

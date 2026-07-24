@@ -73,6 +73,13 @@ class MicroVLAConfig:
             leaves ~9M for the trainable heads (see utils/param_audit.py).
     """
 
+    action_space: str = "delta"  # "delta": zero action = no motion (LIBERO/Bridge
+    # EEF deltas) -> low corrector trust BRAKES the plan toward zero. "absolute":
+    # commands are absolute targets (the Pi's PWM rig; zero = servo mid-range)
+    # -> low trust HOLD-blends toward the previous plan, never toward zero.
+    miss_decay: float = 0.7  # per missed REAL frame: weight decay on the held
+    # last-known box when the detector misses on a real tick (objects don't
+    # teleport because the detector blinked at the grasp moment).
     text_dim: int = 512
     n_text_tokens: int = 3
     vis_dim: int = 512

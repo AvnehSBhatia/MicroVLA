@@ -186,18 +186,32 @@ class TestV3Behaviors:
         corr.on_measurement(base, base + 1e-4 * torch.randn(CFG.vis_dim))
         assert corr.trust > 0.9
 
-    def test_low_trust_blends_toward_previous_plan_not_zero(self):
+    def test_low_trust_delta_mode_brakes_toward_zero_motion(self):
+        # Default action_space="delta": zero IS "no motion", so zero trust must
+        # BRAKE the pose toward a stop — holding the previous plan would be
+        # momentum (a held delta is a continued motion) and perpetuate drift.
+        assert CFG.action_space == "delta"
         loop = JEPALoop.build_mock(CFG)
         loop.set_task("move can to ball")
-        first = loop.tick(_frame(0))
-        # Force distrust and take a dream tick: the emitted plan must stay
-        # close to the previously emitted plan, NOT collapse toward zero.
+        loop.tick(_frame(0))
         loop.corrector.tau = 0.0
         dream = loop.tick(None)
-        # POSE dims HOLD to the previously emitted plan under zero trust (never
-        # collapse toward zero). The gripper column is NOT blended — it is a
-        # fresh hard +/-1 decision each tick by design (loop sets
-        # plan[:, -1] = sign(raw_plan[:, -1])), so it may differ from `first`.
+        assert torch.allclose(dream.plan[:, :-1], torch.zeros_like(dream.plan[:, :-1]),
+                              atol=1e-6)
+        # Gripper stays a hard +/-1 decision (never a blended fraction).
+        assert torch.all((dream.plan[:, -1] == 1.0) | (dream.plan[:, -1] == -1.0))
+
+    def test_low_trust_absolute_mode_holds_previous_plan_not_zero(self):
+        # action_space="absolute" (the Pi's PWM rig): zero commands servo
+        # mid-range, so zero trust must HOLD the previously emitted plan.
+        import dataclasses
+
+        cfg = dataclasses.replace(CFG, action_space="absolute")
+        loop = JEPALoop.build_mock(cfg)
+        loop.set_task("move can to ball")
+        first = loop.tick(_frame(0))
+        loop.corrector.tau = 0.0
+        dream = loop.tick(None)
         assert torch.allclose(dream.plan[:, :-1], first.plan[:, :-1], atol=1e-6)
         assert torch.all((dream.plan[:, -1] == 1.0) | (dream.plan[:, -1] == -1.0))
         assert dream.plan.abs().sum() > 0 or first.plan.abs().sum() == 0
@@ -250,3 +264,74 @@ class TestV3Behaviors:
         assert len(loop._latent_ctx) == CFG.context_window
         loop.set_task("grab the mug")
         assert len(loop._latent_ctx) == 0, "set_task must clear the context window"
+
+
+class TestRealTickMissHold:
+    """v5: a real tick whose detection MISSES holds the last-known box.
+
+    The wrist camera loses the object exactly at approach/grasp; before v5 a
+    real-tick miss reset geometry to the (0.5, 0.5)/weight-0 fallback at the
+    moment it mattered most. Now the last-known box is held per role at
+    ``cfg.miss_decay ** age`` weight until the detector reacquires.
+    """
+
+    class _BlinkingPerception:
+        """Delegates to the mock, but every perceive() after the first 'misses'."""
+
+        def __init__(self, cfg):
+            from microvla.perception.yolo_world import MockYoloWorldPerception
+
+            self._mock = MockYoloWorldPerception(vis_dim=cfg.vis_dim)
+            self.calls = 0
+
+        def set_classes(self, classes):
+            self._mock.set_classes(classes)
+
+        def set_role_prompts(self, source, target=None):
+            self._mock.set_role_prompts(source, target)
+
+        def perceive(self, frame):
+            from microvla.perception.yolo_world import BoxObs, Perception
+
+            p = self._mock.perceive(frame)
+            self.calls += 1
+            if self.calls == 1:
+                return p
+            fallback = BoxObs(
+                emb=p.frame_emb.clone(),
+                center=torch.tensor([0.5, 0.5], dtype=torch.float32),
+                xyxy=torch.zeros(4, dtype=torch.float32),
+                confidence=0.0,
+            )
+            return Perception(frame_emb=p.frame_emb, source=fallback, target=fallback)
+
+    def test_miss_holds_last_known_box_with_decayed_weight(self):
+        loop = JEPALoop.build_mock(CFG)
+        loop.perception = self._BlinkingPerception(CFG)
+        loop.set_task("move can to ball")
+
+        first = loop.tick(_frame(0))
+        held_center = first.perception.source.center.clone()
+        held_conf = first.perception.source.confidence
+        assert held_conf > 0.0
+
+        second = loop.tick(_frame(1))  # real tick, detector misses
+        assert torch.allclose(second.perception.source.center, held_center)
+        assert second.perception.source.confidence == pytest.approx(
+            held_conf * CFG.miss_decay
+        )
+
+        third = loop.tick(_frame(2))  # still missing -> weight keeps decaying
+        assert third.perception.source.confidence == pytest.approx(
+            held_conf * CFG.miss_decay**2
+        )
+
+    def test_cold_miss_without_history_keeps_fallback(self):
+        loop = JEPALoop.build_mock(CFG)
+        blinker = self._BlinkingPerception(CFG)
+        blinker.calls = 1  # every perceive() from now on misses, incl. the first
+        loop.perception = blinker
+        loop.set_task("move can to ball")
+        first = loop.tick(_frame(0))
+        # No last-known box exists: the fallback stands, weight 0.
+        assert first.perception.source.confidence == 0.0

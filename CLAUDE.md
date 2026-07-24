@@ -79,10 +79,15 @@ the emitted plan.
   random factor. Do NOT reintroduce binary zeroing or a separate dream flag — this
   training-inference alignment is a core design claim. Fusion's 8th token is the
   previously executed action (plan row 0) and is never faded.
-- **Trust semantics.** The corrector's trust is a self-calibrating error *ratio* (EMA of
-  innovation norms), and low trust HOLD-blends the plan toward the previously emitted
-  plan — never multiply absolute PWM targets toward zero (that commands a real motion
-  to servo mid-range).
+- **Trust semantics are action-space aware** (`cfg.action_space`). The corrector's trust
+  is a self-calibrating error *ratio* (EMA of innovation norms). For `"delta"` actions
+  (LIBERO/Bridge — zero means NO MOTION) low trust BRAKES: `plan = tau * raw` decays
+  toward a stop; holding a delta is momentum and perpetuates drift (this drove the
+  drift-into-wall eval failure). For `"absolute"` PWM targets (the Pi rig — zero is
+  servo mid-range) low trust HOLD-blends toward the previously emitted plan and must
+  never scale toward zero. Related: baked `pwm_targets` must be SYMMETRICALLY
+  normalized (0 <=> zero motion; `preprocess/renorm_symmetric.py`) — the original
+  asymmetric quantile mapping made a neutral output a constant drift command.
 - **Drift encoder semantics.** First forward after `reset()` stores the anchor, seeds the
   context window, and returns an exactly-zero code without stepping the GRU; hidden is
   detached between steps; runtime state (anchor, window deque, hidden) lives in plain

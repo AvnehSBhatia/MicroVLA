@@ -114,6 +114,11 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage A: max data-rate rollout horizon (grows 1->max across "
                         "epochs per TRM_SPEC section 5). Episodes shorter than horizon+1 "
                         "are skipped.")
+    p.add_argument("--smooth-weight", type=float, default=0.05,
+                   help="pose smoothness (jerk) penalty weight in stage B.")
+    p.add_argument("--row0-weight", type=float, default=2.0,
+                   help="extra pose-MSE weight on plan row 0 — the only row "
+                        "executed at deployment (mean-normalized; 1.0 = uniform).")
     p.add_argument("--box-loss-weight", type=float, default=0.5,
                    help="weight on the v4 TRM box-prediction spec_loss in stage A "
                         "(0 disables it). Target = recorded source_box_embs[t+k].")
@@ -464,13 +469,21 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             for t in range(T):
                 cur = episode["frame_embs"][t].unsqueeze(0)
                 next_emb, next_box = trm(fused_all[t], delta_all[t], cur, return_box=True)
+                if args.ablate_grounding:
+                    geom = episode["frame_embs"].new_zeros(1, 6)
+                else:
+                    geom = torch.cat([episode["source_centers"][t],
+                                      episode["target_centers"][t],
+                                      episode["box_weights"][t]]).unsqueeze(0)  # [1, 6]
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
-                                     fused=fused_all[t], pred_box_emb=next_box, return_aux=True)
+                                     fused=fused_all[t], pred_box_emb=next_box,
+                                     geometry=geom, return_aux=True)
                 preds.append(plan.squeeze(0)); grips.append(grip.squeeze(0))
             preds = torch.stack(preds, 0)               # [T, 5, 7]
             grips = torch.stack(grips, 0)               # [T, 5]
             target = episode["pwm_targets"]
-            loss = split_planner_loss(preds, grips, target, smooth_weight=0.1)
+            loss = split_planner_loss(preds, grips, target, smooth_weight=args.smooth_weight,
+                                      row0_weight=args.row0_weight)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_([p for g in groups for p in g["params"]], args.grad_clip)
