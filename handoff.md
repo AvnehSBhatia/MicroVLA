@@ -133,8 +133,10 @@ Key semantics locked in (do NOT regress):
   keys + `wrist_frames [T,128,128,3]u8` + `proprio [T,10]` +
   `eef_pos_chunk [T,5,3]`, symmetric stats. **Do NOT bake more suites into
   this dir incrementally** — each bake overwrites norm_stats.json fitted on
-  its own input → silently inconsistent normalization. Bake all three suites
-  in ONE run into a fresh dir (`data/libero_v7_full`), commands in §5.
+  its own input, so the episodes already in the dir no longer match the stats
+  file. One dir per suite, then `preprocess/unify_norm_stats.py` to put them
+  on one shared symmetric scale (commands in §5). That ordering also keeps
+  peak disk at ONE raw suite instead of three.
 - `data/bridge` = old schema (no frames/proprio; zero-filled by the dataset
   loader, proprio valid-flag 0). Fine as-is for stage A.
 - `data/libero` = OLD asymmetric-renormed object+spatial+goal bake (pre-v7,
@@ -172,27 +174,49 @@ tensors, bucket frame-stripping, flat-τ brake tax, parallel-eval opacity.
 
 1. **Get `mean_success` for the pilot** (§0 canary → workers 5). Any nonzero =
    proof-of-life headline. Zero-with-purposeful-motion → next lever.
-2. **Full 3-suite bake + full retrain** (~1.5 h bake + ~40 min train):
+2. **Full 3-suite bake + full retrain** (~1.5 h bake + ~40 min train).
+   ONE SUITE AT A TIME — `preprocess/libero.py` globs its root recursively, so
+   baking all three under one norm_stats would need all three raw suites on
+   disk at once (~10-12 GB = the whole budget). Download → bake → delete each,
+   then put the three dirs on one shared normalizer:
    ```bash
+   # the downloader is INTERACTIVE: `yes n` answers n/n = use Hugging Face,
+   # don't overwrite an already-complete suite.
    for S in libero_object libero_spatial libero_goal; do
-     python /root/LIBERO/benchmark_scripts/download_libero_datasets.py --datasets $S --download-dir /root/libero_raw
+     yes n | python /root/LIBERO/benchmark_scripts/download_libero_datasets.py \
+       --datasets $S --download-dir /root/libero_raw
+     python -m preprocess.libero /root/libero_raw/$S data/${S}_v7 --device cuda:0
+     rm -rf /root/libero_raw/$S            # BEFORE the next download
    done
-   python -m preprocess.libero /root/libero_raw data/libero_v7_full --device cuda:0
-   rm -rf /root/libero_raw
+   python -m preprocess.unify_norm_stats \
+     --data-dir data/libero_object_v7 --data-dir data/libero_spatial_v7 \
+     --data-dir data/libero_goal_v7
+   LIB="--data-dir data/libero_object_v7 --data-dir data/libero_spatial_v7 \
+        --data-dir data/libero_goal_v7"
    TORCH_BLAS_PREFER_HIPBLASLT=0 python train/train_batched.py \
-     --data-dir data/bridge --data-dir data/libero_v7_full \
+     --data-dir data/bridge $LIB \
      --device cuda --batch-size 64 --lr 5e-4 --max-vram-gb 50 \
      --stage-a-epochs 30 --warmup-epochs 4 --max-horizon 6 --patience 3 \
      --stage-b-epochs 40 --stage-b-patience 4 --dream-frac 0.25 --tqsa
    python -m eval.bench --checkpoint checkpoints/full_stageB.pt \
-     --data-dir data/libero_v7_full --sensitivity --device cuda:0
+     --data-dir data/libero_object_v7 --sensitivity --device cuda:0
+   python -m preprocess.fit_waypoint_gain data/libero_object_v7 \
+     data/libero_spatial_v7 data/libero_goal_v7
    ```
-   Cheap A/Bs to fold into that run (each is one more ~40 min train):
+   Cheap A/Bs on top — BOTH levers are stage-B-only, so reuse the trained world
+   model with `--load-stage-a` (~15 min each, not 40). Do NOT add
+   `--resume-stage-b`: it does a strict `load_state_dict` into the planner and
+   both flags change the planner's architecture.
    ```bash
+   COMMON="--data-dir data/bridge $LIB --device cuda --batch-size 64 --lr 5e-4 \
+     --max-vram-gb 50 --load-stage-a checkpoints/full_stageA.pt \
+     --stage-b-epochs 40 --stage-b-patience 4 --dream-frac 0.25 --tqsa"
    # the std_ratio lever — read wp_std_ratio vs std_ratio in the bench output
-   ... --waypoint-weight 1.0        # then: python -m preprocess.fit_waypoint_gain data/libero_v7_full
+   TORCH_BLAS_PREFER_HIPBLASLT=0 python train/train_batched.py $COMMON \
+     --waypoint-weight 1.0 --tag wp
    # the pruning candidates, decided on FULL-data sensitivity, not the pilot's
-   ... --planner-drop geometry,pred_box_emb --tag pruned
+   TORCH_BLAS_PREFER_HIPBLASLT=0 python train/train_batched.py $COMMON \
+     --planner-drop geometry,pred_box_emb --tag pruned
    ```
 3. **Remaining levers, ranked** (fire based on where the numbers stall):
    - std_ratio stuck ≈0.4 → **waypoint-absolute action head** (predict
