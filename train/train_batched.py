@@ -110,6 +110,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--load-stage-a", type=str, default=None,
                    help="path to a trained full_stageA.pt: load the world model and skip "
                         "stage A, retraining ONLY the planner (e.g. after a planner change).")
+    p.add_argument("--stage-b-patience", type=int, default=0,
+                   help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
+                        "best checkpoint, and halts after this many epochs without a "
+                        "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--resume-stage-b", action="store_true",
+                   help="with --load-stage-a pointing at a full_stageB.pt: ALSO load the "
+                        "planner (+tqsa) from it and continue stage B, instead of "
+                        "retraining the policy from scratch.")
     p.add_argument("--unfreeze-trm", action="store_true",
                    help="stage B: fine-tune the WHOLE TRM at 0.1x LR with a world-model "
                         "auxiliary rollout loss (frame prediction cannot collapse; verify "
@@ -368,6 +376,47 @@ def _batch_spatial(batch, t, tqsa, backbone, device):
     return tqsa(maps, batch["text_tokens"])
 
 
+@torch.no_grad()
+def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
+                 tqsa, backbone, rng):
+    """Clean stage-B val loss: real path, NO input-dropout, NO dream steps.
+
+    Matches the deployment forward (planner sees every input), so the number
+    tracks generalization of the actual policy, not the regularized training
+    objective.
+    """
+    planner.eval()
+    if tqsa is not None:
+        tqsa.eval()
+    tot = ga = 0.0
+    nb = 0
+    for T, batch in iter_batches(val_b, 1, args.batch_size, rng, need=1):
+        fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
+        preds, grips = [], []
+        for t in range(T):
+            cur = batch["frame_embs"][:, t]
+            wm = trm.forward_full(fused_all[t], delta_all[t], cur)
+            sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
+            geom = torch.cat([sc, tc, bw], dim=-1)
+            spatial = _batch_spatial(batch, t, tqsa, backbone, device)
+            plan, grip = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
+                                 fused=fused_all[t], pred_box_emb=wm["next_box"],
+                                 geometry=geom, proprio=batch["proprio"][:, t],
+                                 spatial=spatial, wm_msg=wm["msg"], return_aux=True)
+            preds.append(plan); grips.append(grip)
+        P = torch.stack(preds, 1).reshape(-1, cfg.plan_steps, cfg.num_servos)
+        G = torch.stack(grips, 1).reshape(-1, cfg.plan_steps)
+        Y = batch["pwm_targets"].reshape(-1, cfg.plan_steps, cfg.num_servos)
+        tot += float(split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
+                                        row0_weight=args.row0_weight))
+        ga += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
+        nb += 1
+    planner.train()
+    if tqsa is not None:
+        tqsa.train()
+    return tot / max(nb, 1), ga / max(nb, 1)
+
+
 def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             tqsa=None, backbone=None):
     for m in (fusion, drift):
@@ -389,6 +438,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
     opt = torch.optim.AdamW(groups, weight_decay=1e-2)
     rng = random.Random(args.seed + 1)
     ckpt = _tagged_name("full_stageB.pt", args.tag)
+    best_val, stale = float("inf"), 0
 
     # Mid-dream evidence fade for --dream-frac steps: at deployment the planner
     # runs on dream features for 14 of every 15 ticks; use the fade of a
@@ -467,10 +517,29 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # gripper decision accuracy vs the demo (are we learning to close?)
                 grip_acc += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
             nb += 1
-        print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
-              f"| grip_acc {grip_acc/max(nb,1):.3f} | {time.time()-t0:.0f}s", flush=True)
         extra = {"tqsa": tqsa} if tqsa is not None else {}
-        save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm, planner=planner, **extra)
+        if args.stage_b_patience > 0:
+            val_loss, val_ga = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
+                                            planner, device, tqsa, backbone, rng)
+            tag = ""
+            if val_loss < best_val - args.min_delta:
+                best_val, stale = val_loss, 0
+                save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm,
+                     planner=planner, **extra)
+                tag = " *best*"
+            else:
+                stale += 1
+                tag = f" (no improve {stale}/{args.stage_b_patience})"
+            print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
+                  f"| grip_acc {grip_acc/max(nb,1):.3f} | val {val_loss:.4f} "
+                  f"grip {val_ga:.3f}{tag} | {time.time()-t0:.0f}s", flush=True)
+            if stale >= args.stage_b_patience:
+                print(f"[stage B] early stop, best val {best_val:.4f} (checkpoint kept)", flush=True)
+                break
+        else:
+            print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
+                  f"| grip_acc {grip_acc/max(nb,1):.3f} | {time.time()-t0:.0f}s", flush=True)
+            save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm, planner=planner, **extra)
 
 
 def main(argv=None) -> None:
@@ -492,12 +561,23 @@ def main(argv=None) -> None:
     trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
     planner = ChronoQueryPlanner(cfg).to(device)
 
+    resume_state: dict = {}
     if args.load_stage_a:
         # Retrain ONLY the policy: load the trained world model, skip stage A.
         st = torch.load(args.load_stage_a, map_location=device, weights_only=True)
         fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
         print(f"loaded world model from {args.load_stage_a}; skipping stage A", flush=True)
         args.stage_a_epochs = 0
+        if args.resume_stage_b:
+            # Continue the POLICY too (planner + tqsa) instead of fresh init —
+            # point --load-stage-a at a full_stageB.pt (it carries every key,
+            # including the stage-B-trained TRM msg_head inside 'trm').
+            if "planner" not in st:
+                raise SystemExit("--resume-stage-b needs a stage-B checkpoint "
+                                 f"(no 'planner' key in {args.load_stage_a})")
+            planner.load_state_dict(st["planner"])
+            print("resumed planner from stage-B checkpoint", flush=True)
+            resume_state = st
 
     if args.stage_a_epochs > 0:
         stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device)
@@ -507,6 +587,9 @@ def main(argv=None) -> None:
             from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
             from microvla.perception.yolo_world import YoloWorldPerception
             tqsa = TextQueriedSpatialAdapter(cfg).to(device)
+            if args.resume_stage_b and "tqsa" in resume_state:
+                tqsa.load_state_dict(resume_state["tqsa"])
+                print("resumed tqsa from stage-B checkpoint", flush=True)
             backbone = YoloWorldPerception(device=str(device))  # frozen map extractor
             n_frames = sum(1 for b in train_b.values() if "wrist_frames" in b)
             print(f"TQSA stage B: {n_frames}/{len(train_b)} train buckets carry frames", flush=True)
