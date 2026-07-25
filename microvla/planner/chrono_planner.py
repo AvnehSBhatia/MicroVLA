@@ -173,7 +173,15 @@ class ChronoQueryPlanner(nn.Module):
         # trained for frame prediction, which starved control of metric
         # geometry (diagnosed via replay_probe: 8x magnitude collapse).
         self.geom_proj = nn.Linear(6, cfg.d_plan)
-        self.type_emb = nn.Parameter(torch.randn(6, cfg.d_plan) * cfg.d_plan**-0.5)
+        # v6: PROPRIOCEPTION — the arm's own state (EEF pos/quat, gripper,
+        # validity flag; microvla/utils/proprio.py). Without it the policy must
+        # infer arm pose from a GAP'd wrist embedding, trajectory PHASE
+        # (approach/descend/lift) is unobservable, and MSE-BC collapses to the
+        # timid conditional mean (replay_probe: ~8x under-std actions, both
+        # before AND after direct geometry — proprio is the missing input, not
+        # more vision conditioning).
+        self.proprio_proj = nn.Linear(10, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(7, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -214,6 +222,7 @@ class ChronoQueryPlanner(nn.Module):
                 fused: torch.Tensor | None = None,
                 pred_box_emb: torch.Tensor | None = None,
                 geometry: torch.Tensor | None = None,
+                proprio: torch.Tensor | None = None,
                 return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
@@ -235,6 +244,9 @@ class ChronoQueryPlanner(nn.Module):
                 tgt_cx, tgt_cy, w_src, w_tgt)`` — centers in ``[0, 1]`` wrist-
                 frame coordinates plus their evidence weights (v5). The direct
                 visual-servo signal; optional.
+            proprio: ``[B, 10]`` arm state (EEF pos, quat, gripper, validity —
+                see ``microvla/utils/proprio.py``) (v6). The phase signal BC
+                needs to avoid collapse; optional (zeros == "unavailable").
 
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
@@ -267,6 +279,8 @@ class ChronoQueryPlanner(nn.Module):
                 + self.type_emb[4])   # [B, 8, d_plan]
         if geometry is not None:
             mem_parts.append(self.geom_proj(geometry).unsqueeze(1) + self.type_emb[5])  # [B, 1, d_plan]
+        if proprio is not None:
+            mem_parts.append(self.proprio_proj(proprio).unsqueeze(1) + self.type_emb[6])  # [B, 1, d_plan]
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.

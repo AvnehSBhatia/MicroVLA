@@ -334,7 +334,7 @@ class MicroVLAPolicy:
         self.telemetry = []
         self.trust_trace = []
 
-    def act(self, frame_rgb: np.ndarray) -> np.ndarray:
+    def act(self, frame_rgb: np.ndarray, proprio: np.ndarray | None = None) -> np.ndarray:
         """Advances one env step; returns a denormalized raw action.
 
         Every ``perception_period``-th call (0-indexed since the last
@@ -347,6 +347,10 @@ class MicroVLAPolicy:
 
         Args:
             frame_rgb: ``HxWx3`` uint8 RGB frame from the environment.
+            proprio: Optional ``[10]`` arm-state vector (v6, see
+                ``microvla/utils/proprio.py``) — pass every step when the env
+                exposes it (``proprio_from_obs``); encoders are fast, so it is
+                fresh even on dream ticks. ``None`` -> the loop holds/zeros.
 
         Returns:
             ``[cfg.num_servos]`` float32 raw action
@@ -354,7 +358,7 @@ class MicroVLAPolicy:
         """
         is_real = self._tick_index % self.perception_period == 0
         frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1]) if is_real else None
-        result = self.loop.tick(frame_bgr)
+        result = self.loop.tick(frame_bgr, proprio=proprio)
 
         plan = result.plan  # [plan_steps, num_servos], already trust-blended
         action = self.normalizer.inverse(

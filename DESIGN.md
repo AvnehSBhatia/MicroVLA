@@ -46,7 +46,15 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
                      ├──► InnovationCorrector (Kalman-lite) ──► corrected latent → next tick
                      ▼
   ChronoQueryPlanner(next_emb [512], pred_box_emb=next_box [512],
-                     geometry=[src_c, tgt_c, weights] [6]) ──► raw plan [5, 7] in [-1, 1]
+                     geometry=[src_c, tgt_c, weights] [6],
+                     proprio=[eef_pos, quat, gripper, valid] [10]) ──► raw plan [5, 7] in [-1, 1]
+      proprio (v6): the arm's OWN state (microvla/utils/proprio.py), per tick — without it
+      trajectory phase (approach/descend/lift) is unobservable from a GAP'd wrist embedding
+      and MSE-BC collapses to the timid conditional mean (replay_probe: ~8x under-std,
+      unchanged by v5's geometry — proprio is the missing input). Baked into npz by
+      preprocess/patch_proprio.py (merge-by-episode-id, NO YOLO re-bake); zeros+valid=0
+      when unavailable (Bridge, mock). npz gains OPTIONAL keys: proprio [T,10],
+      eef_pos_chunk [T,plan_steps,3] (reserved for an absolute-waypoint action head).
       geometry (v5): raw grounding centers + weights handed to the planner DIRECTLY —
       for a wrist camera the target's frame position is the visual-servo error vector;
       previously it only reached the planner through fusion's 160-float bottleneck

@@ -128,10 +128,14 @@ def main(argv=None) -> None:
                 obs = env.set_init_state(inits[rng.randrange(len(inits))])
             policy.reset(task.language)
 
+            from microvla.utils.proprio import proprio_from_obs
+
             frames, success = [], False
             for step in range(args.max_steps):
                 wrist = np.asarray(obs["robot0_eye_in_hand_image"])  # policy's view
-                action = np.asarray(policy.act(wrist), dtype=np.float32)
+                action = np.asarray(
+                    policy.act(wrist, proprio=proprio_from_obs(obs)), dtype=np.float32
+                )
                 # agentview is mounted upside down -> rotate 180 for viewing.
                 agent = np.rot90(np.asarray(obs["agentview_image"]), 2)
                 # Side by side: 3rd person (left) + wrist/policy view (right).

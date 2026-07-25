@@ -38,6 +38,14 @@ EPISODE_KEYS: tuple[str, ...] = (
     "pwm_targets",
 )
 
+#: v6 optional keys — present after `preprocess/patch_proprio.py`; ZERO-FILLED
+#: when absent (Bridge, un-patched files, synthetic pre-v6 fixtures) so every
+#: consumer can rely on them unconditionally. proprio's last dim is a validity
+#: flag, so a zero-fill is self-describing ("no proprio available").
+#:   proprio        [T, PROPRIO_DIM=10]  — arm state per sampled frame
+#:   eef_pos_chunk  [T, plan_steps, 3]   — absolute EEF xyz at the chunk steps
+OPTIONAL_KEYS: tuple[str, ...] = ("proprio", "eef_pos_chunk")
+
 
 class EpisodeDataset(Dataset):
     """Dataset over a directory of ``.npz`` episode files.
@@ -83,6 +91,16 @@ class EpisodeDataset(Dataset):
                         f"Episode {self.files[idx]} is missing required key {key!r}"
                     )
                 episode[key] = torch.as_tensor(data[key], dtype=torch.float32)
+            # v6 optional keys: zero-fill when absent (proprio's validity flag
+            # is part of the vector, so zeros self-describe as "unavailable").
+            T = episode["frame_embs"].shape[0]
+            plan_steps = episode["pwm_targets"].shape[1]
+            fills = {"proprio": (T, 10), "eef_pos_chunk": (T, plan_steps, 3)}
+            for key in OPTIONAL_KEYS:
+                if key in data:
+                    episode[key] = torch.as_tensor(data[key], dtype=torch.float32)
+                else:
+                    episode[key] = torch.zeros(fills[key], dtype=torch.float32)
         return episode
 
 
@@ -182,6 +200,26 @@ def make_synthetic_episode(
     # (mimicking flaky small-object confidence on a real detector).
     box_weights = rng.uniform(0.75, 0.95, size=(T, 2)).astype(np.float32)
 
+    # v6 proprio: a smooth synthetic EEF trajectory whose per-step deltas are
+    # loosely the servo trajectory's translation dims (mimics a wrist tracking
+    # the commanded motion); quat ~ identity + noise; gripper follows servo 7.
+    eef_traj = 0.4 + 0.05 * np.cumsum(servo_traj[:, :3], axis=0) / max(T, 1)
+    quat = np.tile(np.array([0.0, 0.0, 0.0, 1.0]), (T, 1))
+    quat += rng.normal(0.0, 0.02, size=(T, 4))
+    grip_q = 0.5 + 0.5 * servo_traj[:T, -1:]  # [T, 1] in [0, 1] (already scaled O(1))
+    proprio = np.concatenate(
+        [eef_traj[:T], quat, np.repeat(grip_q, 2, axis=1),
+         np.ones((T, 1))],  # valid = 1
+        axis=1,
+    ).astype(np.float32)
+    eef_pos_chunk = np.stack(
+        [np.concatenate([eef_traj[i + 1 : i + 1 + cfg.plan_steps],
+                         np.repeat(eef_traj[-1:], max(0, (i + 1 + cfg.plan_steps) - traj_len), axis=0)])
+         [: cfg.plan_steps]
+         for i in range(T)],
+        axis=0,
+    ).astype(np.float32)
+
     return {
         "frame_embs": frame_embs,
         "source_box_embs": source_box_embs,
@@ -191,6 +229,8 @@ def make_synthetic_episode(
         "box_weights": box_weights,
         "text_tokens": text_tokens,
         "pwm_targets": pwm_targets,
+        "proprio": proprio,
+        "eef_pos_chunk": eef_pos_chunk,
     }
 
 

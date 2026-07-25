@@ -49,7 +49,7 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
-from train.dataset import EPISODE_KEYS, EpisodeDataset
+from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import planner_bc_loss, smoothness_loss, split_planner_loss, total_planner_loss
 from train.train_full import _scheduled_horizon, _tagged_name, save
 from train.train_planner import resolve_device
@@ -136,8 +136,9 @@ def preload_buckets(data_dirs, val_frac, seed, device):
             ep = sets[i][j]
             by_T[ep["frame_embs"].shape[0]].append(ep)
         buckets = {}
+        all_keys = EPISODE_KEYS + OPTIONAL_KEYS  # optional keys are zero-filled by the dataset
         for T, eps in by_T.items():
-            buckets[T] = {k: torch.stack([e[k] for e in eps]).to(device) for k in EPISODE_KEYS}
+            buckets[T] = {k: torch.stack([e[k] for e in eps]).to(device) for k in all_keys}
         out[name] = buckets
     return out["train"], out["val"]
 
@@ -361,9 +362,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
                         fused_t, delta_t = fused_all[t], delta_all[t]
                     next_emb, next_box = trm(fused_t, delta_t, cur, return_box=True)
                 geom = torch.cat([sc, tc, bw], dim=-1)              # [B, 6]
+                # v6: arm state at t — fresh even on dream steps (encoders are
+                # fast at deployment; only the camera is slow).
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                      fused=fused_t, pred_box_emb=next_box,
-                                     geometry=geom, return_aux=True)
+                                     geometry=geom, proprio=batch["proprio"][:, t],
+                                     return_aux=True)
                 preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]

@@ -61,10 +61,14 @@ def main(argv=None) -> None:
             obs = env.set_init_state(inits[0])
         policy.reset(task.language)
 
+        from microvla.utils.proprio import proprio_from_obs
+
         agent_frames, wrist_frames, actions, trusts = [], [], [], []
         for step in range(args.max_steps):
             wrist = np.asarray(obs["robot0_eye_in_hand_image"])
-            action = np.asarray(policy.act(wrist), dtype=np.float32)
+            action = np.asarray(
+                policy.act(wrist, proprio=proprio_from_obs(obs)), dtype=np.float32
+            )
             agent_frames.append(np.asarray(obs["agentview_image"]))
             wrist_frames.append(wrist)
             actions.append(action)

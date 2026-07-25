@@ -475,9 +475,12 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
                     geom = torch.cat([episode["source_centers"][t],
                                       episode["target_centers"][t],
                                       episode["box_weights"][t]]).unsqueeze(0)  # [1, 6]
+                proprio = episode.get("proprio")
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
                                      fused=fused_all[t], pred_box_emb=next_box,
-                                     geometry=geom, return_aux=True)
+                                     geometry=geom,
+                                     proprio=proprio[t].unsqueeze(0) if proprio is not None else None,
+                                     return_aux=True)
                 preds.append(plan.squeeze(0)); grips.append(grip.squeeze(0))
             preds = torch.stack(preds, 0)               # [T, 5, 7]
             grips = torch.stack(grips, 0)               # [T, 5]

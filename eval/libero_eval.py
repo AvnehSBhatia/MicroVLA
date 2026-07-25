@@ -252,11 +252,14 @@ def _run_real_trial(
             obs = env.set_init_state(init_state)
         policy.reset(task.instruction)
 
+        from microvla.utils.proprio import proprio_from_obs
+
         telemetry: list[dict] = []
         success = False
         for step in range(max_steps):
             frame = obs[camera]
-            action = policy.act(frame)
+            # v6: arm state every step (None on envs that don't expose it).
+            action = policy.act(frame, proprio=proprio_from_obs(obs))
             obs, _reward, done, info = env.step(action)
             step_telemetry = policy.telemetry[-1] if policy.telemetry else {}
             telemetry.append({"step": step, **step_telemetry})

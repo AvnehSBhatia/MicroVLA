@@ -167,6 +167,9 @@ class JEPALoop:
         # object exactly at approach/grasp, when geometry matters most.
         self._held_boxes: list[Optional[BoxObs]] = [None, None]
         self._miss_age: list[int] = [0, 0]
+        # v6: last supplied proprio [1, 10] — encoders are fast on a real
+        # robot, so callers pass it EVERY tick; held if a tick omits it.
+        self._last_proprio: Optional[torch.Tensor] = None
         # Rolling window of the latents that drove recent ticks (oldest ->
         # newest), handed to the TRM as its context window each call.
         self._latent_ctx: deque[torch.Tensor] = deque(maxlen=cfg.context_window)
@@ -214,14 +217,19 @@ class JEPALoop:
         self._last_action = None
         self._held_boxes = [None, None]
         self._miss_age = [0, 0]
+        self._last_proprio = None
         self._latent_ctx.clear()
 
-    def tick(self, frame_bgr=None) -> TickResult:
+    def tick(self, frame_bgr=None, proprio=None) -> TickResult:
         """Advances the loop by one 30 Hz tick.
 
         Args:
             frame_bgr: ``np.ndarray`` HxWx3 uint8 BGR frame for a REAL tick,
                 or ``None`` for a DREAM tick.
+            proprio: Optional ``[10]`` arm-state vector (see
+                ``microvla/utils/proprio.py``) — pass it EVERY tick when
+                available (robot encoders are fast; only the camera is slow).
+                ``None`` holds the last supplied value (zeros before any).
 
         Returns:
             A ``TickResult`` with unbatched tensors.
@@ -243,6 +251,18 @@ class JEPALoop:
         with torch.no_grad():
             text_tokens = self._task.tokens().unsqueeze(0)  # [1, 3, text_dim]
             is_real = frame_bgr is not None
+
+            # v6 proprio: fresh if supplied this tick, else held; zeros (valid
+            # flag 0) before any has ever been supplied.
+            if proprio is not None:
+                self._last_proprio = torch.as_tensor(
+                    proprio, dtype=torch.float32
+                ).reshape(1, -1)
+            proprio_tok = (
+                self._last_proprio
+                if self._last_proprio is not None
+                else torch.zeros(1, 10)
+            )
 
             last_action = (
                 self._last_action.unsqueeze(0)
@@ -375,8 +395,8 @@ class JEPALoop:
 
             raw_plan = self.planner(next_emb, current_emb=latent.unsqueeze(0),
                                     state_delta=state_delta, fused=fused,
-                                    pred_box_emb=next_box,
-                                    geometry=geom).squeeze(0)  # [plan_steps, num_servos]
+                                    pred_box_emb=next_box, geometry=geom,
+                                    proprio=proprio_tok).squeeze(0)  # [plan_steps, num_servos]
 
             # Trust semantics depend on the ACTION SPACE (v5):
             #   * "delta" (LIBERO/Bridge EEF deltas): zero IS "no motion", so

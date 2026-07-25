@@ -14,7 +14,7 @@ from preprocess.shard_pipeline import (
     dir_size_gb,
     run_shards,
 )
-from train.dataset import EPISODE_KEYS, EpisodeDataset
+from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 
 CFG = DEFAULT_CONFIG
 
@@ -86,7 +86,7 @@ class TestRunShards:
         ds = EpisodeDataset(out)
         for i in range(len(ds)):
             item = ds[i]
-            assert set(item) == set(EPISODE_KEYS)
+            assert set(item) == set(EPISODE_KEYS) | set(OPTIONAL_KEYS)
             assert float(item["pwm_targets"].abs().max()) <= 1.0
 
     def test_budget_violation_stops_pipeline(self, tmp_path, monkeypatch):

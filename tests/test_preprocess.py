@@ -19,7 +19,7 @@ from preprocess.common import (
 )
 from preprocess.libero import instruction_from_filename
 from preprocess.teacher import CachedTeacher, MockTeacher, build_teacher
-from train.dataset import EPISODE_KEYS, EpisodeDataset
+from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 
 CFG = DEFAULT_CONFIG
 
@@ -119,7 +119,7 @@ class TestRunConversion:
         # The output must be loadable by the training dataset as-is.
         ds = EpisodeDataset(out)
         item = ds[0]
-        assert set(item) == set(EPISODE_KEYS)
+        assert set(item) == set(EPISODE_KEYS) | set(OPTIONAL_KEYS)
         assert isinstance(item["pwm_targets"], torch.Tensor)
 
     def test_limit(self, tmp_path):
