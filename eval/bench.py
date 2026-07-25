@@ -83,14 +83,19 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
                 proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
                 return_aux=True,
             )
-            emitted.append(plan[0, 0].numpy())
-            demo.append(pwm[i, 0].numpy())
+            emitted.append(plan[0, 0].cpu().numpy())
+            demo.append(pwm[i, 0].cpu().numpy())
             grip_hits.append(float((grip_logit[0, 0] > 0) == (pwm[i, 0, -1] > 0)))
 
         # World-model margin: H-step open-loop rollout vs persistence, a few
-        # anchors per episode (matches the training objective's data-rate form).
+        # anchors per episode — TRAINING-PROTOCOL-MATCHED (the predicted latent
+        # feeds back through fusion with held boxes at staleness-faded weight,
+        # exactly like train_batched.rollout / the deployment dream path).
+        # Holding fused frozen at the anchor (the old bench) is a harsher
+        # protocol than anything the model was trained or deployed under.
         H = min(horizon, T - 1)
         if H >= 1:
+            text = ep["text_tokens"].unsqueeze(0)
             for t0 in range(0, T - H, max(1, (T - H) // 3)):
                 latent = frames[t0].unsqueeze(0)
                 fused_k, delta_k = fused_all[t0], delta_all[t0]
@@ -102,8 +107,21 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
                     pers_loss += float(spec_loss(frames[t0].unsqueeze(0),
                                                  frames[t0 + k].unsqueeze(0)))
                     n_wm += 1
+                    if k == H:
+                        break
                     latent = standardize(pred)
                     ctx.append(latent.squeeze(0))
+                    fade = cfg.staleness_decay ** k
+                    act_idx = min(t0 + k, T - 1)
+                    fused_k = fusion(
+                        text, latent,
+                        ep["source_box_embs"][t0].unsqueeze(0),
+                        ep["target_box_embs"][t0].unsqueeze(0),
+                        ep["source_centers"][t0].unsqueeze(0),
+                        ep["target_centers"][t0].unsqueeze(0),
+                        box_weight=ep["box_weights"][t0].unsqueeze(0) * fade,
+                        last_action=pwm[act_idx, 0].unsqueeze(0),
+                    )
 
     E, D = np.stack(emitted), np.stack(demo)
     pose_e, pose_d = E[:, :-1], D[:, :-1]
@@ -187,9 +205,13 @@ def main(argv=None) -> None:
     ap.add_argument("--sensitivity", action="store_true",
                     help="also report on-distribution planner input sensitivity "
                          "(mean |dPlan| per withheld input) over the benched episodes")
+    ap.add_argument("--device", default="cpu",
+                    help="cpu (default) or cuda:0 — the d=1024 TRM dominates cost; "
+                         "GPU cuts a contended-CPU 75s/eval to ~1s")
     ap.add_argument("--out", default="eval_results/bench.json")
     args = ap.parse_args(argv)
 
+    dev = torch.device(args.device)
     torch.set_num_threads(max(1, torch.get_num_threads()))
     cfg = DEFAULT_CONFIG
     mods = {
@@ -219,7 +241,7 @@ def main(argv=None) -> None:
         from microvla.trm.mock_trm import MockTRM
         mods["trm"] = MockTRM(cfg)
     for m in mods.values():
-        m.eval()
+        m.to(dev).eval()
 
     # Episodes: real npz dirs, else synthetic.
     eps: list[tuple[str, dict]] = []
@@ -231,13 +253,14 @@ def main(argv=None) -> None:
             for k in range(len(ds)):
                 if len(eps) >= args.episodes:
                     break
-                eps.append((ds.files[k].name, ds[k]))
+                item = {kk: vv.to(dev) for kk, vv in ds[k].items() if kk != "wrist_frames"}
+                eps.append((ds.files[k].name, item))
     n_syn = args.synthetic if args.synthetic else (args.episodes if not eps else 0)
     if n_syn:
         from train.dataset import make_synthetic_episode
 
         for s in range(n_syn):
-            ep = {k: torch.as_tensor(v, dtype=torch.float32)
+            ep = {k: torch.as_tensor(v, dtype=torch.float32).to(dev)
                   for k, v in make_synthetic_episode(14, cfg, seed=s).items()}
             eps.append((f"synthetic_{s}", ep))
     eps = eps[: args.episodes]
