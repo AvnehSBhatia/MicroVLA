@@ -429,3 +429,50 @@ Python ≥ 3.10, PyTorch only, type hints, Google docstrings; lazy heavy imports
 `ultralytics`, `torchvision`) so `import microvla` needs only torch+numpy; every nn.Module
 takes `cfg: MicroVLAConfig` first; no global seeding in library code; subpackage `__init__`s
 re-export their public classes.
+
+## v7 plan — trainable spatial perception + teacher distillation (BINDING once built)
+
+Motivation (evidence chain in paper.md "Action-interface diagnosis"): the policy's
+~8x action-magnitude collapse survived symmetric actions, direct geometry, and
+dream-consistent training — the observation itself is the ceiling. GAP destroys
+spatial structure; frozen detector features were trained for detection, not
+manipulation; 50-demo human teleop is a noisy BC target. v7 attacks all three.
+
+1. **One re-bake pass per suite** (download -> convert -> delete, BudgetGuard):
+   npz gains `wrist_frames [T, 128, 128, 3] uint8` (compressed; ~1-1.5 GB across
+   LIBERO — inside the 10 GB cap). Frames make perception TRAINABLE forever after
+   (no more re-downloads). Converter output must be re-normalized symmetric
+   (`preprocess/renorm_symmetric.py`, idempotent) until the converter bakes
+   symmetric stats natively. `wrist_frames` is NOT in EPISODE_KEYS/OPTIONAL_KEYS
+   (too big to zero-fill); the v7 trainer loads it explicitly.
+2. **Text-Queried Spatial Adapter (TQSA)** — `microvla/perception/spatial_adapter.py`,
+   trainable (~0.3M), on the FROZEN YOLO-World backbone's hooked SPPF map:
+   1x1 conv 512->128, per-role text projections (command/source/target CLIP embs),
+   attention maps = softmax_HW(text_j . feat_hw / sqrt(128)) — the task-conditioned
+   "CLIP attention maps" — plus attention-pooled role vectors [3, 128] and a 4x4
+   spatial-token grid [16, 128]. Fusion consumes the pooled role vectors (one new
+   token); the planner cross-attends the spatial tokens + downsampled heatmaps.
+   The frozen detector KEEPS doing boxes (open-vocab grounding, miss-hold, role
+   prompts — unchanged). Full-backbone fine-tune deliberately NOT default (6k
+   episodes would destroy open-vocab grounding); an opt-in partial-unfreeze flag
+   may be added for the ablation.
+3. **Teacher distillation as the primary Stage-B signal**: converter's existing
+   `--teacher tinyvla` path relabels action chunks at bake time (teacher sees the
+   raw frames + instruction; cache per episode id). Student loss = distill MSE/BCE
+   on teacher chunks + demo-BC auxiliary. TinyVLA first (small footprint, scaffold
+   exists); pi0-family LIBERO-finetuned checkpoints are the stretch teacher
+   (stronger, but ~7 GB transient weights against the 10 GB cap).
+4. **Waypoint-absolute action head** (uses baked `eef_pos_chunk` + `proprio`):
+   stage 1 predicts DISPLACEMENTS to the next `plan_steps` EEF waypoints from the
+   MEASURED current EEF pose at every replan — policy errors cannot integrate
+   (each tick re-anchors on ground truth), and position targets are far better
+   conditioned for MSE than per-step deltas. Execution: raw action = per-dim
+   fitted gain x displacement row 0 (gain fitted from demo (action, Δeef) pairs
+   at patch/bake time, stored beside norm stats).
+5. **Eval throughput** (SHIPPED): `--workers N` process-sharded tasks + policy-
+   camera-only rendering; N workers ~= N x wall-clock on the CPU-bound osmesa path.
+
+Build order: P1 re-bake (frames [+ teacher] + proprio + symmetric) -> P2 TQSA +
+planner/fusion/trainer wiring -> P3 stage A (unchanged objective) + stage B
+(distill + waypoint) -> P4 probe -> parallel eval. The world-model contract
+(TRM v4, JEPA loop v5.1) is unchanged by v7.
