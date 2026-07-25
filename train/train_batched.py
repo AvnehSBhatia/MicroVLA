@@ -164,18 +164,22 @@ def preload_buckets(data_dirs, val_frac, seed, device, load_frames: bool = False
 
     out = {}
     for name, idx in splits.items():
-        by_T = defaultdict(list)
+        # Bucket key = (T, has_frames): frameless (Bridge) and frame-carrying
+        # (v7 LIBERO) episodes of the SAME length must never share a bucket —
+        # otherwise one Bridge episode strips frames from the whole bucket and
+        # the TQSA silently trains on nothing (observed: 0/37 buckets).
+        by_key = defaultdict(list)
         for i, j in idx:
             ep = sets[i][j]
-            by_T[ep["frame_embs"].shape[0]].append(ep)
+            key = (ep["frame_embs"].shape[0], load_frames and "wrist_frames" in ep)
+            by_key[key].append(ep)
         buckets = {}
         all_keys = EPISODE_KEYS + OPTIONAL_KEYS  # optional keys are zero-filled by the dataset
-        for T, eps in by_T.items():
-            buckets[T] = {k: torch.stack([e[k] for e in eps]).to(device) for k in all_keys}
-            if load_frames and all("wrist_frames" in e for e in eps):
-                buckets[T]["wrist_frames"] = torch.stack(
-                    [e["wrist_frames"] for e in eps]
-                )  # uint8, CPU
+        for (T, has_frames), eps in by_key.items():
+            b = {k: torch.stack([e[k] for e in eps]).to(device) for k in all_keys}
+            if has_frames:
+                b["wrist_frames"] = torch.stack([e["wrist_frames"] for e in eps])  # uint8, CPU
+            buckets[(T, has_frames)] = b
         out[name] = buckets
     return out["train"], out["val"]
 
@@ -266,13 +270,14 @@ def persistence(batch, t, H, gamma) -> float:
 
 
 def iter_batches(buckets, H, batch_size, rng, need=1):
-    """Yields (T, batch) over length-buckets with T >= H+need, batched by size."""
+    """Yields (T, batch) over (T, has_frames)-buckets with T >= H+need."""
     order = list(buckets.keys())
     rng.shuffle(order)
-    for T in order:
+    for key in order:
+        T = key[0] if isinstance(key, tuple) else key
         if T < H + need:
             continue
-        b = buckets[T]
+        b = buckets[key]
         N = b["frame_embs"].shape[0]
         perm = list(range(N)); rng.shuffle(perm)
         for s in range(0, N, batch_size):
