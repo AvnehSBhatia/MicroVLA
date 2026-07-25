@@ -622,8 +622,9 @@ def _run_parallel(args: argparse.Namespace, tasks: list[_TaskSpec]) -> dict:
     the shape of an unexplainable 20-minute hang. ``ProcessPoolExecutor``
     raises ``BrokenProcessPool`` instead, in under a second.
 
-    Per-worker results are written the moment they arrive, so a stall in one
-    shard costs only that shard.
+    Each worker writes its OWN results/telemetry as it finishes, so a shard
+    that completed is never lost to a sibling's failure — ``_scavenge_worker_
+    results`` picks those up when the executor breaks.
     """
     import concurrent.futures as cf
     import multiprocessing as mp
