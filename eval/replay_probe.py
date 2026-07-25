@@ -71,6 +71,23 @@ def main(argv=None) -> None:
     text = t("text_tokens").unsqueeze(0)  # [1, 3, 512]
     pwm = t("pwm_targets")              # [T, 5, 7]
 
+    # --- v6 self-description: say EXACTLY what this measurement contains ----
+    has_proprio = "proprio" in ep.files
+    ckpt_v6 = "planner" in state and "proprio_proj.weight" in state["planner"]
+    print("\n--- probe configuration ---")
+    if has_proprio:
+        valid = float(np.asarray(ep["proprio"])[:, -1].mean())
+        print(f"  episode proprio: PRESENT (valid flag mean {valid:.2f})")
+    else:
+        print("  episode proprio: ABSENT — this npz was NOT patched "
+              "(preprocess/patch_proprio.py); planner gets proprio=None")
+    print(f"  checkpoint planner proprio weights: "
+          f"{'TRAINED (v6 checkpoint)' if ckpt_v6 else 'MISSING — pre-v6 checkpoint, proprio head at RANDOM INIT'}")
+    if not (has_proprio and ckpt_v6):
+        print("  !! PROPRIO PATH INACTIVE IN THIS MEASUREMENT — the table below "
+              "does NOT test the v6 fix. Patch this episode and/or retrain "
+              "stage B first.")
+
     names = ["dx", "dy", "dz", "d_roll", "d_pitch", "d_yaw", "grip"]
     emitted, demo = [], []
     with torch.no_grad():
