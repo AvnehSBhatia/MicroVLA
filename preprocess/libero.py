@@ -171,14 +171,23 @@ def main(argv: list[str] | None = None) -> None:
                              "they make the TQSA/perception trainable)")
     parser.add_argument("--teacher", choices=["mock", "tinyvla"], default=None,
                         help="relabel actions with a distillation teacher")
-    parser.add_argument("--teacher-checkpoint", default=None)
+    parser.add_argument("--teacher-checkpoint", default=None,
+                        help="TRAINED TinyVLA output dir (after scripts/process_ckpts.sh) — "
+                             "NOT the HF Llava-Pythia base VLM")
+    parser.add_argument("--teacher-base", default=None,
+                        help="base VLM dir/HF id the VLA was trained from (e.g. a local "
+                             "clone of lesjie/Llava-Pythia-400M); required for LoRA ckpts")
+    parser.add_argument("--teacher-stats", default=None,
+                        help="dataset_stats.pkl used to denormalize teacher actions "
+                             "(defaults to <checkpoint>/dataset_stats.pkl)")
     parser.add_argument("--teacher-repo", default=None)
     parser.add_argument("--teacher-cache", default=None)
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     teacher = build_teacher(args.teacher, args.teacher_checkpoint, args.teacher_repo,
-                            args.teacher_cache, device=args.device)
+                            args.teacher_cache, device=args.device,
+                            model_base=args.teacher_base, stats_path=args.teacher_stats)
     run_conversion(
         lambda: iter_libero_episodes(args.root, camera=args.camera, rotate_180=args.rotate),
         args.out,

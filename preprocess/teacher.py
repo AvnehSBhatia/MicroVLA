@@ -47,12 +47,16 @@ class TeacherPolicy(abc.ABC):
     chunk_len: int = 5
 
     @abc.abstractmethod
-    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str) -> np.ndarray:
+    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str,
+                      state: np.ndarray | None = None) -> np.ndarray:
         """Predicts one action chunk from a single observation.
 
         Args:
             frame_rgb: ``[H, W, 3]`` uint8 RGB frame.
             instruction: Natural-language task string.
+            state: Optional robot state vector for state-conditioned teachers
+                (v7: the converter passes per-frame ``proprio_raw`` when the
+                dataset carries it; mock ignores it).
 
         Returns:
             ``[chunk_len, 7]`` float32 action chunk in the DATASET's raw
@@ -77,9 +81,12 @@ class TeacherPolicy(abc.ABC):
         """
         T = len(episode.frames)
         out = np.zeros((T, 7), dtype=np.float32)
+        proprio = getattr(episode, "proprio_raw", None)
         for start in range(0, T, self.chunk_len):
+            state = proprio[start] if proprio is not None and start < len(proprio) else None
             chunk = np.asarray(
-                self.predict_chunk(np.ascontiguousarray(episode.frames[start]), episode.instruction),
+                self.predict_chunk(np.ascontiguousarray(episode.frames[start]),
+                                   episode.instruction, state=state),
                 dtype=np.float32,
             )
             end = min(start + self.chunk_len, T)
@@ -100,8 +107,9 @@ class CachedTeacher(TeacherPolicy):
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str) -> np.ndarray:
-        return self.inner.predict_chunk(frame_rgb, instruction)
+    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str,
+                      state: np.ndarray | None = None) -> np.ndarray:
+        return self.inner.predict_chunk(frame_rgb, instruction, state=state)
 
     def relabel(self, episode: SourceEpisode) -> np.ndarray:
         path = self.cache_dir / f"{episode.episode_id}.npy"
@@ -122,7 +130,8 @@ class MockTeacher(TeacherPolicy):
     def __init__(self, chunk_len: int = 5) -> None:
         self.chunk_len = chunk_len
 
-    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str) -> np.ndarray:
+    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str,
+                      state: np.ndarray | None = None) -> np.ndarray:
         digest = hashlib.sha256(
             np.ascontiguousarray(frame_rgb).tobytes() + instruction.encode("utf-8")
         ).digest()
@@ -163,58 +172,127 @@ class TinyVLATeacher(TeacherPolicy):
     """
 
     def __init__(self, checkpoint: str | Path, repo_path: str | Path,
-                 device: str = "cpu", chunk_len: int = 8) -> None:
+                 device: str = "cpu", chunk_len: int = 8,
+                 model_base: str | None = None, stats_path: str | None = None) -> None:
         import sys
 
         self.chunk_len = chunk_len
         self.device = device
+        self.model_base = model_base
+        self.stats_path = stats_path
         repo = Path(repo_path)
         if not repo.exists():
             raise FileNotFoundError(
-                f"TinyVLA repo not found at {repo}. Clone it from "
-                "https://tiny-vla.github.io/ (linked GitHub) first — nothing is "
+                f"TinyVLA repo not found at {repo}. Clone "
+                "https://github.com/liyaxuanliyaxuan/TinyVLA first — nothing is "
                 "downloaded automatically."
             )
         sys.path.insert(0, str(repo))
         try:
-            # TinyVLA's public repo exposes policy construction + a
-            # per-observation inference call; the exact entrypoints have moved
-            # between releases, so resolve them at runtime and fail with a
-            # actionable message rather than pinning a fragile import.
             import torch  # noqa: F401
 
             self._policy = self._load_policy(Path(checkpoint))
         except ImportError as err:  # pragma: no cover - depends on user env
             raise ImportError(
-                "TinyVLA imports failed. Install the TinyVLA repo's "
-                f"requirements in this environment. Original error: {err}"
+                "TinyVLA imports failed. Install the repo's requirements plus "
+                "`pip install -e policy_heads` and `pip install -e llava-pythia` "
+                f"from the TinyVLA checkout. Original error: {err}"
             ) from err
 
     def _load_policy(self, checkpoint: Path):  # pragma: no cover - needs weights
         """Loads the TinyVLA policy; adjust here if their API differs.
 
-        This is the single integration point with the TinyVLA codebase. It
-        expects the repo to provide a policy object with an
-        ``inference/predict``-style method taking (image, instruction) and
-        returning an action chunk; consult their ``eval_*`` scripts for the
-        exact call in your checkout and adapt THIS method only.
+        Wired against ``eval_real_franka.py`` of
+        github.com/liyaxuanliyaxuan/TinyVLA (checked 2026-07): loads via
+        ``llava_pythia.model.builder.load_pretrained_model(model_path,
+        model_base, model_name)``, prompts through the ``pythia`` conv
+        template with an image token, and calls ``policy(**batch, eval=True)``
+        -> ``[B, chunk_size, action_dim]``. NOTE: ``checkpoint`` must be a
+        TRAINED VLA directory (their training output after
+        ``scripts/process_ckpts.sh``); the HuggingFace Llava-Pythia models are
+        BASE VLMs (pass one as ``--teacher-base``) and have no action head.
         """
-        raise NotImplementedError(
-            "Wire your TinyVLA checkout here: load the policy from "
-            f"{checkpoint} following the repo's eval script, and implement "
-            "predict_chunk() against it. This adapter deliberately ships as "
-            "a documented integration point because TinyVLA's API surface "
-            "varies between releases — everything downstream (caching, "
-            "relabeling, chunking, normalization) is already wired."
-        )
+        import pickle
 
-    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str) -> np.ndarray:  # pragma: no cover
-        chunk = self._policy.predict(frame_rgb, instruction)
-        return np.asarray(chunk, dtype=np.float32)[: self.chunk_len]
+        from llava_pythia.mm_utils import get_model_name_from_path
+        from llava_pythia.model.builder import load_pretrained_model
+
+        model_path = str(checkpoint)
+        model_name = get_model_name_from_path(model_path)
+        self._tokenizer, self._model, self._image_processor, _ctx = load_pretrained_model(
+            model_path, self.model_base, model_name, False, False
+        )
+        self._model.to(self.device).eval()
+        self._stats = None
+        stats = self.stats_path or str(Path(model_path) / "dataset_stats.pkl")
+        if Path(stats).exists():
+            with open(stats, "rb") as f:
+                self._stats = pickle.load(f)
+        else:  # pragma: no cover - depends on checkpoint layout
+            logger.warning("TinyVLA stats pickle not found (%s): emitting the "
+                           "policy's normalized actions UN-denormalized — pass "
+                           "--teacher-stats.", stats)
+        return self._model
+
+    def predict_chunk(self, frame_rgb: np.ndarray, instruction: str,
+                      state: np.ndarray | None = None) -> np.ndarray:  # pragma: no cover
+        """One TinyVLA query following their eval script's batch construction."""
+        import torch
+        from llava_pythia.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
+        from llava_pythia.conversation import conv_templates
+        from llava_pythia.mm_utils import tokenizer_image_token
+        from PIL import Image
+
+        conv = conv_templates["pythia"].copy()
+        conv.append_message(conv.roles[0], DEFAULT_IMAGE_TOKEN + "\n" + instruction)
+        conv.append_message(conv.roles[1], None)
+        prompt = conv.get_prompt()
+        input_ids = tokenizer_image_token(
+            prompt, self._tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+        ).unsqueeze(0).to(self.device)
+
+        img = Image.fromarray(np.ascontiguousarray(frame_rgb))
+        px = self._image_processor.preprocess(img, return_tensors="pt")["pixel_values"]
+        px = px.to(self.device, dtype=self._model.dtype)
+        states = torch.zeros(1, getattr(self._model.config, "state_dim", 7),
+                             device=self.device, dtype=self._model.dtype)
+        if state is not None:
+            s = torch.as_tensor(np.asarray(state, dtype=np.float32),
+                                device=self.device).reshape(1, -1)
+            n = min(s.shape[1], states.shape[1])
+            states[:, :n] = s[:, :n].to(self._model.dtype)
+
+        with torch.inference_mode():
+            actions = self._model(
+                input_ids=input_ids,
+                attention_mask=torch.ones_like(input_ids),
+                images=px, images_r=px,  # single wrist cam: duplicate views
+                states=states, eval=True,
+            )
+        a = actions[0].float().cpu().numpy()          # [chunk_size, action_dim]
+
+        if self._stats is not None:
+            st = self._stats
+            if "action_max" in st:      # diffusion head convention
+                a = ((a + 1.0) / 2.0) * (np.asarray(st["action_max"]) - np.asarray(st["action_min"])) \
+                    + np.asarray(st["action_min"])
+            elif "action_std" in st:    # act head convention
+                a = a * np.asarray(st["action_std"]) + np.asarray(st["action_mean"])
+        if a.shape[-1] > 7:
+            # Franka convention (xyz + 6D rot + grip) -> (xyz, rpy, grip).
+            import torch_utils as TorchUtils
+
+            rot = TorchUtils.rot_6d_to_euler_angles(
+                torch.as_tensor(a[:, 3:9], dtype=torch.float32)
+            ).numpy()
+            a = np.concatenate([a[:, :3], rot, a[:, -1:]], axis=-1)
+        return np.asarray(a, dtype=np.float32)[: self.chunk_len]
 
 
 def build_teacher(name: str | None, checkpoint: str | None, repo: str | None,
-                  cache: str | None, device: str = "cpu") -> TeacherPolicy | None:
+                  cache: str | None, device: str = "cpu",
+                  model_base: str | None = None,
+                  stats_path: str | None = None) -> TeacherPolicy | None:
     """CLI helper: builds (and optionally caches) the requested teacher.
 
     Args:
@@ -234,7 +312,8 @@ def build_teacher(name: str | None, checkpoint: str | None, repo: str | None,
     elif name == "tinyvla":
         if not checkpoint or not repo:
             raise ValueError("--teacher tinyvla requires --teacher-checkpoint and --teacher-repo")
-        teacher = TinyVLATeacher(checkpoint, repo, device=device)
+        teacher = TinyVLATeacher(checkpoint, repo, device=device,
+                                 model_base=model_base, stats_path=stats_path)
     else:
         raise ValueError(f"unknown teacher {name!r} (expected 'mock' or 'tinyvla')")
     return CachedTeacher(teacher, cache) if cache else teacher
