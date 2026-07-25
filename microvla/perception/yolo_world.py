@@ -352,9 +352,10 @@ class YoloWorldPerception:
             ``[1, vis_dim, Hf, Wf]`` float32 CPU tensor, or ``None`` if no
             frame has been perceived yet. Consumed by the trainable TQSA
             (v7, ``microvla/perception/spatial_adapter.py``); the map itself
-            stays frozen — only the adapter on top of it trains.
+            stays frozen — only the adapter on top of it trains. Cloned out of
+            ultralytics' inference_mode so it is autograd-safe.
         """
-        return self._feat.float().cpu() if self._feat is not None else None
+        return self._feat.float().cpu().clone() if self._feat is not None else None
 
     def feature_maps(self, frames_bgr: list) -> torch.Tensor:
         """Batched SPPF maps for TRAINING the TQSA (frozen backbone forward).
@@ -387,7 +388,11 @@ class YoloWorldPerception:
                                conf=self.det_conf, half=False, verbose=False)
             if self._feat is None:
                 raise RuntimeError("SPPF hook captured no feature map (batched).")
-            return self._feat.float()
+            # ultralytics runs predict under torch.inference_mode(), so the
+            # hooked map is an INFERENCE tensor — autograd refuses to save it
+            # for backward when the (trainable) TQSA consumes it. clone()
+            # outside inference mode yields a normal constant tensor.
+            return self._feat.float().clone()
 
     def _map_box_to_feature(
         self,
