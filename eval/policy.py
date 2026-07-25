@@ -321,16 +321,25 @@ class MicroVLAPolicy:
             if "tqsa" in state:
                 _load_relaxed(tqsa, state["tqsa"], "tqsa")
             else:
+                # A random-init adapter is WORSE than no adapter: the planner
+                # would take 22 of its ~82 memory tokens from untrained
+                # perception, and a planner trained without spatial has never
+                # seen that input at all (its spat/heat projections are also at
+                # init). Disable it and let the planner run the way it trained.
+                tqsa = None
                 logger.warning(
-                    "checkpoint has no TQSA weights (pre-v7) — spatial adapter "
-                    "runs at RANDOM INIT; retrain stage B to populate."
+                    "MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, "
+                    "or stage B trained without --tqsa) — running WITHOUT the "
+                    "spatial adapter rather than feeding the planner a "
+                    "random-init one. Retrain stage B with --tqsa to use it."
                 )
 
         fusion.to(heads_device).eval()
         drift.to(heads_device).eval()
         trm.to(heads_device).eval()
         planner.to(heads_device).eval()
-        tqsa.to(heads_device).eval()
+        if tqsa is not None:
+            tqsa.to(heads_device).eval()
 
         if perception is None or task_encoder is None:
             real_perception, real_task_encoder = _build_real_perception(device)

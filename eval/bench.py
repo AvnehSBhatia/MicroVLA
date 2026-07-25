@@ -46,6 +46,20 @@ from microvla.utils.embedding import standardize
 from microvla.utils.waypoint import waypoint_targets
 
 
+def _spatial_at(ep: dict, i: int, mods: dict) -> dict | None:
+    """TQSA output for step ``i``, or None when the bench runs spatial-free.
+
+    Mirrors the deployment path (``JEPALoop``): frozen backbone map -> trainable
+    adapter, conditioned on the episode's text tokens.
+    """
+    tqsa, backbone = mods.get("tqsa"), mods.get("backbone")
+    if tqsa is None or backbone is None or "wrist_frames" not in ep:
+        return None
+    frame = ep["wrist_frames"][i].cpu().numpy()          # [H, W, 3] RGB uint8
+    fmap = backbone.feature_maps([frame[..., ::-1]]).to(ep["frame_embs"].device)
+    return tqsa(fmap, ep["text_tokens"].unsqueeze(0))
+
+
 def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) -> dict:
     """Replays one episode through the stage-B forward; returns its scorecard."""
     from TRM import spec_loss
@@ -83,7 +97,7 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
                 next_emb, current_emb=cur, state_delta=delta, fused=fused,
                 pred_box_emb=next_box, geometry=geom,
                 proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
-                return_wp=True,
+                spatial=_spatial_at(ep, i, mods), return_wp=True,
             )
             emitted.append(plan[0, 0].cpu().numpy())
             demo.append(pwm[i, 0].cpu().numpy())
@@ -180,7 +194,7 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
     pwm = ep["pwm_targets"]
     deltas: dict[str, list[float]] = {k: [] for k in
         ("fused", "current_emb", "state_delta", "geometry", "proprio",
-         "pred_box_emb", "wm_msg", "next_emb->cur", "next_emb->stale")}
+         "pred_box_emb", "wm_msg", "spatial", "next_emb->cur", "next_emb->stale")}
     prev_next_emb = None
     with torch.no_grad():
         drift.reset()
@@ -201,10 +215,13 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
             prop = ep["proprio"][i].unsqueeze(0)
             kw = dict(current_emb=cur, state_delta=delta, fused=fused,
                       pred_box_emb=next_box, geometry=geom, proprio=prop,
-                      wm_msg=wm["msg"])
+                      wm_msg=wm["msg"], spatial=_spatial_at(ep, i, mods))
             base = planner(next_emb, **kw)
-            for name in ("fused", "current_emb", "state_delta", "geometry",
-                         "proprio", "pred_box_emb", "wm_msg"):
+            probes = ["fused", "current_emb", "state_delta", "geometry",
+                      "proprio", "pred_box_emb", "wm_msg"]
+            if kw["spatial"] is not None:
+                probes.append("spatial")
+            for name in probes:
                 alt = planner(next_emb, **{**kw, name: None})
                 deltas[name].append(float((alt - base).abs().mean()))
             alt = planner(cur, **kw)  # no-prediction: next_emb := current_emb
@@ -239,12 +256,19 @@ def main(argv=None) -> None:
     ap.add_argument("--device", default="cpu",
                     help="cpu (default) or cuda:0 — the d=1024 TRM dominates cost; "
                          "GPU cuts a contended-CPU 75s/eval to ~1s")
+    ap.add_argument("--tqsa", action="store_true",
+                    help="run the v7 spatial adapter, so a TQSA-trained checkpoint is "
+                         "scored with the observation it was TRAINED on (the planner takes "
+                         "~27%% of its memory tokens from it). Needs ultralytics and baked "
+                         "wrist_frames, and runs the frozen backbone once per step — far "
+                         "slower than the default wind-tunnel pass.")
     ap.add_argument("--out", default="eval_results/bench.json")
     args = ap.parse_args(argv)
 
     dev = torch.device(args.device)
     torch.set_num_threads(max(1, torch.get_num_threads()))
     cfg = DEFAULT_CONFIG
+    state: dict = {}
     mods = {
         "fusion": SlotResonanceFusion(cfg), "drift": AnchoredDriftEncoder(cfg),
         "planner": ChronoQueryPlanner(cfg),
@@ -271,8 +295,34 @@ def main(argv=None) -> None:
     if "trm" not in mods:  # checkpoint without trm key (shouldn't happen)
         from microvla.trm.mock_trm import MockTRM
         mods["trm"] = MockTRM(cfg)
-    for m in mods.values():
-        m.to(dev).eval()
+    # The planner takes 22 of its ~82 memory tokens from TQSA, and this bench
+    # never passed `spatial=` — so a TQSA-TRAINED checkpoint has been scored
+    # with a quarter of its observation withheld, sensitivity ranking included.
+    # Loud, because the affected numbers are already written down.
+    if args.tqsa:
+        from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
+        from microvla.perception.yolo_world import YoloWorldPerception
+
+        tqsa = TextQueriedSpatialAdapter(cfg)
+        if "tqsa" in state:
+            from eval.policy import _load_relaxed
+            _load_relaxed(tqsa, state["tqsa"], "tqsa")
+        else:
+            print("WARNING: --tqsa but this checkpoint has no TQSA weights — "
+                  "the adapter is at RANDOM INIT and these numbers are noise.")
+        mods["tqsa"] = tqsa
+        mods["backbone"] = YoloWorldPerception(device=str(dev))
+    elif "tqsa" in state:
+        print("NOTE: this checkpoint has TRAINED TQSA weights but bench is "
+              "running WITHOUT the spatial adapter — the planner is missing "
+              "~27% of its memory tokens, so these numbers UNDERSTATE it. "
+              "Pass --tqsa (needs ultralytics + baked wrist_frames) for the "
+              "honest figure; without it, only compare against other "
+              "no-spatial runs.")
+
+    for name, m in mods.items():
+        if name != "backbone":
+            m.to(dev).eval()
 
     # Episodes: real npz dirs, else synthetic.
     eps: list[tuple[str, dict]] = []
@@ -280,11 +330,16 @@ def main(argv=None) -> None:
         from train.dataset import EpisodeDataset
 
         for d in args.data_dir:
-            ds = EpisodeDataset(d)
+            ds = EpisodeDataset(d, load_frames=args.tqsa)
             for k in range(len(ds)):
                 if len(eps) >= args.episodes:
                     break
-                item = {kk: vv.to(dev) for kk, vv in ds[k].items() if kk != "wrist_frames"}
+                # Frames stay uint8 on CPU (the backbone takes numpy); every
+                # other key goes to the eval device.
+                item = {kk: (vv if kk == "wrist_frames" else vv.to(dev))
+                        for kk, vv in ds[k].items()}
+                if not args.tqsa:
+                    item.pop("wrist_frames", None)
                 eps.append((ds.files[k].name, item))
     n_syn = args.synthetic if args.synthetic else (args.episodes if not eps else 0)
     if n_syn:

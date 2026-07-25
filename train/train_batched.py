@@ -424,17 +424,20 @@ def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch
     """Runs the FROZEN backbone once over every framed timestep and caches it.
 
     The backbone never trains, so for a given (episode, timestep) its SPPF map
-    is byte-identical on every epoch — yet stage B was recomputing all of them
-    every epoch, at a 128->512 px upscale. That is the whole cost of ``--tqsa``
+    is the same on every epoch — yet stage B was recomputing all of them every
+    epoch, at a 128->512 px upscale. That is the whole cost of ``--tqsa``
     (measured: ~18 min/epoch vs seconds without it). One pass up front makes
-    every subsequent epoch nearly free, and the training signal is UNCHANGED:
-    the same maps, only computed once.
+    every subsequent epoch nearly free.
 
-    Cached on CPU in ``dtype`` (fp16 halves the footprint; the map immediately
-    feeds a 1x1 conv + GroupNorm in the adapter, so the precision loss is far
-    below the noise the adapter is trained through). Each timestep is moved to
-    the training device on demand — ~26 MB per (batch, timestep), not the whole
-    cache.
+    Not bit-identical, and the two sources of difference are both far below the
+    signal: the cache is stored in ``dtype`` (fp16 = ~2e-4 relative, straight
+    into the adapter's 1x1 conv + GroupNorm) and the maps are computed in
+    fixed-size chunks rather than in the epoch's shuffled batches (~1e-6 from
+    batch composition). fp32 buys bit-identity at 2x the RAM.
+
+    Each timestep is moved to the training device on demand — the fp16 slice is
+    ~26 MB per (batch, timestep) and lands as ~52 MB of fp32, so a T-step batch
+    holds ~0.7 GB of maps in the graph at batch 64.
 
     Args:
         buckets: ``dict[key] -> bucket dict`` from :func:`preload_buckets`;
@@ -466,6 +469,20 @@ def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch
             for s in range(0, N, batch_size):
                 chunk = frames[s:s + batch_size, t].numpy()
                 m = backbone.feature_maps([f[..., ::-1] for f in chunk])
+                # The SPPF hook keeps only the LAST forward's output. If the
+                # detector ever splits a list across several internal forwards,
+                # m would come back with batch 1 and the assignment below would
+                # BROADCAST one frame's features across the whole chunk — no
+                # exception, just silently wrong training data. The live path
+                # fails loudly on this (the adapter rejects the batch mismatch);
+                # only the precompute could swallow it.
+                if m.shape[0] != chunk.shape[0]:
+                    raise RuntimeError(
+                        f"backbone returned {m.shape[0]} maps for {chunk.shape[0]} "
+                        f"frames — the SPPF hook saw more than one forward per "
+                        f"call, so the cache cannot be trusted. Lower "
+                        f"--batch-size or use --no-cache-spatial."
+                    )
                 if maps is None:
                     if nbytes == 0:   # first map of the run: project the footprint
                         per = m[0].numel() * torch.empty((), dtype=dtype).element_size()
@@ -482,6 +499,12 @@ def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch
                           f"({rate:.0f}/s, ~{(total-done)/max(rate,1e-6):.0f}s left)",
                           flush=True)
         b["spatial_maps"] = maps
+        # The frames have served their only purpose. Dropping them frees ~1 GB
+        # and, more usefully, stops iter_batches gathering 40 MB of pixels into
+        # every batch that nothing reads any more. Safe: the (T, has_frames)
+        # bucket key was fixed at load time and _batch_spatial checks
+        # spatial_maps first.
+        del b["wrist_frames"]
         nbytes += maps.numel() * maps.element_size()
     print(f"[spatial cache] {label}: done in {time.time()-t0:.0f}s, "
           f"{nbytes/1024**3:.1f} GB resident ({str(dtype).split('.')[-1]})", flush=True)
@@ -634,9 +657,11 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             if unfreeze and T > 4:
                 # World-model auxiliary: one random 3-step rollout per batch so
                 # BC fine-tuning cannot erode frame prediction (bench verifies).
-                t0 = rng.randrange(0, T - 4)
+                # NB: not `t0` — that names the epoch timer this heartbeat and
+                # the epoch line both read.
+                t_aux = rng.randrange(0, T - 4)
                 loss = loss + args.wm_aux_weight * rollout(
-                    batch, t0, fused_all[t0], delta_all[t0], fusion, trm, cfg,
+                    batch, t_aux, fused_all[t_aux], delta_all[t_aux], fusion, trm, cfg,
                     3, args.gamma, args.ablate_grounding)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
@@ -747,11 +772,13 @@ def main(argv=None) -> None:
             print(f"TQSA stage B: {n_frames}/{len(train_b)} train buckets carry frames", flush=True)
             if args.cache_spatial:
                 nb = precompute_spatial_maps(train_b, backbone, args.batch_size, "train")
-                nb += precompute_spatial_maps(val_b, backbone, args.batch_size, "val")
+                if args.stage_b_patience > 0:   # val is only scored when it early-stops
+                    nb += precompute_spatial_maps(val_b, backbone, args.batch_size, "val")
                 if nb:
                     print(f"[spatial cache] {nb/1024**3:.1f} GB total — every epoch after "
-                          f"this one skips the backbone entirely. --no-cache-spatial "
-                          f"trades that RAM back for ~40x the compute.", flush=True)
+                          f"this one skips the backbone entirely (~{args.stage_b_epochs}x "
+                          f"less backbone compute over this run). --no-cache-spatial "
+                          f"trades the RAM back.", flush=True)
         stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 tqsa=tqsa, backbone=backbone)
     print("done.", flush=True)
