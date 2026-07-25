@@ -299,6 +299,51 @@ Same design as v1 (time-queried delta integration): `next_emb [B,512]` → 8 tok
 `d_plan*2`, residuals); per-step head `Linear(d_plan, num_servos)` predicts DELTAS;
 plan = `tanh(cumsum(deltas, dim=1))` → `[B, 5, 7]` in [-1, 1]. Params ≤ 2.5M (target ~1.6M).
 
+**Input gating (v7.2).** Which memory groups the planner builds is `cfg.planner_inputs`
+(subset of `ChronoQueryPlanner.INPUT_NAMES` = next_emb, current_emb, fused, state_delta,
+pred_box_emb, geometry, proprio, spatial, wm_msg; at least one required). A group not
+listed gets NO projection and its `forward` argument is silently IGNORED — so callers
+(loop, pipeline, trainers, bench, probes) always pass everything they have and ablating an
+input is a config change only. `type_emb` keeps all 11 rows at fixed indices so
+checkpoints stay loadable across different `planner_inputs`. Train an ablation with
+`train_batched.py --planner-drop geometry,pred_box_emb`; the choice is saved in the
+checkpoint's `cfg`, so eval/bench rebuild the matching planner automatically. The evidence
+for dropping one is `eval.bench --sensitivity` (on-distribution mean |Δplan| when the
+input is withheld) — read `next_emb->stale` (a full-magnitude wrong prediction) alongside
+`next_emb->cur` (which only zeroes the TRM's residual and so reads low by construction).
+
+**Waypoint-absolute actuation (v7.2, opt-in `cfg.waypoint_action`).** The magnitude lever.
+Every previous fix for the collapse (`std_ratio` 0.12 → 0.37, healthy ~1.0) attacked the
+INPUTS of the action regression; this attacks its OUTPUT. Extra head
+`wp_disp_head: Linear(d_plan, 3)` (771 params) on the same waypoint-conditioned features
+`h`, same `tanh(cumsum(·))` structure → `[B, 5, 3]` in [-1, 1] = metric EEF displacement
+from the CURRENT position in units of `cfg.waypoint_range` (0.15 m). Returned by
+`planner(..., return_wp=True)` and carried on `TickResult.waypoints`; `None` when the head
+is off, so every existing caller is unchanged.
+- **Supervision**: `microvla/utils/waypoint.py::waypoint_targets` — plan row `k` is
+  supervised against `(eef_pos_chunk[k+1] - eef_pos_chunk[0]) / waypoint_range`. The bake
+  carries `plan_steps` rows, so the LAST row has no target and is masked (4/5 rows, always
+  including row 0 — the only executed one). `train/losses.py::waypoint_loss` masks BOTH
+  that row and any sample whose proprio validity flag is 0 (a zero-filled episode would
+  otherwise teach "the arm never moves" — the exact collapse this head exists to fix).
+  Train with `train_batched.py --waypoint-weight 1.0`.
+- **Actuation** (`WaypointActuator`, eval-side because it needs raw action units): the
+  absolute target `eef_measured + disp[horizon]` is refreshed on REAL ticks and HELD across
+  the dream ticks between, and the command is `gain_scale · (target − eef_measured) / gain`
+  clipped to ±1. Holding it is the point: the command tracks the REMAINING positional
+  error, so a timid prediction makes the arm arrive late rather than never. It replaces
+  only the translation dims; orientation and the gripper still come from the plan, and the
+  delta-mode trust brake still scales the emitted command.
+- **`gain`** (metres of EEF travel per unit raw action per control step) is fitted from
+  data by `preprocess/fit_waypoint_gain.py` → `waypoint_stats.json`, and must be PAIRED
+  WITH ITS CHECKPOINT exactly like `norm_stats.json` (a gain fitted under a different
+  action normalization is meaningless). `eval.libero_eval --waypoint-stats <path>` turns
+  actuation on; without the file, or on a checkpoint with no head, or on a step with no
+  proprio, the plan drives all seven dims as before.
+- **Measurement**: `eval.bench` reports `wp_std_ratio` / `wp_mae_mm` — the head's own
+  fidelity in metres, needing neither normalizer nor gain. The lever only pays if
+  `wp_std_ratio` beats the action `std_ratio` on the same checkpoint.
+
 ### `microvla/jepa/corrector.py` — InnovationCorrector (NEW, no learned params)
 ```python
 class InnovationCorrector:
@@ -368,7 +413,19 @@ class JEPALoop:
     def build_real(cls, cfg=None, trm: TRMBase | None = None, device: str = "cpu") -> "JEPALoop": ...
         # build_real: YoloWorldPerception + ClipTaskEncoder(perception); trm defaults to
         # MockTRM with a logged warning.
+    @property
+    def device(self) -> torch.device: ...        # read from fusion, fresh each tick
 ```
+**Device placement (v7.2).** `JEPALoop.device` is read from `fusion` on every tick (not
+cached), so `loop.fusion.to(...)` after construction is honoured. Perception is deliberately
+NOT bound to it: the detector may sit on a GPU while the heads sit anywhere, and every
+tensor crossing the boundary (`Perception`, the TQSA feature map, proprio, box weights,
+geometry, text tokens) is moved at that boundary. `Tensor.to` is a no-op when the device
+already matches, so the all-CPU default costs nothing. This matters because the heads run at
+`tick_hz` and the detector at `real_frame_hz` — on the 15:1 schedule the d=1024 TRM, not the
+detector, dominates eval wall-clock, and `eval.libero_eval --heads-device` is how you move
+it. `InnovationCorrector`'s accumulator adopts the embeddings' device (plain runtime state,
+never a buffer — same rule as the drift encoder's).
 
 ### `microvla/pipeline.py` — MicroVLAPipeline (kept as the simple 2 Hz real-only path)
 Same public API as v1 (`set_task`, `step`, `run`, `build_mock`, `build_real`) updated to the

@@ -104,7 +104,10 @@ class InnovationCorrector:
         """
         e = real_emb - pred_emb
         beta = self.cfg.correction_beta
-        self.c = beta * self.c + (1.0 - beta) * e
+        # The accumulator adopts the embeddings' device: this is plain runtime
+        # state (never a buffer/parameter), so nothing else moves it when the
+        # heads are placed on an accelerator.
+        self.c = beta * self.c.to(e.device) + (1.0 - beta) * e
 
         # Self-calibrating trust: compare this innovation against the running
         # norm of recent innovations rather than any fixed threshold.
@@ -129,7 +132,7 @@ class InnovationCorrector:
             (without an intervening measurement) apply an ever-smaller
             correction.
         """
-        corrected = pred_emb + (self.cfg.correction_decay**self.k) * self.c
+        corrected = pred_emb + (self.cfg.correction_decay**self.k) * self.c.to(pred_emb.device)
         self.k += 1
         return corrected
 

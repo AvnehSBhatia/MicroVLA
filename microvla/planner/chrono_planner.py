@@ -136,6 +136,15 @@ class ChronoQueryPlanner(nn.Module):
             hardcoded).
     """
 
+    #: Every memory group the planner can build, in type-embedding row order.
+    #: ``cfg.planner_inputs`` selects a subset; the projection for an unselected
+    #: group is never constructed and the corresponding argument is IGNORED in
+    #: ``forward`` (callers do not have to know which are enabled).
+    INPUT_NAMES: tuple[str, ...] = (
+        "next_emb", "current_emb", "fused", "state_delta", "pred_box_emb",
+        "geometry", "proprio", "spatial", "wm_msg",
+    )
+
     def __init__(self, cfg: MicroVLAConfig) -> None:
         super().__init__()
         self.cfg = cfg
@@ -143,11 +152,25 @@ class ChronoQueryPlanner(nn.Module):
             raise ValueError(
                 f"vis_dim ({cfg.vis_dim}) must be divisible by the memory token count ({_N_MEM_TOKENS})."
             )
+        unknown = sorted(set(cfg.planner_inputs) - set(self.INPUT_NAMES))
+        if unknown:
+            raise ValueError(
+                f"cfg.planner_inputs has unknown name(s) {unknown}; "
+                f"valid names are {list(self.INPUT_NAMES)}."
+            )
+        if not cfg.planner_inputs:
+            raise ValueError(
+                "cfg.planner_inputs is empty — the planner would have no memory "
+                "tokens to attend over. Keep at least one input enabled."
+            )
+        #: Enabled memory groups (frozenset for O(1) checks in forward).
+        self.inputs = frozenset(cfg.planner_inputs)
         self.n_mem_tokens = _N_MEM_TOKENS
         self.mem_token_dim = cfg.vis_dim // _N_MEM_TOKENS  # 512 / 8 = 64
 
         # Memory path: chunk of next_emb -> d_plan token.
-        self.mem_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
+        self.mem_proj = (nn.Linear(self.mem_token_dim, cfg.d_plan)
+                         if "next_emb" in self.inputs else None)
 
         # --- Rich conditioning (v2): the planner used to see ONLY the predicted
         # next_emb, a severe bottleneck for action prediction. It now ALSO
@@ -157,22 +180,26 @@ class ChronoQueryPlanner(nn.Module):
         # at both training and 30 Hz inference. A per-source type embedding
         # tags each memory group. Passing None for any keeps the old behavior
         # (backward compatible for tests / the minimal contract).
-        self.cur_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
-        self.fused_proj = nn.Linear(cfg.fused_cols, cfg.d_plan)
-        self.state_proj = nn.Linear(cfg.state_dim, cfg.d_plan)
+        self.cur_proj = (nn.Linear(self.mem_token_dim, cfg.d_plan)
+                         if "current_emb" in self.inputs else None)
+        self.fused_proj = (nn.Linear(cfg.fused_cols, cfg.d_plan)
+                           if "fused" in self.inputs else None)
+        self.state_proj = (nn.Linear(cfg.state_dim, cfg.d_plan)
+                           if "state_delta" in self.inputs else None)
         # v4: the TRM's predicted next-tick SOURCE box embedding — where the
         # grasp target is HEADED — projected into memory tokens like cur/next.
         # Chunked the same way (vis_dim -> n_mem_tokens x mem_token_dim) so the
         # planner attends over a forward-looking estimate of the object it must
         # reach, not just the held stale box carried in `fused`.
-        self.box_proj = nn.Linear(self.mem_token_dim, cfg.d_plan)
+        self.box_proj = (nn.Linear(self.mem_token_dim, cfg.d_plan)
+                         if "pred_box_emb" in self.inputs else None)
         # v5: RAW grounding geometry — (src_center, tgt_center, box_weights)
         # [B, 6] — handed to the planner directly. For a wrist camera the
         # target's position in frame IS the visual-servo error vector; before
         # v5 it reached the planner only through fusion's 160-float matrix,
         # trained for frame prediction, which starved control of metric
         # geometry (diagnosed via replay_probe: 8x magnitude collapse).
-        self.geom_proj = nn.Linear(6, cfg.d_plan)
+        self.geom_proj = nn.Linear(6, cfg.d_plan) if "geometry" in self.inputs else None
         # v6: PROPRIOCEPTION — the arm's own state (EEF pos/quat, gripper,
         # validity flag; microvla/utils/proprio.py). Without it the policy must
         # infer arm pose from a GAP'd wrist embedding, trajectory PHASE
@@ -180,16 +207,21 @@ class ChronoQueryPlanner(nn.Module):
         # timid conditional mean (replay_probe: ~8x under-std actions, both
         # before AND after direct geometry — proprio is the missing input, not
         # more vision conditioning).
-        self.proprio_proj = nn.Linear(10, cfg.d_plan)
+        self.proprio_proj = nn.Linear(10, cfg.d_plan) if "proprio" in self.inputs else None
         # v7 TQSA inputs: spatial tokens + attention-pooled role features share
         # one projection (both are tqsa_dim-wide); per-role heatmaps get their
         # own. Type rows: 7 = spatial tokens, 8 = pooled roles, 9 = heatmaps.
-        self.spat_proj = nn.Linear(cfg.tqsa_dim, cfg.d_plan)
-        self.heat_proj = nn.Linear(cfg.tqsa_heat**2, cfg.d_plan)
+        self.spat_proj = (nn.Linear(cfg.tqsa_dim, cfg.d_plan)
+                          if "spatial" in self.inputs else None)
+        self.heat_proj = (nn.Linear(cfg.tqsa_heat**2, cfg.d_plan)
+                          if "spatial" in self.inputs else None)
         # v7.1: the TRM's 32-d latent MESSAGE (action-shaped readout of its
         # internal belief state — trained by THIS planner's gradient, since
         # the msg head is excluded from the stage-B world-model freeze).
-        self.msg_proj = nn.Linear(32, cfg.d_plan)
+        self.msg_proj = nn.Linear(32, cfg.d_plan) if "wm_msg" in self.inputs else None
+        # 11 rows always (one per memory GROUP, spatial contributing three), so
+        # a checkpoint trained with a different `planner_inputs` still loads its
+        # type rows by index — see eval/policy.py::_load_relaxed.
         self.type_emb = nn.Parameter(torch.randn(11, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
@@ -225,6 +257,16 @@ class ChronoQueryPlanner(nn.Module):
         # Stage 2 heads: orientation (if any) + gripper, from waypoint-conditioned feats.
         self.orient_head = nn.Linear(cfg.d_plan, self.n_orient) if self.n_orient > 0 else None
         self.grip_head = nn.Linear(cfg.d_plan, 1)             # per-step open/close logit
+        # v7.2 WAYPOINT-ABSOLUTE head (opt-in, cfg.waypoint_action): the METRIC
+        # displacement from the CURRENT end-effector position to where it should
+        # be after each plan step, in units of cfg.waypoint_range (so the output
+        # is [-1, 1] like everything else and the loss stays O(1)). Same
+        # delta+cumsum+tanh structure as the action heads — sequential by
+        # construction. Actuation converts it to a raw translation command
+        # against MEASURED proprio (microvla/utils/waypoint.py), which is what
+        # decouples commanded magnitude from the regression's amplitude.
+        self.wp_disp_head = (nn.Linear(cfg.d_plan, self.waypoint_dim)
+                             if cfg.waypoint_action else None)
 
     def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
                 state_delta: torch.Tensor | None = None,
@@ -234,8 +276,14 @@ class ChronoQueryPlanner(nn.Module):
                 proprio: torch.Tensor | None = None,
                 spatial: dict | None = None,
                 wm_msg: torch.Tensor | None = None,
-                return_aux: bool = False):
+                return_aux: bool = False,
+                return_wp: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
+
+        Any argument whose memory group is not in ``cfg.planner_inputs`` is
+        IGNORED (no projection was built for it), so callers may pass every
+        input they have regardless of which ones this instance was configured
+        with — ablating an input is a config change, not a call-site change.
 
         Args:
             next_emb: ``[B, vis_dim]`` TRM output (predicted next-frame
@@ -266,42 +314,59 @@ class ChronoQueryPlanner(nn.Module):
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
                 that only execute the plan (loop/pipeline) leave this False.
+            return_wp: if True, return ``(plan, grip_logits, wp)`` where ``wp``
+                is the v7.2 waypoint displacement ``[B, plan_steps, 3]`` in
+                ``[-1, 1]`` (x ``cfg.waypoint_range`` for metres), or ``None``
+                when ``cfg.waypoint_action`` is off. Takes precedence over
+                ``return_aux``.
 
         Returns:
             ``plan``: ``[B, plan_steps, num_servos]`` in ``[-1, 1]`` — pose dims
             are ``tanh(cumsum(deltas))`` (smooth, sequential), the gripper dim
             is a hard ``+/-1`` decision. If ``return_aux``, returns
-            ``(plan, grip_logits)``.
+            ``(plan, grip_logits)``; if ``return_wp``, ``(plan, grip_logits, wp)``.
         """
         if next_emb.dim() != 2 or next_emb.shape[1] != self.cfg.vis_dim:
             raise ValueError(f"expected next_emb of shape [B, {self.cfg.vis_dim}], got {tuple(next_emb.shape)}")
         batch = next_emb.shape[0]
 
-        # Prediction tokens (always present): [B, 8, d_plan].
-        mem_parts = [self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
-                     + self.type_emb[0]]
-        if current_emb is not None:
+        # Memory groups. An input is used only when the caller supplied it AND
+        # `cfg.planner_inputs` enabled it — a disabled input is silently ignored
+        # so every call site can keep passing everything it has.
+        mem_parts = []
+        if self.mem_proj is not None:
+            mem_parts.append(
+                self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                + self.type_emb[0])   # [B, 8, d_plan]
+        if current_emb is not None and self.cur_proj is not None:
             mem_parts.append(
                 self.cur_proj(current_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
                 + self.type_emb[1])
-        if fused is not None:
+        if fused is not None and self.fused_proj is not None:
             mem_parts.append(self.fused_proj(fused) + self.type_emb[2])   # [B, 32, d_plan]
-        if state_delta is not None:
+        if state_delta is not None and self.state_proj is not None:
             mem_parts.append(self.state_proj(state_delta).unsqueeze(1) + self.type_emb[3])  # [B, 1, d_plan]
-        if pred_box_emb is not None:
+        if pred_box_emb is not None and self.box_proj is not None:
             mem_parts.append(
                 self.box_proj(pred_box_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
                 + self.type_emb[4])   # [B, 8, d_plan]
-        if geometry is not None:
+        if geometry is not None and self.geom_proj is not None:
             mem_parts.append(self.geom_proj(geometry).unsqueeze(1) + self.type_emb[5])  # [B, 1, d_plan]
-        if proprio is not None:
+        if proprio is not None and self.proprio_proj is not None:
             mem_parts.append(self.proprio_proj(proprio).unsqueeze(1) + self.type_emb[6])  # [B, 1, d_plan]
-        if spatial is not None:
+        if spatial is not None and self.spat_proj is not None:
             mem_parts.append(self.spat_proj(spatial["tokens"]) + self.type_emb[7])   # [B, g*g, d_plan]
             mem_parts.append(self.spat_proj(spatial["pooled"]) + self.type_emb[8])   # [B, 3, d_plan]
             mem_parts.append(self.heat_proj(spatial["heatmaps"]) + self.type_emb[9])  # [B, 3, d_plan]
-        if wm_msg is not None:
+        if wm_msg is not None and self.msg_proj is not None:
             mem_parts.append(self.msg_proj(wm_msg).unsqueeze(1) + self.type_emb[10])  # [B, 1, d_plan]
+        if not mem_parts:
+            # Every enabled group's argument was None (only reachable when
+            # `next_emb` is ablated away and the caller passed nothing else).
+            raise ValueError(
+                f"planner got no usable memory tokens: cfg.planner_inputs="
+                f"{tuple(self.cfg.planner_inputs)} but every enabled input was None."
+            )
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.
@@ -339,6 +404,10 @@ class ChronoQueryPlanner(nn.Module):
                            -torch.ones_like(grip_logit))         # [B, T] in {-1,+1}
 
         plan = torch.cat([pose, grip.unsqueeze(-1)], dim=-1)     # [B, T, num_servos]
+        if return_wp:
+            wp = (torch.tanh(torch.cumsum(self.wp_disp_head(h), dim=1))
+                  if self.wp_disp_head is not None else None)   # [B, T, 3] in [-1, 1]
+            return plan, grip_logit, wp
         if return_aux:
             return plan, grip_logit
         return plan

@@ -112,6 +112,32 @@ class MicroVLAConfig:
     tqsa_dim: int = 128        # projected channel width of the spatial map
     tqsa_grid: int = 4         # spatial-token grid (4x4 -> 16 planner tokens)
     tqsa_heat: int = 8         # downsampled heatmap side (8x8 -> 64 per role)
+    # Which memory groups the planner actually builds a projection for. Every
+    # caller keeps passing everything it has; the planner IGNORES whatever is
+    # not listed here, so ablating an input is a config change, not a call-site
+    # change. Measured on-distribution sensitivity (`eval.bench --sensitivity`)
+    # is the evidence for dropping one — v7 read proprio 0.291 >> state_delta
+    # 0.075 > wm_msg 0.031 > current_emb 0.025 ~ fused 0.023 > pred_box 0.013 >
+    # geometry 0.004 > next_emb 0.001. Names must be a subset of
+    # ChronoQueryPlanner.INPUT_NAMES; at least one must remain.
+    planner_inputs: tuple[str, ...] = (
+        "next_emb", "current_emb", "fused", "state_delta",
+        "pred_box_emb", "geometry", "proprio", "spatial", "wm_msg",
+    )
+    # --- v7.2 WAYPOINT-ABSOLUTE actuation (opt-in; the std_ratio lever) ---
+    # Regressing normalized ACTIONS with MSE collapses to the timid conditional
+    # mean (measured std_ratio ~0.37 = a third of demo vigor) because raw teleop
+    # action commands are noisy. EEF POSITIONS are not: predicting the metric
+    # displacement to a future waypoint and closing the loop on MEASURED EEF
+    # each replan makes the commanded magnitude a function of the remaining
+    # positional error, not of the regression's amplitude. Enable with
+    # `train_batched.py --waypoint-weight W` (bakes into the checkpoint cfg);
+    # needs `eef_pos_chunk` in the npz and a fitted gain
+    # (`preprocess/fit_waypoint_gain.py` -> waypoint_stats.json).
+    waypoint_action: bool = False   # build the metric-displacement head
+    waypoint_range: float = 0.15    # metres spanned by the head's [-1, 1] output
+    waypoint_horizon: int = 5       # servo toward the EEF pose `horizon` steps out
+    waypoint_gain_scale: float = 1.0  # multiplies the fitted proportional term
     trainable_param_budget: int = 9_000_000
 
     @property

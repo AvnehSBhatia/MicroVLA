@@ -43,6 +43,7 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
+from microvla.utils.waypoint import waypoint_targets
 
 
 def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) -> dict:
@@ -56,6 +57,7 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
     pwm = ep["pwm_targets"]
 
     emitted, demo, grip_hits = [], [], []
+    wp_pred, wp_true = [], []
     wm_loss = pers_loss = 0.0
     n_wm = 0
     with torch.no_grad():
@@ -77,15 +79,25 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
             next_emb, next_box = wm["next_emb"], wm["next_box"]
             geom = torch.cat([ep["source_centers"][i], ep["target_centers"][i],
                               ep["box_weights"][i]]).unsqueeze(0)
-            plan, grip_logit = planner(
+            plan, grip_logit, wp = planner(
                 next_emb, current_emb=cur, state_delta=delta, fused=fused,
                 pred_box_emb=next_box, geometry=geom,
                 proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
-                return_aux=True,
+                return_wp=True,
             )
             emitted.append(plan[0, 0].cpu().numpy())
             demo.append(pwm[i, 0].cpu().numpy())
             grip_hits.append(float((grip_logit[0, 0] > 0) == (pwm[i, 0, -1] > 0)))
+            # v7.2: the waypoint head's own fidelity, in METRES — no normalizer
+            # and no gain needed, so it isolates the design claim (positions
+            # regress with less shrinkage than noisy teleop actions). Skipped
+            # for steps with no real proprio (zero-filled -> a fake "no motion").
+            if wp is not None and float(ep["proprio"][i, -1]) > 0.5:
+                tgt, row_mask = waypoint_targets(
+                    ep["eef_pos_chunk"][i], cfg.plan_steps, cfg.waypoint_range)
+                if float(row_mask[0]) > 0:
+                    wp_pred.append(wp[0, 0].cpu().numpy() * cfg.waypoint_range)
+                    wp_true.append(tgt[0].cpu().numpy() * cfg.waypoint_range)
 
         # World-model margin: H-step open-loop rollout vs persistence, a few
         # anchors per episode — TRAINING-PROTOCOL-MATCHED (the predicted latent
@@ -131,14 +143,23 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
     for i in range(pose_e.shape[1]):
         if pose_e[:, i].std() > 1e-6 and pose_d[:, i].std() > 1e-6:
             corrs.append(float(np.corrcoef(pose_e[:, i], pose_d[:, i])[0, 1]))
-    return {
+    out = {
         "T": int(T),
         "std_ratio": float(np.median(ratio)) if ratio.size else float("nan"),
         "pose_mae": float(np.abs(pose_e - pose_d).mean()),
         "corr": float(np.mean(corrs)) if corrs else float("nan"),
         "grip_acc": float(np.mean(grip_hits)),
         "wm_margin": float((pers_loss - wm_loss) / pers_loss) if pers_loss > 0 else float("nan"),
+        "wp_std_ratio": float("nan"),
+        "wp_mae_mm": float("nan"),
     }
+    if len(wp_pred) > 1:
+        WP, WT = np.stack(wp_pred), np.stack(wp_true)
+        t_std = WT.std(axis=0)
+        r = WP.std(axis=0)[t_std > 1e-9] / t_std[t_std > 1e-9]
+        out["wp_std_ratio"] = float(np.median(r)) if r.size else float("nan")
+        out["wp_mae_mm"] = float(np.abs(WP - WT).mean() * 1000.0)
+    return out
 
 
 def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
@@ -159,7 +180,8 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
     pwm = ep["pwm_targets"]
     deltas: dict[str, list[float]] = {k: [] for k in
         ("fused", "current_emb", "state_delta", "geometry", "proprio",
-         "pred_box_emb", "wm_msg", "next_emb->cur")}
+         "pred_box_emb", "wm_msg", "next_emb->cur", "next_emb->stale")}
+    prev_next_emb = None
     with torch.no_grad():
         drift.reset()
         for i in range(T):
@@ -187,7 +209,16 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
                 deltas[name].append(float((alt - base).abs().mean()))
             alt = planner(cur, **kw)  # no-prediction: next_emb := current_emb
             deltas["next_emb->cur"].append(float((alt - base).abs().mean()))
-    return {k: float(np.mean(v)) for k, v in deltas.items()}
+            # The ->cur probe zeroes the TRM's RESIDUAL, which is small next to
+            # ||current_emb||, so a near-zero reading is partly an amplitude
+            # artifact. ->stale swaps in the PREVIOUS tick's prediction: a
+            # full-magnitude, in-distribution wrong answer. If that is also ~0,
+            # the predicted-embedding path really is dead.
+            if prev_next_emb is not None:
+                alt = planner(prev_next_emb, **kw)
+                deltas["next_emb->stale"].append(float((alt - base).abs().mean()))
+            prev_next_emb = next_emb
+    return {k: float(np.mean(v)) for k, v in deltas.items() if v}
 
 
 def main(argv=None) -> None:
@@ -283,7 +314,8 @@ def main(argv=None) -> None:
            "sec_per_eval": round(wall / max(len(rows), 1), 3),
            "std_ratio": med("std_ratio"), "pose_mae": med("pose_mae"),
            "corr": med("corr"), "grip_acc": med("grip_acc"),
-           "wm_margin": med("wm_margin")}
+           "wm_margin": med("wm_margin"),
+           "wp_std_ratio": med("wp_std_ratio"), "wp_mae_mm": med("wp_mae_mm")}
 
     print(f"\n{'episode':44s} {'std_ratio':>9s} {'mae':>6s} {'corr':>6s} "
           f"{'grip':>5s} {'wm+%':>6s} {'sec':>5s}")
@@ -295,6 +327,11 @@ def main(argv=None) -> None:
           f"| wm_margin {100*agg['wm_margin']:.1f}% | {agg['sec_per_eval']:.2f}s/eval")
     print("read: std_ratio ~1.0 = healthy magnitude (collapse shows as ~0.1); "
           "wm_margin > 0 = world model beats persistence.")
+    if np.isfinite(agg["wp_std_ratio"]):
+        print(f"waypoint head (v7.2): std_ratio {agg['wp_std_ratio']:.3f} | "
+              f"mae {agg['wp_mae_mm']:.1f} mm  —  compare against the action "
+              f"std_ratio above: the lever only pays if positions regress with "
+              f"less shrinkage than actions do.")
 
     sens = None
     if args.sensitivity:

@@ -220,6 +220,8 @@ class MicroVLAPolicy:
         perception=None,
         task_encoder=None,
         zero_center_actions: bool = False,
+        waypoint_stats: Optional[str] = None,
+        heads_device: Optional[str] = None,
     ) -> None:
         """Builds the policy.
 
@@ -252,16 +254,31 @@ class MicroVLAPolicy:
             task_encoder: Optional injected task encoder (e.g.
                 ``MockTaskEncoder``). If only one of ``perception``/
                 ``task_encoder`` is given, the other is still built for real.
+            heads_device: Device for fusion/drift/TRM/planner/TQSA. Defaults to
+                CPU (unchanged behavior). Point it at the accelerator to move
+                the per-tick cost off the CPU — the heads run at ``tick_hz``
+                while the detector runs at ``real_frame_hz``, so on the 15:1
+                schedule they, not the detector, dominate wall-clock.
+            waypoint_stats: Path to the ``waypoint_stats.json`` fitted by
+                ``preprocess/fit_waypoint_gain.py`` (v7.2). Given AND the
+                checkpoint carries a waypoint head, the TRANSLATION dims of
+                every emitted action come from a proportional move toward the
+                predicted end-effector position measured against live proprio,
+                instead of from the regressed plan; orientation and gripper
+                still come from the plan. Without it (or without proprio at a
+                given step) the plan drives all seven dims as before.
         """
         self.perception_period = max(1, int(perception_period))
         self.zero_center_actions = bool(zero_center_actions)
         self.device = device
-        # The heavy YOLO-World perception runs on `device` (GPU when asked),
-        # but it detaches its outputs to CPU. The tiny trainable heads (~17M)
-        # therefore run on CPU too, so everything the loop feeds through them
-        # is on one device — no mismatch, and the GPU still accelerates the
-        # only expensive part (detection). heads_device stays CPU regardless.
-        heads_device = "cpu"
+        # Perception runs on `device` and detaches its outputs to CPU. The heads
+        # used to be pinned to CPU with them, which was right when they were
+        # tiny — but the d=1024 TRM alone is 9.97M params and runs on EVERY
+        # 30 Hz tick, while the detector runs on 1 tick in 15. So `--device
+        # cuda:0` was leaving the dominant cost on the CPU. `heads_device`
+        # makes that a choice; the loop moves perception's tensors at the
+        # boundary (JEPALoop.device), so the two may differ freely.
+        heads_device = heads_device or "cpu"
         self.normalizer = ActionNormalizer.load(norm_stats)
 
         state, ckpt_used, is_stage_b = _load_checkpoint_state(checkpoint, heads_device)
@@ -331,6 +348,31 @@ class MicroVLAPolicy:
             tqsa=tqsa,
         )
 
+        # v7.2 waypoint actuation: only ever active when BOTH the checkpoint
+        # has the head and a fitted gain was supplied. A gain fitted under a
+        # different action normalization is meaningless, so it is paired with
+        # the checkpoint exactly like norm_stats.json.
+        self.actuator = None
+        if waypoint_stats:
+            from microvla.utils.waypoint import WaypointActuator, WaypointGain
+
+            if not cfg.waypoint_action:
+                logger.warning(
+                    "MicroVLAPolicy: --waypoint-stats given but this checkpoint "
+                    "has no waypoint head (cfg.waypoint_action=False) — actions "
+                    "come from the plan as usual. Retrain with "
+                    "`train_batched.py --waypoint-weight 1.0` to use it."
+                )
+            else:
+                self.actuator = WaypointActuator(
+                    WaypointGain.load(waypoint_stats),
+                    waypoint_range=cfg.waypoint_range,
+                    horizon=cfg.waypoint_horizon,
+                    gain_scale=cfg.waypoint_gain_scale,
+                )
+                logger.info("MicroVLAPolicy: waypoint actuation ON (gain %s)",
+                            self.actuator.gain)
+
         self.telemetry: list[dict] = []
         self.trust_trace: list[float] = []
         self._tick_index = 0
@@ -345,6 +387,8 @@ class MicroVLAPolicy:
         self._tick_index = 0
         self.telemetry = []
         self.trust_trace = []
+        if self.actuator is not None:
+            self.actuator.reset()
 
     def act(self, frame_rgb: np.ndarray, proprio: np.ndarray | None = None) -> np.ndarray:
         """Advances one env step; returns a denormalized raw action.
@@ -377,11 +421,31 @@ class MicroVLAPolicy:
             plan[0].detach().cpu().numpy(), zero_center=self.zero_center_actions
         )
 
+        # v7.2: replace the regressed TRANSLATION with a proportional move
+        # toward the predicted end-effector position, measured against THIS
+        # tick's proprio. Needs both the head and live proprio; falls back to
+        # the plan silently for either (a step without proprio is normal on
+        # envs that do not expose it).
+        wp_cmd = None
+        if (self.actuator is not None and result.waypoints is not None
+                and proprio is not None and float(np.asarray(proprio).reshape(-1)[-1]) > 0.5):
+            wp_cmd = self.actuator.command(
+                result.waypoints.detach().cpu().numpy(),
+                np.asarray(proprio, dtype=np.float64).reshape(-1)[:3],
+                is_real=bool(result.is_real),
+            )
+            # The corrector's brake is a safety property of the emitted command,
+            # not of the plan tensor — apply the same delta-mode law here.
+            if self.cfg.action_space == "delta" and self.cfg.brake_trust > 0.0:
+                wp_cmd = wp_cmd * min(1.0, float(result.trust) / self.cfg.brake_trust)
+            action[: wp_cmd.shape[0]] = wp_cmd
+
         self.telemetry.append({
             "tick_index": self._tick_index,
             "is_real": bool(result.is_real),
             "trust": float(result.trust),
             "plan_norm": float(plan.norm().item()),
+            "waypoint_cmd": None if wp_cmd is None else [float(v) for v in wp_cmd],
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1

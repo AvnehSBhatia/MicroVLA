@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
+import pytest
 import torch
 
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
@@ -187,6 +190,60 @@ class TestChronoQueryPlanner:
         for batch in (1, 4):
             plan = planner(torch.randn(batch, CFG.vis_dim))
             assert plan.shape == (batch, CFG.plan_steps, CFG.num_servos)
+
+    @staticmethod
+    def _all_inputs(batch: int = 2) -> tuple[torch.Tensor, dict]:
+        """Every optional planner input, populated — the deployment call."""
+        return torch.randn(batch, CFG.vis_dim), dict(
+            current_emb=torch.randn(batch, CFG.vis_dim),
+            state_delta=torch.randn(batch, CFG.state_dim),
+            fused=torch.randn(batch, CFG.fused_rows, CFG.fused_cols),
+            pred_box_emb=torch.randn(batch, CFG.vis_dim),
+            geometry=torch.randn(batch, 6),
+            proprio=torch.randn(batch, 10),
+            wm_msg=torch.randn(batch, 32),
+        )
+
+    def test_ablated_input_is_ignored_not_an_error(self):
+        """A dropped input keeps the SAME call signature: callers pass it, the
+        planner ignores it (no projection was built)."""
+        cfg = dataclasses.replace(
+            CFG, planner_inputs=tuple(n for n in CFG.planner_inputs
+                                      if n not in ("geometry", "pred_box_emb")))
+        planner = ChronoQueryPlanner(cfg)
+        assert planner.geom_proj is None and planner.box_proj is None
+        next_emb, kw = self._all_inputs()
+        plan = planner(next_emb, **kw)
+        assert plan.shape == (2, CFG.plan_steps, CFG.num_servos)
+        # Ignored means IGNORED: changing a dropped input cannot move the plan.
+        other = planner(next_emb, **{**kw, "geometry": torch.randn(2, 6),
+                                     "pred_box_emb": torch.randn(2, CFG.vis_dim)})
+        assert torch.allclose(plan, other)
+
+    def test_ablation_drops_exactly_that_projection(self):
+        full = sum(p.numel() for p in ChronoQueryPlanner(CFG).parameters())
+        cfg = dataclasses.replace(
+            CFG, planner_inputs=tuple(n for n in CFG.planner_inputs if n != "geometry"))
+        pruned = sum(p.numel() for p in ChronoQueryPlanner(cfg).parameters())
+        assert full - pruned == 6 * CFG.d_plan + CFG.d_plan  # geom_proj weight + bias
+
+    def test_next_emb_ablation_still_plans(self):
+        """Even the (nominally required) prediction path is ablatable."""
+        cfg = dataclasses.replace(
+            CFG, planner_inputs=tuple(n for n in CFG.planner_inputs if n != "next_emb"))
+        planner = ChronoQueryPlanner(cfg)
+        assert planner.mem_proj is None
+        next_emb, kw = self._all_inputs()
+        assert planner(next_emb, **kw).shape == (2, CFG.plan_steps, CFG.num_servos)
+        # ...but with nothing else supplied there are no memory tokens at all.
+        with pytest.raises(ValueError, match="no usable memory tokens"):
+            planner(next_emb)
+
+    def test_rejects_unknown_and_empty_input_sets(self):
+        with pytest.raises(ValueError, match="unknown name"):
+            ChronoQueryPlanner(dataclasses.replace(CFG, planner_inputs=("propioception",)))
+        with pytest.raises(ValueError, match="empty"):
+            ChronoQueryPlanner(dataclasses.replace(CFG, planner_inputs=()))
 
 
 class TestMockTaskEncoder:

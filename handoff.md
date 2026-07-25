@@ -1,33 +1,82 @@
-# HANDOFF — MicroVLA session state (written 2026-07-25)
+# HANDOFF — MicroVLA session state (updated 2026-07-25, session 2)
 
 Read this top-to-bottom before touching anything. CLAUDE.md + DESIGN.md are the
 binding contracts; this file is the *live state*: what's trained, what's
 measured, what's mid-flight, and exactly where the last session stopped.
 
-## 0. The one urgent thing (where the last session stopped)
+## 0. The one urgent thing — still `mean_success`, now instrumented
 
-**The 10-worker parallel LIBERO eval hung**: 20 min, all 10 workers holding
-~2.5 GB VRAM each, **0% GPU utilization, zero telemetry files created**. The
-closed-loop `mean_success` for the v7 checkpoint was therefore NEVER obtained.
-An observability patch was committed (`6dbfddc`: per-trial START/DONE prints,
-telemetry flush, 5 s/worker startup stagger) but is **unverified on the box** —
-it may or may not fix the hang itself (stagger addresses the most likely
-cause: 10-way simultaneous CUDA/ultralytics/mujoco context init contention).
+**Status: the eval harness was rebuilt to be diagnosable; the number is still
+unobtained** (Mac-side session — nothing was run on the box).
 
-Next session, first moves (box, `source /root/eval_venv/bin/activate`):
+What hung, and what was done about it. Symptoms were: 20 min, 10 workers alive
+holding ~2.5 GB VRAM each, 0% GPU, zero telemetry files. A 13-agent adversarial
+diagnosis narrowed the stall to ONE window — between `YoloWorldPerception`'s
+`.to(device)` and the telemetry-file open — and could not separate three
+candidates that share that window and emit an identical external signature:
+
+1. **10-way concurrent HIP context init inside `.to('cuda:0')`** (leading: the
+   2.5 GB IS the context being allocated; 0% util because no kernel ever ran).
+2. `_real_tasks()` re-run per worker (libero→robosuite→mujoco import ×10).
+3. Thread oversubscription — "crawling", not deadlocked.
+
+Ruled OUT by ordering: CLIP `set_classes` download, osmesa/mujoco env creation
+(both live inside the trial loop, after the file open), and worker-death
+masking (a respawned `mp.Pool` worker holds 0 GB, not 2.5 GB). Also learned:
+**0% GPU is the NORMAL state of this eval** — 14 of 15 ticks are dream ticks
+that never touch the detector, and the heads were pinned to CPU regardless of
+`--device`. That symptom was a red herring.
+
+The harness now self-localizes rather than needing another guess (see §10 for
+what changed). First moves on the box, in order:
+
 ```bash
-git pull
-# 1) serial canary — MUST work and print [main] START/DONE lines (~3 min):
-PYOPENGL_PLATFORM=osmesa MUJOCO_GL=osmesa PYTHONPATH=/root/LIBERO \
-python -m eval.libero_eval --suite libero_object --n-trials 1 --max-steps 100 \
-  --checkpoint checkpoints/full_stageB.pt --norm-stats data/libero_v7/norm_stats.json \
-  --device cuda:0 --workers 1
-# 2) if canary OK, scale gently (5 workers, watch for [wN] prints):
-#    same command with --n-trials 2 --max-steps 250 --workers 5
+source /root/eval_venv/bin/activate && cd /root/MicroVLA && git pull
+export PFX="PYOPENGL_PLATFORM=osmesa MUJOCO_GL=osmesa PYTHONPATH=/root/LIBERO"
+
+# 1) SERIAL CANARY (~3 min). Must print: building policy -> policy ready (Ns)
+#    -> N task(s) -> START/DONE.
+env $PFX python -m eval.libero_eval --suite libero_object --n-trials 1 \
+  --max-steps 100 --checkpoint checkpoints/full_stageB.pt \
+  --norm-stats data/libero_v7/norm_stats.json --device cuda:0 --workers 1
+
+# 2) TWO WORKERS with a watchdog. The last heartbeat printed names the cause:
+#    "building policy..." then silence -> cause 1 (HIP init)
+#    "policy ready (Ns)" then silence  -> cause 2 (libero import)
+#    all heartbeats, slow START->DONE  -> cause 3 (oversubscription)
+env $PFX python -m eval.libero_eval --suite libero_object --n-trials 2 \
+  --max-steps 250 --checkpoint checkpoints/full_stageB.pt \
+  --norm-stats data/libero_v7/norm_stats.json --device cuda:0 \
+  --workers 2 --stagger 10 --worker-timeout 1800 2>&1 | tee /tmp/eval2.log
+
+# 3) SCALE once 2 workers finish clean: --workers 5 (then 10), same flags.
 ```
-If workers still stall silently despite heartbeats: suspect mujoco/osmesa init
-under concurrency; try `--workers 2`, or per-worker `MUJOCO_GL` re-export, or
-run 10 sequential single-task processes via a shell loop as fallback.
+
+If a worker stalls anyway, it now self-reports without py-spy:
+`kill -USR1 <pid>` dumps its stack (every worker prints its pid on startup),
+and a stuck worker auto-dumps every 600 s. Isolate cause 1 with no LIBERO and
+no policy in the loop:
+```bash
+python -c "
+import multiprocessing as mp, time
+def b(i):
+    t=time.time(); import torch; torch.zeros(1, device='cuda:0'); return (i, round(time.time()-t,1))
+if __name__=='__main__':
+    for n in (1,2,10):
+        t=time.time()
+        with mp.get_context('spawn').Pool(n) as p: print(n, p.map(b, range(n)), 'wall %.1f'%(time.time()-t), flush=True)"
+# 1 fast but 10 >> 10x slower (or hangs) => cause 1 confirmed.
+```
+Last-resort fallback, now supported directly — N independent single-task
+processes, immune to every in-process concurrency hazard:
+```bash
+for T in $(seq 0 9); do
+  env $PFX python -m eval.libero_eval --suite libero_object --task-ids $T \
+    --n-trials 2 --max-steps 250 --checkpoint checkpoints/full_stageB.pt \
+    --norm-stats data/libero_v7/norm_stats.json --device cuda:0 &
+done; wait
+# merge the per-task results: eval_results/*_results.json
+```
 
 ## 1. Machines, envs, invariants
 
@@ -138,6 +187,13 @@ tensors, bucket frame-stripping, flat-τ brake tax, parallel-eval opacity.
    python -m eval.bench --checkpoint checkpoints/full_stageB.pt \
      --data-dir data/libero_v7_full --sensitivity --device cuda:0
    ```
+   Cheap A/Bs to fold into that run (each is one more ~40 min train):
+   ```bash
+   # the std_ratio lever — read wp_std_ratio vs std_ratio in the bench output
+   ... --waypoint-weight 1.0        # then: python -m preprocess.fit_waypoint_gain data/libero_v7_full
+   # the pruning candidates, decided on FULL-data sensitivity, not the pilot's
+   ... --planner-drop geometry,pred_box_emb --tag pruned
+   ```
 3. **Remaining levers, ranked** (fire based on where the numbers stall):
    - std_ratio stuck ≈0.4 → **waypoint-absolute action head** (predict
      displacement to `eef_pos_chunk` waypoints from measured EEF each replan;
@@ -196,6 +252,54 @@ exists anywhere; we must train it ourselves.
   `huggingface-cli`.
 - Paper trail lives in `paper.md` (world-model result + full diagnosis
   chain); `experiments/tracker.py` exists for durable metrics.
+
+## 9a. What changed this session (Mac-side only; nothing run on the box)
+
+All committed, 187 tests green (was 149).
+
+**Eval harness (`eval/libero_eval.py`) — §0's instrument.**
+- `ProcessPoolExecutor` replaces `mp.Pool`: a dead worker now raises
+  `BrokenProcessPool` in <1 s instead of hanging the parent forever.
+- Heartbeats through the whole silent window: `spawned (pid N)` →
+  `staggering Ns` → `building policy...` → `policy ready (Ns)` →
+  `N task(s) (Ns)` → per-trial `START`/`DONE`. The telemetry file is now
+  opened BEFORE the policy build, so its existence proves the worker started.
+- Tasks are enumerated ONCE in the parent and shipped to workers — removes the
+  10-way concurrent libero import (candidate 2) by construction.
+- Thread caps (`OMP/MKL/OPENBLAS/LP_NUM_THREADS` = cores/workers, plus
+  `torch.set_num_threads`) set **in the parent**, because `eval/__init__.py`
+  imports torch — setting them inside a worker is too late for libgomp.
+  `TORCH_BLAS_PREFER_HIPBLASLT=0` now matches the trainers.
+- `--worker-timeout` watchdog (kills + reports + keeps partial results, clearly
+  marked partial), `--task-ids` manual sharding, `--stagger` now a flag,
+  `faulthandler` + SIGUSR1 stack dumps, and finished shards are scavenged off
+  disk when the pool aborts.
+- `--workers` works under `--mock-env`, so the parallel path has real tests
+  (CPU-only, no sim) for the first time.
+- **`--heads-device`**: `--device cuda:0` was only ever moving the DETECTOR;
+  fusion/drift/TRM/planner/TQSA stayed on CPU and they run every tick while the
+  detector runs 1 in 15. Opt-in (default unchanged); verified end-to-end on MPS.
+
+**Planner input gating (§5.3 pruning).** `cfg.planner_inputs` selects which
+memory groups are built; a disabled input is ignored by `forward`, so ablating
+one is a config change, not a call-site change. `train_batched.py
+--planner-drop geometry,pred_box_emb`; the choice rides in the checkpoint cfg.
+Defaults are UNCHANGED — the v7 sensitivity read is from libero_object only,
+and §5's own plan is to prune after the full-data run. `eval.bench
+--sensitivity` gained `next_emb->stale` (a full-magnitude wrong prediction),
+because `next_emb->cur` only zeroes the TRM's residual and therefore reads low
+by construction — do not prune `next_emb` on the old number alone.
+
+**Waypoint-absolute head (§5.3, the std_ratio lever).** Opt-in
+`cfg.waypoint_action` / `--waypoint-weight 1.0`. Predicts metric EEF
+displacement (supervised from `eef_pos_chunk`, row/validity masked), and at
+eval a proportional move toward that position measured against LIVE proprio
+replaces the regressed translation dims. Gain fitted by
+`preprocess/fit_waypoint_gain.py` → `waypoint_stats.json` (pair it with its
+checkpoint like norm_stats). `eval.bench` reports `wp_std_ratio` / `wp_mae_mm`.
+See DESIGN.md for the full contract. UNTRAINED and UNMEASURED — the next
+retrain is what tells us whether positions really regress with less shrinkage
+than actions.
 
 ## 9. Where the headline stands
 

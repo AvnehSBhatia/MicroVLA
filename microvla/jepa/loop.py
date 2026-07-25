@@ -75,6 +75,22 @@ def _role_prompts(phrase: str) -> list[str]:
     return prompts
 
 
+def _percept_to(percept: Perception, device: torch.device) -> Perception:
+    """Returns ``percept`` with every tensor on ``device`` (identity if already).
+
+    Perception detaches its outputs to CPU by contract; the trainable heads may
+    run somewhere else. ``Tensor.to`` is a no-op when the device already
+    matches, so this is free on the default all-CPU path.
+    """
+
+    def box(o: BoxObs) -> BoxObs:
+        return BoxObs(emb=o.emb.to(device), center=o.center.to(device),
+                      xyxy=o.xyxy.to(device), confidence=o.confidence)
+
+    return Perception(frame_emb=percept.frame_emb.to(device),
+                      source=box(percept.source), target=box(percept.target))
+
+
 @dataclass
 class TickResult:
     """Everything produced for one 30 Hz control tick.
@@ -98,6 +114,12 @@ class TickResult:
         trust: Current corrector trust ``tau`` (the blend factor).
         perception: The raw dual-box :class:`Perception` on real ticks;
             ``None`` on dream ticks (no camera frame was consumed).
+        waypoints: ``[plan_steps, 3]`` predicted end-effector displacement
+            from the CURRENT position, in ``[-1, 1]`` units of
+            ``cfg.waypoint_range`` (v7.2). ``None`` unless
+            ``cfg.waypoint_action``. NOT trust-scaled — actuation belongs to
+            the caller, which owns the raw-unit gain
+            (:class:`microvla.utils.waypoint.WaypointActuator`).
     """
 
     is_real: bool
@@ -108,6 +130,7 @@ class TickResult:
     plan: torch.Tensor
     trust: float
     perception: Optional[Perception]
+    waypoints: Optional[torch.Tensor] = None
 
 
 class JEPALoop:
@@ -180,6 +203,18 @@ class JEPALoop:
         # Rolling window of the latents that drove recent ticks (oldest ->
         # newest), handed to the TRM as its context window each call.
         self._latent_ctx: deque[torch.Tensor] = deque(maxlen=cfg.context_window)
+
+    @property
+    def device(self) -> torch.device:
+        """The device the trainable heads live on (read fresh each tick).
+
+        Read from ``fusion`` rather than stored, so a caller that does
+        ``loop.fusion.to(...)`` after construction is still correct. Perception
+        is deliberately NOT included: it may sit on a different device (the
+        detector on a GPU, the heads wherever they are cheapest) and its
+        outputs are moved at the boundary.
+        """
+        return next(self.fusion.parameters()).device
 
     def set_task(self, text: str) -> None:
         """Sets the language task for the episode.
@@ -258,8 +293,9 @@ class JEPALoop:
         if self.tqsa is not None:
             self.tqsa.eval()
 
+        dev = self.device
         with torch.no_grad():
-            text_tokens = self._task.tokens().unsqueeze(0)  # [1, 3, text_dim]
+            text_tokens = self._task.tokens().unsqueeze(0).to(dev)  # [1, 3, text_dim]
             is_real = frame_bgr is not None
 
             # v6 proprio: fresh if supplied this tick, else held; zeros (valid
@@ -267,21 +303,24 @@ class JEPALoop:
             if proprio is not None:
                 self._last_proprio = torch.as_tensor(
                     proprio, dtype=torch.float32
-                ).reshape(1, -1)
+                ).reshape(1, -1).to(dev)
             proprio_tok = (
                 self._last_proprio
                 if self._last_proprio is not None
-                else torch.zeros(1, 10)
+                else torch.zeros(1, 10, device=dev)
             )
 
             last_action = (
                 self._last_action.unsqueeze(0)
                 if self._last_action is not None
-                else torch.zeros(1, self.cfg.num_servos)
+                else torch.zeros(1, self.cfg.num_servos, device=dev)
             )
 
             if is_real:
-                raw_percept = self.perception.perceive(frame_bgr)
+                # Perception detaches to CPU; the heads may live elsewhere (the
+                # d=1024 TRM runs on EVERY tick, the detector only on 1 in 15,
+                # so which device the heads sit on dominates eval throughput).
+                raw_percept = _percept_to(self.perception.perceive(frame_bgr), dev)
                 frame_emb = raw_percept.frame_emb  # [vis_dim], standardized
 
                 if self._pending_pred is not None:
@@ -317,7 +356,7 @@ class JEPALoop:
                 # miss-held-and-decayed).
                 box_weight = torch.tensor(
                     [[percept.source.confidence, percept.target.confidence]],
-                    dtype=torch.float32,
+                    dtype=torch.float32, device=dev,
                 )
                 # Raw geometry for the planner (v5): src/tgt centers + weights —
                 # for a wrist camera the target's frame position IS the visual-
@@ -334,7 +373,12 @@ class JEPALoop:
                     fmap_fn = getattr(self.perception, "last_feature_map", None)
                     fmap = fmap_fn() if callable(fmap_fn) else None
                     if fmap is not None:
-                        self._last_spatial = self.tqsa(fmap, text_tokens)
+                        # TQSA may sit with the frozen backbone rather than with
+                        # the heads; feed it on ITS device, hand the planner the
+                        # result on the heads device.
+                        tdev = next(self.tqsa.parameters()).device
+                        spatial = self.tqsa(fmap.to(tdev), text_tokens.to(tdev))
+                        self._last_spatial = {k: v.to(dev) for k, v in spatial.items()}
                 fused = self.fusion(
                     text_tokens,
                     frame_emb.unsqueeze(0),
@@ -376,7 +420,7 @@ class JEPALoop:
                 fade = self.cfg.staleness_decay ** self._dream_k
                 box_weight = torch.tensor(
                     [[held.source.confidence * fade, held.target.confidence * fade]],
-                    dtype=torch.float32,
+                    dtype=torch.float32, device=dev,
                 )
                 geom = torch.cat(
                     [held.source.center.unsqueeze(0),
@@ -412,11 +456,17 @@ class JEPALoop:
             self._pending_pred = next_emb_unbatched
             self._latent_ctx.append(latent)
 
-            raw_plan = self.planner(next_emb, current_emb=latent.unsqueeze(0),
-                                    state_delta=state_delta, fused=fused,
-                                    pred_box_emb=next_box, geometry=geom,
-                                    proprio=proprio_tok, spatial=self._last_spatial,
-                                    wm_msg=wm["msg"]).squeeze(0)  # [plan_steps, num_servos]
+            raw_plan, _grip, wp = self.planner(
+                next_emb, current_emb=latent.unsqueeze(0),
+                state_delta=state_delta, fused=fused,
+                pred_box_emb=next_box, geometry=geom,
+                proprio=proprio_tok, spatial=self._last_spatial,
+                wm_msg=wm["msg"], return_wp=True)
+            raw_plan = raw_plan.squeeze(0)              # [plan_steps, num_servos]
+            # v7.2: the metric EEF displacement the caller may actuate against
+            # live proprio instead of the regressed translation dims (see
+            # microvla/utils/waypoint.py). None unless cfg.waypoint_action.
+            waypoints = wp.squeeze(0) if wp is not None else None
 
             # Trust semantics depend on the ACTION SPACE (v5):
             #   * "delta" (LIBERO/Bridge EEF deltas): zero IS "no motion", so
@@ -457,6 +507,7 @@ class JEPALoop:
             plan=plan,
             trust=self.corrector.trust,
             perception=out_perception,
+            waypoints=waypoints,
         )
 
     def run(self, frames: Iterable, text: str) -> List[TickResult]:

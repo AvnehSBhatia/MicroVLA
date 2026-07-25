@@ -4,6 +4,7 @@ Implemented:
     * ``planner_bc_loss``   — behavior-cloning MSE against PWM targets.
     * ``smoothness_loss``   — second-difference action-smoothness penalty.
     * ``total_planner_loss``— weighted sum of the two above.
+    * ``waypoint_loss``     — v7.2 metric-displacement head, row/validity masked.
     * ``modality_consistency_loss`` — optional fusion modality-dropout /
       dream-mode consistency term (same code path as JEPA dream ticks).
 
@@ -113,6 +114,44 @@ def split_planner_loss(
     bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
     smooth = smoothness_loss(pose_pred)
     return mse + grip_weight * bce + smooth_weight * smooth
+
+
+def waypoint_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    row_mask: torch.Tensor,
+    valid: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """MSE on the v7.2 waypoint head, masked to rows and samples with targets.
+
+    Two independent masks, and both matter:
+
+    * ``row_mask`` ``[plan_steps]`` — a pre-v7.2 bake carries only
+      ``plan_steps`` EEF rows, so the last plan row has no target (see
+      ``microvla.utils.waypoint.waypoint_targets``).
+    * ``valid`` — episodes with no proprioception at all are ZERO-FILLED by
+      ``train.dataset``, and a zero ``eef_pos_chunk`` looks exactly like "the
+      arm never moves". Training on those would teach the head to predict no
+      motion, which is the collapse this head exists to fix. Pass the proprio
+      validity flag (``batch["proprio"][..., -1]``).
+
+    Args:
+        pred: ``[..., plan_steps, 3]`` head output in ``[-1, 1]``.
+        target: ``[..., plan_steps, 3]`` from ``waypoint_targets``.
+        row_mask: ``[plan_steps]`` 1 where the row has a target.
+        valid: Optional ``[...]`` per-sample validity in ``{0, 1}``.
+
+    Returns:
+        Scalar mean squared error over the unmasked entries; an exact zero
+        tensor (still connected to ``pred``) when nothing is supervised.
+    """
+    w = row_mask.reshape(*([1] * (pred.dim() - 2)), -1, 1).expand_as(pred)
+    if valid is not None:
+        w = w * valid.reshape(*valid.shape, 1, 1).expand_as(pred)
+    denom = w.sum()
+    if float(denom) == 0.0:
+        return (pred * 0.0).sum()
+    return (((pred - target) ** 2) * w).sum() / denom
 
 
 def modality_consistency_loss(

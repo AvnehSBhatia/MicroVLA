@@ -22,7 +22,10 @@ task returns.
 from __future__ import annotations
 
 import dataclasses
+import json
 import math
+import os
+import time
 from pathlib import Path
 
 import numpy as np
@@ -253,6 +256,186 @@ class TestRunEvalMock:
         r2 = run_eval(factory, out_dir=str(tmp_path / "run2"), **kwargs)
         assert r1["mean_success"] == r2["mean_success"]
         assert r1["per_task"] == r2["per_task"]
+
+    def test_pre_enumerated_tasks_are_used_verbatim(self, tmp_path):
+        """The parallel driver enumerates once in the parent and ships specs."""
+        from eval.libero_eval import _mock_tasks
+
+        only = _mock_tasks("libero_object")[1:2]
+        result = run_eval(
+            self._factory(tmp_path), suite="libero_object", n_trials=1, max_steps=4,
+            mock_env=True, seed=0, out_dir=str(tmp_path / "one"), tasks=only,
+        )
+        assert list(result["per_task"]) == [only[0].name]
+
+    def test_telemetry_file_exists_before_the_policy_is_built(self, tmp_path):
+        """A worker's telemetry file must appear BEFORE the expensive build.
+
+        Its absence is what made a 20-minute parallel hang indistinguishable
+        from "the worker never started", so the ordering is load-bearing, not
+        incidental.
+        """
+        out = tmp_path / "eval_results"
+        seen: list[list[str]] = []
+
+        def slow_factory():
+            seen.append(sorted(p.name for p in out.glob("*_telemetry.jsonl")))
+            return self._factory(tmp_path)()
+
+        run_eval(slow_factory, suite="libero_object", n_trials=1, max_steps=4,
+                 mock_env=True, seed=0, out_dir=str(out))
+        assert seen and len(seen[0]) == 1, (
+            f"telemetry file not created before policy_factory(): {seen}")
+
+
+# ---------------------------------------------------------------------------
+# Parallel driver (mock env — no sim, no GPU, no network)
+# ---------------------------------------------------------------------------
+
+
+class TestParallelDriver:
+    """The parallel path only stays honest if it is exercised without a sim."""
+
+    @staticmethod
+    def _args(tmp_path: Path, **over):
+        from eval.libero_eval import parse_args
+
+        argv = ["--mock-env", "--suite", "libero_object", "--n-trials", "1",
+                "--max-steps", "6", "--checkpoint", "none", "--stagger", "0",
+                "--out-dir", str(tmp_path / "eval_results")]
+        args = parse_args(argv)
+        for k, v in over.items():
+            setattr(args, k, v)
+        return args
+
+    def test_shards_cover_every_task_exactly_once(self, tmp_path):
+        from eval.libero_eval import _mock_tasks, _run_parallel
+
+        tasks = _mock_tasks("libero_object")
+        result = _run_parallel(self._args(tmp_path, workers=2), tasks)
+        assert result["failed_workers"] == {}
+        assert result["tasks_completed"] == result["tasks_expected"] == len(tasks)
+        assert set(result["per_task"]) == {t.name for t in tasks}
+
+    def test_matches_the_serial_result(self, tmp_path):
+        """Sharding must not change the answer — same seeds, same successes."""
+        from eval.libero_eval import _make_policy_factory, _mock_tasks, _run_parallel
+
+        tasks = _mock_tasks("libero_object")
+        args = self._args(tmp_path, workers=3)
+        parallel = _run_parallel(args, tasks)
+        serial = run_eval(_make_policy_factory(self._args(tmp_path)),
+                          suite="libero_object", n_trials=1, max_steps=6,
+                          mock_env=True, seed=0,
+                          out_dir=str(tmp_path / "serial"), tasks=tasks)
+        assert parallel["per_task"] == serial["per_task"]
+
+    def test_more_workers_than_tasks_is_clamped(self, tmp_path):
+        from eval.libero_eval import _mock_tasks, _run_parallel
+
+        tasks = _mock_tasks("libero_object")
+        result = _run_parallel(self._args(tmp_path, workers=32), tasks)
+        assert result["workers"] == len(tasks)
+        assert result["tasks_completed"] == len(tasks)
+
+    def test_thread_caps_are_set_before_torch(self, tmp_path, monkeypatch):
+        from eval.libero_eval import _limit_worker_threads
+
+        for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                    "LP_NUM_THREADS", "TORCH_BLAS_PREFER_HIPBLASLT"):
+            monkeypatch.delenv(var, raising=False)
+        budget = _limit_worker_threads(1_000_000)   # more workers than cores
+        assert budget == 1
+        assert os.environ["OMP_NUM_THREADS"] == "1"
+        assert os.environ["LP_NUM_THREADS"] == "1"
+        # The trainers guard the known ROCm hipBLASLt segfault; eval must too.
+        assert os.environ["TORCH_BLAS_PREFER_HIPBLASLT"] == "0"
+
+    def test_thread_caps_never_override_an_explicit_setting(self, tmp_path, monkeypatch):
+        from eval.libero_eval import _limit_worker_threads
+
+        monkeypatch.setenv("OMP_NUM_THREADS", "7")
+        _limit_worker_threads(4)
+        assert os.environ["OMP_NUM_THREADS"] == "7"
+
+    def test_scavenges_a_failed_workers_on_disk_results(self, tmp_path):
+        """A dead worker breaks the pool; the shards it FINISHED are still on disk."""
+        from eval.libero_eval import _scavenge_worker_results
+
+        out = tmp_path
+        (out / "libero_object_real_111_w1_results.json").write_text(
+            json.dumps({"per_task": {"task_a": 1.0, "task_b": 0.0}}))
+        per_task = {"task_a": 0.5}          # already reported by a live worker
+        n = _scavenge_worker_results(out, "libero_object", [1], 0.0, per_task)
+        assert n == 1                        # only task_b is new
+        assert per_task == {"task_a": 0.5, "task_b": 0.0}   # no double-count
+
+    def test_scavenge_ignores_stale_and_unrelated_files(self, tmp_path):
+        from eval.libero_eval import _scavenge_worker_results
+
+        (tmp_path / "libero_object_real_1_w0_results.json").write_text(
+            json.dumps({"per_task": {"old": 1.0}}))
+        (tmp_path / "libero_goal_real_1_w0_results.json").write_text(
+            json.dumps({"per_task": {"other_suite": 1.0}}))
+        per_task: dict[str, float] = {}
+        # `since` in the future -> the file is from an earlier run.
+        assert _scavenge_worker_results(tmp_path, "libero_object", [0],
+                                        time.time() + 60, per_task) == 0
+        assert per_task == {}
+
+    def test_scavenge_survives_a_truncated_file(self, tmp_path):
+        """A worker killed mid-write must not take the whole merge down."""
+        from eval.libero_eval import _scavenge_worker_results
+
+        (tmp_path / "libero_object_real_1_w0_results.json").write_text('{"per_task": {"a"')
+        per_task: dict[str, float] = {}
+        assert _scavenge_worker_results(tmp_path, "libero_object", [0], 0.0, per_task) == 0
+
+
+class TestHeadsDevice:
+    """The heads may live off-CPU; every tensor the loop builds must follow."""
+
+    @staticmethod
+    def _accelerator() -> str | None:
+        if torch.cuda.is_available():
+            return "cuda:0"
+        if torch.backends.mps.is_available():
+            return "mps"
+        return None
+
+    def test_loop_reports_the_heads_device(self, tmp_path):
+        policy = MicroVLAPolicy(
+            checkpoint=None, norm_stats=str(_write_norm_stats(tmp_path / "n.json")),
+            **_mock_policy_kwargs(),
+        )
+        assert policy.loop.device == torch.device("cpu")
+
+    def test_matches_cpu_after_moving_the_heads(self, tmp_path):
+        """Same weights on another device must give (numerically) the same plan."""
+        dev = self._accelerator()
+        if dev is None:
+            pytest.skip("no accelerator available for a device-placement test")
+
+        norm_stats = str(_write_norm_stats(tmp_path / "n.json"))
+        frames = [np.zeros((128, 128, 3), dtype=np.uint8) for _ in range(6)]
+        proprio = np.zeros(10, dtype=np.float32)
+        proprio[-1] = 1.0
+
+        policy = MicroVLAPolicy(checkpoint=None, norm_stats=norm_stats,
+                                perception_period=3, **_mock_policy_kwargs())
+        policy.reset("pick up the red block")
+        on_cpu = np.stack([policy.act(f, proprio=proprio) for f in frames])
+
+        for m in (policy.loop.fusion, policy.loop.drift, policy.loop.trm,
+                  policy.loop.planner, policy.loop.tqsa):
+            if m is not None:
+                m.to(dev)
+        assert policy.loop.device.type == torch.device(dev).type
+        policy.reset("pick up the red block")
+        on_dev = np.stack([policy.act(f, proprio=proprio) for f in frames])
+
+        assert np.isfinite(on_dev).all()
+        np.testing.assert_allclose(on_dev, on_cpu, rtol=1e-3, atol=1e-4)
 
 
 # ---------------------------------------------------------------------------

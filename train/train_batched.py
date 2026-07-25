@@ -27,6 +27,7 @@ Example (MI300X, ROCm):
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import random
 import sys
@@ -49,8 +50,10 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
+from microvla.utils.waypoint import waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
-from train.losses import planner_bc_loss, smoothness_loss, split_planner_loss, total_planner_loss
+from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
+                          total_planner_loss, waypoint_loss)
 from train.train_full import _scheduled_horizon, _tagged_name, save
 from train.train_planner import resolve_device
 from TRM import RecursiveTRM, spec_loss
@@ -129,6 +132,21 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "in stage B. Requires wrist_frames in the baked npz (re-bake with "
                         "the v7 converter) and ultralytics (frozen backbone map extractor). "
                         "Buckets without frames train planner-only (spatial=None).")
+    p.add_argument("--waypoint-weight", type=float, default=0.0,
+                   help="v7.2: > 0 enables the WAYPOINT-ABSOLUTE head (predict the metric "
+                        "EEF displacement to each plan step) and weights its masked MSE. "
+                        "The std_ratio lever: at eval the translation command becomes a "
+                        "proportional move toward the predicted position measured against "
+                        "live proprio, so magnitude stops depending on the regression's "
+                        "amplitude. Needs eef_pos_chunk in the npz; fit the actuation gain "
+                        "with `python -m preprocess.fit_waypoint_gain <data-dir>`. Try 1.0.")
+    p.add_argument("--planner-drop", type=str, default="",
+                   help="comma-separated planner memory groups to ABLATE, e.g. "
+                        "'geometry,pred_box_emb'. Valid names: "
+                        + ",".join(ChronoQueryPlanner.INPUT_NAMES) + ". The choice is "
+                        "baked into the checkpoint's cfg, so eval/bench rebuild the same "
+                        "planner automatically. Use `eval.bench --sensitivity` as the "
+                        "evidence for what is safe to drop.")
     return p.parse_args(argv)
 
 
@@ -397,23 +415,30 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
     nb = 0
     for T, batch in iter_batches(val_b, 1, args.batch_size, rng, need=1):
         fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
-        preds, grips = [], []
+        preds, grips, wps = [], [], []
         for t in range(T):
             cur = batch["frame_embs"][:, t]
             wm = trm.forward_full(fused_all[t], delta_all[t], cur)
             sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
             geom = torch.cat([sc, tc, bw], dim=-1)
             spatial = _batch_spatial(batch, t, tqsa, backbone, device)
-            plan, grip = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
-                                 fused=fused_all[t], pred_box_emb=wm["next_box"],
-                                 geometry=geom, proprio=batch["proprio"][:, t],
-                                 spatial=spatial, wm_msg=wm["msg"], return_aux=True)
+            plan, grip, wp = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
+                                     fused=fused_all[t], pred_box_emb=wm["next_box"],
+                                     geometry=geom, proprio=batch["proprio"][:, t],
+                                     spatial=spatial, wm_msg=wm["msg"], return_wp=True)
             preds.append(plan); grips.append(grip)
+            if wp is not None:
+                wps.append(wp)
         P = torch.stack(preds, 1).reshape(-1, cfg.plan_steps, cfg.num_servos)
         G = torch.stack(grips, 1).reshape(-1, cfg.plan_steps)
         Y = batch["pwm_targets"].reshape(-1, cfg.plan_steps, cfg.num_servos)
         tot += float(split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
                                         row0_weight=args.row0_weight))
+        if wps:
+            wp_t, row_mask = waypoint_targets(batch["eef_pos_chunk"], cfg.plan_steps,
+                                              cfg.waypoint_range)
+            tot += args.waypoint_weight * float(waypoint_loss(
+                torch.stack(wps, dim=1), wp_t, row_mask, valid=batch["proprio"][..., -1]))
         ga += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
         nb += 1
     planner.train()
@@ -458,7 +483,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             with torch.no_grad():
                 fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
-            preds, grips = [], []
+            preds, grips, wps = [], [], []
             for t in range(T):
                 # Dream-consistent stage B (v5): with prob --dream-frac, train
                 # this step in the DREAM regime the planner actually runs in at
@@ -497,11 +522,13 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 pid = args.planner_input_dropout
                 fused_in = None if (pid > 0 and rng.random() < pid) else fused_t
                 cur_in = None if (pid > 0 and rng.random() < pid) else cur
-                plan, grip = planner(next_emb, current_emb=cur_in, state_delta=delta_t,
-                                     fused=fused_in, pred_box_emb=next_box,
-                                     geometry=geom, proprio=batch["proprio"][:, t],
-                                     spatial=spatial, wm_msg=wm["msg"], return_aux=True)
+                plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_t,
+                                         fused=fused_in, pred_box_emb=next_box,
+                                         geometry=geom, proprio=batch["proprio"][:, t],
+                                         spatial=spatial, wm_msg=wm["msg"], return_wp=True)
                 preds.append(plan); grips.append(grip)
+                if wp is not None:
+                    wps.append(wp)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]
             target = batch["pwm_targets"]               # [B, T, 5, 7]
@@ -509,6 +536,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             Y = target.reshape(-1, *target.shape[2:])
             loss = split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
                                       row0_weight=args.row0_weight)
+            if wps:
+                wp_t, row_mask = waypoint_targets(batch["eef_pos_chunk"],
+                                                  cfg.plan_steps, cfg.waypoint_range)
+                loss = loss + args.waypoint_weight * waypoint_loss(
+                    torch.stack(wps, dim=1), wp_t, row_mask,
+                    valid=batch["proprio"][..., -1])
             if unfreeze and T > 4:
                 # World-model auxiliary: one random 3-step rollout per batch so
                 # BC fine-tuning cannot erode frame prediction (bench verifies).
@@ -550,6 +583,21 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
 def main(argv=None) -> None:
     args = parse_args(argv)
     cfg = DEFAULT_CONFIG
+    if args.planner_drop:
+        drop = {s.strip() for s in args.planner_drop.split(",") if s.strip()}
+        unknown = sorted(drop - set(ChronoQueryPlanner.INPUT_NAMES))
+        if unknown:
+            raise SystemExit(f"--planner-drop: unknown input(s) {unknown}; "
+                             f"valid: {list(ChronoQueryPlanner.INPUT_NAMES)}")
+        kept = tuple(n for n in cfg.planner_inputs if n not in drop)
+        if not kept:
+            raise SystemExit("--planner-drop would ablate every planner input.")
+        cfg = dataclasses.replace(cfg, planner_inputs=kept)
+        print(f"planner inputs: {kept} (dropped {sorted(drop)})", flush=True)
+    if args.waypoint_weight > 0:
+        cfg = dataclasses.replace(cfg, waypoint_action=True)
+        print(f"waypoint-absolute head ON (weight {args.waypoint_weight}, "
+              f"range {cfg.waypoint_range} m)", flush=True)
     device = resolve_device(args.device)
     torch.manual_seed(args.seed)
     cap_vram(device, args.max_vram_gb)

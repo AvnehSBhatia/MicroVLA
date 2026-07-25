@@ -31,6 +31,7 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -296,6 +297,7 @@ def run_eval(
     out_dir: str | Path = "eval_results",
     task_filter: list[int] | None = None,
     run_tag: str = "",
+    tasks: list[_TaskSpec] | None = None,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -324,25 +326,41 @@ def run_eval(
             runs every task in the suite.
         run_tag: Suffix appended to the run id (keeps per-worker telemetry
             files collision-free).
+        tasks: Pre-enumerated task specs, bypassing ``_real_tasks``. The
+            parallel driver enumerates ONCE in the parent and ships the specs
+            to workers, so N workers do not import ``libero`` and re-read every
+            task's init states simultaneously.
 
     Returns:
         ``{"suite", "per_task": {task_name: success_rate}, "mean_success",
         "n_trials", "telemetry_path"}``.
     """
-    policy = policy_factory()
-    tasks = _mock_tasks(suite) if mock_env else _real_tasks(suite)
-    if task_filter is not None:
-        tasks = [t for i, t in enumerate(tasks) if i in set(task_filter)]
     run_trial = _run_mock_trial if mock_env else _run_real_trial
-
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}{run_tag}"
     telemetry_path = out / f"{run_id}_telemetry.jsonl"
 
     per_task: dict[str, float] = {}
-    wtag = run_tag or "main"
+    wtag = (run_tag or "main").lstrip("_")
+    # The telemetry file is opened BEFORE the expensive policy build on purpose:
+    # its existence is the cheapest possible proof that a worker got this far.
+    # (A 10-worker run once stalled for 20 minutes with no file and no output,
+    # which left the whole build+enumeration window indistinguishable from a
+    # worker that never started — see the heartbeats below.)
     with telemetry_path.open("w") as tf:
+        t_build = time.time()
+        print(f"[{wtag}] building policy...", flush=True)
+        policy = policy_factory()
+        print(f"[{wtag}] policy ready ({time.time() - t_build:.0f}s); "
+              f"enumerating {suite}", flush=True)
+        t_enum = time.time()
+        if tasks is None:
+            tasks = _mock_tasks(suite) if mock_env else _real_tasks(suite)
+        if task_filter is not None:
+            tasks = [t for i, t in enumerate(tasks) if i in set(task_filter)]
+        print(f"[{wtag}] {len(tasks)} task(s) ({time.time() - t_enum:.0f}s); starting trials",
+              flush=True)
         for task in tasks:
             successes = 0
             for trial in range(n_trials):
@@ -370,7 +388,12 @@ def run_eval(
         "n_trials": n_trials,
         "telemetry_path": str(telemetry_path),
     }
-    (out / f"{run_id}_results.json").write_text(json.dumps(results, indent=2))
+    results_path = out / f"{run_id}_results.json"
+    results_path.write_text(json.dumps(results, indent=2))
+    # Printed because this file is a worker's OWN durable output: if the parent
+    # later aborts the pool (a sibling worker died, the watchdog fired), the
+    # shards that did finish are still on disk under these names.
+    print(f"[{wtag}] mean_success {mean_success:.3f} -> {results_path}", flush=True)
     return results
 
 
@@ -398,6 +421,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             perception=perception,
             task_encoder=task_encoder,
             zero_center_actions=args.zero_center_actions,
+            waypoint_stats=getattr(args, "waypoint_stats", None),
+            heads_device=getattr(args, "heads_device", None),
         )
 
     return factory
@@ -416,8 +441,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
     p.add_argument("--norm-stats", default=None,
                     help="norm_stats.json path; defaults to eval/identity_norm_stats.json")
+    p.add_argument("--waypoint-stats", default=None,
+                    help="v7.2 waypoint_stats.json (preprocess/fit_waypoint_gain.py). With a "
+                         "waypoint-trained checkpoint, translation commands become a "
+                         "proportional move toward the predicted EEF position measured "
+                         "against live proprio instead of the regressed plan dims.")
     p.add_argument("--perception-period", type=int, default=15)
-    p.add_argument("--device", default="cpu")
+    p.add_argument("--device", default="cpu",
+                   help="device for the YOLO-World detector (1 tick in --perception-period).")
+    p.add_argument("--heads-device", default=None,
+                   help="device for fusion/drift/TRM/planner/TQSA (default: cpu, unchanged). "
+                        "These run on EVERY tick while the detector runs on one in 15, so on "
+                        "the 15:1 schedule the d=1024 TRM — not the detector — dominates "
+                        "wall-clock. Try matching --device on a box with GPU headroom.")
     p.add_argument("--out-dir", default="eval_results")
     p.add_argument("--zero-center-actions", action="store_true",
                    help="denormalize actions zero-centered (x=0 -> no motion) so a "
@@ -425,11 +461,59 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "wall. Diagnostic for the asymmetric-quantile drift; a proper fix "
                         "trains against symmetric targets.")
     p.add_argument("--workers", type=int, default=1,
-                   help="parallel eval processes (real env only). Episodes are "
-                        "embarrassingly parallel and osmesa rendering is single-"
-                        "threaded CPU work, so N workers ~= N x wall-clock. Each "
-                        "worker owns a task shard + its own policy/env.")
+                   help="parallel eval processes. Episodes are embarrassingly parallel "
+                        "and osmesa rendering is CPU work, so N workers ~= N x "
+                        "throughput until the cores run out. Each worker owns a task "
+                        "shard + its own policy/env, and its thread pools are capped to "
+                        "cpu_count/workers. Works with --mock-env too (that is how the "
+                        "parallel path stays testable without a simulator).")
+    p.add_argument("--task-ids", default="",
+                   help="comma-separated task indices to run, e.g. '0,3,7'. Manual "
+                        "sharding: N single-task processes in a shell loop is the "
+                        "fallback when in-process parallelism misbehaves.")
+    p.add_argument("--stagger", type=float, default=5.0,
+                   help="seconds x worker index to delay each worker's start, spreading "
+                        "GPU-context / renderer / import storms. 0 disables.")
+    p.add_argument("--worker-timeout", type=float, default=0.0,
+                   help="seconds before unfinished workers are declared stalled, killed, "
+                        "and reported (0 = wait forever). Partial results from the "
+                        "workers that DID finish are kept and clearly marked partial.")
     return p.parse_args(argv)
+
+
+def _limit_worker_threads(n_workers: int) -> int:
+    """Caps per-process thread pools for a run of ``n_workers`` workers.
+
+    Nothing on the eval path ever called ``torch.set_num_threads``, so each of
+    N worker processes would build an OpenMP team sized to the HOST core count
+    (PyTorch does not read cgroup quotas), plus an OpenBLAS pool, plus OSMesa's
+    llvmpipe rasterizer threads — hundreds of threads per worker, thousands per
+    run. Measured on the d=1024 TRM: an oversized team is 2.5x SLOWER than
+    single-threaded at batch 1, so the oversubscription is not merely wasteful,
+    it is a direct slowdown of the thing being evaluated.
+
+    MUST BE CALLED IN THE PARENT, before workers are spawned. ``eval/__init__``
+    imports ``eval.policy``, which imports torch — so by the time any code in
+    this module runs, libgomp is already initialized in THIS process and these
+    variables would be no-ops here. Spawned children inherit ``os.environ`` and
+    read them at their own startup, which is where they bite.
+
+    Args:
+        n_workers: Total worker processes sharing this machine.
+
+    Returns:
+        The per-worker thread budget applied.
+    """
+    budget = max(1, (os.cpu_count() or 1) // max(1, n_workers))
+    for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+        os.environ.setdefault(var, str(budget))
+    # OSMesa's software rasterizer spawns its own pool per GL context.
+    os.environ.setdefault("LP_NUM_THREADS", str(budget))
+    # Train-parity hygiene, not a fix for anything seen here: the trainers set
+    # this for a known hipBLASLt segfault on some ROCm GEMMs and eval never did.
+    os.environ.setdefault("TORCH_BLAS_PREFER_HIPBLASLT", "0")
+    return budget
 
 
 def _parallel_worker(payload: dict) -> dict:
@@ -437,63 +521,215 @@ def _parallel_worker(payload: dict) -> dict:
 
     Rebuilds the CLI args namespace from a plain dict (picklable across the
     ``spawn`` boundary — required for CUDA/ROCm safety), builds its OWN policy
-    and envs, and runs ``run_eval`` restricted to its task indices.
+    and envs, and runs ``run_eval`` restricted to its shard.
+
+    Every step prints, because the failure this replaced was a silent one: the
+    worker announces itself BEFORE the stagger sleep (so "started but waiting"
+    is distinguishable from "never scheduled"), and ``run_eval`` brackets the
+    policy build and task enumeration with their own heartbeats.
     """
-    args = argparse.Namespace(**payload["args"])
-    delay = 5.0 * payload["worker"]
+    w = payload["worker"]
+    print(f"[w{w}] spawned (pid {os.getpid()}, {len(payload['tasks'])} tasks)", flush=True)
+    # A worker can stall INSIDE a C call the heartbeats cannot reach (the prime
+    # suspect for the 20-minute hang is concurrent HIP context creation inside
+    # `.to('cuda:0')`). faulthandler dumps the native+Python stack from a
+    # watchdog thread, so a stuck worker self-reports without py-spy — which
+    # needs SYS_PTRACE that containers often deny. `kill -USR1 <pid>` forces a
+    # dump on demand; the pid is on the line above.
+    import faulthandler
+    import signal
+
+    faulthandler.enable()
+    if hasattr(signal, "SIGUSR1"):
+        faulthandler.register(signal.SIGUSR1)
+    faulthandler.dump_traceback_later(600, repeat=True, exit=False)
+
+    budget = payload["thread_budget"]
+    delay = payload["stagger"] * w
     if delay:
-        time.sleep(delay)  # stagger CUDA/mujoco context creation
-    print(f"[w{payload['worker']}] starting (tasks {payload['task_ids']})", flush=True)
+        print(f"[w{w}] staggering {delay:.0f}s (threads<={budget})", flush=True)
+        time.sleep(delay)  # stagger GPU-context / renderer / import storms
+    args = argparse.Namespace(**payload["args"])
+    try:
+        import torch
+
+        torch.set_num_threads(budget)
+    except Exception as e:  # pragma: no cover - torch is always present in practice
+        print(f"[w{w}] could not cap torch threads: {e}", flush=True)
     return run_eval(
         _make_policy_factory(args),
         suite=args.suite,
         n_trials=args.n_trials,
         max_steps=args.max_steps,
         camera=args.camera,
-        mock_env=False,
+        mock_env=args.mock_env,
         seed=args.seed,
         out_dir=args.out_dir,
-        task_filter=payload["task_ids"],
-        run_tag=f"_w{payload['worker']}",
+        run_tag=f"_w{w}",
+        tasks=payload["tasks"],
     )
+
+
+def _scavenge_worker_results(
+    out: Path, suite: str, workers: list[int], since: float, per_task: dict[str, float],
+) -> int:
+    """Recovers finished shards of workers whose RESULT never came back.
+
+    One dead worker breaks the whole executor, failing its healthy siblings'
+    futures too — but every worker writes its own ``*_results.json`` the moment
+    it finishes, so that work is on disk even when the return trip was lost.
+
+    Only failed workers are scavenged and merges are keyed by task name, so a
+    worker that wrote its file and THEN died during return-pickling cannot be
+    counted twice.
+
+    Args:
+        out: Results directory.
+        suite: Suite name (the results filename prefix).
+        workers: Indices of workers that failed.
+        since: Ignore files older than this timestamp (a previous run's).
+        per_task: Already-reported results; updated in place with new entries.
+
+    Returns:
+        How many tasks were recovered.
+    """
+    scavenged = 0
+    for w in workers:
+        found = [p for p in out.glob(f"{suite}_*_w{w}_results.json")
+                 if p.stat().st_mtime >= since]
+        if not found:
+            continue
+        try:
+            recovered = json.loads(max(found, key=lambda p: p.stat().st_mtime).read_text())
+        except (OSError, ValueError):
+            continue
+        new = {k: v for k, v in recovered.get("per_task", {}).items() if k not in per_task}
+        if new:
+            per_task.update(new)
+            scavenged += len(new)
+            print(f"[w{w}] recovered {len(new)} task(s) from its on-disk results",
+                  flush=True)
+    return scavenged
+
+
+def _run_parallel(args: argparse.Namespace, tasks: list[_TaskSpec]) -> dict:
+    """Shards ``tasks`` across worker processes and merges their results.
+
+    Uses :class:`concurrent.futures.ProcessPoolExecutor`, NOT ``mp.Pool``:
+    ``Pool.map`` has no worker-death detection — a segfaulting or OOM-killed
+    worker is quietly reaped and replaced while its chunk is never
+    re-dispatched, so the parent blocks forever with no error. That is exactly
+    the shape of an unexplainable 20-minute hang. ``ProcessPoolExecutor``
+    raises ``BrokenProcessPool`` instead, in under a second.
+
+    Per-worker results are written the moment they arrive, so a stall in one
+    shard costs only that shard.
+    """
+    import concurrent.futures as cf
+    import multiprocessing as mp
+
+    workers = min(max(1, int(args.workers)), len(tasks))
+    # Set the thread env HERE, in the parent: children inherit os.environ at
+    # spawn and read it before their own libgomp/OpenBLAS come up. Setting it
+    # inside the worker would be too late (see _limit_worker_threads).
+    budget = _limit_worker_threads(workers)
+    shards = [tasks[w::workers] for w in range(workers)]
+    payloads = [
+        {"args": vars(args), "tasks": s, "worker": w, "thread_budget": budget,
+         "stagger": args.stagger}
+        for w, s in enumerate(shards) if s
+    ]
+    print(f"parallel eval: {len(tasks)} tasks across {len(payloads)} workers "
+          f"({args.stagger:.0f}s stagger, {args.worker_timeout or 0:.0f}s timeout)",
+          flush=True)
+
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    t_start = time.time()
+    per_task: dict[str, float] = {}
+    telemetry_paths: list[str] = []
+    failed: dict[int, str] = {}
+    ctx = mp.get_context("spawn")  # fork + CUDA/ROCm is unsafe
+    deadline = time.time() + args.worker_timeout if args.worker_timeout else None
+    pool = cf.ProcessPoolExecutor(max_workers=len(payloads), mp_context=ctx)
+    futures = {pool.submit(_parallel_worker, p): p["worker"] for p in payloads}
+    try:
+        for fut in cf.as_completed(futures, timeout=None if deadline is None
+                                   else max(1.0, deadline - time.time())):
+            w = futures[fut]
+            try:
+                r = fut.result()
+            except Exception as e:
+                failed[w] = f"{type(e).__name__}: {e}"
+                print(f"[w{w}] FAILED — {failed[w]}", flush=True)
+                continue
+            per_task.update(r["per_task"])
+            telemetry_paths.append(r["telemetry_path"])
+            print(f"[w{w}] done: {len(r['per_task'])} tasks, "
+                  f"mean {r['mean_success']:.3f}", flush=True)
+    except cf.TimeoutError:
+        stalled = sorted(w for f, w in futures.items() if not f.done())
+        failed.update({w: "timeout" for w in stalled})
+        print(f"\nTIMED OUT after {args.worker_timeout:.0f}s — workers {stalled} "
+              f"never finished; killing them. To see WHERE one is stuck, before "
+              f"killing:\n  pip install py-spy && py-spy dump --pid <PID>\n"
+              f"(every worker prints its pid on the line it starts with).", flush=True)
+    finally:
+        for f in futures:
+            f.cancel()
+        # A running future cannot be cancelled, and the executor's shutdown
+        # WAITS for it — so a stalled worker would turn the watchdog itself
+        # into a hang. Kill the processes first, then shut down.
+        if failed:
+            for proc in (getattr(pool, "_processes", None) or {}).values():
+                if proc.is_alive():
+                    proc.kill()
+        pool.shutdown(wait=True)
+
+    scavenged = _scavenge_worker_results(out, args.suite, sorted(failed),
+                                         t_start, per_task)
+    results = {
+        "suite": args.suite,
+        "per_task": per_task,
+        "mean_success": sum(per_task.values()) / len(per_task) if per_task else 0.0,
+        "n_trials": args.n_trials,
+        "workers": len(payloads),
+        "tasks_expected": len(tasks),
+        "tasks_completed": len(per_task),
+        "tasks_scavenged": scavenged,
+        "failed_workers": failed,
+        "telemetry_paths": telemetry_paths,
+    }
+    if failed:
+        print(f"WARNING: {len(failed)}/{len(payloads)} workers did not finish "
+              f"({failed}); mean_success covers {len(per_task)}/{len(tasks)} tasks "
+              f"and is NOT the suite number.", flush=True)
+    merged = out / f"{args.suite}_real_{int(time.time() * 1000)}_results.json"
+    merged.write_text(json.dumps(results, indent=2))
+    return results
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-    workers = max(1, int(args.workers))
-    if workers > 1 and not args.mock_env:
-        import multiprocessing as mp
+    # Enumerate ONCE, in the parent: N workers importing libero and re-reading
+    # every task's init states simultaneously is a concurrency hazard bought for
+    # nothing, and the specs pickle fine across the spawn boundary.
+    tasks = _mock_tasks(args.suite) if args.mock_env else _real_tasks(args.suite)
+    if args.task_ids:
+        keep = {int(i) for i in args.task_ids.split(",") if i.strip() != ""}
+        unknown = sorted(i for i in keep if not 0 <= i < len(tasks))
+        if unknown:
+            raise SystemExit(f"--task-ids {unknown} out of range "
+                             f"(suite {args.suite} has {len(tasks)} tasks)")
+        tasks = [t for i, t in enumerate(tasks) if i in keep]
+        print(f"task filter: {sorted(keep)} -> {len(tasks)} task(s)", flush=True)
 
-        n_tasks = len(_real_tasks(args.suite))  # benchmark registry only, no envs
-        shards = [list(range(w, n_tasks, workers)) for w in range(workers)]
-        shards = [s for s in shards if s]
-        payloads = [
-            {"args": vars(args), "task_ids": s, "worker": w}
-            for w, s in enumerate(shards)
-        ]
-        print(f"parallel eval: {n_tasks} tasks across {len(payloads)} workers", flush=True)
-        ctx = mp.get_context("spawn")  # fork + CUDA/ROCm is unsafe
-        with ctx.Pool(processes=len(payloads)) as pool:
-            worker_results = pool.map(_parallel_worker, payloads)
-
-        per_task: dict[str, float] = {}
-        for r in worker_results:
-            per_task.update(r["per_task"])
-        results = {
-            "suite": args.suite,
-            "per_task": per_task,
-            "mean_success": sum(per_task.values()) / len(per_task) if per_task else 0.0,
-            "n_trials": args.n_trials,
-            "workers": len(payloads),
-            "telemetry_paths": [r["telemetry_path"] for r in worker_results],
-        }
-        out = Path(args.out_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        merged = out / f"{args.suite}_real_{int(time.time() * 1000)}_results.json"
-        merged.write_text(json.dumps(results, indent=2))
+    if max(1, int(args.workers)) > 1:
+        results = _run_parallel(args, tasks)
     else:
+        _limit_worker_threads(1)
         results = run_eval(
             _make_policy_factory(args),
             suite=args.suite,
@@ -503,6 +739,7 @@ def main(argv: list[str] | None = None) -> None:
             mock_env=args.mock_env,
             seed=args.seed,
             out_dir=args.out_dir,
+            tasks=tasks,
         )
     print(json.dumps(results, indent=2))
 
