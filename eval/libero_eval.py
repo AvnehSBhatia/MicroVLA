@@ -341,18 +341,25 @@ def run_eval(
     telemetry_path = out / f"{run_id}_telemetry.jsonl"
 
     per_task: dict[str, float] = {}
+    wtag = run_tag or "main"
     with telemetry_path.open("w") as tf:
         for task in tasks:
             successes = 0
             for trial in range(n_trials):
                 trial_seed = seed * 1_000_003 + trial
+                print(f"[{wtag}] START {task.name} trial {trial}", flush=True)
+                t_start = time.time()
                 success, telemetry = run_trial(policy, task, trial_seed, max_steps, camera)
                 successes += int(success)
+                print(f"[{wtag}] DONE  {task.name} trial {trial}: "
+                      f"success={success} steps={len(telemetry)} "
+                      f"({time.time() - t_start:.0f}s)", flush=True)
                 for rec in telemetry:
                     tf.write(json.dumps({
                         "suite": suite, "task": task.name, "trial": trial,
                         "success": success, **rec,
                     }) + "\n")
+                tf.flush()  # live progress for tail/watch
             per_task[task.name] = successes / n_trials if n_trials else 0.0
 
     mean_success = sum(per_task.values()) / len(per_task) if per_task else 0.0
@@ -433,6 +440,10 @@ def _parallel_worker(payload: dict) -> dict:
     and envs, and runs ``run_eval`` restricted to its task indices.
     """
     args = argparse.Namespace(**payload["args"])
+    delay = 5.0 * payload["worker"]
+    if delay:
+        time.sleep(delay)  # stagger CUDA/mujoco context creation
+    print(f"[w{payload['worker']}] starting (tasks {payload['task_ids']})", flush=True)
     return run_eval(
         _make_policy_factory(args),
         suite=args.suite,
