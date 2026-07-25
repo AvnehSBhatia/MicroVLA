@@ -59,6 +59,11 @@ from train.train_planner import resolve_device
 from TRM import RecursiveTRM, spec_loss
 
 
+#: Minimum seconds between intra-epoch progress lines. Long enough to stay out
+#: of the way on fast epochs, short enough that "silent" always means "stuck".
+_HEARTBEAT_SEC: float = 60.0
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data-dir", action="append", required=True)
@@ -333,6 +338,7 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         at_max = H >= args.max_horizon
         fusion.train(); drift.train(); trm.train()
         run, nb, t0 = 0.0, 0, time.time()
+        last_beat = t0
         for T, batch in iter_batches(train_b, H, args.batch_size, rng, need=1):
             fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
             ts = list(range(T - H)); rng.shuffle(ts); ts = ts[: args.segments_per_episode]
@@ -354,6 +360,10 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
             torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
             opt.step()
             run += float(loss.detach()); nb += 1
+            if time.time() - last_beat >= _HEARTBEAT_SEC:
+                last_beat = time.time()
+                print(f"[stage A] epoch {epoch} .. {nb} batches | "
+                      f"loss {run/max(nb,1):.4f} | {last_beat-t0:.0f}s", flush=True)
 
         val, pers = evaluate(val_b, fusion, drift, trm, cfg, H, args.gamma,
                              args.ablate_grounding, args.batch_size, rng)
@@ -479,7 +489,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
         if tqsa is not None:
             tqsa.train()
-        run = 0.0; grip_acc = 0.0; nb = 0; t0 = time.time()
+        run = 0.0; grip_acc = 0.0; nb = 0; t0 = last_beat = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             with torch.no_grad():
                 fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
@@ -555,6 +565,16 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # gripper decision accuracy vs the demo (are we learning to close?)
                 grip_acc += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
             nb += 1
+            # Intra-epoch heartbeat: with --tqsa an epoch runs the frozen
+            # backbone over every framed timestep (~23k 512px forwards), so a
+            # single epoch can take many minutes with nothing on stdout —
+            # indistinguishable from a hang. Time-throttled, so it costs
+            # nothing on fast epochs.
+            if time.time() - last_beat >= _HEARTBEAT_SEC:
+                last_beat = time.time()
+                print(f"[stage B] epoch {epoch} .. {nb} batches | "
+                      f"loss {run/max(nb,1):.4f} | grip {grip_acc/max(nb,1):.3f} "
+                      f"| {last_beat-t0:.0f}s", flush=True)
         extra = {"tqsa": tqsa} if tqsa is not None else {}
         if args.stage_b_patience > 0:
             val_loss, val_ga = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
