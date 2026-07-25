@@ -65,6 +65,11 @@ class SourceEpisode:
     instruction: str
     source_hz: float
     episode_id: str
+    # v7 optional raw robot state (LIBERO fills these; Bridge leaves None):
+    #   proprio_raw [T_raw, 10]  — utils.proprio.build_proprio per native step
+    #   eef_pos_raw [T_raw, 3]   — absolute EEF xyz per native step
+    proprio_raw: np.ndarray | None = None
+    eef_pos_raw: np.ndarray | None = None
 
 
 def subsample_indices(n_frames: int, source_hz: float, target_hz: float) -> list[int]:
@@ -141,6 +146,21 @@ class ActionNormalizer:
         stacked = np.concatenate([np.asarray(a, dtype=np.float64) for a in action_arrays], axis=0)
         return cls(np.quantile(stacked, 0.01, axis=0), np.quantile(stacked, 0.99, axis=0))
 
+    @classmethod
+    def fit_symmetric(cls, action_arrays: Iterable[np.ndarray]) -> "ActionNormalizer":
+        """Quantile-robust SYMMETRIC stats: normalized 0 <=> raw 0 (no motion).
+
+        ``s = max(|q01|, |q99|)`` per dim, ``q_low = -s, q_high = +s``. The v5
+        hard rule: an asymmetric mapping turns a neutral/collapsed policy
+        output into a constant drift command (measured drift-into-wall). All
+        NEW bakes use this; ``preprocess/renorm_symmetric.py`` retrofits old ones.
+        """
+        stacked = np.concatenate([np.asarray(a, dtype=np.float64) for a in action_arrays], axis=0)
+        s = np.maximum(np.abs(np.quantile(stacked, 0.01, axis=0)),
+                       np.abs(np.quantile(stacked, 0.99, axis=0)))
+        s = np.where(s > 1e-8, s, 1.0)
+        return cls(-s, s)
+
     def __call__(self, actions: np.ndarray) -> np.ndarray:
         x = (np.asarray(actions, dtype=np.float64) - self.q_low) / self._span
         return np.clip(2.0 * x - 1.0, -1.0, 1.0).astype(np.float32)
@@ -190,8 +210,12 @@ class EpisodeBuilder:
     """
 
     def __init__(self, cfg: MicroVLAConfig = DEFAULT_CONFIG, mock: bool = False,
-                 device: str = "cpu") -> None:
+                 device: str = "cpu", store_frames: bool = False) -> None:
         self.cfg = cfg
+        # v7: also bake the sampled raw frames (uint8) so perception (TQSA) is
+        # trainable. Off by default (Bridge world-model-only bakes stay lean);
+        # the LIBERO converter turns it on.
+        self.store_frames = store_frames
         if mock:
             from microvla.perception.text_encoder import MockTaskEncoder
             from microvla.perception.yolo_world import MockYoloWorldPerception
@@ -260,7 +284,7 @@ class EpisodeBuilder:
             weights.append([p.source.confidence, p.target.confidence])
 
         pwm = chunk_actions(normalizer(episode.actions), indices, self.cfg.plan_steps)
-        return {
+        out = {
             "frame_embs": np.stack(frame_embs).astype(np.float32),
             "source_box_embs": np.stack(s_embs).astype(np.float32),
             "target_box_embs": np.stack(t_embs).astype(np.float32),
@@ -270,6 +294,23 @@ class EpisodeBuilder:
             "text_tokens": task.tokens().numpy().astype(np.float32),
             "pwm_targets": pwm,
         }
+        # v7: raw sampled frames (uint8, compressed by savez) — makes perception
+        # TRAINABLE (TQSA) without ever re-downloading. ~50 KB/frame at 128 px.
+        if self.store_frames:
+            out["wrist_frames"] = np.stack(
+                [np.ascontiguousarray(episode.frames[i]) for i in indices]
+            ).astype(np.uint8)
+        # v7: proprio + absolute EEF chunk, sampled at the SAME indices.
+        if episode.proprio_raw is not None:
+            out["proprio"] = np.asarray(
+                [episode.proprio_raw[i] for i in indices], dtype=np.float32
+            )
+        if episode.eef_pos_raw is not None:
+            out["eef_pos_chunk"] = chunk_actions(
+                np.asarray(episode.eef_pos_raw, dtype=np.float32),
+                indices, self.cfg.plan_steps,
+            )
+        return out
 
 
 def run_conversion(
@@ -280,6 +321,7 @@ def run_conversion(
     device: str = "cpu",
     limit: int | None = None,
     teacher=None,
+    store_frames: bool = False,
 ) -> Path:
     """Two-pass conversion driver: fit action stats, then write episodes.
 
@@ -318,12 +360,12 @@ def run_conversion(
                 ep = dataclasses.replace(ep, actions=teacher.relabel(ep))
             yield ep
 
-    logger.info("pass 1/2: fitting action normalization stats")
-    normalizer = ActionNormalizer.fit(ep.actions for ep in _take(episodes()))
+    logger.info("pass 1/2: fitting SYMMETRIC action normalization stats")
+    normalizer = ActionNormalizer.fit_symmetric(ep.actions for ep in _take(episodes()))
     normalizer.save(out / "norm_stats.json")
 
     logger.info("pass 2/2: running frozen perception and writing episodes")
-    builder = EpisodeBuilder(cfg, mock=mock, device=device)
+    builder = EpisodeBuilder(cfg, mock=mock, device=device, store_frames=store_frames)
     manifest = []
     for n, ep in enumerate(_take(episodes())):
         arrays = builder.build(ep, normalizer)

@@ -272,9 +272,12 @@ class MicroVLAPolicy:
             cfg = MicroVLAConfig(**state["cfg"]) if state is not None else DEFAULT_CONFIG
         self.cfg = cfg
 
+        from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
+
         fusion = SlotResonanceFusion(cfg)
         drift = AnchoredDriftEncoder(cfg)
         planner = ChronoQueryPlanner(cfg)
+        tqsa = TextQueriedSpatialAdapter(cfg)
 
         trm_overridden = trm is not None
         if trm is None:
@@ -298,11 +301,19 @@ class MicroVLAPolicy:
                 _load_relaxed(trm, state["trm"], "trm")
             if is_stage_b:
                 _load_relaxed(planner, state["planner"], "planner")
+            if "tqsa" in state:
+                _load_relaxed(tqsa, state["tqsa"], "tqsa")
+            else:
+                logger.warning(
+                    "checkpoint has no TQSA weights (pre-v7) — spatial adapter "
+                    "runs at RANDOM INIT; retrain stage B to populate."
+                )
 
         fusion.to(heads_device).eval()
         drift.to(heads_device).eval()
         trm.to(heads_device).eval()
         planner.to(heads_device).eval()
+        tqsa.to(heads_device).eval()
 
         if perception is None or task_encoder is None:
             real_perception, real_task_encoder = _build_real_perception(device)
@@ -317,6 +328,7 @@ class MicroVLAPolicy:
             drift=drift,
             trm=trm,
             planner=planner,
+            tqsa=tqsa,
         )
 
         self.telemetry: list[dict] = []

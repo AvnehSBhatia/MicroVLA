@@ -181,7 +181,12 @@ class ChronoQueryPlanner(nn.Module):
         # before AND after direct geometry — proprio is the missing input, not
         # more vision conditioning).
         self.proprio_proj = nn.Linear(10, cfg.d_plan)
-        self.type_emb = nn.Parameter(torch.randn(7, cfg.d_plan) * cfg.d_plan**-0.5)
+        # v7 TQSA inputs: spatial tokens + attention-pooled role features share
+        # one projection (both are tqsa_dim-wide); per-role heatmaps get their
+        # own. Type rows: 7 = spatial tokens, 8 = pooled roles, 9 = heatmaps.
+        self.spat_proj = nn.Linear(cfg.tqsa_dim, cfg.d_plan)
+        self.heat_proj = nn.Linear(cfg.tqsa_heat**2, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(10, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -223,6 +228,7 @@ class ChronoQueryPlanner(nn.Module):
                 pred_box_emb: torch.Tensor | None = None,
                 geometry: torch.Tensor | None = None,
                 proprio: torch.Tensor | None = None,
+                spatial: dict | None = None,
                 return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
@@ -247,6 +253,10 @@ class ChronoQueryPlanner(nn.Module):
             proprio: ``[B, 10]`` arm state (EEF pos, quat, gripper, validity —
                 see ``microvla/utils/proprio.py``) (v6). The phase signal BC
                 needs to avoid collapse; optional (zeros == "unavailable").
+            spatial: v7 TQSA output dict (``pooled [B, 3, tqsa_dim]``,
+                ``tokens [B, g*g, tqsa_dim]``, ``heatmaps [B, 3, h*h]``) — the
+                task-conditioned attention maps + spatial structure the GAP
+                embedding destroys. Optional.
 
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
@@ -281,6 +291,10 @@ class ChronoQueryPlanner(nn.Module):
             mem_parts.append(self.geom_proj(geometry).unsqueeze(1) + self.type_emb[5])  # [B, 1, d_plan]
         if proprio is not None:
             mem_parts.append(self.proprio_proj(proprio).unsqueeze(1) + self.type_emb[6])  # [B, 1, d_plan]
+        if spatial is not None:
+            mem_parts.append(self.spat_proj(spatial["tokens"]) + self.type_emb[7])   # [B, g*g, d_plan]
+            mem_parts.append(self.spat_proj(spatial["pooled"]) + self.type_emb[8])   # [B, 3, d_plan]
+            mem_parts.append(self.heat_proj(spatial["heatmaps"]) + self.type_emb[9])  # [B, 3, d_plan]
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.

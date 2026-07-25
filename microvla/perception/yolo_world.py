@@ -345,6 +345,50 @@ class YoloWorldPerception:
 
             return Perception(frame_emb=frame_emb, source=source, target=target)
 
+    def last_feature_map(self) -> Optional[torch.Tensor]:
+        """The hooked SPPF map from the most recent :meth:`perceive` call.
+
+        Returns:
+            ``[1, vis_dim, Hf, Wf]`` float32 CPU tensor, or ``None`` if no
+            frame has been perceived yet. Consumed by the trainable TQSA
+            (v7, ``microvla/perception/spatial_adapter.py``); the map itself
+            stays frozen — only the adapter on top of it trains.
+        """
+        return self._feat.float().cpu() if self._feat is not None else None
+
+    def feature_maps(self, frames_bgr: list) -> torch.Tensor:
+        """Batched SPPF maps for TRAINING the TQSA (frozen backbone forward).
+
+        Applies the SAME ``min_side`` upscale as :meth:`perceive` — without it
+        a 128 px dataset frame yields a ~4x4 map at train time while eval runs
+        on 16x16+, a silent train/eval fidelity mismatch for the adapter.
+
+        Args:
+            frames_bgr: List of ``HxWx3`` uint8 BGR frames (one batch).
+
+        Returns:
+            ``[B, vis_dim, Hf, Wf]`` float32 tensor on the model's device.
+        """
+        import cv2  # lazy: present wherever the real detector runs
+
+        ups = []
+        for f in frames_bgr:
+            short = min(f.shape[0], f.shape[1])
+            if short < self.min_side:
+                scale = self.min_side / short
+                f = cv2.resize(
+                    f, (round(f.shape[1] * scale), round(f.shape[0] * scale)),
+                    interpolation=cv2.INTER_CUBIC,
+                )
+            ups.append(f)
+        with torch.no_grad():
+            self._feat = None
+            self.model.predict(ups, device=self.device,
+                               conf=self.det_conf, half=False, verbose=False)
+            if self._feat is None:
+                raise RuntimeError("SPPF hook captured no feature map (batched).")
+            return self._feat.float()
+
     def _map_box_to_feature(
         self,
         box_xyxy: torch.Tensor,
@@ -421,6 +465,7 @@ class MockYoloWorldPerception:
     def __init__(self, vis_dim: int = 512) -> None:
         self.vis_dim = vis_dim
         self.active_classes: list[str] = []
+        self._last_map: Optional[torch.Tensor] = None  # mock TQSA input
 
     def set_classes(self, classes: list[str]) -> None:
         """Records the active class list (mock analogue of the real API).
@@ -515,4 +560,16 @@ class MockYoloWorldPerception:
         source = _box(source_theta, source_radius, source_emb, half_lo=24)
         target = _box(target_theta, target_radius, target_emb, half_lo=28)
 
+        # Mock TQSA input: deterministic pseudo feature map seeded like the
+        # embeddings (same frame -> same map), small 8x8 spatial extent.
+        map_gen = torch.Generator()
+        map_gen.manual_seed(seed ^ 0x5EEDFACE)
+        self._last_map = torch.randn(
+            1, self.vis_dim, 8, 8, generator=map_gen, dtype=torch.float32
+        )
+
         return Perception(frame_emb=frame_emb, source=source, target=target)
+
+    def last_feature_map(self) -> Optional[torch.Tensor]:
+        """Mock analogue: deterministic ``[1, vis_dim, 8, 8]`` map (or None)."""
+        return self._last_map

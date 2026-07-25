@@ -141,6 +141,7 @@ class JEPALoop:
         drift: AnchoredDriftEncoder,
         trm: TRMBase,
         planner: ChronoQueryPlanner,
+        tqsa=None,
     ) -> None:
         self.cfg = cfg
         self.task_encoder = task_encoder
@@ -149,6 +150,10 @@ class JEPALoop:
         self.drift = drift
         self.trm = trm
         self.planner = planner
+        # v7: optional Text-Queried Spatial Adapter — runs on the frozen
+        # backbone map on REAL ticks; outputs held across dream ticks (same
+        # held-evidence philosophy as boxes).
+        self.tqsa = tqsa
         self.corrector = InnovationCorrector(cfg)
 
         self._task: Optional["TaskEncoding"] = None
@@ -170,6 +175,8 @@ class JEPALoop:
         # v6: last supplied proprio [1, 10] — encoders are fast on a real
         # robot, so callers pass it EVERY tick; held if a tick omits it.
         self._last_proprio: Optional[torch.Tensor] = None
+        # v7: TQSA outputs from the last REAL tick (held across dreams).
+        self._last_spatial: Optional[dict] = None
         # Rolling window of the latents that drove recent ticks (oldest ->
         # newest), handed to the TRM as its context window each call.
         self._latent_ctx: deque[torch.Tensor] = deque(maxlen=cfg.context_window)
@@ -218,6 +225,7 @@ class JEPALoop:
         self._held_boxes = [None, None]
         self._miss_age = [0, 0]
         self._last_proprio = None
+        self._last_spatial = None
         self._latent_ctx.clear()
 
     def tick(self, frame_bgr=None, proprio=None) -> TickResult:
@@ -247,6 +255,8 @@ class JEPALoop:
         self.drift.eval()
         self.trm.eval()
         self.planner.eval()
+        if self.tqsa is not None:
+            self.tqsa.eval()
 
         with torch.no_grad():
             text_tokens = self._task.tokens().unsqueeze(0)  # [1, 3, text_dim]
@@ -317,6 +327,14 @@ class JEPALoop:
                     [percept.source.center.unsqueeze(0),
                      percept.target.center.unsqueeze(0), box_weight], dim=-1
                 )  # [1, 6]
+
+                # v7 TQSA on the frozen backbone map (real ticks only; outputs
+                # held across dreams like all other real evidence).
+                if self.tqsa is not None:
+                    fmap_fn = getattr(self.perception, "last_feature_map", None)
+                    fmap = fmap_fn() if callable(fmap_fn) else None
+                    if fmap is not None:
+                        self._last_spatial = self.tqsa(fmap, text_tokens)
                 fused = self.fusion(
                     text_tokens,
                     frame_emb.unsqueeze(0),
@@ -477,6 +495,7 @@ class JEPALoop:
             A loop with ``MockTaskEncoder``, ``MockYoloWorldPerception``,
             freshly initialized fusion/drift/planner heads, and ``MockTRM``.
         """
+        from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
         from microvla.perception.text_encoder import MockTaskEncoder
         from microvla.perception.yolo_world import MockYoloWorldPerception
 
@@ -489,6 +508,7 @@ class JEPALoop:
             drift=AnchoredDriftEncoder(cfg),
             trm=MockTRM(cfg),
             planner=ChronoQueryPlanner(cfg),
+            tqsa=TextQueriedSpatialAdapter(cfg),
         )
 
     @classmethod
@@ -513,6 +533,7 @@ class JEPALoop:
         Returns:
             A fully wired ``JEPALoop``.
         """
+        from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
         from microvla.perception.text_encoder import ClipTaskEncoder
         from microvla.perception.yolo_world import YoloWorldPerception
 
@@ -534,4 +555,5 @@ class JEPALoop:
             drift=AnchoredDriftEncoder(cfg),
             trm=trm,
             planner=ChronoQueryPlanner(cfg),
+            tqsa=TextQueriedSpatialAdapter(cfg),
         )

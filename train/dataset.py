@@ -54,16 +54,22 @@ class EpisodeDataset(Dataset):
     float32 torch tensors keyed by ``EPISODE_KEYS``.
     """
 
-    def __init__(self, root: str | Path) -> None:
+    def __init__(self, root: str | Path, load_frames: bool = False) -> None:
         """Indexes the episode files.
 
         Args:
             root: Directory containing ``*.npz`` episode files.
+            load_frames: Also load ``wrist_frames`` (v7, uint8 — for TQSA
+                training) when a file has them. Off by default: frames are
+                ~50x the size of the embedding keys and only the v7 trainer
+                needs them. NO zero-fill when absent (unlike OPTIONAL_KEYS) —
+                consumers must check for the key.
 
         Raises:
             FileNotFoundError: If the directory has no ``.npz`` files.
         """
         self.root = Path(root)
+        self.load_frames = load_frames
         self.files: list[Path] = sorted(self.root.glob("*.npz"))
         if not self.files:
             raise FileNotFoundError(f"No .npz episode files found in {self.root}")
@@ -101,6 +107,10 @@ class EpisodeDataset(Dataset):
                     episode[key] = torch.as_tensor(data[key], dtype=torch.float32)
                 else:
                     episode[key] = torch.zeros(fills[key], dtype=torch.float32)
+            if self.load_frames and "wrist_frames" in data:
+                # uint8 on purpose: keep RAM/VRAM small; the trainer converts
+                # per-batch right before the frozen backbone forward.
+                episode["wrist_frames"] = torch.as_tensor(data["wrist_frames"])
         return episode
 
 

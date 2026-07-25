@@ -108,6 +108,10 @@ class MicroVLAConfig:
     trust_temperature: float = 4.0
     context_window: int = 8
     drift_horizons: tuple[int, ...] = (1, 2, 4, 8)
+    # --- TQSA (v7): Text-Queried Spatial Adapter on the frozen backbone ---
+    tqsa_dim: int = 128        # projected channel width of the spatial map
+    tqsa_grid: int = 4         # spatial-token grid (4x4 -> 16 planner tokens)
+    tqsa_heat: int = 8         # downsampled heatmap side (8x8 -> 64 per role)
     trainable_param_budget: int = 9_000_000
 
     @property

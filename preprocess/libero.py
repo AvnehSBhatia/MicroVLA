@@ -120,12 +120,40 @@ def iter_libero_episodes(
                     frames = frames[:, ::-1, ::-1]
                 actions = np.asarray(grp["actions"], dtype=np.float32)  # [T, 7]
                 T = min(len(frames), len(actions))
+
+                # v7: raw robot state per native step (proprio + absolute EEF).
+                from microvla.utils.proprio import build_proprio
+
+                obs = grp["obs"]
+
+                def _first(keys):
+                    for k in keys:
+                        if k in obs:
+                            return np.asarray(obs[k])
+                    return None
+
+                pos = _first(("ee_pos", "robot0_eef_pos", "ee_states"))
+                proprio_raw = eef_pos_raw = None
+                if pos is not None:
+                    pos = pos[:T, :3]
+                    ori = _first(("ee_ori", "robot0_eef_quat"))
+                    grip = _first(("gripper_states", "robot0_gripper_qpos"))
+                    proprio_raw = np.stack([
+                        build_proprio(pos[i],
+                                      ori[i] if ori is not None else None,
+                                      grip[i] if grip is not None else None)
+                        for i in range(min(T, len(pos)))
+                    ])
+                    eef_pos_raw = pos.astype(np.float32)
+
                 yield SourceEpisode(
                     frames=list(frames[:T]),
                     actions=actions[:T],
                     instruction=instruction,
                     source_hz=LIBERO_HZ,
                     episode_id=f"{h5path.stem}__{demo}",
+                    proprio_raw=proprio_raw,
+                    eef_pos_raw=eef_pos_raw,
                 )
 
 
@@ -138,6 +166,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--limit", type=int, default=None, help="max episodes")
     parser.add_argument("--dry-run", action="store_true", help="mock perception (no weights)")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--no-frames", action="store_true",
+                        help="skip baking wrist_frames (v7 default bakes them; "
+                             "they make the TQSA/perception trainable)")
     parser.add_argument("--teacher", choices=["mock", "tinyvla"], default=None,
                         help="relabel actions with a distillation teacher")
     parser.add_argument("--teacher-checkpoint", default=None)
@@ -155,6 +186,7 @@ def main(argv: list[str] | None = None) -> None:
         device=args.device,
         limit=args.limit,
         teacher=teacher,
+        store_frames=not args.no_frames,  # v7: frames make perception trainable
     )
 
 

@@ -16,6 +16,7 @@ never hardcode a dim that exists there.
 .venv/bin/python -m pytest tests/test_shapes.py::TestChronoQueryPlanner -q  # one class/test (-k works too)
 .venv/bin/python -m microvla.utils.param_audit # asserts the 9M cap + per-module caps
 .venv/bin/python train/train_planner.py --epochs 2 --episodes 4   # smoke train
+.venv/bin/python -m eval.bench --checkpoint none --synthetic 30   # wind tunnel: <0.1s/eval, no sim
 ```
 
 Fresh setup if `.venv` is missing: `python3 -m venv .venv && .venv/bin/pip install torch numpy pytest`

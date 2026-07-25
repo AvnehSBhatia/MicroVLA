@@ -99,6 +99,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--load-stage-a", type=str, default=None,
                    help="path to a trained full_stageA.pt: load the world model and skip "
                         "stage A, retraining ONLY the planner (e.g. after a planner change).")
+    p.add_argument("--tqsa", action="store_true",
+                   help="v7: train the Text-Queried Spatial Adapter alongside the planner "
+                        "in stage B. Requires wrist_frames in the baked npz (re-bake with "
+                        "the v7 converter) and ultralytics (frozen backbone map extractor). "
+                        "Buckets without frames train planner-only (spatial=None).")
     return p.parse_args(argv)
 
 
@@ -115,14 +120,17 @@ def cap_vram(device: torch.device, max_gb: float) -> None:
     print(f"VRAM cap: {max_gb:.0f} GB of {total:.0f} GB total (fraction {frac:.3f})", flush=True)
 
 
-def preload_buckets(data_dirs, val_frac, seed, device):
+def preload_buckets(data_dirs, val_frac, seed, device, load_frames: bool = False):
     """Loads every episode into RAM and buckets each split by length T.
 
     Returns (train_buckets, val_buckets), each a dict[T] -> dict of stacked
     tensors on ``device`` with a leading batch dim: frame_embs [N, T, 512],
-    pwm_targets [N, T, 5, 7], text_tokens [N, 3, 512], etc.
+    pwm_targets [N, T, 5, 7], text_tokens [N, 3, 512], etc. With
+    ``load_frames`` (v7 TQSA), buckets whose EVERY episode has baked
+    ``wrist_frames`` also carry them — as uint8 on CPU (a bucket of frames is
+    ~50x the embedding payload; the trainer moves one batch at a time).
     """
-    sets = [EpisodeDataset(d) for d in data_dirs]
+    sets = [EpisodeDataset(d, load_frames=load_frames) for d in data_dirs]
     index = [(i, j) for i, ds in enumerate(sets) for j in range(len(ds))]
     rng = random.Random(seed)
     rng.shuffle(index)
@@ -139,6 +147,10 @@ def preload_buckets(data_dirs, val_frac, seed, device):
         all_keys = EPISODE_KEYS + OPTIONAL_KEYS  # optional keys are zero-filled by the dataset
         for T, eps in by_T.items():
             buckets[T] = {k: torch.stack([e[k] for e in eps]).to(device) for k in all_keys}
+            if load_frames and all("wrist_frames" in e for e in eps):
+                buckets[T]["wrist_frames"] = torch.stack(
+                    [e["wrist_frames"] for e in eps]
+                )  # uint8, CPU
         out[name] = buckets
     return out["train"], out["val"]
 
@@ -320,11 +332,27 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
 
 
-def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
+def _batch_spatial(batch, t, tqsa, backbone, device):
+    """TQSA outputs for timestep t of a bucket batch, or None when unavailable.
+
+    Runs the FROZEN backbone on the baked uint8 RGB frames (converted to the
+    detector's BGR), then the TRAINABLE adapter conditioned on the episode's
+    text tokens. Frames live on CPU as uint8; only the map hits the GPU.
+    """
+    if tqsa is None or backbone is None or "wrist_frames" not in batch:
+        return None
+    frames = batch["wrist_frames"][:, t].numpy()          # [B, H, W, 3] RGB uint8
+    maps = backbone.feature_maps([f[..., ::-1] for f in frames]).to(device)
+    return tqsa(maps, batch["text_tokens"])
+
+
+def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
+            tqsa=None, backbone=None):
     for m in (fusion, drift, trm):
         for p in m.parameters():
             p.requires_grad_(False)
-    opt = torch.optim.AdamW(planner.parameters(), lr=args.lr, weight_decay=1e-2)
+    params = list(planner.parameters()) + (list(tqsa.parameters()) if tqsa is not None else [])
+    opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-2)
     rng = random.Random(args.seed + 1)
     ckpt = _tagged_name("full_stageB.pt", args.tag)
 
@@ -335,6 +363,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
 
     for epoch in range(1, args.stage_b_epochs + 1):
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
+        if tqsa is not None:
+            tqsa.train()
         run = 0.0; grip_acc = 0.0; nb = 0; t0 = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             with torch.no_grad():
@@ -362,12 +392,16 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
                         fused_t, delta_t = fused_all[t], delta_all[t]
                     next_emb, next_box = trm(fused_t, delta_t, cur, return_box=True)
                 geom = torch.cat([sc, tc, bw], dim=-1)              # [B, 6]
+                # v7 TQSA: dream steps use t-1 frames (held-real evidence, same
+                # as boxes); real steps use t. Backbone frozen; adapter trains.
+                spatial = _batch_spatial(batch, t - 1 if dream else t, tqsa,
+                                         backbone, device)
                 # v6: arm state at t — fresh even on dream steps (encoders are
                 # fast at deployment; only the camera is slow).
                 plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                      fused=fused_t, pred_box_emb=next_box,
                                      geometry=geom, proprio=batch["proprio"][:, t],
-                                     return_aux=True)
+                                     spatial=spatial, return_aux=True)
                 preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]
@@ -384,7 +418,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device):
             nb += 1
         print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
               f"| grip_acc {grip_acc/max(nb,1):.3f} | {time.time()-t0:.0f}s", flush=True)
-        save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm, planner=planner)
+        extra = {"tqsa": tqsa} if tqsa is not None else {}
+        save(args, cfg, ckpt, fusion=fusion, drift=drift, trm=trm, planner=planner, **extra)
 
 
 def main(argv=None) -> None:
@@ -395,7 +430,8 @@ def main(argv=None) -> None:
     cap_vram(device, args.max_vram_gb)
     print(f"batched training on {device} | batch {args.batch_size} | data {args.data_dir}", flush=True)
 
-    train_b, val_b = preload_buckets(args.data_dir, args.val_frac, args.seed, device)
+    train_b, val_b = preload_buckets(args.data_dir, args.val_frac, args.seed, device,
+                                     load_frames=args.tqsa)
     n_train = sum(v["frame_embs"].shape[0] for v in train_b.values())
     n_val = sum(v["frame_embs"].shape[0] for v in val_b.values())
     print(f"episodes: train {n_train} ({len(train_b)} length-buckets), val {n_val}", flush=True)
@@ -415,7 +451,16 @@ def main(argv=None) -> None:
     if args.stage_a_epochs > 0:
         stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device)
     if args.stage_b_epochs > 0:
-        stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device)
+        tqsa = backbone = None
+        if args.tqsa:
+            from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
+            from microvla.perception.yolo_world import YoloWorldPerception
+            tqsa = TextQueriedSpatialAdapter(cfg).to(device)
+            backbone = YoloWorldPerception(device=str(device))  # frozen map extractor
+            n_frames = sum(1 for b in train_b.values() if "wrist_frames" in b)
+            print(f"TQSA stage B: {n_frames}/{len(train_b)} train buckets carry frames", flush=True)
+        stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
+                tqsa=tqsa, backbone=backbone)
     print("done.", flush=True)
 
 

@@ -41,6 +41,7 @@ import torch.nn as nn
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
+from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.trm.mock_trm import MockTRM
 
@@ -63,11 +64,13 @@ a ~0.21M placeholder stub, not a size target."""
 FUSION_PARAM_CAP: int = 5_000_000    # target ~4.5M
 DRIFT_PARAM_CAP: int = 1_500_000     # target ~0.9M
 PLANNER_PARAM_CAP: int = 2_500_000   # target ~1.6M
+TQSA_PARAM_CAP: int = 500_000        # v7 spatial adapter, target ~0.13M
 
 _PER_MODULE_CAPS = {
     "fusion (SlotResonanceFusion)": FUSION_PARAM_CAP,
     "drift (AnchoredDriftEncoder)": DRIFT_PARAM_CAP,
     "planner (ChronoQueryPlanner)": PLANNER_PARAM_CAP,
+    "tqsa (TextQueriedSpatialAdapter)": TQSA_PARAM_CAP,
 }
 
 TOTAL_LEDGER_PARAMS: int = (
@@ -117,6 +120,7 @@ def audit(cfg: MicroVLAConfig | None = None, verbose: bool = True) -> dict[str, 
     counts = {
         "fusion (SlotResonanceFusion)": count_trainable_params(SlotResonanceFusion(cfg)),
         "drift (AnchoredDriftEncoder)": count_trainable_params(AnchoredDriftEncoder(cfg)),
+        "tqsa (TextQueriedSpatialAdapter)": count_trainable_params(TextQueriedSpatialAdapter(cfg)),
         "planner (ChronoQueryPlanner)": count_trainable_params(ChronoQueryPlanner(cfg)),
         "mock_trm (MockTRM, stub)": count_trainable_params(MockTRM(cfg)),
     }
