@@ -238,11 +238,22 @@ def _run_real_trial(
     prepare_libero()
     from libero.libero.envs import OffScreenRenderEnv
 
-    env = OffScreenRenderEnv(
-        bddl_file_name=task.bddl_file,
-        camera_heights=MockLiberoEnv.FRAME_SIZE,
-        camera_widths=MockLiberoEnv.FRAME_SIZE,
-    )
+    # Render ONLY the policy's camera: osmesa is CPU software rendering and the
+    # default env renders agentview + wrist every step — half of it discarded.
+    cam_base = camera[:-6] if camera.endswith("_image") else camera
+    try:
+        env = OffScreenRenderEnv(
+            bddl_file_name=task.bddl_file,
+            camera_heights=MockLiberoEnv.FRAME_SIZE,
+            camera_widths=MockLiberoEnv.FRAME_SIZE,
+            camera_names=[cam_base],
+        )
+    except TypeError:  # older robosuite/LIBERO without camera_names passthrough
+        env = OffScreenRenderEnv(
+            bddl_file_name=task.bddl_file,
+            camera_heights=MockLiberoEnv.FRAME_SIZE,
+            camera_widths=MockLiberoEnv.FRAME_SIZE,
+        )
     try:
         if hasattr(env, "seed"):
             env.seed(trial_seed)
@@ -283,6 +294,8 @@ def run_eval(
     mock_env: bool = False,
     seed: int = 0,
     out_dir: str | Path = "eval_results",
+    task_filter: list[int] | None = None,
+    run_tag: str = "",
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -307,6 +320,10 @@ def run_eval(
             ``seed * 1_000_003 + t`` (deterministic, collision-free across a
             plausible range of trial counts).
         out_dir: Directory for the telemetry JSONL + results JSON.
+        task_filter: Optional task indices to run (parallel sharding); ``None``
+            runs every task in the suite.
+        run_tag: Suffix appended to the run id (keeps per-worker telemetry
+            files collision-free).
 
     Returns:
         ``{"suite", "per_task": {task_name: success_rate}, "mean_success",
@@ -314,11 +331,13 @@ def run_eval(
     """
     policy = policy_factory()
     tasks = _mock_tasks(suite) if mock_env else _real_tasks(suite)
+    if task_filter is not None:
+        tasks = [t for i, t in enumerate(tasks) if i in set(task_filter)]
     run_trial = _run_mock_trial if mock_env else _run_real_trial
 
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}"
+    run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}{run_tag}"
     telemetry_path = out / f"{run_id}_telemetry.jsonl"
 
     per_task: dict[str, float] = {}
@@ -398,23 +417,82 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "collapsed/neutral policy stays still instead of drifting into a "
                         "wall. Diagnostic for the asymmetric-quantile drift; a proper fix "
                         "trains against symmetric targets.")
+    p.add_argument("--workers", type=int, default=1,
+                   help="parallel eval processes (real env only). Episodes are "
+                        "embarrassingly parallel and osmesa rendering is single-"
+                        "threaded CPU work, so N workers ~= N x wall-clock. Each "
+                        "worker owns a task shard + its own policy/env.")
     return p.parse_args(argv)
+
+
+def _parallel_worker(payload: dict) -> dict:
+    """Spawn-safe worker: runs one task shard of the suite in this process.
+
+    Rebuilds the CLI args namespace from a plain dict (picklable across the
+    ``spawn`` boundary — required for CUDA/ROCm safety), builds its OWN policy
+    and envs, and runs ``run_eval`` restricted to its task indices.
+    """
+    args = argparse.Namespace(**payload["args"])
+    return run_eval(
+        _make_policy_factory(args),
+        suite=args.suite,
+        n_trials=args.n_trials,
+        max_steps=args.max_steps,
+        camera=args.camera,
+        mock_env=False,
+        seed=args.seed,
+        out_dir=args.out_dir,
+        task_filter=payload["task_ids"],
+        run_tag=f"_w{payload['worker']}",
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-    results = run_eval(
-        _make_policy_factory(args),
-        suite=args.suite,
-        n_trials=args.n_trials,
-        max_steps=args.max_steps,
-        camera=args.camera,
-        mock_env=args.mock_env,
-        seed=args.seed,
-        out_dir=args.out_dir,
-    )
+    workers = max(1, int(args.workers))
+    if workers > 1 and not args.mock_env:
+        import multiprocessing as mp
+
+        n_tasks = len(_real_tasks(args.suite))  # benchmark registry only, no envs
+        shards = [list(range(w, n_tasks, workers)) for w in range(workers)]
+        shards = [s for s in shards if s]
+        payloads = [
+            {"args": vars(args), "task_ids": s, "worker": w}
+            for w, s in enumerate(shards)
+        ]
+        print(f"parallel eval: {n_tasks} tasks across {len(payloads)} workers", flush=True)
+        ctx = mp.get_context("spawn")  # fork + CUDA/ROCm is unsafe
+        with ctx.Pool(processes=len(payloads)) as pool:
+            worker_results = pool.map(_parallel_worker, payloads)
+
+        per_task: dict[str, float] = {}
+        for r in worker_results:
+            per_task.update(r["per_task"])
+        results = {
+            "suite": args.suite,
+            "per_task": per_task,
+            "mean_success": sum(per_task.values()) / len(per_task) if per_task else 0.0,
+            "n_trials": args.n_trials,
+            "workers": len(payloads),
+            "telemetry_paths": [r["telemetry_path"] for r in worker_results],
+        }
+        out = Path(args.out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        merged = out / f"{args.suite}_real_{int(time.time() * 1000)}_results.json"
+        merged.write_text(json.dumps(results, indent=2))
+    else:
+        results = run_eval(
+            _make_policy_factory(args),
+            suite=args.suite,
+            n_trials=args.n_trials,
+            max_steps=args.max_steps,
+            camera=args.camera,
+            mock_env=args.mock_env,
+            seed=args.seed,
+            out_dir=args.out_dir,
+        )
     print(json.dumps(results, indent=2))
 
 
