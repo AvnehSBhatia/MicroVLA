@@ -137,6 +137,11 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "in stage B. Requires wrist_frames in the baked npz (re-bake with "
                         "the v7 converter) and ultralytics (frozen backbone map extractor). "
                         "Buckets without frames train planner-only (spatial=None).")
+    p.add_argument("--no-cache-spatial", dest="cache_spatial", action="store_false",
+                   help="recompute the frozen backbone's feature maps every epoch instead of "
+                        "caching them after the first pass. The cache is ~40x less compute for "
+                        "a few GB of RAM and the SAME maps (the backbone never trains) — only "
+                        "disable it if the box is RAM-starved.")
     p.add_argument("--waypoint-weight", type=float, default=0.0,
                    help="v7.2: > 0 enables the WAYPOINT-ABSOLUTE head (predict the metric "
                         "EEF displacement to each plan step) and weights its masked MSE. "
@@ -398,15 +403,89 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
 def _batch_spatial(batch, t, tqsa, backbone, device):
     """TQSA outputs for timestep t of a bucket batch, or None when unavailable.
 
-    Runs the FROZEN backbone on the baked uint8 RGB frames (converted to the
-    detector's BGR), then the TRAINABLE adapter conditioned on the episode's
-    text tokens. Frames live on CPU as uint8; only the map hits the GPU.
+    Prefers PRECOMPUTED backbone maps (see :func:`precompute_spatial_maps`);
+    falls back to running the frozen backbone live on the baked uint8 RGB
+    frames (converted to the detector's BGR). Only the map hits the GPU; the
+    TRAINABLE adapter is what consumes it, conditioned on the episode's text.
     """
-    if tqsa is None or backbone is None or "wrist_frames" not in batch:
+    if tqsa is None:
+        return None
+    if "spatial_maps" in batch:
+        maps = batch["spatial_maps"][:, t].to(device=device, dtype=torch.float32)
+        return tqsa(maps, batch["text_tokens"])
+    if backbone is None or "wrist_frames" not in batch:
         return None
     frames = batch["wrist_frames"][:, t].numpy()          # [B, H, W, 3] RGB uint8
     maps = backbone.feature_maps([f[..., ::-1] for f in frames]).to(device)
     return tqsa(maps, batch["text_tokens"])
+
+
+def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch.float16):
+    """Runs the FROZEN backbone once over every framed timestep and caches it.
+
+    The backbone never trains, so for a given (episode, timestep) its SPPF map
+    is byte-identical on every epoch — yet stage B was recomputing all of them
+    every epoch, at a 128->512 px upscale. That is the whole cost of ``--tqsa``
+    (measured: ~18 min/epoch vs seconds without it). One pass up front makes
+    every subsequent epoch nearly free, and the training signal is UNCHANGED:
+    the same maps, only computed once.
+
+    Cached on CPU in ``dtype`` (fp16 halves the footprint; the map immediately
+    feeds a 1x1 conv + GroupNorm in the adapter, so the precision loss is far
+    below the noise the adapter is trained through). Each timestep is moved to
+    the training device on demand — ~26 MB per (batch, timestep), not the whole
+    cache.
+
+    Args:
+        buckets: ``dict[key] -> bucket dict`` from :func:`preload_buckets`;
+            each bucket carrying ``wrist_frames`` gains ``spatial_maps``
+            ``[N, T, C, Hf, Wf]``.
+        backbone: A ``YoloWorldPerception`` (frozen map extractor).
+        batch_size: Frames per backbone forward.
+        label: Prefix for the progress lines ("train"/"val").
+        dtype: Cache dtype.
+
+    Returns:
+        Total cache size in bytes (0 when nothing was cached).
+    """
+    framed = [b for b in buckets.values() if "wrist_frames" in b]
+    if not framed:
+        return 0
+    total = sum(int(b["wrist_frames"].shape[0]) * int(b["wrist_frames"].shape[1])
+                for b in framed)
+    print(f"[spatial cache] {label}: {total} frames through the frozen backbone "
+          f"(once, not once per epoch)", flush=True)
+
+    done, t0, last_beat = 0, time.time(), time.time()
+    nbytes = 0
+    for b in framed:
+        frames = b["wrist_frames"]                    # [N, T, H, W, 3] uint8 CPU
+        N, T = int(frames.shape[0]), int(frames.shape[1])
+        maps = None
+        for t in range(T):
+            for s in range(0, N, batch_size):
+                chunk = frames[s:s + batch_size, t].numpy()
+                m = backbone.feature_maps([f[..., ::-1] for f in chunk])
+                if maps is None:
+                    if nbytes == 0:   # first map of the run: project the footprint
+                        per = m[0].numel() * torch.empty((), dtype=dtype).element_size()
+                        print(f"[spatial cache] {label}: map {tuple(m.shape[1:])}, "
+                              f"{per/1024:.0f} KB/frame -> ~{per*total/1024**3:.1f} GB RAM",
+                              flush=True)
+                    maps = torch.empty((N, T, *m.shape[1:]), dtype=dtype)
+                maps[s:s + batch_size, t] = m.to("cpu", dtype)
+                done += chunk.shape[0]
+                if time.time() - last_beat >= _HEARTBEAT_SEC:
+                    last_beat = time.time()
+                    rate = done / max(last_beat - t0, 1e-6)
+                    print(f"[spatial cache] {label}: {done}/{total} frames "
+                          f"({rate:.0f}/s, ~{(total-done)/max(rate,1e-6):.0f}s left)",
+                          flush=True)
+        b["spatial_maps"] = maps
+        nbytes += maps.numel() * maps.element_size()
+    print(f"[spatial cache] {label}: done in {time.time()-t0:.0f}s, "
+          f"{nbytes/1024**3:.1f} GB resident ({str(dtype).split('.')[-1]})", flush=True)
+    return nbytes
 
 
 @torch.no_grad()
@@ -666,6 +745,13 @@ def main(argv=None) -> None:
             backbone = YoloWorldPerception(device=str(device))  # frozen map extractor
             n_frames = sum(1 for b in train_b.values() if "wrist_frames" in b)
             print(f"TQSA stage B: {n_frames}/{len(train_b)} train buckets carry frames", flush=True)
+            if args.cache_spatial:
+                nb = precompute_spatial_maps(train_b, backbone, args.batch_size, "train")
+                nb += precompute_spatial_maps(val_b, backbone, args.batch_size, "val")
+                if nb:
+                    print(f"[spatial cache] {nb/1024**3:.1f} GB total — every epoch after "
+                          f"this one skips the backbone entirely. --no-cache-spatial "
+                          f"trades that RAM back for ~40x the compute.", flush=True)
         stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 tqsa=tqsa, backbone=backbone)
     print("done.", flush=True)
