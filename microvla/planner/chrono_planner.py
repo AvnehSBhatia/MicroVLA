@@ -186,7 +186,11 @@ class ChronoQueryPlanner(nn.Module):
         # own. Type rows: 7 = spatial tokens, 8 = pooled roles, 9 = heatmaps.
         self.spat_proj = nn.Linear(cfg.tqsa_dim, cfg.d_plan)
         self.heat_proj = nn.Linear(cfg.tqsa_heat**2, cfg.d_plan)
-        self.type_emb = nn.Parameter(torch.randn(10, cfg.d_plan) * cfg.d_plan**-0.5)
+        # v7.1: the TRM's 32-d latent MESSAGE (action-shaped readout of its
+        # internal belief state — trained by THIS planner's gradient, since
+        # the msg head is excluded from the stage-B world-model freeze).
+        self.msg_proj = nn.Linear(32, cfg.d_plan)
+        self.type_emb = nn.Parameter(torch.randn(11, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -229,6 +233,7 @@ class ChronoQueryPlanner(nn.Module):
                 geometry: torch.Tensor | None = None,
                 proprio: torch.Tensor | None = None,
                 spatial: dict | None = None,
+                wm_msg: torch.Tensor | None = None,
                 return_aux: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
 
@@ -295,6 +300,8 @@ class ChronoQueryPlanner(nn.Module):
             mem_parts.append(self.spat_proj(spatial["tokens"]) + self.type_emb[7])   # [B, g*g, d_plan]
             mem_parts.append(self.spat_proj(spatial["pooled"]) + self.type_emb[8])   # [B, 3, d_plan]
             mem_parts.append(self.heat_proj(spatial["heatmaps"]) + self.type_emb[9])  # [B, 3, d_plan]
+        if wm_msg is not None:
+            mem_parts.append(self.msg_proj(wm_msg).unsqueeze(1) + self.type_emb[10])  # [B, 1, d_plan]
         memory = torch.cat(mem_parts, dim=1)
 
         # Time queries: learned tokens + fixed monotonic time encoding.

@@ -83,3 +83,11 @@ class MockTRM(TRMBase):
         if return_box:
             return next_emb, self.box_proj(x)             # [B, 512], [B, 512]
         return next_emb
+
+    def forward_full(self, fused, state_delta, current_emb, context=None) -> dict:
+        """v5 full readout: mock box head + zero message (stub semantics)."""
+        next_emb, next_box = self.forward(
+            fused, state_delta, current_emb, context=context, return_box=True
+        )
+        return {"next_emb": next_emb, "next_box": next_box,
+                "msg": current_emb.new_zeros(current_emb.shape[0], 32)}

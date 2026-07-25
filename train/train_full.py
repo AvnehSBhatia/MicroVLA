@@ -114,6 +114,12 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage A: max data-rate rollout horizon (grows 1->max across "
                         "epochs per TRM_SPEC section 5). Episodes shorter than horizon+1 "
                         "are skipped.")
+    p.add_argument("--planner-input-dropout", type=float, default=0.15,
+                   help="stage B: prob of withholding fused / current_emb from the "
+                        "planner so predictive/geometric paths get gradient.")
+    p.add_argument("--drift-dropout", type=float, default=0.1,
+                   help="stage A: prob of zeroing state_delta into the TRM rollout "
+                        "(anti drift-dominance).")
     p.add_argument("--smooth-weight", type=float, default=0.05,
                    help="pose smoothness (jerk) penalty weight in stage B.")
     p.add_argument("--row0-weight", type=float, default=2.0,
@@ -367,7 +373,9 @@ def stage_a(args, cfg, data, fusion, drift, trm, device) -> None:
             opt.zero_grad()
             loss = torch.zeros((), device=device)
             for t in ts:
-                loss = loss + _rollout(episode, t, fused_all[t], delta_all[t], fusion, trm,
+                delta_in = (torch.zeros_like(delta_all[t])
+                            if rng.random() < args.drift_dropout else delta_all[t])
+                loss = loss + _rollout(episode, t, fused_all[t], delta_in, fusion, trm,
                                        cfg, H, args.gamma, args.ablate_grounding,
                                        box_w=args.box_loss_weight)
             loss = loss / len(ts)
@@ -468,7 +476,8 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
             preds, grips = [], []
             for t in range(T):
                 cur = episode["frame_embs"][t].unsqueeze(0)
-                next_emb, next_box = trm(fused_all[t], delta_all[t], cur, return_box=True)
+                wm = trm.forward_full(fused_all[t], delta_all[t], cur)
+                next_emb, next_box = wm["next_emb"], wm["next_box"]
                 if args.ablate_grounding:
                     geom = episode["frame_embs"].new_zeros(1, 6)
                 else:
@@ -476,11 +485,14 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
                                       episode["target_centers"][t],
                                       episode["box_weights"][t]]).unsqueeze(0)  # [1, 6]
                 proprio = episode.get("proprio")
-                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_all[t],
-                                     fused=fused_all[t], pred_box_emb=next_box,
+                pid = args.planner_input_dropout
+                fused_in = None if (pid > 0 and rng.random() < pid) else fused_all[t]
+                cur_in = None if (pid > 0 and rng.random() < pid) else cur
+                plan, grip = planner(next_emb, current_emb=cur_in, state_delta=delta_all[t],
+                                     fused=fused_in, pred_box_emb=next_box,
                                      geometry=geom,
                                      proprio=proprio[t].unsqueeze(0) if proprio is not None else None,
-                                     return_aux=True)
+                                     wm_msg=wm["msg"], return_aux=True)
                 preds.append(plan.squeeze(0)); grips.append(grip.squeeze(0))
             preds = torch.stack(preds, 0)               # [T, 5, 7]
             grips = torch.stack(grips, 0)               # [T, 5]

@@ -126,6 +126,13 @@ class RecursiveTRM(TRMBase):
         self.box_head = nn.Sequential(
             nn.Linear(d, 256), nn.GELU(), nn.Linear(256, cfg.vis_dim)
         )
+        # Latent message channel (v5): a 32-d readout of the pooled internal
+        # belief state, consumed by the planner as a token. Interpretability
+        # showed the planner ignores next_emb (the frame-space readout); this
+        # channel is trained ACTION-SHAPED — it is excluded from the stage-B
+        # freeze, so the planner's gradient sculpts what the world model tells
+        # the policy, while the TRM core stays frozen (world model intact).
+        self.msg_head = nn.Linear(d, 32)
 
     def init_states(self, b):
         y = self.y_init.expand(b, self.L, self.d)
@@ -200,6 +207,24 @@ class RecursiveTRM(TRMBase):
         if return_box:
             return next_emb, self.box_head(pooled), y.detach(), z.detach()
         return next_emb, y.detach(), z.detach()
+
+    def forward_full(self, fused, state_delta, current_emb, context=None) -> dict:
+        """Single inference pass returning every readout (v5 planner interface).
+
+        Returns:
+            ``{"next_emb": [B, 512], "next_box": [B, 512], "msg": [B, 32]}`` —
+            frame prediction (residual), source-box prediction, and the
+            action-shaped latent message off the pooled belief state.
+        """
+        y, z = self.init_states(fused.shape[0])
+        x = self.observe(fused, state_delta, current_emb, context)
+        y, z = self.deep_refine(x, y, z)
+        pooled = self._pool(y)
+        return {
+            "next_emb": current_emb + self.head(pooled),
+            "next_box": self.box_head(pooled),
+            "msg": self.msg_head(pooled),
+        }
 
     def forward(self, fused, state_delta, current_emb, context=None, return_box=False):
         """TRMBase contract: (fused, state_delta, current_emb, context) -> next_emb.

@@ -81,6 +81,17 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(current latent = TRM prediction, held/faded boxes) the "
                         "planner actually runs in 14/15 ticks at deployment. "
                         "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--planner-input-dropout", type=float, default=0.15,
+                   help="stage B: per-step probability of WITHHOLDING the planner's "
+                        "dominant inputs (fused; independently current_emb) so the "
+                        "predictive/geometric paths get gradient. Interpretability "
+                        "probe showed fused 7x dominant, geometry/next_emb dead — "
+                        "redundant-path death; same cure as fusion's modality dropout.")
+    p.add_argument("--drift-dropout", type=float, default=0.1,
+                   help="stage A: per-segment probability of zeroing state_delta into "
+                        "the TRM rollout, forcing scene-content dynamics instead of "
+                        "the drift-dominated delta (probe: 0.63-0.88 of the residual "
+                        "was a function of the drift code alone).")
     p.add_argument("--smooth-weight", type=float, default=0.05,
                    help="pose smoothness (jerk) penalty weight in stage B.")
     p.add_argument("--row0-weight", type=float, default=2.0,
@@ -99,6 +110,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--load-stage-a", type=str, default=None,
                    help="path to a trained full_stageA.pt: load the world model and skip "
                         "stage A, retraining ONLY the planner (e.g. after a planner change).")
+    p.add_argument("--unfreeze-trm", action="store_true",
+                   help="stage B: fine-tune the WHOLE TRM at 0.1x LR with a world-model "
+                        "auxiliary rollout loss (frame prediction cannot collapse; verify "
+                        "with bench wm_margin). Default trains only the msg head.")
+    p.add_argument("--wm-aux-weight", type=float, default=0.5,
+                   help="weight of the stage-A rollout auxiliary during --unfreeze-trm.")
     p.add_argument("--tqsa", action="store_true",
                    help="v7: train the Text-Queried Spatial Adapter alongside the planner "
                         "in stage B. Requires wrist_frames in the baked npz (re-bake with "
@@ -293,7 +310,12 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
             opt.zero_grad()
             loss = torch.zeros((), device=device)
             for t in ts:
-                loss = loss + rollout(batch, t, fused_all[t], delta_all[t], fusion, trm,
+                # Drift-dropout (interpretability fix): occasionally hide the
+                # drift code so the TRM must model scene content, not just
+                # "keep moving the way we've been moving".
+                delta_in = (torch.zeros_like(delta_all[t])
+                            if rng.random() < args.drift_dropout else delta_all[t])
+                loss = loss + rollout(batch, t, fused_all[t], delta_in, fusion, trm,
                                       cfg, H, args.gamma, args.ablate_grounding,
                                       box_w=args.box_loss_weight)
             loss = loss / len(ts)
@@ -348,11 +370,23 @@ def _batch_spatial(batch, t, tqsa, backbone, device):
 
 def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             tqsa=None, backbone=None):
-    for m in (fusion, drift, trm):
+    for m in (fusion, drift):
         for p in m.parameters():
             p.requires_grad_(False)
+    # TRM freeze policy (v7.1): core frozen, msg_head TRAINABLE — the planner's
+    # gradient shapes the 32-d belief message while the world model stays
+    # provably intact. --unfreeze-trm trains the whole TRM at 0.1x LR with a
+    # world-model auxiliary rollout loss so frame prediction cannot collapse.
+    unfreeze = bool(getattr(args, "unfreeze_trm", False))
+    for name, p in trm.named_parameters():
+        p.requires_grad_(unfreeze or name.startswith("msg_head"))
     params = list(planner.parameters()) + (list(tqsa.parameters()) if tqsa is not None else [])
-    opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=1e-2)
+    groups = [{"params": params, "lr": args.lr}]
+    trm_trainable = [p for p in trm.parameters() if p.requires_grad]
+    if trm_trainable:
+        groups.append({"params": trm_trainable,
+                       "lr": args.lr * (0.1 if unfreeze else 1.0)})
+    opt = torch.optim.AdamW(groups, weight_decay=1e-2)
     rng = random.Random(args.seed + 1)
     ckpt = _tagged_name("full_stageB.pt", args.tag)
 
@@ -390,7 +424,11 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                         cur = batch["frame_embs"][:, t]
                         sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
                         fused_t, delta_t = fused_all[t], delta_all[t]
-                    next_emb, next_box = trm(fused_t, delta_t, cur, return_box=True)
+                # forward_full OUTSIDE no_grad: msg_head (and, under
+                # --unfreeze-trm, the core) needs planner-loss gradient; frozen
+                # params accumulate none regardless.
+                wm = trm.forward_full(fused_t, delta_t, cur)
+                next_emb, next_box = wm["next_emb"], wm["next_box"]
                 geom = torch.cat([sc, tc, bw], dim=-1)              # [B, 6]
                 # v7 TQSA: dream steps use t-1 frames (held-real evidence, same
                 # as boxes); real steps use t. Backbone frozen; adapter trains.
@@ -398,10 +436,16 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                          backbone, device)
                 # v6: arm state at t — fresh even on dream steps (encoders are
                 # fast at deployment; only the camera is slow).
-                plan, grip = planner(next_emb, current_emb=cur, state_delta=delta_t,
-                                     fused=fused_t, pred_box_emb=next_box,
+                # Planner input-dropout (interpretability fix): withhold the
+                # dominant inputs sometimes so next_emb / geometry / pred_box /
+                # spatial actually receive gradient instead of dying redundant.
+                pid = args.planner_input_dropout
+                fused_in = None if (pid > 0 and rng.random() < pid) else fused_t
+                cur_in = None if (pid > 0 and rng.random() < pid) else cur
+                plan, grip = planner(next_emb, current_emb=cur_in, state_delta=delta_t,
+                                     fused=fused_in, pred_box_emb=next_box,
                                      geometry=geom, proprio=batch["proprio"][:, t],
-                                     spatial=spatial, return_aux=True)
+                                     spatial=spatial, wm_msg=wm["msg"], return_aux=True)
                 preds.append(plan); grips.append(grip)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]
@@ -410,6 +454,13 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             Y = target.reshape(-1, *target.shape[2:])
             loss = split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
                                       row0_weight=args.row0_weight)
+            if unfreeze and T > 4:
+                # World-model auxiliary: one random 3-step rollout per batch so
+                # BC fine-tuning cannot erode frame prediction (bench verifies).
+                t0 = rng.randrange(0, T - 4)
+                loss = loss + args.wm_aux_weight * rollout(
+                    batch, t0, fused_all[t0], delta_all[t0], fusion, trm, cfg,
+                    3, args.gamma, args.ablate_grounding)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
                 run += float(loss)

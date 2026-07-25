@@ -138,3 +138,55 @@ class TestProprio:
         assert loop._last_proprio is not None
         loop.set_task("move can to ball")
         assert loop._last_proprio is None       # reset per episode
+
+
+class TestWorldModelMsg:
+    """v7.1: the TRM's 32-d latent message channel reaches the planner."""
+
+    def test_mock_forward_full_contract(self):
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from microvla.trm.mock_trm import MockTRM
+
+        trm = MockTRM(cfg)
+        out = trm.forward_full(torch.randn(3, cfg.fused_rows, cfg.fused_cols),
+                               torch.randn(3, cfg.state_dim),
+                               torch.randn(3, cfg.vis_dim))
+        assert set(out) == {"next_emb", "next_box", "msg"}
+        assert out["next_emb"].shape == (3, cfg.vis_dim)
+        assert out["next_box"].shape == (3, cfg.vis_dim)
+        assert out["msg"].shape == (3, 32)
+
+    def test_planner_consumes_wm_msg(self):
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from microvla.planner.chrono_planner import ChronoQueryPlanner
+
+        pl = ChronoQueryPlanner(cfg)
+        with torch.no_grad():
+            base = pl(torch.randn(2, cfg.vis_dim))
+            with_msg = pl(torch.randn(2, cfg.vis_dim), wm_msg=torch.randn(2, 32))
+        assert base.shape == with_msg.shape == (2, cfg.plan_steps, cfg.num_servos)
+
+    def test_real_trm_msg_head_grad_flows_when_core_frozen(self):
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from TRM import RecursiveTRM
+
+        trm = RecursiveTRM(cfg)
+        # Stage-B freeze policy: core frozen, msg_head trainable.
+        for name, p in trm.named_parameters():
+            p.requires_grad_(name.startswith("msg_head"))
+        out = trm.forward_full(torch.randn(2, cfg.fused_rows, cfg.fused_cols),
+                               torch.randn(2, cfg.state_dim),
+                               torch.randn(2, cfg.vis_dim))
+        out["msg"].sum().backward()
+        assert trm.msg_head.weight.grad is not None
+        assert float(trm.msg_head.weight.grad.norm()) > 0
+        # Core stayed frozen: no grads anywhere else.
+        assert trm.head.weight.grad is None
+        # And the world-model outputs are unaffected by msg_head existing:
+        assert out["next_emb"].shape == (2, cfg.vis_dim)

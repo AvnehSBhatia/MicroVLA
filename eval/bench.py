@@ -73,13 +73,15 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
             delta = drift(cur)
             fused_all.append(fused); delta_all.append(delta)
 
-            next_emb, next_box = trm(fused, delta, cur, return_box=True)
+            wm = trm.forward_full(fused, delta, cur)
+            next_emb, next_box = wm["next_emb"], wm["next_box"]
             geom = torch.cat([ep["source_centers"][i], ep["target_centers"][i],
                               ep["box_weights"][i]]).unsqueeze(0)
             plan, grip_logit = planner(
                 next_emb, current_emb=cur, state_delta=delta, fused=fused,
                 pred_box_emb=next_box, geometry=geom,
-                proprio=ep["proprio"][i].unsqueeze(0), return_aux=True,
+                proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
+                return_aux=True,
             )
             emitted.append(plan[0, 0].numpy())
             demo.append(pwm[i, 0].numpy())
@@ -121,6 +123,55 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
     }
 
 
+def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
+    """ON-DISTRIBUTION input sensitivity: mean |Δplan| when withholding inputs.
+
+    The interpretability probe (random inputs) found fused 7x dominant with
+    geometry/next_emb functionally dead. This is the same measurement on real
+    episode data, re-runnable after every retrain: for each step, compute the
+    plan with all inputs, then with each input withheld (optional inputs ->
+    None; next_emb -> current_emb, i.e. a persistence 'no-prediction'), and
+    average the plan change. Healthy training (planner input-dropout) should
+    pull geometry/next_emb well off zero.
+    """
+    fusion, drift, trm, planner = mods["fusion"], mods["drift"], mods["trm"], mods["planner"]
+    frames = ep["frame_embs"]
+    T = frames.shape[0]
+    text = ep["text_tokens"].unsqueeze(0)
+    pwm = ep["pwm_targets"]
+    deltas: dict[str, list[float]] = {k: [] for k in
+        ("fused", "current_emb", "state_delta", "geometry", "proprio",
+         "pred_box_emb", "wm_msg", "next_emb->cur")}
+    with torch.no_grad():
+        drift.reset()
+        for i in range(T):
+            cur = frames[i].unsqueeze(0)
+            last_action = pwm[i - 1, 0].unsqueeze(0) if i > 0 else pwm.new_zeros(1, cfg.num_servos)
+            fused = fusion(text, cur, ep["source_box_embs"][i].unsqueeze(0),
+                           ep["target_box_embs"][i].unsqueeze(0),
+                           ep["source_centers"][i].unsqueeze(0),
+                           ep["target_centers"][i].unsqueeze(0),
+                           box_weight=ep["box_weights"][i].unsqueeze(0),
+                           last_action=last_action)
+            delta = drift(cur)
+            wm = trm.forward_full(fused, delta, cur)
+            next_emb, next_box = wm["next_emb"], wm["next_box"]
+            geom = torch.cat([ep["source_centers"][i], ep["target_centers"][i],
+                              ep["box_weights"][i]]).unsqueeze(0)
+            prop = ep["proprio"][i].unsqueeze(0)
+            kw = dict(current_emb=cur, state_delta=delta, fused=fused,
+                      pred_box_emb=next_box, geometry=geom, proprio=prop,
+                      wm_msg=wm["msg"])
+            base = planner(next_emb, **kw)
+            for name in ("fused", "current_emb", "state_delta", "geometry",
+                         "proprio", "pred_box_emb", "wm_msg"):
+                alt = planner(next_emb, **{**kw, name: None})
+                deltas[name].append(float((alt - base).abs().mean()))
+            alt = planner(cur, **kw)  # no-prediction: next_emb := current_emb
+            deltas["next_emb->cur"].append(float((alt - base).abs().mean()))
+    return {k: float(np.mean(v)) for k, v in deltas.items()}
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -133,6 +184,9 @@ def main(argv=None) -> None:
                     help="use N deterministic synthetic episodes (no data needed)")
     ap.add_argument("--episodes", type=int, default=30, help="max episodes to bench")
     ap.add_argument("--horizon", type=int, default=6, help="world-model rollout depth")
+    ap.add_argument("--sensitivity", action="store_true",
+                    help="also report on-distribution planner input sensitivity "
+                         "(mean |dPlan| per withheld input) over the benched episodes")
     ap.add_argument("--out", default="eval_results/bench.json")
     args = ap.parse_args(argv)
 
@@ -219,8 +273,19 @@ def main(argv=None) -> None:
     print("read: std_ratio ~1.0 = healthy magnitude (collapse shows as ~0.1); "
           "wm_margin > 0 = world model beats persistence.")
 
+    sens = None
+    if args.sensitivity:
+        per_ep = [_episode_sensitivity(ep, mods, cfg) for _, ep in eps[: min(len(eps), 10)]]
+        sens = {k: float(np.mean([e[k] for e in per_ep])) for k in per_ep[0]} if per_ep else {}
+        print("\nplanner input sensitivity (mean |dPlan| when withheld; on-distribution):")
+        for k, v in sorted(sens.items(), key=lambda kv: -kv[1]):
+            print(f"  {k:16s} {v:.4f}")
+        print("read: dead paths sit at ~0; planner-input-dropout training should "
+              "lift geometry / next_emb->cur / pred_box_emb off the floor.")
+
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps({"aggregate": agg, "episodes": rows}, indent=2))
+    Path(args.out).write_text(json.dumps(
+        {"aggregate": agg, "episodes": rows, "sensitivity": sens}, indent=2))
     print(f"saved -> {args.out}")
 
 

@@ -404,9 +404,10 @@ class JEPALoop:
                 if self._latent_ctx
                 else None
             )
-            next_emb, next_box = self.trm(
-                fused, state_delta, latent.unsqueeze(0), context=context, return_box=True
+            wm = self.trm.forward_full(
+                fused, state_delta, latent.unsqueeze(0), context=context
             )
+            next_emb, next_box = wm["next_emb"], wm["next_box"]
             next_emb_unbatched = next_emb.squeeze(0)  # [512]
             self._pending_pred = next_emb_unbatched
             self._latent_ctx.append(latent)
@@ -414,7 +415,8 @@ class JEPALoop:
             raw_plan = self.planner(next_emb, current_emb=latent.unsqueeze(0),
                                     state_delta=state_delta, fused=fused,
                                     pred_box_emb=next_box, geometry=geom,
-                                    proprio=proprio_tok).squeeze(0)  # [plan_steps, num_servos]
+                                    proprio=proprio_tok, spatial=self._last_spatial,
+                                    wm_msg=wm["msg"]).squeeze(0)  # [plan_steps, num_servos]
 
             # Trust semantics depend on the ACTION SPACE (v5):
             #   * "delta" (LIBERO/Bridge EEF deltas): zero IS "no motion", so

@@ -103,13 +103,14 @@ def main(argv=None) -> None:
                            box_weight=t("box_weights")[i].unsqueeze(0),
                            last_action=last_action)
             delta = drift(cur)
-            next_emb, next_box = trm(fused, delta, cur, return_box=True)
+            wm = trm.forward_full(fused, delta, cur)
+            next_emb, next_box = wm["next_emb"], wm["next_box"]
             geom = torch.cat([t("source_centers")[i], t("target_centers")[i],
                               t("box_weights")[i]]).unsqueeze(0)  # [1, 6]
             proprio = t("proprio")[i].unsqueeze(0) if "proprio" in ep.files else None
             plan = planner(next_emb, current_emb=cur, state_delta=delta,
                            fused=fused, pred_box_emb=next_box, geometry=geom,
-                           proprio=proprio)  # [1,5,7]
+                           proprio=proprio, wm_msg=wm["msg"])  # [1,5,7]
             emitted.append(plan[0, 0].cpu().numpy())   # executed action (row 0)
             demo.append(pwm[i, 0].cpu().numpy())        # demo action at this step
 

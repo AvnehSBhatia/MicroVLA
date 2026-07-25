@@ -79,6 +79,33 @@ class TRMBase(nn.Module, abc.ABC):
           measurement.
     """
 
+    def forward_full(
+        self,
+        fused: torch.Tensor,
+        state_delta: torch.Tensor,
+        current_emb: torch.Tensor,
+        context: torch.Tensor | None = None,
+    ) -> dict:
+        """Every readout in one pass (v5): frame + box predictions + message.
+
+        Default implementation for simple TRMs (mock, eval baselines): frame
+        prediction via :meth:`forward`, ``next_box = current_emb`` (a
+        "no-change" box), and a zero ``msg`` (no belief channel). The real
+        ``RecursiveTRM`` overrides all three with learned heads; its ``msg``
+        head is deliberately left TRAINABLE during stage B (excluded from the
+        world-model freeze) so the planner's gradient shapes what the world
+        model communicates to the policy.
+
+        Returns:
+            ``{"next_emb": [B, 512], "next_box": [B, 512], "msg": [B, 32]}``.
+        """
+        next_emb = self.forward(fused, state_delta, current_emb, context=context)
+        return {
+            "next_emb": next_emb,
+            "next_box": current_emb,
+            "msg": current_emb.new_zeros(current_emb.shape[0], 32),
+        }
+
     @abc.abstractmethod
     def forward(
         self,
