@@ -201,6 +201,46 @@ class TestV3Behaviors:
         # Gripper stays a hard +/-1 decision (never a blended fraction).
         assert torch.all((dream.plan[:, -1] == 1.0) | (dream.plan[:, -1] == -1.0))
 
+    class _FixedTrust:
+        """Corrector stub: constant trust, identity correction (isolates the
+        brake formula from trust's legitimate effect on the dream latent)."""
+
+        def __init__(self, tau: float) -> None:
+            self.trust = tau
+
+        def correct(self, pred):
+            return pred
+
+        def on_measurement(self, *args) -> None:
+            pass
+
+        def reset(self) -> None:
+            pass
+
+    def test_healthy_trust_delta_mode_does_not_attenuate(self):
+        # v5.1 progressive brake: trust ABOVE cfg.brake_trust -> scale exactly
+        # 1 (braking is for divergence, not a standing tax on every action);
+        # trust at brake_trust/2 -> pose exactly halved. Identity-correcting
+        # fixed-trust stubs make the raw plan identical across the copies, so
+        # the ONLY difference is the brake scale.
+        import copy
+
+        assert 0.0 < CFG.brake_trust < 0.9
+        loop = JEPALoop.build_mock(CFG)
+        loop.set_task("move can to ball")
+        loop.tick(_frame(0))
+
+        plans = {}
+        for tau in (0.9, 1.0, CFG.brake_trust / 2.0):
+            twin = copy.deepcopy(loop)
+            twin.corrector = self._FixedTrust(tau)
+            plans[tau] = twin.tick(None).plan
+        # Above threshold: full magnitude, identical plans at 0.9 and 1.0.
+        assert torch.allclose(plans[0.9], plans[1.0], atol=1e-6)
+        # At half the threshold: pose dims exactly halved vs full magnitude.
+        half = plans[CFG.brake_trust / 2.0]
+        assert torch.allclose(half[:, :-1], 0.5 * plans[1.0][:, :-1], atol=1e-6)
+
     def test_low_trust_absolute_mode_holds_previous_plan_not_zero(self):
         # action_space="absolute" (the Pi's PWM rig): zero commands servo
         # mid-range, so zero trust must HOLD the previously emitted plan.

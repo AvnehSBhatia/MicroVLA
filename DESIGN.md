@@ -55,8 +55,10 @@ camera 30 Hz ─┬─ every 15th tick (2 Hz) ─ REAL TICK ───▼──�
       stage 2 derives orientation + gripper CONDITIONED on those waypoints. Same [5,7] output,
       same split loss (pose MSE supervises the waypoints, BCE the gripper) — no loop/trainer change.
       trust is ACTION-SPACE AWARE (v5, cfg.action_space):
-        "delta" (LIBERO/Bridge; zero = no motion): emitted plan = τ·raw — low trust BRAKES
-          toward a stop (holding a delta is momentum and perpetuates drift)
+        "delta" (LIBERO/Bridge; zero = no motion): PROGRESSIVE brake (v5.1) — scale =
+          min(1, τ/cfg.brake_trust): full magnitude while τ >= brake_trust, linear
+          attenuation to a stop below it. (A flat τ·raw taxed every action by typical
+          τ~0.65 even when tracking well — braking is for divergence, not a resting tax.)
         "absolute" (Pi PWM rig; zero = servo mid-range): emitted plan = τ·raw + (1−τ)·previous
           plan (HOLD-blend, never scaled toward zero)
       row 0 is executed this tick and fed back as fusion's action token

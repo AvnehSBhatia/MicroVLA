@@ -80,6 +80,10 @@ class MicroVLAConfig:
     miss_decay: float = 0.7  # per missed REAL frame: weight decay on the held
     # last-known box when the detector misses on a real tick (objects don't
     # teleport because the detector blinked at the grasp moment).
+    brake_trust: float = 0.5  # delta-mode brake threshold: trust >= this ->
+    # FULL-magnitude actions (scale 1); below it, linear attenuation to a stop
+    # at trust 0. A flat tau*raw would shrink every action by typical tau~0.6
+    # even when tracking well — braking is for divergence, not a resting tax.
     text_dim: int = 512
     n_text_tokens: int = 3
     vis_dim: int = 512

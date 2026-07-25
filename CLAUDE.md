@@ -81,9 +81,11 @@ the emitted plan.
   previously executed action (plan row 0) and is never faded.
 - **Trust semantics are action-space aware** (`cfg.action_space`). The corrector's trust
   is a self-calibrating error *ratio* (EMA of innovation norms). For `"delta"` actions
-  (LIBERO/Bridge — zero means NO MOTION) low trust BRAKES: `plan = tau * raw` decays
-  toward a stop; holding a delta is momentum and perpetuates drift (this drove the
-  drift-into-wall eval failure). For `"absolute"` PWM targets (the Pi rig — zero is
+  (LIBERO/Bridge — zero means NO MOTION) low trust BRAKES progressively:
+  `plan = min(1, tau/cfg.brake_trust) * raw` — full magnitude while trust is healthy,
+  linear to a stop below the threshold (holding a delta is momentum and perpetuates
+  drift — that drove the drift-into-wall eval failure; a flat `tau*raw` taxed every
+  action by typical tau~0.65). For `"absolute"` PWM targets (the Pi rig — zero is
   servo mid-range) low trust HOLD-blends toward the previously emitted plan and must
   never scale toward zero. Related: baked `pwm_targets` must be SYMMETRICALLY
   normalized (0 <=> zero motion; `preprocess/renorm_symmetric.py`) — the original

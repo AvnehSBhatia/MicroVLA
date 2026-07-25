@@ -392,7 +392,15 @@ class JEPALoop:
             if self._last_plan is None:
                 plan = raw_plan
             elif self.cfg.action_space == "delta":
-                plan = tau * raw_plan
+                # Progressive brake (v5.1): full-magnitude actions while trust
+                # is healthy (tau >= brake_trust -> scale 1); linear attenuation
+                # to a stop only below the threshold. A flat tau*raw taxed
+                # every action by typical tau (~0.6) even when tracking well.
+                scale = (
+                    min(1.0, tau / self.cfg.brake_trust)
+                    if self.cfg.brake_trust > 0.0 else 1.0
+                )
+                plan = scale * raw_plan
                 plan[:, -1] = torch.sign(raw_plan[:, -1])  # gripper stays hard +/-1
             else:
                 plan = tau * raw_plan + (1.0 - tau) * self._last_plan
