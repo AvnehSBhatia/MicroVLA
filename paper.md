@@ -687,8 +687,22 @@ the unified normalization. Two stacked bugs in the control law:
    with fresh proprio regardless, and the countdown preserves the correction.
 
 Together these predict exactly the observed profile: saturate for ~5 ticks,
-coast for 10. Fixed in `e362d2c`; expected corrected `|cmd|` mean ~0.10-0.11,
-i.e. ~0.787 of the demo's per-step magnitude, matching §4d.
+coast for 10. Fixed in `e362d2c`.
+
+**Measured after the fix: `|cmd|` mean 0.4533** (was 0.5301), verified as the
+corrected law by a direct probe — a 3 cm / 5-step waypoint yields `cmd_x =
+0.568` under `error/(gain*steps)` where the old law asked for 2.84 and clipped
+to 1.0. Working backwards, 0.4533 implies the head predicts ~2.4 cm over 5
+steps (4.8 mm/step), i.e. an equivalent per-step action of ~0.45 against a demo
+magnitude of ~0.58 — the 0.787 ratio of §4d, arriving intact at the actuator.
+
+A prediction of ~0.10-0.11 was recorded here before that measurement and was
+WRONG: it came from a guessed demo action magnitude, not a measured one. The
+same guess briefly produced a false "still saturating" diagnosis of the
+corrected run, on the strength of `max 1.0` alone. `max` is the largest command
+in the episode and clips on the largest moves by design; the diagnostic that
+actually distinguishes tracking from bang-bang is the FRACTION of steps at the
+clip, which the first version of this analysis never computed.
 
 **Method note worth keeping.** The bench numbers (§4d) could not have caught
 this: bench scores the PREDICTION, and the actuator is a separate map from
