@@ -252,7 +252,7 @@ Ablations and fallbacks:
 ```
 
 If a worker stalls: every worker prints its pid, `kill -USR1 <pid>` dumps its
-stack, and a stuck worker auto-dumps every 600 s. `--worker-timeout` kills and
+stack. `--worker-timeout` kills and
 reports, keeping partial results clearly marked partial.
 
 ### 3c. Diagnosis — what aggregate scores cannot see
