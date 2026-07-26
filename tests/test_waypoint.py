@@ -120,12 +120,25 @@ class TestWaypointActuator:
         assert cmd[0] == pytest.approx(1.0, abs=1e-6)
         assert cmd[1] == pytest.approx(0.0, abs=1e-6)
 
-    def test_horizon_selects_the_row(self):
+    def test_horizon_h_commands_a_per_step_rate_not_h_steps_at_once(self):
+        """`gain` is per ONE step; a horizon-h error spans h. Dividing by gain
+        alone over-commands by exactly h and pins the output at the clip."""
         act = self._act(horizon=CFG.plan_steps, clip=10.0)
         wp = torch.zeros(CFG.plan_steps, 3)
-        wp[:, 0] = torch.linspace(0.1, 0.5, CFG.plan_steps)
+        wp[:, 0] = 0.5                            # 0.05 m, five steps out
         cmd = act.command(wp.numpy(), np.zeros(3), is_real=True)
-        assert cmd[0] == pytest.approx(0.5 * 0.1 / 0.05, abs=1e-5)
+        # 0.05 m over 5 steps at 0.05 m/unit/step = 0.2 per step, NOT 1.0.
+        assert cmd[0] == pytest.approx(0.05 / (0.05 * CFG.plan_steps), abs=1e-6)
+
+    def test_falling_behind_raises_the_command(self):
+        """steps_left counts down: same error, fewer steps => bigger command."""
+        act = self._act(horizon=CFG.plan_steps, clip=10.0, anchor_real=True)
+        wp = np.zeros((CFG.plan_steps, 3))
+        wp[:, 0] = 0.5
+        first = act.command(wp, np.zeros(3), is_real=True)
+        # Arm does not move at all; the deadline approaches.
+        later = [act.command(wp, np.zeros(3), is_real=False) for _ in range(3)]
+        assert all(b[0] > a[0] for a, b in zip([first] + later, later))
 
     def test_clip(self):
         act = self._act(clip=0.3)
@@ -147,7 +160,7 @@ class TestWaypointActuator:
         function of the REMAINING error, so a timid prediction only delays
         arrival — it does not shrink the command as the arm falls behind.
         """
-        act = self._act(horizon=1, clip=10.0)
+        act = self._act(horizon=1, clip=10.0, anchor_real=True)
         wp = np.zeros((CFG.plan_steps, 3))
         wp[:, 0] = 0.5                                  # target: +0.05 m in x
         eef = np.zeros(3)
@@ -165,7 +178,7 @@ class TestWaypointActuator:
         assert abs(arrived[0]) < 1e-6
 
     def test_real_tick_re_anchors(self):
-        act = self._act(horizon=1, clip=10.0)
+        act = self._act(horizon=1, clip=10.0, anchor_real=True)
         wp = np.zeros((CFG.plan_steps, 3))
         wp[:, 0] = 0.5
         act.command(wp, np.zeros(3), is_real=True)

@@ -21,13 +21,24 @@ Two properties follow, and they are the whole point:
    timid predictor makes the arm arrive *late*, not *never*, which is exactly
    the failure mode that a delta-action head cannot recover from.
 
-Anchoring
----------
-The target is refreshed on REAL perception ticks and held across the dream
-ticks in between (``anchor_real=True``, the default): that is what makes the
-error term integrate tracking failure instead of being recomputed away every
-tick. Set ``anchor_real=False`` to re-anchor every tick (pure feed-forward,
-useful as an ablation).
+Rate and anchoring (the two things that make or break it)
+---------------------------------------------------------
+``gain`` is metres per unit action per ONE control step, but a horizon-``h``
+waypoint is ``h`` steps of displacement. The command must therefore be the
+per-step RATE that closes the remaining error over the remaining steps —
+``error / (gain * steps_left)``. Dividing by ``gain`` alone over-commands by
+exactly ``h`` and pins the output at the clip, which is bang-bang control
+wearing a regression's clothes.
+
+``steps_left`` counts down, and that is where the closed-loop property lives:
+an arm that falls behind has the same error to cover in fewer steps, so the
+command GROWS rather than quietly under-delivering.
+
+The target re-anchors every tick by default. Holding it across a whole
+perception period only works if the period is no longer than the horizon; at
+the deployment 15:5 ratio a held target is reached in ~5 ticks and the arm then
+idles for 10, throwing away two thirds of its duty cycle. ``anchor_real=True``
+restores the held behaviour for rates where it makes sense.
 
 The gain (metres of EEF displacement per unit raw action per control step) is
 FITTED FROM DATA — ``preprocess/fit_waypoint_gain.py`` writes
@@ -136,8 +147,14 @@ class WaypointActuator:
             i.e. move at whatever speed the action clip allows; lower values
             approach the waypoint more gently.
         clip: Command magnitude clamp in raw action units, applied per axis.
-        anchor_real: Refresh the absolute target only on real perception ticks
-            (default). ``False`` re-anchors every tick.
+        anchor_real: Refresh the absolute target only on real perception ticks.
+            DEFAULT IS FALSE — re-anchor every tick. Holding across a whole
+            perception period only works when the period is no longer than the
+            horizon; at the deployment 15:5 ratio the arm reaches the held
+            target in ~5 ticks and then idles for 10, losing two thirds of its
+            duty cycle. The planner replans every tick with fresh proprio
+            anyway, so re-anchoring loses nothing and the step countdown keeps
+            the closed-loop correction.
     """
 
     def __init__(
@@ -147,7 +164,7 @@ class WaypointActuator:
         horizon: int = 5,
         gain_scale: float = 1.0,
         clip: float = 1.0,
-        anchor_real: bool = True,
+        anchor_real: bool = False,
     ) -> None:
         g = gain.gain if isinstance(gain, WaypointGain) else np.asarray(gain, dtype=np.float64)
         g = np.asarray(g, dtype=np.float64).reshape(-1)
@@ -161,10 +178,12 @@ class WaypointActuator:
         self.clip = float(clip)
         self.anchor_real = bool(anchor_real)
         self._target: Optional[np.ndarray] = None
+        self._steps_left: int = 1
 
     def reset(self) -> None:
         """Clears the held absolute target (call at every episode start)."""
         self._target = None
+        self._steps_left = 1
 
     @property
     def target(self) -> Optional[np.ndarray]:
@@ -196,6 +215,16 @@ class WaypointActuator:
         row = min(self.horizon, disp.shape[0]) - 1
         if self._target is None or is_real or not self.anchor_real:
             self._target = eef + disp[row] * self.waypoint_range
-        error = self._target - eef
-        cmd = self.gain_scale * error / self.gain
+            self._steps_left = row + 1
+        # UNITS: `gain` is metres per unit action per ONE control step, while
+        # the error spans `_steps_left` steps. Dividing by the step count turns
+        # a positional error into the per-step RATE that closes it — without
+        # that, aiming `horizon` steps ahead over-commands by exactly `horizon`
+        # and the command sits pinned at the clip.
+        steps = max(1, self._steps_left)
+        cmd = self.gain_scale * (self._target - eef) / (self.gain * steps)
+        # Counting down is what makes this closed-loop rather than open-loop: an
+        # arm that falls behind has the same error left but fewer steps to cover
+        # it, so the command GROWS instead of quietly under-delivering.
+        self._steps_left = max(1, self._steps_left - 1)
         return np.clip(cmd, -self.clip, self.clip).astype(np.float32)
