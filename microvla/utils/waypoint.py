@@ -212,7 +212,13 @@ class WaypointActuator:
         """
         disp = np.asarray(wp_disp, dtype=np.float64).reshape(-1, 3)
         eef = np.asarray(eef_now, dtype=np.float64).reshape(-1)[:3]
-        row = min(self.horizon, disp.shape[0]) - 1
+        # The LAST row is never supervised: `waypoint_targets` builds row k from
+        # chunk[k+1] - chunk[0], and the bake carries only plan_steps rows, so
+        # row plan_steps-1 has no target and is masked out of the loss. Servoing
+        # toward it means aiming at an output the loss never shaped — measured
+        # cost: |cmd| 0.11 where the head's 0.604 vigor implies ~0.34.
+        row = min(self.horizon, disp.shape[0] - 1) - 1
+        row = max(0, row)
         if self._target is None or is_real or not self.anchor_real:
             self._target = eef + disp[row] * self.waypoint_range
             self._steps_left = row + 1

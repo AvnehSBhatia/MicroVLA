@@ -96,6 +96,18 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "predictive/geometric paths get gradient. Interpretability "
                         "probe showed fused 7x dominant, geometry/next_emb dead — "
                         "redundant-path death; same cure as fusion's modality dropout.")
+    p.add_argument("--phase-dropout", type=float, default=0.0,
+                   help="stage B: per-step probability of WITHHOLDING each PHASE input "
+                        "(state_delta, proprio) from the planner, independently. These are "
+                        "the shortcut: a policy that predicts the action from task progress "
+                        "and arm pose alone never needs to locate the object, and in "
+                        "stereotyped pick-and-place demos with a fixed target that covers "
+                        "most of the action variance. Measured consequence of leaving it at "
+                        "0: phase sensitivity 0.464 vs vision 0.040 (12:1), and a policy "
+                        "that reaches the basket perfectly and never touches the object. "
+                        "Try 0.3. Deliberately asymmetric with --planner-input-dropout, "
+                        "which withholds the vision paths — drop the shortcut MORE than the "
+                        "signal you want used.")
     p.add_argument("--drift-dropout", type=float, default=0.1,
                    help="stage A: per-segment probability of zeroing state_delta into "
                         "the TRM rollout, forcing scene-content dynamics instead of "
@@ -673,15 +685,31 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                          backbone, device)
                 # v6: arm state at t — fresh even on dream steps (encoders are
                 # fast at deployment; only the camera is slow).
-                # Planner input-dropout (interpretability fix): withhold the
-                # dominant inputs sometimes so next_emb / geometry / pred_box /
-                # spatial actually receive gradient instead of dying redundant.
+                # Input dropout exists to withhold whatever the planner has come
+                # to over-rely on, so the paths it is ignoring receive gradient.
+                # WHICH inputs dominate has changed: the v7 probe found `fused`
+                # 7x dominant, which is what --planner-input-dropout targets. The
+                # v7.2 wrist measurement found PHASE dominant instead —
+                # state_delta 0.2740 + proprio 0.1904 = 0.464 against vision
+                # (geometry + fused) 0.040, a 12:1 ratio — and neither phase
+                # input was ever dropped. So the regularizer was withholding the
+                # signals we WANT used while never touching the shortcut.
+                #
+                # --phase-dropout withholds the shortcut. Asymmetric on purpose:
+                # a policy that can predict the action from task progress and arm
+                # pose alone never needs to find the object, and in a corpus of
+                # stereotyped pick-and-place demos with a FIXED basket that
+                # shortcut covers most of the action variance.
                 pid = args.planner_input_dropout
+                phd = args.phase_dropout
                 fused_in = None if (pid > 0 and rng.random() < pid) else fused_t
                 cur_in = None if (pid > 0 and rng.random() < pid) else cur
-                plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_t,
+                delta_in = None if (phd > 0 and rng.random() < phd) else delta_t
+                prop_in = (None if (phd > 0 and rng.random() < phd)
+                           else batch["proprio"][:, t])
+                plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_in,
                                          fused=fused_in, pred_box_emb=next_box,
-                                         geometry=geom, proprio=batch["proprio"][:, t],
+                                         geometry=geom, proprio=prop_in,
                                          spatial=spatial, wm_msg=wm["msg"], return_wp=True)
                 preds.append(plan); grips.append(grip)
                 if wp is not None:

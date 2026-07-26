@@ -136,7 +136,12 @@ class MicroVLAConfig:
     # (`preprocess/fit_waypoint_gain.py` -> waypoint_stats.json).
     waypoint_action: bool = False   # build the metric-displacement head
     waypoint_range: float = 0.15    # metres spanned by the head's [-1, 1] output
-    waypoint_horizon: int = 5       # servo toward the EEF pose `horizon` steps out
+    waypoint_horizon: int = 4       # servo toward the EEF pose `horizon` steps out.
+    # MUST index a SUPERVISED row: waypoint_targets builds row k from
+    # chunk[k+1]-chunk[0] and the bake has only plan_steps rows, so rows
+    # 0..plan_steps-2 have targets and the last one does not. horizon 5 aimed
+    # at the unsupervised row (measured: |cmd| 0.11 vs the ~0.34 the head's
+    # 0.604 vigor implies). The actuator clamps this regardless.
     waypoint_gain_scale: float = 1.0  # multiplies the fitted proportional term
     trainable_param_budget: int = 9_000_000
 

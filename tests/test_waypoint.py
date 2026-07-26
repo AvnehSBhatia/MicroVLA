@@ -120,15 +120,46 @@ class TestWaypointActuator:
         assert cmd[0] == pytest.approx(1.0, abs=1e-6)
         assert cmd[1] == pytest.approx(0.0, abs=1e-6)
 
+    def test_never_servos_toward_the_unsupervised_last_row(self):
+        """waypoint_targets masks the LAST row (no chunk[k+1] exists for it), so
+        aiming there means aiming at an output the loss never shaped."""
+        from microvla.utils.waypoint import waypoint_targets
+
+        _, row_mask = waypoint_targets(torch.zeros(1, CFG.plan_steps, 3),
+                                       CFG.plan_steps, CFG.waypoint_range)
+        last_supervised = int(row_mask.nonzero().max())
+        assert row_mask[-1] == 0.0, "assumption changed: last row now supervised"
+
+        # A ramp whose rows differ, so which row is used is observable.
+        wp = np.zeros((CFG.plan_steps, 3))
+        wp[:, 0] = np.linspace(0.1, 0.5, CFG.plan_steps)
+        for horizon in (CFG.plan_steps, CFG.plan_steps + 3):   # asked too far out
+            act = self._act(horizon=horizon, clip=10.0)
+            cmd = act.command(wp, np.zeros(3), is_real=True)
+            steps = last_supervised + 1
+            expected = wp[last_supervised, 0] * 0.1 / (0.05 * steps)
+            assert cmd[0] == pytest.approx(expected, abs=1e-6), (
+                f"horizon {horizon} did not clamp to the last supervised row")
+
+    def test_config_default_horizon_is_supervised(self):
+        from microvla.utils.waypoint import waypoint_targets
+
+        _, row_mask = waypoint_targets(torch.zeros(1, CFG.plan_steps, 3),
+                                       CFG.plan_steps, CFG.waypoint_range)
+        assert row_mask[CFG.waypoint_horizon - 1] == 1.0, (
+            f"cfg.waypoint_horizon={CFG.waypoint_horizon} indexes row "
+            f"{CFG.waypoint_horizon - 1}, which the loss does not supervise")
+
     def test_horizon_h_commands_a_per_step_rate_not_h_steps_at_once(self):
         """`gain` is per ONE step; a horizon-h error spans h. Dividing by gain
         alone over-commands by exactly h and pins the output at the clip."""
-        act = self._act(horizon=CFG.plan_steps, clip=10.0)
+        h = CFG.plan_steps - 1          # the furthest SUPERVISED row (no clamping)
+        act = self._act(horizon=h, clip=10.0)
         wp = torch.zeros(CFG.plan_steps, 3)
-        wp[:, 0] = 0.5                            # 0.05 m, five steps out
+        wp[:, 0] = 0.5                            # 0.05 m, h steps out
         cmd = act.command(wp.numpy(), np.zeros(3), is_real=True)
-        # 0.05 m over 5 steps at 0.05 m/unit/step = 0.2 per step, NOT 1.0.
-        assert cmd[0] == pytest.approx(0.05 / (0.05 * CFG.plan_steps), abs=1e-6)
+        # 0.05 m over h steps at 0.05 m/unit/step = 0.05/(0.05*h) per step, NOT 1.0.
+        assert cmd[0] == pytest.approx(0.05 / (0.05 * h), abs=1e-6)
 
     def test_falling_behind_raises_the_command(self):
         """steps_left counts down: same error, fewer steps => bigger command."""
