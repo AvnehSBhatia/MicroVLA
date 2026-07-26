@@ -550,7 +550,11 @@ def _parallel_worker(payload: dict) -> dict:
     faulthandler.enable()
     if hasattr(signal, "SIGUSR1"):
         faulthandler.register(signal.SIGUSR1)
-    faulthandler.dump_traceback_later(600, repeat=True, exit=False)
+    # NO periodic dump_traceback_later: it fires on a timer regardless of whether
+    # the worker is stuck, so a pool worker idling on the task queue between
+    # trials printed a full "Timeout (0:10:00)!" traceback into the middle of the
+    # run's output. On-demand only — `kill -USR1 <pid>`, and the pid is on the
+    # startup line.
 
     budget = payload["thread_budget"]
     delay = payload["stagger"] * w

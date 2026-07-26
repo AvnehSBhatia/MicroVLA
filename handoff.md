@@ -52,9 +52,8 @@ env $PFX python -m eval.libero_eval --suite libero_object --n-trials 2 \
 # 3) SCALE once 2 workers finish clean: --workers 5 (then 10), same flags.
 ```
 
-If a worker stalls anyway, it now self-reports without py-spy:
-`kill -USR1 <pid>` dumps its stack (every worker prints its pid on startup),
-and a stuck worker auto-dumps every 600 s. Isolate cause 1 with no LIBERO and
+If a worker stalls anyway, it self-reports without py-spy: `kill -USR1 <pid>`
+dumps its stack (every worker prints its pid on startup). Isolate cause 1 with no LIBERO and
 no policy in the loop:
 ```bash
 python -c "
