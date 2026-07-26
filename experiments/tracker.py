@@ -128,16 +128,20 @@ def report() -> Path:
                 f"| {r['run_id']} | {r.get('recipe', '')} | {r['epoch']}/{r['epochs']} "
                 f"| {r.get('horizon', '—')} | {r.get('train_loss', '—')} "
                 f"| {r.get('val_loss', '—')} | {r.get('persistence', '—')} | {m} "
-                f"| {r['duration_s']} |")
+                f"| {r.get('duration_s', '—')} |")
         lines.append("")
         stageb = [r for r in epochs if r["stage"] == "B"]
         if stageb:
             lines += ["## Stage-B policy (behavior cloning)", "",
-                      "| run | ep | bc | smooth | s |", "|---|---|---|---|---|"]
+                      "| run | tqsa | ep | train | grip | val | val grip | s |",
+                      "|---|---|---|---|---|---|---|---|"]
             for r in stageb:
-                lines.append(f"| {r['run_id']} | {r['epoch']}/{r['epochs']} "
-                             f"| {r.get('bc_loss', '—')} | {r.get('smooth', '—')} "
-                             f"| {r['duration_s']} |")
+                lines.append(
+                    f"| {r['run_id']} | {r.get('tqsa', '—')} "
+                    f"| {r['epoch']}/{r['epochs']} "
+                    f"| {r.get('train_loss', r.get('bc_loss', '—'))} "
+                    f"| {r.get('train_grip_acc', '—')} | {r.get('val_loss', '—')} "
+                    f"| {r.get('val_grip_acc', '—')} | {r.get('duration_s', '—')} |")
             lines.append("")
 
     hc = [r for r in recs if r.get("kind") == "horizon_curve"]
@@ -148,6 +152,42 @@ def report() -> Path:
         for r in hc:
             lines.append(f"| {r.get('checkpoint', '')} | {r['horizon']} | {r['val_loss']} "
                          f"| {r['persistence']} | {r['margin_pct']:+.0f}% |")
+        lines.append("")
+
+    bench = [r for r in recs if r.get("kind") == "bench"]
+    if bench:
+        lines += ["## Bench (open-loop fidelity — the gate before sim)", "",
+                  "| run | data | std_ratio | mae | corr | grip | wm_margin | spatial |",
+                  "|---|---|---|---|---|---|---|---|"]
+        for r in bench:
+            lines.append(
+                f"| {r['run_id']} | {r.get('data', '')} | {r.get('std_ratio', '—')} "
+                f"| {r.get('pose_mae', '—')} | {r.get('corr', '—')} "
+                f"| {r.get('grip_acc', '—')} | {r.get('wm_margin_pct', '—')}% "
+                f"| {r.get('spatial_passed', '—')} |")
+        lines += ["", "`spatial=False` on a TQSA-TRAINED checkpoint means the planner "
+                  "was scored without ~27% of its memory tokens — see paper.md §0.", ""]
+        lines += ["### Planner input sensitivity (mean |dPlan| when withheld)", ""]
+        keys = sorted({k for r in bench for k in r.get("sensitivity", {})})
+        if keys:
+            lines += ["| input | " + " | ".join(r["run_id"] for r in bench if "sensitivity" in r) + " |",
+                      "|---" * (1 + sum(1 for r in bench if "sensitivity" in r)) + "|"]
+            for k in keys:
+                cells = [f"{r['sensitivity'].get(k, float('nan')):.4f}"
+                         if k in r.get("sensitivity", {}) else "—"
+                         for r in bench if "sensitivity" in r]
+                lines.append(f"| {k} | " + " | ".join(cells) + " |")
+            lines.append("")
+
+    infra = [r for r in recs if r.get("kind") == "infra"]
+    if infra:
+        lines += ["## Infrastructure measurements", ""]
+        for r in infra:
+            facts = ", ".join(f"{k} {v}" for k, v in r.items()
+                              if k not in ("ts", "git", "kind", "run_id", "note"))
+            lines.append(f"- **{r['run_id']}** — {facts}")
+            if r.get("note"):
+                lines.append(f"  - {r['note']}")
         lines.append("")
 
     ev = [r for r in recs if r.get("kind") == "eval"]

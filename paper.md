@@ -226,3 +226,269 @@ Known open item (needs a re-bake through the BudgetGuard pipeline): NO
 PROPRIOCEPTION — the policy emits deltas with zero knowledge of arm state, so
 residual drift cannot self-correct; adding baked EEF pose is the next
 structural fix if v5 closed-loop numbers stay at zero.
+
+---
+
+# v7 / v7.2 full-data results (2026-07-25)
+
+Everything below is measured, not projected. Where a number is a median over
+episodes it says so. Two checkpoints are compared throughout:
+
+* **v7 pilot** — `full_stageB.pt` trained on `data/bridge` + `data/libero_v7`
+  (libero_object only, ~500 episodes), TQSA on.
+* **v7.2 full** — trained on `data/bridge` + all three baked LIBERO suites
+  (`libero_object_v7`, `libero_spatial_v7`, `libero_goal_v7`).
+
+## 0. CORRECTION — the v7 pilot bench numbers were measured blind
+
+`eval/bench.py` never passed `spatial=` to the planner (verified: `grep -n
+spatial eval/bench.py` returned zero hits before 2026-07-25). The planner draws
+22 of its ~82 cross-attention memory tokens from TQSA (16 spatial tokens + 3
+pooled roles + 3 heatmaps). **Every bench number recorded for a TQSA-trained
+checkpoint was therefore produced with ~27% of the planner's observation
+withheld**, including:
+
+    std_ratio 0.369 | grip_acc 0.93 | corr 0.49 | pose_mae 0.20 | wm_margin +1.7%
+
+and the entire v7 sensitivity ranking. These figures **understate** the pilot by
+an unknown amount and are NOT comparable to a checkpoint trained without TQSA.
+`eval.bench --tqsa` (added 2026-07-25) runs the frozen backbone + adapter the
+way the deployment loop does; the flagless path now prints a warning when the
+checkpoint carries TQSA weights. Any pilot number quoted without `--tqsa` must
+carry this caveat.
+
+Related deployment-side defect, same root: `eval/policy.py` built and wired a
+TQSA unconditionally and only *warned* when the checkpoint had no weights for
+it — so a checkpoint trained without `--tqsa` would have fed the planner 22
+tokens of RANDOM-INIT perception at eval. It now runs without the adapter.
+
+## 1. Data — three-suite bake
+
+Raw LIBERO, downloaded → converted → deleted one suite at a time (all three
+resident at once is ~10-12 GB, the entire project disk budget):
+
+| suite | download | reconstructed | episodes baked |
+|---|---|---|---|
+| libero_object  | 5.82 GB | 7.44 GB | 500 |
+| libero_spatial | 3.47 GB | 6.24 GB | ~500 |
+| libero_goal    | —       | —       | ~500 |
+
+`preprocess/libero.py` globs its root recursively, so per-suite baking gives one
+normalizer per suite; `preprocess/unify_norm_stats.py` rescales all three onto
+the per-dim MAX of their symmetric scales (max, never mean, so nothing clips)
+and writes one shared `norm_stats.json`.
+
+Resulting training corpus: **6023 train episodes across 60 length-buckets, 316
+val**. Buckets are keyed `(T, has_frames)`; **23 of 60 carry `wrist_frames`** —
+those are the ~1500 LIBERO episodes; the ~4500 bridge episodes are frameless
+(and proprio-less, validity flag 0), so they train planner-only with
+`spatial=None`.
+
+## 2. Stage A — world model, full mix
+
+`--lr 5e-4 --batch-size 64 --max-horizon 6 --warmup-epochs 4 --patience 6
+--lr-patience 2`, loaded nothing, 4 data dirs. Persistence baseline at H=6 is
+**0.0115**.
+
+| ep | H | lr | train | val | verdict | s | peakVRAM |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 | 5.0e-4 | 0.0964 | 0.0072 | (pers 0.0064) | 77 | 5.4 GB |
+| 2 | 3 | 5.0e-4 | 0.0667 | 0.0120 | (pers 0.0091) | 177 | 10.1 GB |
+| 3 | 4 | 5.0e-4 | 0.0654 | 0.0154 | (pers 0.0102) | 144 | 12.5 GB |
+| 4 | 6 | 5.0e-4 | 0.0674 | 0.0163 | best | 218 | 17.2 GB |
+| 5 | 6 | 5.0e-4 | 0.0638 | 0.0166 | 1/6 | 222 | 17.2 GB |
+| 6 | 6 | 5.0e-4 | 0.0628 | 0.0157 | best | 165 | 17.2 GB |
+| 7 | 6 | 5.0e-4 | 0.0596 | 0.0172 | 1/6 | 171 | 17.2 GB |
+| 8 | 6 | 5.0e-4 | 0.0570 | 0.0132 | best | 168 | 17.2 GB |
+| 9 | 6 | 5.0e-4 | 0.0528 | 0.0154 | 1/6 | 262 | 17.2 GB |
+| 10 | 6 | 5.0e-4 | 0.0541 | 0.0133 | 2/6 | 382 | 17.2 GB |
+| 11 | 6 | 5.0e-4 | 0.0539 | 0.0129 | best | 487 | 17.2 GB |
+| 12 | 6 | 5.0e-4 | 0.0498 | 0.0167 | 1/6 | 496 | 17.2 GB |
+| 13 | 6 | 5.0e-4 | 0.0503 | 0.0127 | best | 367 | 17.2 GB |
+| 14 | 6 | 5.0e-4 | 0.0471 | 0.0133 | 1/6 | 366 | 17.2 GB |
+| 15 | 6 | 5.0e-4 | 0.0453 | 0.0124 | best | 364 | 17.2 GB |
+| 16 | 6 | 5.0e-4 | 0.0440 | **0.0114** | **BEATS persistence**, best | 363 | 17.2 GB |
+| 17 | 6 | 5.0e-4 | 0.0431 | 0.0122 | 1/6 | 367 | 17.2 GB |
+| 18 | 6 | 5.0e-4 | 0.0432 | 0.0117 | 2/6 | 367 | 17.2 GB |
+| 19 | 6 | **2.5e-4** | 0.0421 | 0.0132 | 3/6 (LR halved) | 365 | 17.2 GB |
+| 20 | 6 | 2.5e-4 | 0.0389 | **0.0109** | **BEATS**, best | 367 | 17.2 GB |
+| 21 | 6 | 2.5e-4 | 0.0376 | 0.0112 | BEATS, 1/6 | 364 | 17.2 GB |
+| 22 | 6 | 2.5e-4 | 0.0381 | 0.0115 | tie, 2/6 | 363 | 17.2 GB |
+
+Stopped manually at 22; **best = epoch 20, val 0.0109 vs persistence 0.0115 =
++5.2% margin**, versus the pilot's 0.0106 vs 0.0111 = +4.5% at epoch 18 on
+object-only. The LR halving at 19 produced the best epoch immediately at 20 —
+the plateau scheduler earned its place.
+
+**Reproducibility note:** two stage-A runs were launched (patience 3, then
+patience 6). Their val curves are IDENTICAL through epoch 10 — same seed, same
+data, deterministic. The patience-3 run would NOT have early-stopped: epoch 11
+improved and reset the counter.
+
+**Caveat that matters for Claim 2:** this margin is on the MIXED val split.
+Bench (§4) measures −7.3% on libero_object alone. The world model wins on the
+corpus and loses on that suite; the claim must be stated at the level it was
+measured.
+
+## 3. Stage B — two arms off the same frozen world model
+
+Both `--load-stage-a checkpoints/full_stageA.pt --stage-b-epochs 40
+--stage-b-patience 4 --dream-frac 0.25 --batch-size 64 --lr 5e-4`, differing
+only in `--tqsa`.
+
+| ep | no-TQSA loss / grip | no-TQSA val / grip | TQSA loss / grip | TQSA val / grip |
+|---|---|---|---|---|
+| 1 | — | — | 1.1456 / 0.550 | 0.9480 / 0.567 best |
+| 2 | — | — | 0.9082 / 0.596 | 0.8590 / 0.717 best |
+| 3 | 0.7515 / 0.659 | 0.8461 / 0.587 best | 0.7482 / 0.663 | 0.9173 / 0.547 (1/4) |
+| 4 | 0.7149 / 0.673 | 0.6402 / 0.716 best | 0.7266 / 0.671 | 0.6330 / 0.730 best |
+| 5 | 0.6744 / 0.685 | 0.6223 / 0.726 best | 0.6824 / 0.691 | 0.6303 / 0.740 best |
+| 6 | 0.6663 / 0.698 | 0.6195 / 0.746 best | 0.6626 / 0.693 | 0.6154 / 0.761 best |
+| 7 | 0.6549 / 0.709 | 0.6355 / 0.731 (1/4) | 0.6619 / 0.699 | 0.6239 / 0.730 (1/4) |
+| 8 | 0.6676 / 0.697 | 0.6035 / 0.746 best | 0.6518 / 0.712 | 0.6123 / 0.726 best |
+| 9 | 0.6515 / 0.711 | 0.5799 / 0.755 best | 0.6420 / 0.719 | 0.5942 / 0.743 best |
+| 10 | 0.6431 / 0.709 | 0.5920 / 0.750 (1/4) | 0.6330 / 0.718 | 0.5719 / 0.757 best |
+| 11 | 0.6161 / 0.725 | **0.5645** / 0.762 best | 0.6150 / 0.729 | **0.5613** / 0.773 best |
+| 12 | 0.6056 / 0.738 | 0.5760 / 0.748 (1/4) | 0.6041 / 0.740 | 0.6231 / 0.742 (1/4) |
+| 13 | 0.6161 / 0.730 | 0.5801 / 0.752 (2/4) | 0.6110 / 0.734 | 0.5762 / 0.761 (2/4) |
+| 14 | 0.6016 / 0.730 | 0.5713 / 0.762 (3/4) | — | — |
+| 15 | 0.5984 / 0.735 | 0.5800 / 0.731 (4/4) | — | — |
+
+no-TQSA early-stopped at 15, **best val 0.5645 (ep 11), val grip 0.762**.
+TQSA best so far **0.5613 (ep 11), val grip 0.773** — a **0.6% val improvement
+at the same epoch**. Since bridge is ~75% of episodes and carries no frames,
+TQSA can only affect a quarter of that val, so 0.6% overall is ~2.4% on the
+part it touches. Trainer val is also not the metric of record; see §4.
+
+## 4. Bench — v7.2 no-TQSA arm vs v7 pilot
+
+`eval.bench --data-dir data/libero_object_v7 --sensitivity`, 30 episodes,
+0.81 s/eval. Medians:
+
+| metric | v7 pilot (object-only) | v7.2 full (no TQSA) |
+|---|---|---|
+| std_ratio | 0.369 | **0.175** |
+| pose_mae | 0.20 | 0.190 |
+| corr | 0.49 | **0.28** |
+| grip_acc | 0.93 | 0.93 |
+| wm_margin | +1.7% | **−7.3%** |
+
+Per-episode spread on the v7.2 arm: std_ratio 0.131–0.238, grip 0.83–1.00,
+wm_margin −20.0% to +1.6%. Both pilot columns carry the §0 caveat.
+
+Three readings:
+
+1. **Magnitude collapse regressed.** std_ratio 0.369 → 0.175, with corr
+   0.49 → 0.28. Three suites is a harder conditional-mean problem than one, and
+   MSE-BC answers diversity by shrinking. This is the direct motivation for the
+   waypoint-absolute head (DESIGN.md v7.2) — it removes magnitude from the
+   regression's job entirely.
+2. **The world model's channel into control has gone silent.** `wm_msg`
+   0.031 → 0.0007 (44x down). With `pred_box_emb` 0.0029 and `next_emb->cur`
+   0.0017, nothing the TRM produces measurably changes the plan.
+3. **grip_acc held at 0.93** despite the trainer reporting 0.73 — the trainer
+   averages over bridge (different robot, different gripper convention); bench
+   scores LIBERO only.
+
+### Planner input sensitivity (mean |Δplan| when withheld, on-distribution)
+
+| input | v7 pilot | v7.2 full | change |
+|---|---|---|---|
+| proprio | 0.291 | 0.2243 | −23% |
+| geometry | 0.004 | **0.0914** | **+2185%** |
+| fused | 0.023 | 0.0218 | ~flat |
+| state_delta | 0.075 | 0.0134 | −82% |
+| current_emb | 0.025 | 0.0133 | −47% |
+| next_emb->stale | — | 0.0059 | new probe |
+| pred_box_emb | 0.013 | 0.0029 | −78% |
+| next_emb->cur | 0.001 | 0.0017 | ~flat |
+| wm_msg | 0.031 | 0.0007 | **−98%** |
+
+**The pruning candidates from the pilot are refuted.** `geometry` was the
+deadest input at 0.004 and is now the second-strongest at 0.0914 — a 23x jump.
+Pruning it on pilot evidence would have removed the input that full data says
+matters most after proprioception. `pred_box_emb` and the `next_emb` path remain
+dead, and `next_emb->stale` (0.0059) confirms it at full magnitude: substituting
+a *wrong* prediction of the same size barely moves the plan, so the low
+`next_emb->cur` reading is not merely an amplitude artifact.
+
+Methodological note: `next_emb->cur` zeroes only the TRM's residual, which is
+small next to `‖current_emb‖`, so it reads low by construction. `next_emb->stale`
+(the previous tick's prediction — full magnitude, in-distribution, wrong) was
+added to separate "the path is dead" from "the perturbation was tiny".
+
+## 5. Infrastructure results (method-section material)
+
+**Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
+every framed timestep every epoch, at a 128→512 px upscale. Measured cost:
+**~6.1 s/batch, 105 batches in 644 s, ~18 min/epoch, ~12 h for 40 epochs.**
+The backbone never trains, so those maps are identical across all 40 epochs.
+Precomputing once:
+
+* 19,680 train frames + 1,031 val frames
+* map shape **(512, 20, 20)** = **400 KB/frame** at fp16
+* **7.5 GB train + 0.4 GB val = 7.9 GB** resident
+* one pass: **137 s train (154–165 frames/s) + 14 s val**
+* epochs afterward: **~130 s**, i.e. the same cost as the TQSA-free arm (~146 s)
+
+**≈8x per-epoch, 12 h → ~90 min.** Not bit-identical: fp16 storage is ~2e-4
+relative and chunked batching ~1e-6, both far below the signal.
+
+Rejected after measurement: lowering `min_side` saves **0.6%, not 4x** (512,
+256 and 128 all letterbox to 640×640 and yield the same 20×20 map); larger
+`--batch-size` does not amortize the per-image overheads. Available but not
+taken: truncating the forward at SPPF (layer 9), skipping the text-conditioned
+head and NMS — measured **maxdiff 0.0, 1.8–2.0x**.
+
+**GPU contention (why wall-clock numbers vary).** Seven processes on GPU 1
+totalling ~154 GB of 192 GB, including two duplicate ~20 GB MicroVLA runs
+(PIDs 374717, 400975) and two large TinyVLA jobs (63.7 GB, 36.2 GB). Identical
+stage-A epochs ran **96 s uncontended vs 496 s contended (5.2x)**. Every
+per-epoch second in §2/§3 is contended and is not a hardware claim.
+
+**Parameter ledger** (`microvla.utils.param_audit`, unchanged by v7.2):
+fusion 4,460,165 · drift 724,993 · planner 1,770,247 · **total 6,955,405** of
+9,000,000. The waypoint head costs **771** params `((d_plan+1)*3)`. Planner
+ablations: `geometry` −1,792 · `pred_box_emb` −16,640 · both −18,432 ·
+plus `next_emb` −35,072 · `spatial` → 1,720,583.
+
+Test suite over this session: **149 → 198** passing (CPU-only, mock-only, no
+network, no cv2).
+
+## 6. Defects found and fixed (2026-07-25)
+
+Ordered by what they would have cost if undetected.
+
+1. **Bench scored TQSA checkpoints blind** (§0) — invalidates the comparability
+   of every recorded TQSA-checkpoint number.
+2. **Silent cache corruption path.** The SPPF hook retains only the LAST
+   forward's output; had the detector split a frame list across several internal
+   forwards, the precompute would have BROADCAST one frame's features across a
+   64-episode chunk with no exception. The live path fails loudly on this; only
+   the precompute could swallow it. Now raises.
+3. **Random-init TQSA at deployment** for checkpoints trained without it (§0).
+4. **`mp.Pool` masks worker death** — a segfaulting/OOM-killed worker is reaped
+   and replaced while its chunk is never re-dispatched, so the parent blocks
+   forever with no error. Reproduced: 10 live workers indefinitely, versus
+   `ProcessPoolExecutor` raising `BrokenProcessPool` in **0.4 s**. This is why
+   the 10-worker eval hang was a 20-minute black box.
+5. **Thread env set too late.** `eval/__init__.py` imports torch at package
+   import, so `os.environ` writes inside a spawned worker land after libgomp
+   init and are no-ops. Moved to the parent, which children inherit.
+6. **`--device` never moved the heads.** `heads_device` was hardcoded to CPU, so
+   `--device cuda:0` moved only the detector — which runs 1 tick in 15 — while
+   the 9.97M d=1024 TRM ran on CPU every tick. Now `--heads-device`. Verified on
+   MPS, which caught two latent device bugs (the corrector's accumulator and the
+   TQSA feature map).
+7. **`t0` shadow** in stage B: `t0 = rng.randrange(...)` overwrote the epoch
+   timer under `--unfreeze-trm`, printing ~1.7e9 s epoch times.
+
+## 7. Open
+
+* **Closed-loop `mean_success` remains unobtained** — the number the paper's
+  Claim 1 needs. Harness is now self-localizing (handoff §0).
+* Waypoint-absolute arm untrained; `wp_std_ratio` vs `std_ratio` is the test.
+* TQSA arm mid-flight; `spatial` sensitivity will be its first honest reading.
+* LIBERO-only stage B untested — bridge is 75% of stage-B steps and supplies
+  neither proprio nor frames, so it may be diluting the policy rather than
+  regularizing it.
