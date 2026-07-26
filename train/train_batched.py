@@ -122,6 +122,13 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--ignore-sigterm", action="store_true",
+                   help="refuse SIGTERM. For hosts that reap long-running jobs from outside "
+                        "the container: SIGTERM means 'please stop' and IS catchable, so a "
+                        "run can decline it. SIGKILL cannot be caught — if the process still "
+                        "dies with exit 137, the reaper escalates and only --resume-stage-a "
+                        "helps. NOTE: `kill <pid>` stops working (use `kill -9`); Ctrl-C is "
+                        "SIGINT and unaffected.")
     p.add_argument("--resume-stage-a", action="store_true",
                    help="continue stage A from its last completed epoch (weights, "
                         "optimizer, LR schedule, patience counter) instead of starting "
@@ -754,6 +761,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
 
 def main(argv=None) -> None:
     args = parse_args(argv)
+    if args.ignore_sigterm:
+        import signal
+
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        print("SIGTERM ignored. `kill <pid>` will not work — use `kill -9`. "
+              "Exit code 137 means SIGKILL got through anyway.", flush=True)
     cfg = DEFAULT_CONFIG
     if args.planner_drop:
         drop = {s.strip() for s in args.planner_drop.split(",") if s.strip()}
