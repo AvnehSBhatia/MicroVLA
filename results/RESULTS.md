@@ -1,6 +1,6 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T03:17:11+00:00 · 89 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T03:20:30+00:00 · 90 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
@@ -111,6 +111,7 @@ Generated 2026-07-26T03:17:11+00:00 · 89 records · **do not hand-edit** (regen
 | v72_stageB_nospatial | data/libero_object_v7 | 0.175 | 0.19 | 0.28 | 0.93 | -7.3% | False |
 | v72_stageB_tqsa | data/libero_object_v7 | 0.12 | 0.197 | 0.35 | 0.52 | -7.3% | True |
 | v72_stageB_waypoint | data/libero_object_v7 | 0.237 | 0.18 | 0.38 | 0.93 | -7.3% | False |
+| v72_stageB_waypoint_head_loaded | data/libero_object_v7 | 0.237 | 0.18 | 0.38 | 0.93 | -7.3% | False |
 
 `spatial=False` on a TQSA-TRAINED checkpoint means the planner was scored without ~27% of its memory tokens — see paper.md §0.
 

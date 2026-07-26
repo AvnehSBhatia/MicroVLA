@@ -573,6 +573,49 @@ not merge them into one claim.
 best on every metric measured, and TQSA is disqualified by its chance-level
 gripper.
 
+## 4d. THE RESULT — positions regress 3.3x less shrunk than actions
+
+Same checkpoint (`full_stageB_wp.pt` ep18), same 30 episodes, same forward pass,
+now with `wp_disp_head` actually loaded (bench rebuilt post-`fb5f5df`). The BC
+metrics are bit-identical to §4c, confirming the head never touches the plan.
+
+| quantity regressed | std_ratio | error |
+|---|---|---|
+| normalized ACTION (BC head) | 0.237 | pose_mae 0.180 (normalized) |
+| metric DISPLACEMENT (waypoint head) | **0.787** | **wp_mae 3.0 mm** |
+
+Healthy is ~1.0. The action head is **76% shrunk**; the waypoint head is **21%
+shrunk**. 3.0 mm against the ~10-20 mm the end-effector covers per 5-step chunk
+means the head is tracking the trajectory, not predicting a well-conditioned
+nothing.
+
+**The magnitude collapse was never an observability problem.** The v4-v7
+diagnosis chain (paper.md "Action-interface diagnosis") attacked the planner's
+INPUTS every time — direct geometry (v5), miss-hold (v5), proprioception (v6),
+text-queried spatial attention (v7), dream-consistent training (v5) — and moved
+std_ratio 0.12 -> 0.175 -> 0.237. Changing WHAT IS REGRESSED, at fixed
+architecture, data, world model and inputs, moves it to 0.787 in one step.
+
+The mechanism is target noise, not model capacity. MSE converges to the
+conditional mean, whose magnitude is suppressed in proportion to the
+irreducible noise in the target. Human teleop ACTION commands at 20 Hz are
+noisy; the POSITIONS they produce are smooth and near-deterministic. Same
+network, same features, same loss family — a target with less unpredictable
+variance shrinks less.
+
+This is the paper's cleanest claim because the ablation is exact: one loss term
+(771 params, zero at inference) separates 0.237 from 0.787 on identical
+everything else, and §4c shows the auxiliary ALSO drags the action head up
+(0.175 -> 0.237) through the shared trunk.
+
+**Caveats, stated plainly.** (i) Open-loop and teacher-forced, like every bench
+number — necessary, not sufficient, and it cannot see compounding closed-loop
+error. (ii) Actuating it requires inverting a fitted per-axis gain
+(`preprocess/fit_waypoint_gain.py`); the commanded vigor is 0.787 only to the
+extent that fit holds, so its per-axis R2 is now a load-bearing number. (iii)
+`wm_margin` remains -7.3%: the stage-A world model still loses to persistence on
+this suite regardless of any of the above.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
