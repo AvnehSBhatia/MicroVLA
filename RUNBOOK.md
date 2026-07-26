@@ -311,6 +311,29 @@ python -m eval.scorecard --checkpoint checkpoints/full_stageB_wp.pt \
 
 ---
 
+## 3d. The overnight batch — everything at once
+
+```bash
+cd /root/MicroVLA && git pull && bash scripts/overnight.sh
+```
+
+14 stage-B arms, every bench, the closed-loop number on the best arm, and
+`results/PAPER_TABLE.md`. ~5-6 h.
+
+* **Resumable**: every step skips itself if its output exists, so a re-run
+  continues rather than redoing hours. Kill and restart freely.
+* **Never exits on error** — one dead arm does not cost the batch; failures are
+  listed at the end.
+* **To stop it**: `touch STOP` (checked between steps). `kill` will NOT work,
+  since SIGTERM is ignored; `kill -9 -<pgid>` is the blunt version.
+* **Watch it**: `tail -f logs/overnight/00_progress.log`.
+
+Its first phase is 3 seeds each of the two configurations everything else is
+compared against, because measured run-to-run variance on an IDENTICAL command
+spans std_ratio 0.022-0.245 — larger than any effect claimed from an
+architecture change (paper.md 4l). Single-seed arms are labelled as one sample
+in the table.
+
 ## 4. Record it
 
 ```bash
