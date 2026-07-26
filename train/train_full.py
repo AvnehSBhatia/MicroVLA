@@ -517,12 +517,13 @@ def stage_b(args, cfg, data, fusion, drift, trm, planner, device) -> None:
 def save(args, cfg, name, **modules) -> None:
     out = Path(args.checkpoint_dir)
     out.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {"cfg": dataclasses.asdict(cfg),
-         "trm_d": args.trm_d,
-         **{k: m.state_dict() for k, m in modules.items()}},
-        out / name,
-    )
+    payload = {"cfg": dataclasses.asdict(cfg), "trm_d": args.trm_d}
+    for k, m in modules.items():
+        # Modules and optimizers get state_dict()'d; plain values (epoch, best
+        # val, stale counter — the schedule state --resume-stage-a needs) pass
+        # straight through.
+        payload[k] = m.state_dict() if hasattr(m, "state_dict") else m
+    torch.save(payload, out / name)
 
 
 def main(argv=None) -> None:

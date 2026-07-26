@@ -122,6 +122,14 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--resume-stage-a", action="store_true",
+                   help="continue stage A from its last completed epoch (weights, "
+                        "optimizer, LR schedule, patience counter) instead of starting "
+                        "over. Written every epoch to full_stageA[_tag].resume.pt, "
+                        "separate from the best-checkpoint file. For flaky machines: "
+                        "the training box SIGTERMs processes intermittently from outside "
+                        "the container, and without this a kill at epoch 19 costs the "
+                        "whole stage.")
     p.add_argument("--resume-stage-b", action="store_true",
                    help="with --load-stage-a pointing at a full_stageB.pt: ALSO load the "
                         "planner (+tqsa) from it and continue stage B, instead of "
@@ -337,8 +345,36 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
     rng = random.Random(args.seed)
     ckpt = _tagged_name("full_stageA.pt", args.tag)
     best, stale = float("inf"), 0
+    start_epoch = 1
 
-    for epoch in range(1, args.stage_a_epochs + 1):
+    # --resume-stage-a: pick the run back up from its last saved epoch instead of
+    # starting over. This exists because the training box kills processes
+    # intermittently from outside the container — SIGTERM, no dmesg entry, no
+    # visible reaper, at 500 MB or 60 GB alike. Without resume a kill at epoch 19
+    # costs the whole ~1 h stage; with it, one epoch.
+    # Written EVERY epoch, separate from `ckpt` so the best-checkpoint semantics
+    # are untouched: `ckpt` stays the best weights, this carries the schedule.
+    resume_name = ckpt.replace(".pt", ".resume.pt")
+    if args.resume_stage_a:
+        path = Path(args.checkpoint_dir, resume_name)
+        if not path.exists():
+            print(f"[stage A] --resume-stage-a: no {path}; starting fresh", flush=True)
+        else:
+            st = torch.load(path, map_location=device, weights_only=True)
+            fusion.load_state_dict(st["fusion"])
+            drift.load_state_dict(st["drift"])
+            trm.load_state_dict(st["trm"])
+            opt.load_state_dict(st["opt"])
+            sched.load_state_dict(st["sched"])
+            best = float(st["best_val"])
+            stale = int(st["stale"])
+            start_epoch = int(st["epoch"]) + 1
+            rng = random.Random(args.seed + start_epoch)  # don't replay one epoch's order
+            print(f"[stage A] resumed at epoch {start_epoch} (best val {best:.4f}, "
+                  f"stale {stale}/{args.patience}, lr {opt.param_groups[0]['lr']:.1e})",
+                  flush=True)
+
+    for epoch in range(start_epoch, args.stage_a_epochs + 1):
         H = _scheduled_horizon(epoch, args.warmup_epochs, args.max_horizon)
         at_max = H >= args.max_horizon
         fusion.train(); drift.train(); trm.train()
@@ -391,6 +427,8 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
               f"| {time.time()-t0:.0f}s{peak}", flush=True)
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats(device)
+        save(args, cfg, resume_name, fusion=fusion, drift=drift, trm=trm,
+             opt=opt, sched=sched, epoch=epoch, best_val=best, stale=stale)
         if at_max and args.patience > 0 and stale >= args.patience:
             print(f"[stage A] early stop at H={args.max_horizon}, best val {best:.4f}", flush=True)
             break
