@@ -78,6 +78,24 @@ done; wait
 # merge the per-task results: eval_results/*_results.json
 ```
 
+## 0b. Command reference
+
+Every command — tests, bake, train, bench, closed-loop, diagnosis — lives in
+**`RUNBOOK.md`**, flags verified against the code. The snippets in this file are
+the ones specific to a live situation; RUNBOOK is the general mechanics.
+
+Data state as of now: `data/libero_v7` (libero_object, 500 eps, WRIST camera,
+symmetric stats) + `data/bridge` survive. The `data/libero_*_v7` agentview bakes
+were deleted as invalid (paper.md §4f) and the `*_wrist` re-bakes are incomplete
+— object stopped at 297/500, spatial at 1/500, goal never downloaded. Re-bake per
+RUNBOOK §1, and note that `data/libero_v7` is already correct wrist data, so a
+valid run needs no bake at all.
+
+The box is SHARED (other users' cell2circuit / lora_extension / ribo jobs). Two
+consequences: wall-clock varies ~5x and is never a hardware claim, and terminal
+sessions get killed — a foreground run dies with them ("Terminated" during
+preload is a dropped shell, not OOM; RAM was 179 GB free).
+
 ## 1. Machines, envs, invariants
 
 - **Mac** (this repo, `~/Code/MicroVLA`): dev + tests. `.venv` = torch/numpy/
