@@ -723,6 +723,64 @@ from the BC head at std_ratio 0.237, so 4 of 7 dims are untreated. A failure to
 align the wrist or close the fingers is the expected NEXT bottleneck, not
 evidence against the translation result.
 
+## 4f. ROOT CAUSE — the corpus was baked from the wrong camera
+
+Every v7.2 number above was produced by a policy trained on a viewpoint it never
+sees at deployment.
+
+* `preprocess/libero.py --camera` defaulted to **`agentview_rgb`** — the fixed
+  third-person view, rotated 180° (robosuite renders it flipped).
+* The v7.2 bake command passed no `--camera`, so all three suites were baked
+  from agentview.
+* `eval/libero_eval.py` reads **`robot0_eye_in_hand_image`** — the WRIST camera.
+* The npz key is named `wrist_frames` whatever `--camera` says, which is what
+  made the mismatch invisible for an entire session.
+* `eval/RUNBOX_EVAL.md` recorded the correct setting all along ("training used
+  LIBERO `eye_in_hand_rgb` un-rotated"), so the v7 PILOT was baked on the wrist
+  view and the v7.2 re-bake silently reverted to the default.
+
+### This explains every anomaly, including the ones that looked like results
+
+| observation | explanation under the camera mismatch |
+|---|---|
+| `geometry` 0.0048, `fused` 0.0137 — vision near-dead | box centers from a viewpoint that does not correspond to the deployed one are noise; the planner correctly learned to ignore them |
+| `proprio` 0.1747 + `wm_msg` 0.2394 dominate | proprioception is the ONLY input consistent across the mismatch, so the policy became a proprio-conditioned trajectory prior |
+| basket reached perfectly, object never approached | the basket is at a fixed location and needs no grounding; the object needs exactly the grounding that was destroyed |
+| gripper closes at step 0, 71/300 steps closed | the visual phase signal is from the wrong view, so grasp timing has nothing to lock onto |
+| `wm_margin` +1.7% (pilot, wrist) -> **-7.3%** (v7.2, agentview) | a FIXED third-person camera is nearly static frame-to-frame, so persistence is a very strong baseline; a WRIST camera moves with the arm, so persistence is weak and prediction is worth something. The sign flip is a property of the camera, not of the model. |
+| bench `std_ratio`/`corr`/`grip_acc`/`wp_std_ratio` all self-consistent | bench replays the SAME baked agentview episodes, so it is internally valid and externally meaningless for a wrist-camera deployment |
+
+**What survives.** The measurements are not wrong, they are answers to a
+different question: agentview-in, agentview-out. So the §4d result — regressing
+metric displacement shrinks 3.3x less than regressing normalized actions
+(0.787 vs 0.237), and the auxiliary alone lifts the action head 0.175 -> 0.237 —
+is a claim about TARGET PARAMETERIZATION and is independent of viewpoint. The
+§4b substitution result (TQSA displaces geometry) likewise concerns two channels
+carrying the same content, whichever view supplies it. The stage-A curve, the
+cache measurement, the harness validation, the gain fit (R² 0.87-0.94, fitted
+from actions and proprio, no pixels) all stand.
+
+**What does not.** `wm_margin`, every grounding-dependent sensitivity reading,
+and of course `mean_success`. Those must be re-measured after a wrist-camera
+re-bake before any of them means anything.
+
+### Fixed so it cannot recur
+
+`--camera` is now REQUIRED with an explicit choice, `rotate_180` derives from it
+(agentview flipped, wrist upright), the chosen camera is logged at bake time,
+and anything other than `eye_in_hand_rgb` warns that it is not the view the eval
+reads. The silent default cost one full three-suite bake, one stage A, three
+stage-B trainings, four bench runs and two closed-loop evals.
+
+**Method lesson, and it is the same one as §4e.** Not one aggregate metric
+flagged this. Stage A converged, three stage-B arms trained cleanly and ranked
+sensibly, bench produced coherent internally-consistent numbers, and the
+best-benching arm was correctly identified. The mismatch surfaced only from
+WATCHING THE ROBOT — "it goes to the basket perfectly and never picks anything
+up" — and then reading the sensitivity table as a statement about which inputs
+the policy could physically be using. Aggregate scores cannot see a train/deploy
+interface defect, because both sides are individually self-consistent.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over

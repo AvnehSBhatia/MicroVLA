@@ -185,7 +185,8 @@ tensors, bucket frame-stripping, flat-τ brake tax, parallel-eval opacity.
    for S in libero_object libero_spatial libero_goal; do
      yes n | python /root/LIBERO/benchmark_scripts/download_libero_datasets.py \
        --datasets $S --download-dir /root/libero_raw
-     python -m preprocess.libero /root/libero_raw/$S data/${S}_v7 --device cuda:0
+     python -m preprocess.libero /root/libero_raw/$S data/${S}_v7 \
+       --camera eye_in_hand_rgb --device cuda:0   # MUST match eval's camera
      rm -rf /root/libero_raw/$S            # BEFORE the next download
    done
    python -m preprocess.unify_norm_stats \

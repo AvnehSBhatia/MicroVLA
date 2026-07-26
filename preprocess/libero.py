@@ -161,8 +161,26 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("root", help="directory with LIBERO *.hdf5 files (already downloaded)")
     parser.add_argument("out", help="output directory for MicroVLA .npz episodes")
-    parser.add_argument("--camera", default="agentview_rgb")
-    parser.add_argument("--no-rotate-180", dest="rotate", action="store_false")
+    # REQUIRED, no default. A silent default cost a full bake + two stage-B
+    # trainings + a closed-loop eval: the corpus was built from the
+    # third-person `agentview_rgb` (rotated 180°) while eval/libero_eval.py
+    # reads the WRIST camera `robot0_eye_in_hand_image`, so every visual
+    # feature the policy learned was from a viewpoint it never sees at
+    # deployment. The npz key is called `wrist_frames` regardless of this
+    # flag, which is what made the mismatch invisible.
+    parser.add_argument("--camera", required=True,
+                        choices=["eye_in_hand_rgb", "agentview_rgb"],
+                        help="LIBERO obs key to bake. Use eye_in_hand_rgb to match "
+                             "eval/libero_eval.py's robot0_eye_in_hand_image. "
+                             "agentview_rgb is a THIRD-PERSON view and needs "
+                             "--rotate-180; the wrist view must NOT be rotated.")
+    parser.add_argument("--no-rotate-180", dest="rotate", action="store_false",
+                        help="robosuite renders AGENTVIEW upside down; the wrist view is "
+                             "already upright. Defaults per --camera, so you normally "
+                             "never pass this.")
+    parser.add_argument("--rotate-180", dest="rotate", action="store_true",
+                        help="force the 180° flip (implied by --camera agentview_rgb).")
+    parser.set_defaults(rotate=None)
     parser.add_argument("--limit", type=int, default=None, help="max episodes")
     parser.add_argument("--dry-run", action="store_true", help="mock perception (no weights)")
     parser.add_argument("--device", default="cpu")
@@ -185,6 +203,17 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # Rotation follows the camera unless overridden: robosuite renders agentview
+    # flipped, the wrist view upright. Getting this wrong is as damaging as the
+    # camera itself and just as silent.
+    if args.rotate is None:
+        args.rotate = args.camera == "agentview_rgb"
+    logger.info("baking camera=%s rotate_180=%s", args.camera, args.rotate)
+    if args.camera != "eye_in_hand_rgb":
+        logger.warning(
+            "camera=%s is NOT the view eval/libero_eval.py reads "
+            "(robot0_eye_in_hand_image). A policy trained on this corpus will "
+            "see a viewpoint it never encounters at deployment.", args.camera)
     teacher = build_teacher(args.teacher, args.teacher_checkpoint, args.teacher_repo,
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)

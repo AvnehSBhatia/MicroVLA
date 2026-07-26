@@ -1,12 +1,13 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T03:56:27+00:00 · 93 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T04:43:01+00:00 · 94 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
 - `8cc7c66` 2026-07-22T04:28:55+00:00 — Dataset: Bridge V2 RLDS 4839 eps (43% grounded, ext cam) + LIBERO 1500 eps (wrist cam eye_in_hand); 6339 total, 90k perception-baked frames. Trainable heads 6.79M/9M. TRM RecursiveTRM d=1024 9.5M.
 - `bb578ee` 2026-07-26T01:55:50+00:00 — v7.2 full-data run. Suites baked one at a time (disk budget), then preprocess.unify_norm_stats onto one shared symmetric scale.
 - `e362d2c` 2026-07-26T03:56:27+00:00 — Actuation gain fitted over all three suites; R2 far above the 0.5 usability threshold, so LIBERO's OSC translation response is per-axis linear and the actuator's inversion is sound.
+- `6d6f937` 2026-07-26T04:43:01+00:00 — INVALIDATES the grounding-dependent v7.2 measurements. preprocess/libero.py --camera defaulted to agentview_rgb (third-person, rotated 180); the v7.2 bake passed no --camera; eval/libero_eval.py reads robot0_eye_in_hand_image (wrist). The npz key is called wrist_frames regardless, hiding it. Explains: geometry 0.0048 / fused 0.0137 (vision dead), proprio+wm_msg dominant (only consistent inputs), basket reached / object never approached, gripper closing at step 0, and wm_margin flipping +1.7% (pilot, wrist) -> -7.3% (v7.2, agentview) because a fixed camera makes persistence strong. SURVIVES: the target-parameterization result (wp_std_ratio 0.787 vs 0.237), the TQSA/geometry substitution, stage A, the cache, the harness, the gain fit. Fixed: --camera now required.
 
 ## Stage-A world model (rollout loss vs persistence)
 
