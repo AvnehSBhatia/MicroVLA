@@ -422,6 +422,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             task_encoder=task_encoder,
             zero_center_actions=args.zero_center_actions,
             waypoint_stats=getattr(args, "waypoint_stats", None),
+            waypoint_brake=not getattr(args, "waypoint_no_brake", False),
             heads_device=getattr(args, "heads_device", None),
         )
 
@@ -441,6 +442,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
     p.add_argument("--norm-stats", default=None,
                     help="norm_stats.json path; defaults to eval/identity_norm_stats.json")
+    p.add_argument("--waypoint-no-brake", action="store_true",
+                    help="do NOT scale the waypoint translation command by the corrector's "
+                         "trust. The delta-mode brake exists because a held DELTA is a "
+                         "continued motion; a waypoint command is a positional error and is "
+                         "self-limiting, so braking it only slows convergence. Ablation.")
     p.add_argument("--waypoint-stats", default=None,
                     help="v7.2 waypoint_stats.json (preprocess/fit_waypoint_gain.py). With a "
                          "waypoint-trained checkpoint, translation commands become a "
