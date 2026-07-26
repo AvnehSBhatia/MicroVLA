@@ -1,6 +1,6 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T01:58:43+00:00 · 67 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T03:17:11+00:00 · 89 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
@@ -69,6 +69,27 @@ Generated 2026-07-26T01:58:43+00:00 · 67 records · **do not hand-edit** (regen
 | v72_stageB_tqsa | True | 11/40 | 0.615 | 0.729 | 0.5613 | 0.773 | — |
 | v72_stageB_tqsa | True | 12/40 | 0.6041 | 0.74 | 0.6231 | 0.742 | — |
 | v72_stageB_tqsa | True | 13/40 | 0.611 | 0.734 | 0.5762 | 0.761 | — |
+| v72_stageB_waypoint | False | 1/40 | 1.6369 | 0.565 | 1.0725 | 0.588 | — |
+| v72_stageB_waypoint | False | 2/40 | 0.9078 | 0.571 | 0.8886 | 0.487 | — |
+| v72_stageB_waypoint | False | 3/40 | 0.787 | 0.644 | 0.7466 | 0.688 | — |
+| v72_stageB_waypoint | False | 4/40 | 0.7017 | 0.687 | 0.8124 | 0.518 | — |
+| v72_stageB_waypoint | False | 5/40 | 0.6897 | 0.687 | 0.6527 | 0.711 | — |
+| v72_stageB_waypoint | False | 6/40 | 0.6744 | 0.697 | 0.6483 | 0.745 | — |
+| v72_stageB_waypoint | False | 7/40 | 0.655 | 0.707 | 0.7012 | 0.66 | — |
+| v72_stageB_waypoint | False | 8/40 | 0.6443 | 0.718 | 0.6351 | 0.733 | — |
+| v72_stageB_waypoint | False | 9/40 | 0.6484 | 0.72 | 0.6884 | 0.624 | — |
+| v72_stageB_waypoint | False | 10/40 | 0.6363 | 0.721 | 0.6397 | 0.744 | — |
+| v72_stageB_waypoint | False | 11/40 | 0.6196 | 0.733 | 0.599 | 0.713 | — |
+| v72_stageB_waypoint | False | 12/40 | 0.6319 | 0.723 | 0.639 | 0.69 | — |
+| v72_stageB_waypoint | False | 13/40 | 0.6185 | 0.73 | 0.6343 | 0.706 | — |
+| v72_stageB_waypoint | False | 14/40 | 0.6055 | 0.73 | 0.5842 | 0.757 | — |
+| v72_stageB_waypoint | False | 15/40 | 0.602 | 0.734 | 0.5941 | 0.72 | — |
+| v72_stageB_waypoint | False | 16/40 | 0.5972 | 0.737 | 0.5731 | 0.759 | — |
+| v72_stageB_waypoint | False | 17/40 | 0.6024 | 0.732 | 0.633 | 0.683 | — |
+| v72_stageB_waypoint | False | 18/40 | 0.595 | 0.741 | 0.5606 | 0.773 | — |
+| v72_stageB_waypoint | False | 19/40 | 0.5913 | 0.744 | 0.5744 | 0.77 | — |
+| v72_stageB_waypoint | False | 20/40 | 0.5741 | 0.749 | 0.5665 | 0.741 | — |
+| v72_stageB_waypoint | False | 21/40 | 0.59 | 0.744 | 0.5925 | 0.749 | — |
 
 ## Horizon curve (Claim 2 early evidence — margin vs rollout depth)
 
@@ -89,23 +110,24 @@ Generated 2026-07-26T01:58:43+00:00 · 67 records · **do not hand-edit** (regen
 | v7_pilot | data/libero_v7 (libero_object only) | 0.369 | 0.2 | 0.49 | 0.93 | 1.7% | False |
 | v72_stageB_nospatial | data/libero_object_v7 | 0.175 | 0.19 | 0.28 | 0.93 | -7.3% | False |
 | v72_stageB_tqsa | data/libero_object_v7 | 0.12 | 0.197 | 0.35 | 0.52 | -7.3% | True |
+| v72_stageB_waypoint | data/libero_object_v7 | 0.237 | 0.18 | 0.38 | 0.93 | -7.3% | False |
 
 `spatial=False` on a TQSA-TRAINED checkpoint means the planner was scored without ~27% of its memory tokens — see paper.md §0.
 
 ### Planner input sensitivity (mean |dPlan| when withheld)
 
-| input | v7_pilot | v72_stageB_nospatial | v72_stageB_tqsa |
-|---|---|---|---|
-| current_emb | 0.0250 | 0.0133 | 0.0092 |
-| fused | 0.0230 | 0.0218 | 0.0248 |
-| geometry | 0.0040 | 0.0914 | 0.0041 |
-| next_emb->cur | 0.0010 | 0.0017 | 0.0017 |
-| next_emb->stale | — | 0.0059 | 0.0059 |
-| pred_box_emb | 0.0130 | 0.0029 | 0.0204 |
-| proprio | 0.2910 | 0.2243 | 0.3492 |
-| spatial | — | — | 0.0688 |
-| state_delta | 0.0750 | 0.0134 | 0.0994 |
-| wm_msg | 0.0310 | 0.0007 | 0.0016 |
+| input | v7_pilot | v72_stageB_nospatial | v72_stageB_tqsa | v72_stageB_waypoint |
+|---|---|---|---|---|
+| current_emb | 0.0250 | 0.0133 | 0.0092 | 0.0193 |
+| fused | 0.0230 | 0.0218 | 0.0248 | 0.0137 |
+| geometry | 0.0040 | 0.0914 | 0.0041 | 0.0048 |
+| next_emb->cur | 0.0010 | 0.0017 | 0.0017 | 0.0029 |
+| next_emb->stale | — | 0.0059 | 0.0059 | 0.0097 |
+| pred_box_emb | 0.0130 | 0.0029 | 0.0204 | 0.0053 |
+| proprio | 0.2910 | 0.2243 | 0.3492 | 0.1747 |
+| spatial | — | — | 0.0688 | — |
+| state_delta | 0.0750 | 0.0134 | 0.0994 | 0.0561 |
+| wm_msg | 0.0310 | 0.0007 | 0.0016 | 0.2394 |
 
 ## Infrastructure measurements
 

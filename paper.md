@@ -495,6 +495,84 @@ std_ratio (-0.055) and the gripper (-0.41). The gripper is the binary that
 decides whether a pick-and-place task can succeed at all, so a chance-level
 gripper is disqualifying regardless of the other metrics.
 
+## 4c. Bench — waypoint arm. The auxiliary loss is the result, not the head.
+
+`full_stageB_wp.pt`, epoch 18 (val 0.5606 = BC + waypoint, grip 0.773), trained
+off the same frozen stage A with `--waypoint-weight 1.0`, no TQSA.
+
+**This bench measured the plain BC action head with the waypoint head ABSENT**
+(bench built the planner from DEFAULT_CONFIG and dropped `wp_disp_head`; fixed
+in `fb5f5df`). That accident is informative: `wp_disp_head` feeds only the `wp`
+output and never the plan, so these numbers isolate what the AUXILIARY LOSS did
+to the action head, with zero contribution from the waypoint actuation path.
+
+| metric | pilot (blind) | no-TQSA | TQSA | **waypoint** |
+|---|---|---|---|---|
+| std_ratio | 0.369 | 0.175 | 0.120 | **0.237** |
+| pose_mae | 0.20 | 0.190 | 0.197 | **0.180** |
+| corr | 0.49 | 0.28 | 0.35 | **0.38** |
+| grip_acc | 0.93 | 0.93 | 0.52 | **0.93** |
+| wm_margin | +1.7% | -7.3% | -7.3% | -7.3% |
+
+Per-episode std_ratio 0.176-0.355; grip 0.81-1.00; 1.47 s/eval.
+
+**Result 1 — the auxiliary alone recovers 35% of the magnitude collapse.**
+std_ratio 0.175 -> 0.237 at identical architecture, identical data, identical
+frozen world model; the ONLY difference is that the planner was trained beside
+a loss asking it to predict metric end-effector displacement. corr and mae
+improve together (0.28 -> 0.38, 0.190 -> 0.180) and the gripper is untouched at
+0.93, so this is not a magnitude/accuracy trade. Cost: 771 parameters at train
+time, ZERO at inference.
+
+This is a different claim from the one the head was built for. The design
+argument was about ACTUATION — command a proportional move toward a predicted
+position so magnitude stops depending on the regression's amplitude. What is
+measured here is REPRESENTATION: asking the network to also predict where the
+arm will be reduces conditional-mean shrinkage in the action head itself.
+Predicting positions is a better-conditioned target than predicting noisy teleop
+commands, and the shared trunk inherits that. The actuation claim remains
+untested (needs `wp_std_ratio`/`wp_mae_mm` from a bench built after fb5f5df).
+
+**Result 2 — the world model's channel into control comes back from the dead.**
+`wm_msg` 0.0007 -> **0.2394**, a 340x jump to the STRONGEST input, ahead of
+proprio (0.1747).
+
+| input | no-TQSA | TQSA | waypoint |
+|---|---|---|---|
+| **wm_msg** | 0.0007 | 0.0016 | **0.2394** |
+| proprio | 0.2243 | 0.3492 | 0.1747 |
+| state_delta | 0.0134 | 0.0994 | 0.0561 |
+| current_emb | 0.0133 | 0.0092 | 0.0193 |
+| fused | 0.0218 | 0.0248 | 0.0137 |
+| next_emb->stale | 0.0059 | 0.0059 | 0.0097 |
+| pred_box_emb | 0.0029 | 0.0204 | 0.0053 |
+| geometry | 0.0914 | 0.0041 | 0.0048 |
+| next_emb->cur | 0.0017 | 0.0017 | 0.0029 |
+| spatial | n/a | 0.0688 | n/a |
+
+`msg_head` is the one TRM component left trainable in stage B (the freeze policy
+lets the planner's gradient shape it). Under a pure action-BC loss it received
+nothing useful and went silent; under the waypoint loss it became the planner's
+primary input. Predicting where the arm WILL BE requires scene dynamics in a way
+predicting the next action command does not, so the world model finally has a
+job the policy needs done. `geometry` returns to 0.0048 — whatever spatial
+content the planner requires now arrives through `msg`.
+
+This is the first configuration in which the world model demonstrably
+contributes to CONTROL rather than only to frame prediction, which is the gap
+between Claim 2 (perception-rate decoupling) and a world model that earns its
+place in the loop.
+
+**Caveat:** `wm_margin` is -7.3% in all three v7.2 arms — the stage-A model is
+unchanged and still loses to persistence on libero_object. So "the world model
+helps control" and "the world model predicts frames better than persistence" are
+currently BOTH true and independent, on this suite in opposite directions. Do
+not merge them into one claim.
+
+**Ranking after three arms:** waypoint > no-TQSA > TQSA. The waypoint arm is
+best on every metric measured, and TQSA is disqualified by its chance-level
+gripper.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
