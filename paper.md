@@ -1145,6 +1145,80 @@ against a 2.5M cap).
 trainable total 6,988,685 of 9,000,000. Every change above except the
 `wm_latent` projection costs ZERO parameters. 219 tests green.
 
+## 4k. Long-horizon arm A — vision won, the action head starved, and a bench bug
+
+`--waypoint-long --waypoint-weight 1.0`, otherwise identical to 4g. Two defects
+in the run, both mine, and one genuine result.
+
+### DEFECT 1 (bench): the waypoint numbers are void
+
+Bench scored the head with `waypoint_targets` (NATIVE spacing) regardless of
+`cfg.waypoint_long`. A long-horizon head predicts 0.5-2.5 s of displacement and
+was compared against 0.05-0.20 s targets, so a ~10x scale difference was
+reported as prediction error: **wp_std_ratio 3.946, wp_mae 116.1 mm** describe
+the mismatch, not the head. Fixed; bench now selects the spacing from the
+checkpoint's cfg, with a test asserting the two spacings do not report the same
+error.
+
+### DEFECT 2 (loss balance): the action head starved
+
+| metric | 4g (native) | arm A (long) |
+|---|---|---|
+| `std_ratio` | 0.126 | **0.022** |
+| `corr` | 0.31 | **0.02** |
+| `grip_acc` | 0.93 | 0.50 |
+| `pose_mae` | 0.243 | 0.257 |
+| `wm_margin` | +19.8% | +19.8% (same stage A) |
+
+Measured: long-horizon targets have RMS ~0.163 against ~0.047 native, so their
+MSE is **~12x larger at the same `--waypoint-weight`**. At weight 1.0 the
+waypoint term swamps the BC term, and the shared trunk optimizes the waypoint
+head at the action head's expense — `corr` 0.02 is no directional agreement at
+all. The trainer now WARNS when `--waypoint-long` is combined with a weight
+above 0.2 and suggests ~0.08 (1/12).
+
+### THE RESULT: vision finally dominates the planner
+
+First readings on the pose/grip-split instrument (4i), so not comparable to the
+combined numbers above — but internally consistent:
+
+| input | POSE \|dplan\| | grip flip % |
+|---|---|---|
+| **fused** | **0.0967** | 72.8% |
+| state_delta | 0.0305 | 19.6% |
+| current_emb | 0.0080 | 3.0% |
+| wm_msg | 0.0071 | 1.3% |
+| pred_box_emb | 0.0053 | 0.8% |
+| wm_latent | 0.0041 | 0.1% |
+| proprio | 0.0020 | 0.7% |
+| geometry | 0.0008 | 0.1% |
+| next_emb->stale | 0.0006 | 0.0% |
+
+**`fused` is now the strongest input by 3.2x**, and PHASE has collapsed:
+`proprio` 0.0020 and `state_delta` 0.0305 against `fused` 0.0967. Every earlier
+arm had phase dominant by 5-12x. The phase:vision ordering has INVERTED.
+
+That is the horizon hypothesis confirmed in the direction it predicted: at a
+0.2 s supervision horizon "keep doing what you are doing" is a near-sufficient
+statistic and vision is a second-order correction; at 0.5-2.5 s the arm must
+ARRIVE somewhere, so where the object is becomes first-order and the conditional
+mean has to use it. No regularizer achieved this — `--phase-dropout` (4i) only
+moved the ratio 2.3x and did it by taxing the shortcut, whereas this removes the
+shortcut's sufficiency.
+
+**Two things stop this being a clean win.** (i) The action head is collapsed
+(`std_ratio` 0.022), so the sensitivity is measured on a nearly-constant output:
+withholding `fused` moves the plan ~8x more than the plan varies across
+timesteps on-distribution. Vision reaches the planner; the output is broken by
+loss balance, not by the horizon. (ii) `geometry` fell to 0.0008 — so the
+planner is reading box EMBEDDINGS through `fused`, not center coordinates, which
+matches 4h (box centers are only 12% of `fused` and 8% of the TRM residual).
+
+**Next arm:** the same configuration at `--waypoint-weight 0.08`, which should
+keep the inverted ordering while leaving the BC head enough gradient to stay
+non-degenerate. If `fused` holds above `state_delta` at a recovered `std_ratio`
+and `grip_acc`, that is the first grounded policy this project has produced.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over

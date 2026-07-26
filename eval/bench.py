@@ -44,7 +44,7 @@ from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from microvla.utils.signals import ignore_sigterm
-from microvla.utils.waypoint import waypoint_targets
+from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 
 
 def _spatial_at(ep: dict, i: int, mods: dict) -> dict | None:
@@ -73,6 +73,19 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
 
     emitted, demo, grip_hits = [], [], []
     wp_pred, wp_true = [], []
+    # Score the head against the supervision it was TRAINED on. A long-horizon
+    # head predicts 0.5-2.5 s of displacement; comparing that to native-spaced
+    # 0.05-0.20 s targets reports a ~10x scale error as if it were prediction
+    # error (observed: wp_std_ratio 3.95, wp_mae 116 mm on a working head).
+    wp_tgt_all = wp_mask_all = None
+    if "eef_pos_chunk" in ep:
+        if getattr(cfg, "waypoint_long", False):
+            wp_tgt_all, wp_mask_all = long_horizon_targets(
+                ep["eef_pos_chunk"].unsqueeze(0), cfg.plan_steps, cfg.waypoint_range)
+            wp_tgt_all, wp_mask_all = wp_tgt_all[0], wp_mask_all[0]   # [T, rows, 3], [T, rows]
+        else:
+            tg, rm = waypoint_targets(ep["eef_pos_chunk"], cfg.plan_steps, cfg.waypoint_range)
+            wp_tgt_all, wp_mask_all = tg, rm.expand(tg.shape[0], -1)
     wm_loss = pers_loss = 0.0
     n_wm = 0
     with torch.no_grad():
@@ -108,17 +121,16 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
             # and no gain needed, so it isolates the design claim (positions
             # regress with less shrinkage than noisy teleop actions). Skipped
             # for steps with no real proprio (zero-filled -> a fake "no motion").
-            if wp is not None and float(ep["proprio"][i, -1]) > 0.5:
-                tgt, row_mask = waypoint_targets(
-                    ep["eef_pos_chunk"][i], cfg.plan_steps, cfg.waypoint_range)
+            if (wp is not None and wp_tgt_all is not None
+                    and float(ep["proprio"][i, -1]) > 0.5):
                 # Score the row the ACTUATOR actually servoes toward, which
                 # WaypointActuator derives from cfg.waypoint_horizon and clamps
                 # to the last SUPERVISED row. Scoring row 0 while the controller
                 # used row 3 described a prediction nobody executes.
                 row = max(0, min(cfg.waypoint_horizon, cfg.plan_steps - 1) - 1)
-                if float(row_mask[row]) > 0:
+                if float(wp_mask_all[i, row]) > 0:
                     wp_pred.append(wp[0, row].cpu().numpy() * cfg.waypoint_range)
-                    wp_true.append(tgt[row].cpu().numpy() * cfg.waypoint_range)
+                    wp_true.append(wp_tgt_all[i, row].cpu().numpy() * cfg.waypoint_range)
 
         # World-model margin: H-step open-loop rollout vs persistence, a few
         # anchors per episode — TRAINING-PROTOCOL-MATCHED (the predicted latent

@@ -454,3 +454,45 @@ class TestPreGraspWeights:
 
         w, _, _ = pre_grasp_weights(self._pwm(4, T=10), weight=1.0)
         assert torch.allclose(w, torch.ones_like(w))
+
+
+class TestBenchScoresTheTrainedSpacing:
+    """A long-horizon head scored against native targets reports a scale error
+    as prediction error — observed as wp_std_ratio 3.95 / wp_mae 116 mm on a
+    head that was training correctly."""
+
+    def _ckpt(self, tmp_path: Path, cfg) -> Path:
+        from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
+        from microvla.fusion.slot_fusion import SlotResonanceFusion
+
+        p = tmp_path / "ck.pt"
+        torch.save({"cfg": dataclasses.asdict(cfg), "trm_d": 1024,
+                    "fusion": SlotResonanceFusion(cfg).state_dict(),
+                    "drift": AnchoredDriftEncoder(cfg).state_dict(),
+                    "planner": ChronoQueryPlanner(cfg).state_dict()}, p)
+        return p
+
+    def test_long_horizon_checkpoint_uses_long_horizon_targets(self, tmp_path):
+        """The two spacings differ by ~10x, so the reported mae must differ."""
+        import eval.bench as B
+        from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
+        from microvla.fusion.slot_fusion import SlotResonanceFusion
+        from microvla.trm.mock_trm import MockTRM
+        from train.dataset import make_synthetic_episode
+
+        out = {}
+        for long in (False, True):
+            cfg = dataclasses.replace(CFG, waypoint_action=True, waypoint_long=long,
+                                      waypoint_range=0.5 if long else 0.15)
+            mods = {"fusion": SlotResonanceFusion(cfg), "drift": AnchoredDriftEncoder(cfg),
+                    "planner": ChronoQueryPlanner(cfg), "trm": MockTRM(cfg)}
+            for m in mods.values():
+                m.eval()
+            ep = {k: torch.as_tensor(v, dtype=torch.float32)
+                  for k, v in make_synthetic_episode(12, cfg, seed=5).items()}
+            out[long] = B._episode_metrics(ep, mods, cfg, 4)["wp_mae_mm"]
+        assert out[False] == out[False]  # not NaN — both spacings produced a score
+        assert out[True] == out[True]
+        assert abs(out[True] - out[False]) > 1e-6, (
+            "bench reported the same waypoint error for two spacings that differ "
+            f"by ~10x: {out}")
