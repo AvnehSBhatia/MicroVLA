@@ -96,6 +96,16 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "predictive/geometric paths get gradient. Interpretability "
                         "probe showed fused 7x dominant, geometry/next_emb dead — "
                         "redundant-path death; same cure as fusion's modality dropout.")
+    p.add_argument("--planner-drop-rate", type=str, default="",
+                   help="stage B: PER-INPUT withhold probabilities, e.g. "
+                        "'state_delta=0.4,fused=0.15'. Names from "
+                        "ChronoQueryPlanner.INPUT_NAMES. Overrides the coarse "
+                        "--planner-input-dropout / --phase-dropout for any name given. "
+                        "Exists because --phase-dropout 0.3 (both phase inputs at once) "
+                        "measured a 2.3x better phase:vision ratio AND a gripper collapse "
+                        "0.93 -> 0.50: proprio carries the arm's GRIPPER STATE, the best "
+                        "predictor of the gripper command, so withholding it destroys the "
+                        "BCE head. Drop state_delta, keep proprio.")
     p.add_argument("--phase-dropout", type=float, default=0.0,
                    help="stage B: per-step probability of WITHHOLDING each PHASE input "
                         "(state_delta, proprio) from the planner, independently. These are "
@@ -701,13 +711,14 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # pose alone never needs to find the object, and in a corpus of
                 # stereotyped pick-and-place demos with a FIXED basket that
                 # shortcut covers most of the action variance.
-                pid = args.planner_input_dropout
-                phd = args.phase_dropout
-                fused_in = None if (pid > 0 and rng.random() < pid) else fused_t
-                cur_in = None if (pid > 0 and rng.random() < pid) else cur
-                delta_in = None if (phd > 0 and rng.random() < phd) else delta_t
-                prop_in = (None if (phd > 0 and rng.random() < phd)
-                           else batch["proprio"][:, t])
+                def _keep(name, tensor, rate):
+                    return None if (rate > 0 and rng.random() < rate) else tensor
+
+                rates = args._drop_rates
+                fused_in = _keep("fused", fused_t, rates["fused"])
+                cur_in = _keep("current_emb", cur, rates["current_emb"])
+                delta_in = _keep("state_delta", delta_t, rates["state_delta"])
+                prop_in = _keep("proprio", batch["proprio"][:, t], rates["proprio"])
                 plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_in,
                                          fused=fused_in, pred_box_emb=next_box,
                                          geometry=geom, proprio=prop_in,
@@ -798,6 +809,23 @@ def main(argv=None) -> None:
             raise SystemExit("--planner-drop would ablate every planner input.")
         cfg = dataclasses.replace(cfg, planner_inputs=kept)
         print(f"planner inputs: {kept} (dropped {sorted(drop)})", flush=True)
+    # Resolve per-input withhold rates once: the coarse flags set the defaults,
+    # --planner-drop-rate overrides any individual name.
+    rates = {n: 0.0 for n in ChronoQueryPlanner.INPUT_NAMES}
+    rates["fused"] = rates["current_emb"] = args.planner_input_dropout
+    rates["state_delta"] = rates["proprio"] = args.phase_dropout
+    for item in (s for s in args.planner_drop_rate.split(",") if s.strip()):
+        name, _, val = item.partition("=")
+        name = name.strip()
+        if name not in rates:
+            raise SystemExit(f"--planner-drop-rate: unknown input {name!r}; "
+                             f"valid: {list(ChronoQueryPlanner.INPUT_NAMES)}")
+        rates[name] = float(val)
+    args._drop_rates = rates
+    active = {k: v for k, v in rates.items() if v > 0}
+    if active:
+        print(f"stage-B input withhold rates: {active}", flush=True)
+
     if args.waypoint_weight > 0:
         cfg = dataclasses.replace(cfg, waypoint_action=True)
         print(f"waypoint-absolute head ON (weight {args.waypoint_weight}, "

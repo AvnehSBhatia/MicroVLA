@@ -111,9 +111,14 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
             if wp is not None and float(ep["proprio"][i, -1]) > 0.5:
                 tgt, row_mask = waypoint_targets(
                     ep["eef_pos_chunk"][i], cfg.plan_steps, cfg.waypoint_range)
-                if float(row_mask[0]) > 0:
-                    wp_pred.append(wp[0, 0].cpu().numpy() * cfg.waypoint_range)
-                    wp_true.append(tgt[0].cpu().numpy() * cfg.waypoint_range)
+                # Score the row the ACTUATOR actually servoes toward, which
+                # WaypointActuator derives from cfg.waypoint_horizon and clamps
+                # to the last SUPERVISED row. Scoring row 0 while the controller
+                # used row 3 described a prediction nobody executes.
+                row = max(0, min(cfg.waypoint_horizon, cfg.plan_steps - 1) - 1)
+                if float(row_mask[row]) > 0:
+                    wp_pred.append(wp[0, row].cpu().numpy() * cfg.waypoint_range)
+                    wp_true.append(tgt[row].cpu().numpy() * cfg.waypoint_range)
 
         # World-model margin: H-step open-loop rollout vs persistence, a few
         # anchors per episode — TRAINING-PROTOCOL-MATCHED (the predicted latent
@@ -198,6 +203,7 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
         ("fused", "current_emb", "state_delta", "geometry", "proprio",
          "pred_box_emb", "wm_msg", "wm_latent", "spatial",
          "next_emb->cur", "next_emb->stale")}
+    grip_flips: dict[str, list[float]] = {k: [] for k in deltas}
     prev_next_emb = None
     with torch.no_grad():
         drift.reset()
@@ -221,25 +227,44 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
                       wm_msg=wm["msg"], wm_latent=wm.get("latent"),
                       spatial=_spatial_at(ep, i, mods))
             base = planner(next_emb, **kw)
+
+            def _delta(alt):
+                """Pose-only |dplan| and the gripper-flip RATE, separately.
+
+                The plan's last column is a hard +/-1, so one flipped gripper
+                decision at every step contributes exactly
+                plan_steps*2/(plan_steps*num_servos) = 0.2857 to a whole-plan
+                mean — the same magnitude as the largest sensitivity ever
+                measured here (state_delta 0.2740). Averaging a discrete bit
+                together with continuous pose made those two indistinguishable,
+                so they are reported apart.
+                """
+                pose = float((alt[..., :-1] - base[..., :-1]).abs().mean())
+                flip = float((alt[..., -1] != base[..., -1]).float().mean())
+                return pose, flip
             probes = ["fused", "current_emb", "state_delta", "geometry",
                       "proprio", "pred_box_emb", "wm_msg", "wm_latent"]
             if kw["spatial"] is not None:
                 probes.append("spatial")
             for name in probes:
-                alt = planner(next_emb, **{**kw, name: None})
-                deltas[name].append(float((alt - base).abs().mean()))
-            alt = planner(cur, **kw)  # no-prediction: next_emb := current_emb
-            deltas["next_emb->cur"].append(float((alt - base).abs().mean()))
+                pose, flip = _delta(planner(next_emb, **{**kw, name: None}))
+                deltas[name].append(pose)
+                grip_flips[name].append(flip)
+            pose, flip = _delta(planner(cur, **kw))  # no-prediction: next_emb := cur
+            deltas["next_emb->cur"].append(pose)
+            grip_flips["next_emb->cur"].append(flip)
             # The ->cur probe zeroes the TRM's RESIDUAL, which is small next to
             # ||current_emb||, so a near-zero reading is partly an amplitude
             # artifact. ->stale swaps in the PREVIOUS tick's prediction: a
             # full-magnitude, in-distribution wrong answer. If that is also ~0,
             # the predicted-embedding path really is dead.
             if prev_next_emb is not None:
-                alt = planner(prev_next_emb, **kw)
-                deltas["next_emb->stale"].append(float((alt - base).abs().mean()))
+                pose, flip = _delta(planner(prev_next_emb, **kw))
+                deltas["next_emb->stale"].append(pose)
+                grip_flips["next_emb->stale"].append(flip)
             prev_next_emb = next_emb
-    return {k: float(np.mean(v)) for k, v in deltas.items() if v}
+    return ({k: float(np.mean(v)) for k, v in deltas.items() if v},
+            {k: float(np.mean(v)) for k, v in grip_flips.items() if v})
 
 
 def main(argv=None) -> None:
@@ -254,6 +279,9 @@ def main(argv=None) -> None:
                     help="use N deterministic synthetic episodes (no data needed)")
     ap.add_argument("--episodes", type=int, default=30, help="max episodes to bench")
     ap.add_argument("--horizon", type=int, default=6, help="world-model rollout depth")
+    ap.add_argument("--sensitivity-episodes", type=int, default=10,
+                    help="episodes used for the sensitivity probe (it costs 9 extra "
+                         "planner forwards per step, hence a smaller default than --episodes).")
     ap.add_argument("--sensitivity", action="store_true",
                     help="also report on-distribution planner input sensitivity "
                          "(mean |dPlan| per withheld input) over the benched episodes")
@@ -397,13 +425,23 @@ def main(argv=None) -> None:
 
     sens = None
     if args.sensitivity:
-        per_ep = [_episode_sensitivity(ep, mods, cfg) for _, ep in eps[: min(len(eps), 10)]]
-        sens = {k: float(np.mean([e[k] for e in per_ep])) for k in per_ep[0]} if per_ep else {}
-        print("\nplanner input sensitivity (mean |dPlan| when withheld; on-distribution):")
+        per_ep = [_episode_sensitivity(ep, mods, cfg)
+                  for _, ep in eps[: min(len(eps), args.sensitivity_episodes)]]
+        pose = [a for a, _ in per_ep]
+        grip = [b for _, b in per_ep]
+        sens = {k: float(np.mean([e[k] for e in pose if k in e])) for k in pose[0]} if pose else {}
+        gflip = {k: float(np.mean([e[k] for e in grip if k in e])) for k in grip[0]} if grip else {}
+        print("\nplanner input sensitivity when the input is WITHHELD "
+              f"({len(per_ep)} episodes):")
+        print(f"  {'input':16s} {'POSE |dplan|':>12s} {'grip flip %':>12s}")
         for k, v in sorted(sens.items(), key=lambda kv: -kv[1]):
-            print(f"  {k:16s} {v:.4f}")
-        print("read: dead paths sit at ~0; planner-input-dropout training should "
-              "lift geometry / next_emb->cur / pred_box_emb off the floor.")
+            print(f"  {k:16s} {v:12.4f} {100*gflip.get(k, float('nan')):11.1f}%")
+        print("read: POSE and the GRIPPER are reported SEPARATELY on purpose. The plan's\n"
+              "last column is a hard +/-1, so one flipped gripper decision per step adds\n"
+              f"exactly {cfg.plan_steps*2/(cfg.plan_steps*cfg.num_servos):.4f} to a whole-plan mean — "
+              "indistinguishable from the largest\npose effect ever measured here. Earlier combined "
+              "readings (paper.md 4g) mixed\nthe two and must be re-measured with this build.")
+        sens = {"pose": sens, "grip_flip_rate": gflip}
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(

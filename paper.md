@@ -965,6 +965,84 @@ distinguish "dead path" from "small perturbation" — which is exactly why
 `next_emb->stale` (a full-magnitude, in-distribution wrong prediction) was added
 to bench. Quote the stale probe, not the cur probe.
 
+## 4i. Phase-dropout arm, and a CORRECTION to the sensitivity metric
+
+### The metric used in 4b/4c/4d/4g mixes a discrete bit with continuous pose
+
+`eval.bench --sensitivity` reported `mean |dplan|` over the whole
+`[plan_steps, num_servos]` plan. The last column is the gripper, a HARD +/-1
+(`torch.where(grip_logit > 0, ...)`), so ONE flipped gripper decision at every
+step contributes exactly
+
+    plan_steps * 2 / (plan_steps * num_servos) = 5*2/35 = 0.2857
+
+to that mean — verified numerically. The largest sensitivity ever recorded here
+is `state_delta` **0.2740**. The two are indistinguishable: a reading that size
+is equally consistent with "this input strongly shapes the pose trajectory" and
+"withholding this input flips the gripper decision and leaves pose untouched".
+
+**Every combined sensitivity number in 4b, 4c, 4d and 4g is therefore
+ambiguous, including the 12:1 phase:vision ratio that motivated this whole line
+of work.** Bench now reports POSE-ONLY |dplan| and the GRIPPER-FLIP RATE in
+separate columns; readings from the two builds are not comparable, and the
+affected arms need re-measuring before the ratio is quoted again.
+
+Related instrument fix: bench scored the waypoint head at row 0 while
+`WaypointActuator` servoes toward the row derived from `cfg.waypoint_horizon`
+(clamped to the last supervised row = row 3). `wp_std_ratio` / `wp_mae_mm` in
+4d/4g describe a prediction the controller never executes. Now aligned.
+
+### The arm itself: --phase-dropout 0.3 (both phase inputs, combined metric)
+
+Same frozen stage-A world model, `--waypoint-weight 1.0`, no TQSA, no
+`wm_latent`. Trained to early stop at epoch 23, best `val bc` **0.6234** against
+**0.6580** without phase-dropout — a 5.3% better BC loss and val grip 0.722 vs
+0.663, so withholding the shortcut did not cost fitting capacity.
+
+| metric | no phase-drop | phase-drop 0.3 |
+|---|---|---|
+| `state_delta` | 0.2740 | **0.0263** (-10x) |
+| `fused` | 0.0178 | **0.0466** (+2.6x) |
+| `proprio` | 0.1904 | 0.2255 (UP) |
+| `geometry` | 0.0218 | 0.0039 (-5.6x) |
+| `wm_msg` | 0.0006 | 0.0061 |
+| `next_emb->stale` | 0.0031 | 0.0160 |
+| phase : vision | 11.7 : 1 | **5.0 : 1** |
+| `std_ratio` | 0.126 | **0.071** |
+| `wp_std_ratio` | 0.604 | 0.654 |
+| `wp_mae_mm` | 4.8 | 5.3 |
+| `corr` | 0.31 | 0.27 |
+| `grip_acc` | 0.93 | **0.50** |
+| `wm_margin` | +19.8% | +19.8% (same stage A, as it must be) |
+
+**Result 1 — the shortcut is real but substitutable.** Withholding
+`state_delta` collapsed its use 10x and more than doubled `fused`; the
+phase:vision ratio improved 2.3x. But `proprio` sensitivity ROSE (0.190 ->
+0.226): the planner did not turn to vision so much as migrate its phase reliance
+to the other phase input. Dropping both independently at 0.3 leaves each
+available 70% of the time, so a policy can always lean on whichever survives.
+
+**Result 2 — the gripper collapsed to chance, and the mechanism is specific.**
+`grip_acc` 0.93 -> 0.50. `proprio` is
+`[eef_pos(3) | quat(4) | gripper(2) | valid(1)]`, and the demo gripper COMMAND
+at t is strongly autocorrelated with the measured gripper STATE at t — so
+proprio carries the single best predictor of the BCE target, and withholding it
+30% of the time destroys that head. This is the "trade one fixed failure for
+another" risk realised, and it is disqualifying on its own: a chance-level
+gripper cannot complete a pick-and-place regardless of any grounding gain.
+
+**Result 3 — magnitude regressed** (`std_ratio` 0.126 -> 0.071) while the
+waypoint head held (0.604 -> 0.654). Consistent with 4d: the action head is the
+fragile path and the displacement head is not, so the actuated translation is
+less affected than the table suggests.
+
+**Consequence for the design.** Drop the shortcut that is not load-bearing and
+keep the one that is: `--planner-drop-rate 'state_delta=0.4'`, leaving proprio
+intact. Per-input rates replace the coarse `--phase-dropout`, which could only
+move both together. And with the gripper now known to ride on proprio, any
+future proprio ablation should mask its POSE dims and preserve the gripper
+slots.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
