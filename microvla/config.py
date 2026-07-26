@@ -120,9 +120,17 @@ class MicroVLAConfig:
     # 0.075 > wm_msg 0.031 > current_emb 0.025 ~ fused 0.023 > pred_box 0.013 >
     # geometry 0.004 > next_emb 0.001. Names must be a subset of
     # ChronoQueryPlanner.INPUT_NAMES; at least one must remain.
+    # Width of the TRM's pooled belief state, exported by
+    # RecursiveTRM.forward_full as "latent" and consumed by the planner's
+    # wm_latent group. Must match the TRM's `d` (train_batched --trm-d, default
+    # 1024) and be divisible by the planner's memory-token count (8). It is here
+    # rather than read off the TRM because cfg is the single source of truth for
+    # every dimension crossing a module boundary.
+    wm_latent_dim: int = 1024
     planner_inputs: tuple[str, ...] = (
         "next_emb", "current_emb", "fused", "state_delta",
         "pred_box_emb", "geometry", "proprio", "spatial", "wm_msg",
+        "wm_latent",
     )
     # --- v7.2 WAYPOINT-ABSOLUTE actuation (opt-in; the std_ratio lever) ---
     # Regressing normalized ACTIONS with MSE collapses to the timid conditional

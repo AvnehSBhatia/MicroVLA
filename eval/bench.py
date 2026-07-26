@@ -98,7 +98,8 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
                 next_emb, current_emb=cur, state_delta=delta, fused=fused,
                 pred_box_emb=next_box, geometry=geom,
                 proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
-                spatial=_spatial_at(ep, i, mods), return_wp=True,
+                wm_latent=wm.get("latent"), spatial=_spatial_at(ep, i, mods),
+                return_wp=True,
             )
             emitted.append(plan[0, 0].cpu().numpy())
             demo.append(pwm[i, 0].cpu().numpy())
@@ -195,7 +196,8 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
     pwm = ep["pwm_targets"]
     deltas: dict[str, list[float]] = {k: [] for k in
         ("fused", "current_emb", "state_delta", "geometry", "proprio",
-         "pred_box_emb", "wm_msg", "spatial", "next_emb->cur", "next_emb->stale")}
+         "pred_box_emb", "wm_msg", "wm_latent", "spatial",
+         "next_emb->cur", "next_emb->stale")}
     prev_next_emb = None
     with torch.no_grad():
         drift.reset()
@@ -216,10 +218,11 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
             prop = ep["proprio"][i].unsqueeze(0)
             kw = dict(current_emb=cur, state_delta=delta, fused=fused,
                       pred_box_emb=next_box, geometry=geom, proprio=prop,
-                      wm_msg=wm["msg"], spatial=_spatial_at(ep, i, mods))
+                      wm_msg=wm["msg"], wm_latent=wm.get("latent"),
+                      spatial=_spatial_at(ep, i, mods))
             base = planner(next_emb, **kw)
             probes = ["fused", "current_emb", "state_delta", "geometry",
-                      "proprio", "pred_box_emb", "wm_msg"]
+                      "proprio", "pred_box_emb", "wm_msg", "wm_latent"]
             if kw["spatial"] is not None:
                 probes.append("spatial")
             for name in probes:

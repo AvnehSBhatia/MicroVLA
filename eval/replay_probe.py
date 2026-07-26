@@ -112,7 +112,7 @@ def main(argv=None) -> None:
             proprio = t("proprio")[i].unsqueeze(0) if "proprio" in ep.files else None
             plan = planner(next_emb, current_emb=cur, state_delta=delta,
                            fused=fused, pred_box_emb=next_box, geometry=geom,
-                           proprio=proprio, wm_msg=wm["msg"])  # [1,5,7]
+                           proprio=proprio, wm_msg=wm["msg"], wm_latent=wm.get("latent"))  # [1,5,7]
             emitted.append(plan[0, 0].cpu().numpy())   # executed action (row 0)
             demo.append(pwm[i, 0].cpu().numpy())        # demo action at this step
 

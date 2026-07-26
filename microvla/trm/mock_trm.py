@@ -85,9 +85,17 @@ class MockTRM(TRMBase):
         return next_emb
 
     def forward_full(self, fused, state_delta, current_emb, context=None) -> dict:
-        """v5 full readout: mock box head + zero message (stub semantics)."""
+        """v5 full readout: mock box head + zero message/latent (stub semantics).
+
+        ``latent`` is the v7.3 pooled-belief-state export the planner's
+        ``wm_latent`` group consumes. The mock has no belief state, so it emits
+        zeros at the configured width — enough for every shape-level test and
+        mock CLI path to run, and honest about carrying no information.
+        """
         next_emb, next_box = self.forward(
             fused, state_delta, current_emb, context=context, return_box=True
         )
+        b = current_emb.shape[0]
         return {"next_emb": next_emb, "next_box": next_box,
-                "msg": current_emb.new_zeros(current_emb.shape[0], 32)}
+                "msg": current_emb.new_zeros(b, 32),
+                "latent": current_emb.new_zeros(b, self.cfg.wm_latent_dim)}

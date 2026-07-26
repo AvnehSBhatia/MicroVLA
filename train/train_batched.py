@@ -594,7 +594,8 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
             plan, grip, wp = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
                                      fused=fused_all[t], pred_box_emb=wm["next_box"],
                                      geometry=geom, proprio=batch["proprio"][:, t],
-                                     spatial=spatial, wm_msg=wm["msg"], return_wp=True)
+                                     spatial=spatial, wm_msg=wm["msg"],
+                                         wm_latent=wm.get("latent"), return_wp=True)
             preds.append(plan); grips.append(grip)
             if wp is not None:
                 wps.append(wp)
@@ -710,7 +711,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_in,
                                          fused=fused_in, pred_box_emb=next_box,
                                          geometry=geom, proprio=prop_in,
-                                         spatial=spatial, wm_msg=wm["msg"], return_wp=True)
+                                         spatial=spatial, wm_msg=wm["msg"],
+                                     wm_latent=wm.get("latent"), return_wp=True)
                 preds.append(plan); grips.append(grip)
                 if wp is not None:
                     wps.append(wp)

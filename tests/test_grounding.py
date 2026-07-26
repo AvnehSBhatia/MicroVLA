@@ -153,10 +153,14 @@ class TestWorldModelMsg:
         out = trm.forward_full(torch.randn(3, cfg.fused_rows, cfg.fused_cols),
                                torch.randn(3, cfg.state_dim),
                                torch.randn(3, cfg.vis_dim))
-        assert set(out) == {"next_emb", "next_box", "msg"}
+        assert set(out) == {"next_emb", "next_box", "msg", "latent"}
         assert out["next_emb"].shape == (3, cfg.vis_dim)
         assert out["next_box"].shape == (3, cfg.vis_dim)
         assert out["msg"].shape == (3, 32)
+        # v7.3: the pooled belief state the planner's wm_latent group reads.
+        # The mock has none, so it emits zeros at the configured width.
+        assert out["latent"].shape == (3, cfg.wm_latent_dim)
+        assert float(out["latent"].abs().sum()) == 0.0
 
     def test_planner_consumes_wm_msg(self):
         import torch
@@ -190,3 +194,76 @@ class TestWorldModelMsg:
         assert trm.head.weight.grad is None
         # And the world-model outputs are unaffected by msg_head existing:
         assert out["next_emb"].shape == (2, cfg.vis_dim)
+
+
+class TestWorldModelLatent:
+    """v7.3: the planner reads the TRM's pooled belief state, not its 32-d readout.
+
+    `msg` measured 92% a FIXED vector (constant norm 3.32 vs varying 0.268,
+    effective rank 6/32) on the +19.8% stage-A checkpoint, while the state it is
+    read from is vision-rich — zeroing `fused` destroys 89% of the TRM's
+    predicted residual. See paper.md 4h.
+    """
+
+    def test_real_trm_exports_the_pooled_state_it_reads_msg_from(self):
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from TRM import RecursiveTRM
+
+        trm = RecursiveTRM(cfg, d=cfg.wm_latent_dim, T=1, n_inner=1).eval()
+        with torch.no_grad():
+            out = trm.forward_full(torch.randn(2, cfg.fused_rows, cfg.fused_cols),
+                                   torch.randn(2, cfg.state_dim),
+                                   torch.randn(2, cfg.vis_dim))
+        assert out["latent"].shape == (2, cfg.wm_latent_dim)
+        # msg is a linear readout OF latent, so it must be reproducible from it.
+        with torch.no_grad():
+            assert torch.allclose(trm.msg_head(out["latent"]), out["msg"], atol=1e-5)
+
+    def test_planner_consumes_it_as_multiple_tokens(self):
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from microvla.planner.chrono_planner import ChronoQueryPlanner
+
+        planner = ChronoQueryPlanner(cfg).eval()
+        assert planner.wm_latent_proj is not None
+        # 8 tokens, not 1 — it has to compete with fused's 32 for attention.
+        assert planner.wm_latent_chunk == cfg.wm_latent_dim // planner.n_mem_tokens
+        next_emb = torch.randn(2, cfg.vis_dim)
+        with torch.no_grad():
+            a = planner(next_emb)
+            b = planner(next_emb, wm_latent=torch.randn(2, cfg.wm_latent_dim))
+        assert not torch.allclose(a, b), "wm_latent had no effect on the plan"
+
+    def test_costs_far_less_than_a_full_projection(self):
+        import dataclasses
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from microvla.planner.chrono_planner import ChronoQueryPlanner
+
+        without = dataclasses.replace(
+            cfg, planner_inputs=tuple(n for n in cfg.planner_inputs if n != "wm_latent"))
+        cost = (sum(p.numel() for p in ChronoQueryPlanner(cfg).parameters())
+                - sum(p.numel() for p in ChronoQueryPlanner(without).parameters()))
+        chunked = (cfg.wm_latent_dim // 8 + 1) * cfg.d_plan
+        assert cost == chunked
+        # A single Linear(wm_latent_dim, d_plan) would be ~8x this.
+        assert cost < (cfg.wm_latent_dim + 1) * cfg.d_plan / 4
+
+    def test_optional_so_zero_param_baselines_still_work(self):
+        """eval/baselines.py foils have no belief state; that must stay legal."""
+        import torch
+
+        from microvla.config import DEFAULT_CONFIG as cfg
+        from eval.baselines import PersistenceTRM
+        from microvla.planner.chrono_planner import ChronoQueryPlanner
+
+        out = PersistenceTRM(cfg).forward_full(
+            torch.randn(2, cfg.fused_rows, cfg.fused_cols),
+            torch.randn(2, cfg.state_dim), torch.randn(2, cfg.vis_dim))
+        planner = ChronoQueryPlanner(cfg).eval()
+        with torch.no_grad():   # .get() yields None; the planner ignores it
+            plan = planner(out["next_emb"], wm_latent=out.get("latent"))
+        assert plan.shape == (2, cfg.plan_steps, cfg.num_servos)

@@ -461,7 +461,8 @@ class JEPALoop:
                 state_delta=state_delta, fused=fused,
                 pred_box_emb=next_box, geometry=geom,
                 proprio=proprio_tok, spatial=self._last_spatial,
-                wm_msg=wm["msg"], return_wp=True)
+                wm_msg=wm["msg"], wm_latent=wm.get("latent"),
+                return_wp=True)
             raw_plan = raw_plan.squeeze(0)              # [plan_steps, num_servos]
             # v7.2: the metric EEF displacement the caller may actuate against
             # live proprio instead of the regressed translation dims (see

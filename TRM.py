@@ -212,9 +212,21 @@ class RecursiveTRM(TRMBase):
         """Single inference pass returning every readout (v5 planner interface).
 
         Returns:
-            ``{"next_emb": [B, 512], "next_box": [B, 512], "msg": [B, 32]}`` —
-            frame prediction (residual), source-box prediction, and the
-            action-shaped latent message off the pooled belief state.
+            ``{"next_emb": [B, 512], "next_box": [B, 512], "msg": [B, 32],
+            "latent": [B, d]}`` — frame prediction (residual), source-box
+            prediction, the action-shaped latent message, and the POOLED BELIEF
+            STATE all three readouts are computed from.
+
+        ``latent`` is free (already computed) and exists because ``msg`` turned
+        out to be a broken pipe. Measured on the +19.8% stage-A checkpoint
+        (paper.md 4h): this pooled state is demonstrably vision-rich — zeroing
+        ``fused`` destroys 89% of the predicted residual and box evidence drives
+        38-41% of it — yet ``msg``, its 32-wide readout, collapsed to 92% a
+        FIXED vector (constant norm 3.32 vs varying 0.268) with an effective
+        rank of 6/32. A near-constant input is absorbable into the consumer's
+        bias, which is why the planner's sensitivity to ``msg`` measured 0.0006.
+        Exporting the state itself lets the planner read the representation
+        instead of that bottleneck.
         """
         y, z = self.init_states(fused.shape[0])
         x = self.observe(fused, state_delta, current_emb, context)
@@ -224,6 +236,7 @@ class RecursiveTRM(TRMBase):
             "next_emb": current_emb + self.head(pooled),
             "next_box": self.box_head(pooled),
             "msg": self.msg_head(pooled),
+            "latent": pooled,
         }
 
     def forward(self, fused, state_delta, current_emb, context=None, return_box=False):

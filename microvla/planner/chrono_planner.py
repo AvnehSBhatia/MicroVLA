@@ -142,7 +142,7 @@ class ChronoQueryPlanner(nn.Module):
     #: ``forward`` (callers do not have to know which are enabled).
     INPUT_NAMES: tuple[str, ...] = (
         "next_emb", "current_emb", "fused", "state_delta", "pred_box_emb",
-        "geometry", "proprio", "spatial", "wm_msg",
+        "geometry", "proprio", "spatial", "wm_msg", "wm_latent",
     )
 
     def __init__(self, cfg: MicroVLAConfig) -> None:
@@ -219,10 +219,31 @@ class ChronoQueryPlanner(nn.Module):
         # internal belief state — trained by THIS planner's gradient, since
         # the msg head is excluded from the stage-B world-model freeze).
         self.msg_proj = nn.Linear(32, cfg.d_plan) if "wm_msg" in self.inputs else None
-        # 11 rows always (one per memory GROUP, spatial contributing three), so
+        # v7.3: the TRM's POOLED BELIEF STATE, not its 32-d readout. Measured on
+        # the +19.8% stage-A checkpoint (paper.md 4h): that state is vision-rich
+        # (zeroing `fused` destroys 89% of the TRM's predicted residual; box
+        # evidence drives 38-41%) while `msg` collapsed to 92% a FIXED vector at
+        # an effective rank of 6/32 — a bottleneck, not a channel. Chunked into
+        # the same n_mem_tokens as the other wide inputs so it arrives as 8
+        # tokens and can compete with fused's 32 for attention, rather than as a
+        # single token; one shared projection keeps it at ~33K params instead of
+        # the 262K a full Linear(1024, d_plan) would cost.
+        if "wm_latent" in self.inputs:
+            if cfg.wm_latent_dim % _N_MEM_TOKENS != 0:
+                raise ValueError(
+                    f"wm_latent_dim ({cfg.wm_latent_dim}) must be divisible by the "
+                    f"memory token count ({_N_MEM_TOKENS})."
+                )
+            self.wm_latent_chunk = cfg.wm_latent_dim // _N_MEM_TOKENS
+            self.wm_latent_proj = nn.Linear(self.wm_latent_chunk, cfg.d_plan)
+        else:
+            self.wm_latent_chunk = 0
+            self.wm_latent_proj = None
+        # 12 rows always (one per memory GROUP, spatial contributing three), so
         # a checkpoint trained with a different `planner_inputs` still loads its
-        # type rows by index — see eval/policy.py::_load_relaxed.
-        self.type_emb = nn.Parameter(torch.randn(11, cfg.d_plan) * cfg.d_plan**-0.5)
+        # type rows by index — see eval/policy.py::_load_relaxed, which
+        # prefix-copies a grown leading dim.
+        self.type_emb = nn.Parameter(torch.randn(12, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -276,6 +297,7 @@ class ChronoQueryPlanner(nn.Module):
                 proprio: torch.Tensor | None = None,
                 spatial: dict | None = None,
                 wm_msg: torch.Tensor | None = None,
+                wm_latent: torch.Tensor | None = None,
                 return_aux: bool = False,
                 return_wp: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
@@ -311,6 +333,10 @@ class ChronoQueryPlanner(nn.Module):
                 task-conditioned attention maps + spatial structure the GAP
                 embedding destroys. Optional.
 
+            wm_latent: ``[B, wm_latent_dim]`` the TRM's POOLED BELIEF STATE
+                (``forward_full()["latent"]``) — the representation all of its
+                readouts are computed from, rather than the 32-d ``wm_msg``
+                summary of it. v7.3; see the projection's comment for why.
             return_aux: if True, also return the per-step gripper logits
                 ``[B, plan_steps]`` (needed for the BCE training loss). Callers
                 that only execute the plan (loop/pipeline) leave this False.
@@ -360,6 +386,11 @@ class ChronoQueryPlanner(nn.Module):
             mem_parts.append(self.heat_proj(spatial["heatmaps"]) + self.type_emb[9])  # [B, 3, d_plan]
         if wm_msg is not None and self.msg_proj is not None:
             mem_parts.append(self.msg_proj(wm_msg).unsqueeze(1) + self.type_emb[10])  # [B, 1, d_plan]
+        if wm_latent is not None and self.wm_latent_proj is not None:
+            mem_parts.append(
+                self.wm_latent_proj(
+                    wm_latent.reshape(batch, self.n_mem_tokens, self.wm_latent_chunk))
+                + self.type_emb[11])   # [B, 8, d_plan]
         if not mem_parts:
             # Every enabled group's argument was None (only reachable when
             # `next_emb` is ablated away and the caller passed nothing else).

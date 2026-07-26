@@ -312,6 +312,27 @@ for dropping one is `eval.bench --sensitivity` (on-distribution mean |Δplan| wh
 input is withheld) — read `next_emb->stale` (a full-magnitude wrong prediction) alongside
 `next_emb->cur` (which only zeroes the TRM's residual and so reads low by construction).
 
+**World-model latent channel (v7.3).** `RecursiveTRM.forward_full` also returns
+`latent [B, d]` — the POOLED BELIEF STATE (`out_norm(y.mean(1))`) that `next_emb`,
+`next_box` and `msg` are all read from. Free: already computed. The planner
+consumes it as the `wm_latent` group, chunked into `_N_MEM_TOKENS`=8 tokens
+through one shared `Linear(wm_latent_dim/8, d_plan)` — 33K params, and 8 tokens
+so it can compete with `fused`'s 32 for attention rather than arriving as a
+single token. `cfg.wm_latent_dim` (1024) must match the TRM's `d`.
+
+Why: measured on the +19.8% stage-A checkpoint (paper.md §4h), that pooled state
+is vision-rich — zeroing `fused` destroys 89% of the TRM's predicted residual and
+box evidence drives 38–41% of it — while `msg`, its 32-wide readout, collapsed to
+**92% a fixed vector** (constant norm 3.32 vs varying 0.268) at an effective rank
+of 6/32. A near-constant input is absorbable into the consumer's bias, which is
+why the planner's measured sensitivity to `msg` was 0.0006. The bottleneck was
+the channel, not the planner.
+
+`latent` is OPTIONAL in the TRM readout contract: callers use `wm.get("latent")`
+and the planner ignores `None`, so the zero-parameter foils in `eval/baselines.py`
+— which genuinely have no belief state — remain valid `TRMBase`
+implementations.
+
 **Waypoint-absolute actuation (v7.2, opt-in `cfg.waypoint_action`).** The magnitude lever.
 Every previous fix for the collapse (`std_ratio` 0.12 → 0.37, healthy ~1.0) attacked the
 INPUTS of the action regression; this attacks its OUTPUT. Extra head
