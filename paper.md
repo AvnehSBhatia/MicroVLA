@@ -616,6 +616,99 @@ extent that fit holds, so its per-axis R2 is now a load-bearing number. (iii)
 `wm_margin` remains -7.3%: the stage-A world model still loses to persistence on
 this suite regardless of any of the above.
 
+## 4e. First closed-loop run with waypoint actuation — INVALID, and why
+
+**No `mean_success` is reported here.** The runs below executed correctly as
+software and are void as a measurement of the policy: the actuator was
+commanding ~5x too hard and clipping. Recorded because the harness validation
+and the defect are both results.
+
+### The fitted gain (the actuation path's load-bearing number)
+
+`preprocess/fit_waypoint_gain.py` over all three suites, 82,844 (action, Δeef)
+pairs from 1500 episodes, 0 skipped for missing proprio:
+
+| axis | gain (m per unit action per step) | R² |
+|---|---|---|
+| x | 0.01056 | 0.870 |
+| y | 0.01200 | 0.938 |
+| z | 0.01085 | 0.866 |
+
+All far above the 0.5 usability threshold, so LIBERO's OSC translation response
+really is per-axis linear and the actuator's inversion is sound. A full-scale
+command moves ~1.1 cm/step, so a 5-step chunk spans ~5.5 cm — which is the
+scale that makes the head's 3.0 mm prediction error small.
+
+### Harness validation (§0 closed out)
+
+The serial canary ran clean on the box: every heartbeat printed
+(`building policy` -> `policy ready (6s)` -> `10 task(s)` -> per-trial
+`START`/`DONE`), the env built, 100 steps executed, no stall. The 10-worker hang
+that opened this session is not reproducible under the rebuilt harness, and the
+`--workers 5 --stagger 10` run sharded and reported normally.
+
+`success=False` at `--max-steps 100` is **by construction**, not a signal: 100
+steps is 5 s of robot time at 20 Hz and a LIBERO pick-and-place needs 150-300.
+
+### `--heads-device` is worth 16x
+
+| configuration | s/step | 300-step episode |
+|---|---|---|
+| heads on CPU (the previous default, always) | 3.75 | 375 s |
+| `--heads-device cuda:0`, 5 workers | 0.23 | ~70 s |
+
+The d=1024 TRM, fusion and planner run on EVERY tick while the detector runs 1
+in 15, and `--device` only ever moved the detector. At `--n-trials 20
+--max-steps 300` this is the difference between ~60 hours and under 4.
+
+### The defect: telemetry caught it in one command
+
+Per-step telemetry over a completed 300-step episode:
+
+    steps 300 | waypoint cmds 300
+    |cmd| mean 0.5301  max 1.0000
+    plan_norm mean 2.418
+
+300 of 300 steps commanded — the actuation path fires — but `max 1.0` is the
+clip and a mean of 0.53 is several times the demo's per-step magnitude under
+the unified normalization. Two stacked bugs in the control law:
+
+1. **Units (5x over-command).** `gain` is metres per unit action per ONE control
+   step; a horizon-*h* waypoint spans *h* steps. The command divided by `gain`
+   alone, over-commanding by exactly *h* (5 at the default horizon). The correct
+   command is the per-step RATE closing the remaining error over the remaining
+   steps, `error / (gain * steps_left)`, with `steps_left` counting down — which
+   is where the closed-loop property actually lives: an arm that falls behind
+   has the same error to cover in fewer steps, so the command GROWS.
+2. **Duty cycle (2/3 idle).** The target was held across a whole perception
+   period. That is only valid when the period is no longer than the horizon; at
+   the deployment 15:5 ratio the arm reaches the held target in ~5 ticks and
+   idles for 10. Now re-anchored every tick — the planner replans every tick
+   with fresh proprio regardless, and the countdown preserves the correction.
+
+Together these predict exactly the observed profile: saturate for ~5 ticks,
+coast for 10. Fixed in `e362d2c`; expected corrected `|cmd|` mean ~0.10-0.11,
+i.e. ~0.787 of the demo's per-step magnitude, matching §4d.
+
+**Method note worth keeping.** The bench numbers (§4d) could not have caught
+this: bench scores the PREDICTION, and the actuator is a separate map from
+prediction to command that only closed-loop exercises. The per-step
+`waypoint_cmd` telemetry — one field, one command — localized it in seconds.
+Every closed-loop failure in this project so far has been an interface defect
+between correct components, not a model failure, and the instrument that finds
+them each time is per-step telemetry rather than the aggregate score.
+
+### Still open
+
+`mean_success` remains unobtained. It is now blocked on nothing but a re-run:
+the harness works, the policy is the best-benching arm (std_ratio 0.237,
+grip 0.93, wp_std_ratio 0.787), the gain fits at R² 0.87-0.94, and the control
+law is corrected. Note the ceiling that will remain even then: the actuator
+replaces only the 3 TRANSLATION dims. Orientation and the gripper still come
+from the BC head at std_ratio 0.237, so 4 of 7 dims are untreated. A failure to
+align the wrist or close the fingers is the expected NEXT bottleneck, not
+evidence against the translation result.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over

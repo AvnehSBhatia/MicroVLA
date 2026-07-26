@@ -1,11 +1,12 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T03:20:30+00:00 · 90 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T03:56:27+00:00 · 93 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
 - `8cc7c66` 2026-07-22T04:28:55+00:00 — Dataset: Bridge V2 RLDS 4839 eps (43% grounded, ext cam) + LIBERO 1500 eps (wrist cam eye_in_hand); 6339 total, 90k perception-baked frames. Trainable heads 6.79M/9M. TRM RecursiveTRM d=1024 9.5M.
 - `bb578ee` 2026-07-26T01:55:50+00:00 — v7.2 full-data run. Suites baked one at a time (disk budget), then preprocess.unify_norm_stats onto one shared symmetric scale.
+- `e362d2c` 2026-07-26T03:56:27+00:00 — Actuation gain fitted over all three suites; R2 far above the 0.5 usability threshold, so LIBERO's OSC translation response is per-axis linear and the actuator's inversion is sound.
 
 ## Stage-A world model (rollout loss vs persistence)
 
@@ -136,3 +137,11 @@ Generated 2026-07-26T03:20:30+00:00 · 90 records · **do not hand-edit** (regen
   - Frozen backbone => maps identical across epochs. Rejected after measurement: min_side 512->256 saves 0.6% not 4x (all letterbox to 640, same 20x20 map). Untaken: SPPF-truncated forward, maxdiff 0.0, 1.8-2.0x.
 - **gpu_contention** — processes_on_gpu1 7, vram_used_gb 154, vram_total_gb 192, stage_a_epoch_s_uncontended 96, stage_a_epoch_s_contended 496, slowdown 5.2
   - Every per-epoch second recorded this session is contended and is not a hardware claim.
+- **heads_device** — s_per_step_cpu_heads 3.75, s_per_step_gpu_heads_5workers 0.23, speedup 16.3, episode_300_steps_s_before 375, after 70
+  - --device only ever moved the detector (1 tick in 15); the d=1024 TRM, fusion and planner run every tick and were on CPU. At --n-trials 20 --max-steps 300 this is ~60 h vs under 4.
+
+## Closed-loop / sweep eval
+
+| suite | condition | period | success | trust |
+|---|---|---|---|---|
+| libero_object | waypoint actuation, pre-e362d2c | 15 | None |  |
