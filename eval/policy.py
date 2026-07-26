@@ -380,6 +380,7 @@ class MicroVLAPolicy:
                     waypoint_range=cfg.waypoint_range,
                     horizon=cfg.waypoint_horizon,
                     gain_scale=cfg.waypoint_gain_scale,
+                    row_stride=cfg.waypoint_row_stride,
                 )
                 logger.info("MicroVLAPolicy: waypoint actuation ON (gain %s)",
                             self.actuator.gain)

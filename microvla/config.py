@@ -151,6 +151,19 @@ class MicroVLAConfig:
     # at the unsupervised row (measured: |cmd| 0.11 vs the ~0.34 the head's
     # 0.604 vigor implies). The actuator clamps this regardless.
     waypoint_gain_scale: float = 1.0  # multiplies the fitted proportional term
+    # LONG-HORIZON supervision (v7.4). waypoint_long=True supervises the head
+    # against displacement at the SAMPLED (2 Hz) spacing instead of the native
+    # one: 0.5-2.5 s of motion instead of 0.05-0.20 s. Over 0.2 s "keep going"
+    # is a near-sufficient statistic and object position is a second-order
+    # correction, which is the conditional-mean ordering that produces the
+    # measured 12:1 phase:vision ratio; over 2.5 s the arm must ARRIVE, so
+    # where the object is becomes first-order. Zero new parameters.
+    # Both companions are MANDATORY when it is on, or the units silently break:
+    #   waypoint_range must cover a whole reach (0.15 m clamps and destroys it)
+    #   waypoint_row_stride must be tick_hz/real_frame_hz, or the actuator's
+    #   per-step rate under-delivers by exactly that factor.
+    waypoint_long: bool = False
+    waypoint_row_stride: int = 1
     trainable_param_budget: int = 9_000_000
 
     @property

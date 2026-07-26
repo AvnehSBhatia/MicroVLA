@@ -355,3 +355,102 @@ class TestPolicyWaypointPath:
         proprio[-1] = 1.0
         assert policy.act(np.zeros((128, 128, 3), dtype=np.uint8),
                           proprio=proprio).shape == (CFG.num_servos,)
+
+
+class TestLongHorizonTargets:
+    """v7.4: supervise 0.5-2.5 s of displacement instead of 0.05-0.20 s."""
+
+    def _traj(self, T=8, step=0.05):
+        """A 2 Hz EEF trajectory advancing `step` metres per sampled frame in +x."""
+        chunk = torch.zeros(1, T, CFG.plan_steps, 3)
+        chunk[0, :, 0, 0] = torch.arange(T, dtype=torch.float32) * step
+        return chunk
+
+    def test_rows_span_sampled_frames_not_native_ones(self):
+        from microvla.utils.waypoint import long_horizon_targets
+
+        tgt, mask = long_horizon_targets(self._traj(), CFG.plan_steps, waypoint_range=0.5)
+        assert tgt.shape == (1, 8, CFG.plan_steps, 3)
+        assert mask.shape == (1, 8, CFG.plan_steps)
+        # row k at t=0 is traj[k+1] - traj[0] = (k+1) * 0.05 m
+        got = (tgt[0, 0, :, 0] * 0.5)
+        torch.testing.assert_close(got, torch.arange(1, CFG.plan_steps + 1) * 0.05,
+                                   rtol=1e-4, atol=1e-6)
+
+    def test_episode_tail_is_masked_per_timestep(self):
+        """Row k at timestep t needs sampled frame t+k+1, which the tail lacks."""
+        from microvla.utils.waypoint import long_horizon_targets
+
+        T = 8
+        _, mask = long_horizon_targets(self._traj(T), CFG.plan_steps, 0.5)
+        for k in range(CFG.plan_steps):
+            assert mask[0, :T - (k + 1), k].all(), f"row {k} should be supervised early"
+            assert not mask[0, T - (k + 1):, k].any(), f"row {k} tail must be masked"
+
+    def test_needs_the_full_episode_tensor(self):
+        from microvla.utils.waypoint import long_horizon_targets
+
+        with pytest.raises(ValueError, match=r"\[B, T, rows, 3\]"):
+            long_horizon_targets(torch.zeros(CFG.plan_steps, 3), CFG.plan_steps, 0.5)
+
+    def test_default_range_would_saturate_a_real_reach(self):
+        """Why --waypoint-long raises waypoint_range: 0.15 m clamps a 0.4 m reach."""
+        from microvla.utils.waypoint import long_horizon_targets
+
+        reach = self._traj(step=0.08)          # 0.08 m/frame -> 0.40 m over 5 rows
+        tight, _ = long_horizon_targets(reach, CFG.plan_steps, waypoint_range=0.15)
+        wide, _ = long_horizon_targets(reach, CFG.plan_steps, waypoint_range=0.5)
+        assert float(tight[0, 0, :, 0].max()) == 1.0, "expected saturation at 0.15 m"
+        assert float(wide[0, 0, :, 0].max()) < 1.0, "0.5 m should not saturate"
+
+    def test_row_stride_scales_the_per_step_rate(self):
+        """A sampled-spaced row is stride CONTROL steps out; missing that
+        under-delivers the command by exactly the stride."""
+        wp = np.zeros((CFG.plan_steps, 3))
+        wp[:, 0] = 0.5
+        # clip high enough that neither command saturates, or the ratio is capped
+        kw = dict(waypoint_range=0.5, horizon=2, clip=100.0)
+        a = WaypointActuator(np.full(3, 0.01), row_stride=1, **kw)
+        b = WaypointActuator(np.full(3, 0.01), row_stride=10, **kw)
+        ca = a.command(wp, np.zeros(3), is_real=True)[0]
+        cb = b.command(wp, np.zeros(3), is_real=True)[0]
+        assert ca / cb == pytest.approx(10.0, rel=1e-5)
+
+
+class TestPreGraspWeights:
+    def _pwm(self, closes_at, T=10, B=1):
+        """pwm_targets whose gripper (last servo, row 0) closes at `closes_at`."""
+        x = torch.full((B, T, CFG.plan_steps, CFG.num_servos), -1.0)
+        if closes_at is not None:
+            x[:, closes_at:, :, -1] = 1.0
+        return x
+
+    def test_upweights_pre_grasp_and_stays_mean_one(self):
+        from microvla.utils.phase import pre_grasp_weights
+
+        w, t_close, usable = pre_grasp_weights(self._pwm(4, T=10), weight=3.0)
+        assert usable.all() and int(t_close[0]) == 4
+        assert w[0, :4].tolist() == pytest.approx([w[0, 0].item()] * 4)
+        assert w[0, 0] > w[0, 9], "pre-grasp steps must weigh more"
+        assert float(w.mean()) == pytest.approx(1.0, abs=1e-5), "mean-1: not an LR change"
+
+    def test_never_closing_episode_is_left_alone(self):
+        """Bridge's gripper never closes; a uniform upweight is not a phase signal."""
+        from microvla.utils.phase import pre_grasp_weights
+
+        w, t_close, usable = pre_grasp_weights(self._pwm(None, T=10), weight=3.0)
+        assert not usable.any() and int(t_close[0]) == 10
+        assert torch.allclose(w, torch.ones_like(w))
+
+    def test_closing_only_at_the_last_step_is_unusable(self):
+        """Otherwise the whole episode counts as pre-grasp — the all-k case."""
+        from microvla.utils.phase import pre_grasp_weights
+
+        _, _, usable = pre_grasp_weights(self._pwm(9, T=10), weight=3.0)
+        assert not usable.any()
+
+    def test_weight_one_is_a_no_op(self):
+        from microvla.utils.phase import pre_grasp_weights
+
+        w, _, _ = pre_grasp_weights(self._pwm(4, T=10), weight=1.0)
+        assert torch.allclose(w, torch.ones_like(w))

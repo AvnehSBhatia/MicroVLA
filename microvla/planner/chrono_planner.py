@@ -298,6 +298,7 @@ class ChronoQueryPlanner(nn.Module):
                 spatial: dict | None = None,
                 wm_msg: torch.Tensor | None = None,
                 wm_latent: torch.Tensor | None = None,
+                fade: dict | None = None,
                 return_aux: bool = False,
                 return_wp: bool = False):
         """Plans a servo trajectory from the prediction + current observation.
@@ -333,6 +334,14 @@ class ChronoQueryPlanner(nn.Module):
                 task-conditioned attention maps + spatial structure the GAP
                 embedding destroys. Optional.
 
+            fade: Optional ``{group_name: weight}`` train-time evidence fade.
+                Each weight (scalar or broadcastable tensor, typically
+                ``[B, 1, 1]``) multiplies that group's PROJECTED content before
+                its type embedding is added — the same path and idiom as
+                ``SlotResonanceFusion``'s ``modality_dropout``. Weight 0
+                contributes nothing but KEEPS the token, so the attention
+                softmax sees the same token count it does at deployment;
+                passing ``None`` for an input instead deletes its tokens.
             wm_latent: ``[B, wm_latent_dim]`` the TRM's POOLED BELIEF STATE
                 (``forward_full()["latent"]``) — the representation all of its
                 readouts are computed from, rather than the 32-d ``wm_msg``
@@ -359,37 +368,55 @@ class ChronoQueryPlanner(nn.Module):
         # Memory groups. An input is used only when the caller supplied it AND
         # `cfg.planner_inputs` enabled it — a disabled input is silently ignored
         # so every call site can keep passing everything it has.
+        # Train-time evidence FADE, one shared path with fusion's own
+        # modality_dropout (slot_fusion.py: box_weight * (1 - drop*(1 - fade)),
+        # applied to CONTENT before the role embedding). Withholding an input by
+        # passing None instead removes its tokens entirely — for `fused` that is
+        # 32 of ~68, a softmax regime deployment never occupies, since the loop
+        # always passes real tensors. Fading scales the content and keeps the
+        # token count, so the degraded regime is one the model is also deployed
+        # in. CLAUDE.md's hard rule: one shared evidence path, no binary zeroing.
+        def _fade(name: str, tokens: torch.Tensor) -> torch.Tensor:
+            w = None if fade is None else fade.get(name)
+            return tokens if w is None else tokens * w
+
         mem_parts = []
         if self.mem_proj is not None:
             mem_parts.append(
-                self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                _fade("next_emb",
+                      self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim)))
                 + self.type_emb[0])   # [B, 8, d_plan]
         if current_emb is not None and self.cur_proj is not None:
             mem_parts.append(
-                self.cur_proj(current_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                _fade("current_emb",
+                      self.cur_proj(current_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim)))
                 + self.type_emb[1])
         if fused is not None and self.fused_proj is not None:
-            mem_parts.append(self.fused_proj(fused) + self.type_emb[2])   # [B, 32, d_plan]
+            mem_parts.append(_fade("fused", self.fused_proj(fused)) + self.type_emb[2])   # [B, 32, d_plan]
         if state_delta is not None and self.state_proj is not None:
-            mem_parts.append(self.state_proj(state_delta).unsqueeze(1) + self.type_emb[3])  # [B, 1, d_plan]
+            mem_parts.append(_fade("state_delta", self.state_proj(state_delta).unsqueeze(1))
+                             + self.type_emb[3])  # [B, 1, d_plan]
         if pred_box_emb is not None and self.box_proj is not None:
             mem_parts.append(
-                self.box_proj(pred_box_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim))
+                _fade("pred_box_emb",
+                      self.box_proj(pred_box_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim)))
                 + self.type_emb[4])   # [B, 8, d_plan]
         if geometry is not None and self.geom_proj is not None:
-            mem_parts.append(self.geom_proj(geometry).unsqueeze(1) + self.type_emb[5])  # [B, 1, d_plan]
+            mem_parts.append(_fade("geometry", self.geom_proj(geometry).unsqueeze(1))
+                             + self.type_emb[5])  # [B, 1, d_plan]
         if proprio is not None and self.proprio_proj is not None:
-            mem_parts.append(self.proprio_proj(proprio).unsqueeze(1) + self.type_emb[6])  # [B, 1, d_plan]
+            mem_parts.append(_fade("proprio", self.proprio_proj(proprio).unsqueeze(1))
+                             + self.type_emb[6])  # [B, 1, d_plan]
         if spatial is not None and self.spat_proj is not None:
-            mem_parts.append(self.spat_proj(spatial["tokens"]) + self.type_emb[7])   # [B, g*g, d_plan]
-            mem_parts.append(self.spat_proj(spatial["pooled"]) + self.type_emb[8])   # [B, 3, d_plan]
-            mem_parts.append(self.heat_proj(spatial["heatmaps"]) + self.type_emb[9])  # [B, 3, d_plan]
+            mem_parts.append(_fade("spatial", self.spat_proj(spatial["tokens"])) + self.type_emb[7])   # [B, g*g, d_plan]
+            mem_parts.append(_fade("spatial", self.spat_proj(spatial["pooled"])) + self.type_emb[8])   # [B, 3, d_plan]
+            mem_parts.append(_fade("spatial", self.heat_proj(spatial["heatmaps"])) + self.type_emb[9])  # [B, 3, d_plan]
         if wm_msg is not None and self.msg_proj is not None:
-            mem_parts.append(self.msg_proj(wm_msg).unsqueeze(1) + self.type_emb[10])  # [B, 1, d_plan]
+            mem_parts.append(_fade("wm_msg", self.msg_proj(wm_msg).unsqueeze(1)) + self.type_emb[10])  # [B, 1, d_plan]
         if wm_latent is not None and self.wm_latent_proj is not None:
             mem_parts.append(
-                self.wm_latent_proj(
-                    wm_latent.reshape(batch, self.n_mem_tokens, self.wm_latent_chunk))
+                _fade("wm_latent", self.wm_latent_proj(
+                    wm_latent.reshape(batch, self.n_mem_tokens, self.wm_latent_chunk)))
                 + self.type_emb[11])   # [B, 8, d_plan]
         if not mem_parts:
             # Every enabled group's argument was None (only reachable when

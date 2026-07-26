@@ -76,6 +76,7 @@ def split_planner_loss(
     smooth_weight: float = 0.1,
     grip_weight: float = 1.0,
     row0_weight: float = 1.0,
+    step_weight: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Split-head planner loss: MSE on pose dims + BCE on the gripper.
 
@@ -93,6 +94,12 @@ def split_planner_loss(
         target: Ground-truth ``pwm_targets`` ``[..., plan_steps, num_servos]``.
         smooth_weight: Weight on the pose second-difference smoothness term.
         grip_weight: Weight on the gripper BCE term.
+        step_weight: Optional per-EPISODE-TIMESTEP weight, flattened to match
+            ``plan``'s leading dim (``[B*T]``). Composes with ``row0_weight``,
+            which weights plan ROWS — orthogonal axes. See
+            ``microvla.utils.phase.pre_grasp_weights``: object position only
+            matters before the grasp, so without this most of the gradient is
+            spent on transport to a fixed target, which needs no grounding.
         row0_weight: Extra pose-MSE weight on plan ROW 0 — the only row that is
             ever executed at deployment (the 30 Hz loop replans every tick and
             runs row 0). Weights are normalized to mean 1 so the loss scale
@@ -104,14 +111,32 @@ def split_planner_loss(
     pose_pred = plan[..., :-1]
     pose_target = target[..., :-1]
     grip_target = (target[..., -1] > 0).float()  # open(<=0) -> 0, close(>0) -> 1
+
+    # Row weighting (plan ROW = how far into the receding horizon) and step
+    # weighting (episode TIMESTEP = where in the task) are ORTHOGONAL axes and
+    # compose: row0_weight says "the executed row matters most", step_weight
+    # says "the approach phase matters most". Both are mean-1 normalized so
+    # neither is a disguised learning-rate change.
+    rw = pose_pred.new_ones(pose_pred.shape[-2])
     if row0_weight != 1.0:
-        w = pose_pred.new_ones(pose_pred.shape[-2])
-        w[0] = row0_weight
-        w = w / w.mean()
-        mse = ((pose_pred - pose_target).pow(2) * w.unsqueeze(-1)).mean()
+        rw[0] = row0_weight
+        rw = rw / rw.mean()
+    w = rw.unsqueeze(-1)                                   # [rows, 1]
+    if step_weight is not None:
+        sw = step_weight.reshape(-1, 1, 1)                 # [B*T, 1, 1]
+        if sw.shape[0] != pose_pred.shape[0]:
+            raise ValueError(
+                f"step_weight has {sw.shape[0]} entries but the flattened batch "
+                f"is {pose_pred.shape[0]}; pass it flattened the same way.")
+        w = w * sw
+    if step_weight is not None or row0_weight != 1.0:
+        mse = ((pose_pred - pose_target).pow(2) * w).sum() / (
+            w.expand_as(pose_pred).sum().clamp_min(1e-8))
+        bce = (F.binary_cross_entropy_with_logits(grip_logit, grip_target, reduction="none")
+               * w.squeeze(-1)).sum() / w.squeeze(-1).expand_as(grip_logit).sum().clamp_min(1e-8)
     else:
         mse = F.mse_loss(pose_pred, pose_target)
-    bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
+        bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
     smooth = smoothness_loss(pose_pred)
     return mse + grip_weight * bce + smooth_weight * smooth
 
@@ -138,14 +163,20 @@ def waypoint_loss(
     Args:
         pred: ``[..., plan_steps, 3]`` head output in ``[-1, 1]``.
         target: ``[..., plan_steps, 3]`` from ``waypoint_targets``.
-        row_mask: ``[plan_steps]`` 1 where the row has a target.
+        row_mask: ``[plan_steps]`` (broadcast over the batch) OR a full
+            ``[..., plan_steps]`` mask matching ``pred``'s leading dims — the
+            long-horizon mode masks per (timestep, row), because the tail of an
+            episode has no future sampled frame to aim at.
         valid: Optional ``[...]`` per-sample validity in ``{0, 1}``.
 
     Returns:
         Scalar mean squared error over the unmasked entries; an exact zero
         tensor (still connected to ``pred``) when nothing is supervised.
     """
-    w = row_mask.reshape(*([1] * (pred.dim() - 2)), -1, 1).expand_as(pred)
+    if row_mask.dim() == 1:                      # [plan_steps], broadcast over batch
+        w = row_mask.reshape(*([1] * (pred.dim() - 2)), -1, 1).expand_as(pred)
+    else:                                        # full per-(sample, row) mask
+        w = row_mask.unsqueeze(-1).expand_as(pred)
     if valid is not None:
         w = w * valid.reshape(*valid.shape, 1, 1).expand_as(pred)
     denom = w.sum()

@@ -50,8 +50,9 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
+from microvla.utils.phase import pre_grasp_weights
 from microvla.utils.signals import ignore_sigterm
-from microvla.utils.waypoint import waypoint_targets
+from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
                           total_planner_loss, waypoint_loss)
@@ -96,12 +97,44 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "predictive/geometric paths get gradient. Interpretability "
                         "probe showed fused 7x dominant, geometry/next_emb dead — "
                         "redundant-path death; same cure as fusion's modality dropout.")
+    p.add_argument("--waypoint-long", action="store_true",
+                   help="v7.4: supervise the waypoint head at the SAMPLED (2 Hz) spacing "
+                        "instead of the native one — 0.5-2.5 s of displacement instead of "
+                        "0.05-0.20 s. Over 0.2 s 'keep doing what you are doing' is a "
+                        "near-sufficient statistic and object position is only a "
+                        "second-order correction, which is the conditional-mean ordering "
+                        "that produces the measured 12:1 phase:vision ratio; over 2.5 s the "
+                        "arm must ARRIVE, so where the object is becomes first-order. Zero "
+                        "new params, no re-bake. Sets --waypoint-range and "
+                        "--waypoint-row-stride defaults, both of which are unit-critical.")
+    p.add_argument("--waypoint-range", type=float, default=None,
+                   help="metres spanned by the waypoint head's [-1, 1] output. Default "
+                        "0.15 (native spacing) or 0.5 with --waypoint-long, where 0.15 "
+                        "would clamp any real reach and destroy the signal.")
+    p.add_argument("--waypoint-row-stride", type=int, default=None,
+                   help="CONTROL steps between waypoint rows = source_hz/real_frame_hz "
+                        "(10 for LIBERO's 20 Hz against 2 Hz sampling). 1 for native "
+                        "spacing. The actuator divides the positional error by the number "
+                        "of control steps remaining, so a wrong stride under-delivers the "
+                        "command by exactly that factor.")
+    p.add_argument("--pre-grasp-weight", type=float, default=1.0,
+                   help="multiplier on PRE-GRASP timesteps in the stage-B losses (1.0 = "
+                        "off). Object position only matters before the grasp; afterwards "
+                        "the trajectory is transport to a target in the same place every "
+                        "episode, which needs no grounding — so without this most of the "
+                        "gradient is spent where vision is useless. Derived from the demo's "
+                        "own gripper transition; episodes whose gripper never closes (all "
+                        "of bridge) are left at weight 1. Mean-1 normalized per episode, so "
+                        "it is not a disguised LR change. Try 3.0.")
     p.add_argument("--planner-drop-rate", type=str, default="",
                    help="stage B: PER-INPUT withhold probabilities, e.g. "
                         "'state_delta=0.4,fused=0.15'. Names from "
                         "ChronoQueryPlanner.INPUT_NAMES. Overrides the coarse "
                         "--planner-input-dropout / --phase-dropout for any name given. "
-                        "Exists because --phase-dropout 0.3 (both phase inputs at once) "
+                        "Applied as a per-sample graded FADE (fusion's own "
+                        "1-drop*(1-u) continuum), not deletion, so the attention token "
+                        "count matches deployment. Exists because --phase-dropout 0.3 "
+                        "(both phase inputs at once) "
                         "measured a 2.3x better phase:vision ratio AND a gripper collapse "
                         "0.93 -> 0.50: proprio carries the arm's GRIPPER STATE, the best "
                         "predictor of the gripper command, so withholding it destroys the "
@@ -461,6 +494,49 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
 
 
+def _pre_grasp(batch, weight: float):
+    """Mean-1 per-timestep pre-grasp weights, or None when the feature is off."""
+    if weight == 1.0:
+        return None
+    w, _t_close, _usable = pre_grasp_weights(batch["pwm_targets"], weight=weight)
+    return w
+
+
+def _wp_targets(batch, cfg):
+    """Waypoint supervision for a bucket batch, native- or sampled-spaced."""
+    if cfg.waypoint_long:
+        return long_horizon_targets(batch["eef_pos_chunk"], cfg.plan_steps,
+                                    cfg.waypoint_range)
+    return waypoint_targets(batch["eef_pos_chunk"], cfg.plan_steps, cfg.waypoint_range)
+
+
+def _fade_weights(rates: dict, batch: int, device) -> dict:
+    """Per-sample evidence-fade weights for the planner's memory groups.
+
+    One ``[batch, 1, 1]`` weight per group with a nonzero rate, drawn as
+    ``1 - drop * (1 - u)`` with ``drop ~ Bernoulli(rate)`` and ``u ~ U[0, 1)`` —
+    the same continuum ``SlotResonanceFusion`` uses for box evidence, so a
+    withheld input degrades the way stale evidence does at deployment instead of
+    vanishing. Groups at rate 0 are omitted, and an empty dict is bit-identical
+    to not fading at all.
+
+    Args:
+        rates: ``{group_name: probability}``; zero rates are skipped.
+        batch: Batch size.
+        device: Device for the drawn tensors.
+
+    Returns:
+        ``{group_name: [batch, 1, 1]}``, empty when every rate is 0.
+    """
+    out = {}
+    for name, rate in rates.items():
+        if rate <= 0:
+            continue
+        drop = torch.bernoulli(torch.full((batch, 1, 1), float(rate), device=device))
+        out[name] = 1.0 - drop * (1.0 - torch.rand(batch, 1, 1, device=device))
+    return out
+
+
 def _batch_spatial(batch, t, tqsa, backbone, device):
     """TQSA outputs for timestep t of a bucket batch, or None when unavailable.
 
@@ -615,8 +691,7 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
         tot += float(split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
                                         row0_weight=args.row0_weight))
         if wps:
-            wp_t, row_mask = waypoint_targets(batch["eef_pos_chunk"], cfg.plan_steps,
-                                              cfg.waypoint_range)
+            wp_t, row_mask = _wp_targets(batch, cfg)
             wp_tot += float(waypoint_loss(
                 torch.stack(wps, dim=1), wp_t, row_mask, valid=batch["proprio"][..., -1]))
         ga += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
@@ -711,19 +786,18 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # pose alone never needs to find the object, and in a corpus of
                 # stereotyped pick-and-place demos with a FIXED basket that
                 # shortcut covers most of the action variance.
-                def _keep(name, tensor, rate):
-                    return None if (rate > 0 and rng.random() < rate) else tensor
-
-                rates = args._drop_rates
-                fused_in = _keep("fused", fused_t, rates["fused"])
-                cur_in = _keep("current_emb", cur, rates["current_emb"])
-                delta_in = _keep("state_delta", delta_t, rates["state_delta"])
-                prop_in = _keep("proprio", batch["proprio"][:, t], rates["proprio"])
-                plan, grip, wp = planner(next_emb, current_emb=cur_in, state_delta=delta_in,
-                                         fused=fused_in, pred_box_emb=next_box,
-                                         geometry=geom, proprio=prop_in,
+                # PER-SAMPLE graded fade, not a per-batch coin flip. The previous
+                # `rng.random() < p` drew ONE scalar per (batch, timestep), so at
+                # batch 64 all 64 episodes were withheld together and a withheld
+                # step had no full-input sample anywhere in its gradient. Fading
+                # also keeps the token count, which deletion did not.
+                fade = _fade_weights(args._drop_rates, cur.shape[0], cur.device)
+                plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
+                                         fused=fused_t, pred_box_emb=next_box,
+                                         geometry=geom, proprio=batch["proprio"][:, t],
                                          spatial=spatial, wm_msg=wm["msg"],
-                                     wm_latent=wm.get("latent"), return_wp=True)
+                                         wm_latent=wm.get("latent"), fade=fade,
+                                         return_wp=True)
                 preds.append(plan); grips.append(grip)
                 if wp is not None:
                     wps.append(wp)
@@ -732,14 +806,21 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             target = batch["pwm_targets"]               # [B, T, 5, 7]
             P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
             Y = target.reshape(-1, *target.shape[2:])
+            # Pre-grasp emphasis: [B, T] mean-1 per episode, all-ones for
+            # episodes whose gripper never closes (bridge) so they are neither
+            # up- nor down-weighted.
+            step_w = _pre_grasp(batch, args.pre_grasp_weight)
             loss = split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
-                                      row0_weight=args.row0_weight)
+                                      row0_weight=args.row0_weight,
+                                      step_weight=None if step_w is None
+                                      else step_w.reshape(-1))
             if wps:
-                wp_t, row_mask = waypoint_targets(batch["eef_pos_chunk"],
-                                                  cfg.plan_steps, cfg.waypoint_range)
+                wp_t, row_mask = _wp_targets(batch, cfg)
+                wp_valid = batch["proprio"][..., -1]
+                if step_w is not None:
+                    wp_valid = wp_valid * step_w
                 loss = loss + args.waypoint_weight * waypoint_loss(
-                    torch.stack(wps, dim=1), wp_t, row_mask,
-                    valid=batch["proprio"][..., -1])
+                    torch.stack(wps, dim=1), wp_t, row_mask, valid=wp_valid)
             if unfreeze and T > 4:
                 # World-model auxiliary: one random 3-step rollout per batch so
                 # BC fine-tuning cannot erode frame prediction (bench verifies).
@@ -827,9 +908,15 @@ def main(argv=None) -> None:
         print(f"stage-B input withhold rates: {active}", flush=True)
 
     if args.waypoint_weight > 0:
-        cfg = dataclasses.replace(cfg, waypoint_action=True)
-        print(f"waypoint-absolute head ON (weight {args.waypoint_weight}, "
-              f"range {cfg.waypoint_range} m)", flush=True)
+        rng_m = args.waypoint_range if args.waypoint_range is not None else (
+            0.5 if args.waypoint_long else cfg.waypoint_range)
+        stride = args.waypoint_row_stride if args.waypoint_row_stride is not None else (
+            10 if args.waypoint_long else 1)
+        cfg = dataclasses.replace(cfg, waypoint_action=True, waypoint_long=args.waypoint_long,
+                                  waypoint_range=rng_m, waypoint_row_stride=stride)
+        print(f"waypoint head ON (weight {args.waypoint_weight}, range {rng_m} m, "
+              f"{'SAMPLED (2 Hz)' if args.waypoint_long else 'native'} spacing, "
+              f"row_stride {stride})", flush=True)
     device = resolve_device(args.device)
     torch.manual_seed(args.seed)
     cap_vram(device, args.max_vram_gb)

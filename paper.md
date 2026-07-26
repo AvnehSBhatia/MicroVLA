@@ -1043,6 +1043,108 @@ move both together. And with the gripper now known to ride on proprio, any
 future proprio ablation should mask its POSE dims and preserve the gripper
 slots.
 
+## 4j. Stage-B redesign (v7.3/v7.4) — root cause and the four changes
+
+A five-direction design pass (with adversarial review of each) located the root
+cause one level below "the regularizer was backwards".
+
+### Root cause: the supervision HORIZON, not the regularizer
+
+`preprocess/common.py::chunk_actions` builds plan rows at the NATIVE rate. With
+LIBERO at 20 Hz and `plan_steps=5`, the 5 rows span **0.25 s**, and
+`waypoint_targets` supervises 0.05-0.20 s of displacement. **Over 0.2 s, "keep
+doing what you are doing" is a near-sufficient statistic for the demo action**:
+the target is first-order predictable from arm pose and task progress, and
+object position is only a second-order correction. MSE-BC is a conditional-mean
+estimator and consumes variance in descending order, so it takes the phase term
+and leaves the vision residual on the table. The 12:1 ratio is what that
+ordering looks like, not a bug in any one flag.
+
+Two things converted that structural bias into the measured extreme, and 4h
+rules out every upstream cause (fusion is 47% box-driven; zeroing `fused`
+destroys 89% of the TRM's residual — **vision is available and discarded**):
+
+1. The regularizer's sign was backwards: `--planner-input-dropout 0.15` withheld
+   the VISION paths while phase was never withheld, so training actively taught
+   the planner to work without the grounded observation.
+2. 4h also measured box CENTERS at only 12% of `fused` and 8% of the residual —
+   so the discarded signal lives in the box EMBEDDINGS, not in the center
+   coordinates `geometry` carries. Widening `geometry` was never going to be it.
+
+### The four changes
+
+**1. Graded FADE instead of deletion** (`chrono_planner.py::forward(fade=...)`,
+0 params). Withholding by passing `None` DELETES a group's tokens — for `fused`
+that is 32 of ~68, an attention-softmax regime deployment never occupies, since
+the loop always passes real tensors. `fade` multiplies a group's PROJECTED
+content before its type embedding, byte-for-byte the idiom
+`SlotResonanceFusion` already uses for box evidence
+(`box_weight * (1 - drop*(1 - fade))`). CLAUDE.md's hard rule — one shared
+evidence path, no binary zeroing — applies to the planner too and did not
+previously hold there. Verified: `fade=None` is bit-identical to before.
+
+**2. PER-SAMPLE fade weights** (`train_batched.py::_fade_weights`, 0 params).
+The old `rng.random() < p` drew ONE scalar per (batch, timestep), so at batch 64
+all 64 episodes were withheld together and a withheld step had no full-input
+sample anywhere in its gradient. Now `[B, 1, 1]` draws, same continuum as fusion.
+
+**3. Per-input withhold rates** (`--planner-drop-rate 'state_delta=0.4'`).
+4i measured `--phase-dropout 0.3` (both phase inputs) improving phase:vision 2.3x
+AND collapsing `grip_acc` 0.93 -> 0.50, because `proprio` carries the arm's
+GRIPPER STATE — the best predictor of the gripper command. Coarse flags could
+only move both together; per-input rates drop the shortcut that is not
+load-bearing and keep the one that is.
+
+**4. PRE-GRASP step weighting** (`microvla/utils/phase.py`, `step_weight` in
+`split_planner_loss`, 0 params). Object position only matters BEFORE the grasp;
+afterwards the trajectory is transport to a target in the same place every
+episode. The phase signal needs no new data — the demo's own gripper transition
+gives it. Mean-1 normalized per episode so it is not a disguised LR change, and
+`step_weight` (episode TIMESTEP) composes with `row0_weight` (plan ROW) as
+orthogonal axes. Episodes whose gripper never closes — all of bridge — and
+episodes that first close on their LAST sampled step are marked UNUSABLE and
+left at weight 1: in both, "pre-grasp" would be the whole episode, which is a
+per-episode learning-rate change rather than a phase signal.
+
+**5. LONG-HORIZON supervision (v7.4) — the change that addresses the root
+cause** (`waypoint.py::long_horizon_targets`, `--waypoint-long`, 0 params, NO
+re-bake). `eef_pos_chunk[..., t, 0, :]` is the absolute EEF position at SAMPLED
+frame t, so the leading column of every baked npz is already a 2 Hz EEF
+trajectory. Row k becomes `traj[t+k+1] - traj[t]` — **0.5 to 2.5 s** of
+displacement instead of 0.05-0.20 s. Over 2.5 s the arm must actually ARRIVE, so
+where the object is becomes a FIRST-order determinant of the target. This is the
+only change that alters the conditional-mean ordering rather than taxing the
+shortcut after the fact.
+
+Two unit companions are mandatory and both are silent train/deploy mismatches if
+missed — each has a test:
+
+* `cfg.waypoint_range` must grow (0.15 m saturates the `[-1, 1]` clamp on any
+  real reach and destroys the signal); `--waypoint-long` defaults it to 0.5.
+* `cfg.waypoint_row_stride` must be `source_hz / real_frame_hz` (10 for LIBERO),
+  because a row is now `(k+1)*stride` CONTROL steps out and `WaypointActuator`
+  divides the positional error by the steps remaining to get a per-step rate.
+  Wrong stride under-delivers the command by exactly the stride.
+
+Cost of the tail: row k is unsupervised for the last k+1 timesteps of each
+episode (~8% of rows at T~30), masked per (timestep, row) rather than per row.
+
+### Also landed: the belief-state channel (v7.3, 4h consequence)
+
+`RecursiveTRM.forward_full` exports `latent [B, d]`, the pooled belief state all
+its readouts come from, and the planner consumes it as 8 tokens for 33K params.
+`msg` was 92% a fixed vector at effective rank 6/32 — a bottleneck, not a
+channel. Deliberately NOT a second TRM as the planner: the reason the TRM uses
+vision and the planner does not is the OBJECTIVE, not the architecture, so
+swapping architectures would not change the incentive (and d=1024 is 9.97M
+against a 2.5M cap).
+
+### Planner ledger after all of it
+
+1,803,527 params (1,804,298 with the waypoint head) against the 2.5M cap;
+trainable total 6,988,685 of 9,000,000. Every change above except the
+`wm_latent` projection costs ZERO parameters. 219 tests green.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over

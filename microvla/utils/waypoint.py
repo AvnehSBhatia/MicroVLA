@@ -57,6 +57,64 @@ import numpy as np
 import torch
 
 
+def long_horizon_targets(
+    eef_pos_chunk: torch.Tensor, plan_steps: int, waypoint_range: float
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Waypoint targets at the SAMPLED (2 Hz) spacing instead of the native one.
+
+    This changes what MSE-BC can get away with. ``waypoint_targets`` supervises
+    displacement over ``plan_steps`` NATIVE steps — 0.05 to 0.20 s at LIBERO's
+    20 Hz. Over 0.2 s "keep doing what you are doing" is a near-sufficient
+    statistic: the target is first-order predictable from arm pose and task
+    progress, and object position is only a second-order correction. A conditional
+    -mean estimator consumes variance in descending order, so it takes the phase
+    term and leaves the vision residual — which is the measured 12:1 phase:vision
+    ratio (paper.md 4g), not a regularization accident.
+
+    ``eef_pos_chunk[..., t, 0, :]`` is the absolute EEF position at SAMPLED frame
+    ``t``, so the leading column of the baked tensor is already a 2 Hz EEF
+    trajectory. Row ``k`` here is ``traj[t+k+1] - traj[t]`` — **0.5 to 2.5 s** of
+    displacement. Over 2.5 s the arm has to actually ARRIVE somewhere, so where
+    the object is becomes a first-order determinant of the target. No re-bake and
+    no new parameters; the same ``wp_disp_head`` is reused.
+
+    Two unit consequences, both of which are silent train/deploy mismatches if
+    missed:
+
+    * Displacements are ~10x larger, so ``cfg.waypoint_range`` must grow (0.15 m
+      saturates the ``[-1, 1]`` clamp on any real reach and destroys the signal).
+    * A row is now ``(k+1) * stride`` CONTROL steps out, not ``k+1``, so
+      ``WaypointActuator`` needs ``row_stride`` or its per-step rate
+      under-delivers by exactly the stride.
+
+    Args:
+        eef_pos_chunk: ``[B, T, rows, 3]`` — the FULL episode tensor, since row
+            ``k`` needs sampled frame ``t+k+1``.
+        plan_steps: ``cfg.plan_steps``.
+        waypoint_range: ``cfg.waypoint_range`` (metres per unit of output).
+
+    Returns:
+        ``(target [B, T, plan_steps, 3], mask [B, T, plan_steps])`` — clamped to
+        ``[-1, 1]``. The mask is PER (t, row): the tail of each episode has no
+        frame ``t+k+1`` to aim at, costing ~``plan_steps/2T`` of the rows.
+    """
+    if eef_pos_chunk.dim() != 4:
+        raise ValueError(
+            f"long_horizon_targets needs the full [B, T, rows, 3] episode tensor, "
+            f"got {tuple(eef_pos_chunk.shape)}")
+    traj = eef_pos_chunk[..., 0, :]                               # [B, T, 3] @ 2 Hz
+    B, T = traj.shape[0], traj.shape[1]
+    target = traj.new_zeros(B, T, plan_steps, 3)
+    mask = traj.new_zeros(B, T, plan_steps)
+    for k in range(plan_steps):
+        n = T - (k + 1)
+        if n <= 0:
+            break
+        target[:, :n, k] = (traj[:, k + 1:] - traj[:, :n]) / max(waypoint_range, 1e-8)
+        mask[:, :n, k] = 1.0
+    return target.clamp(-1.0, 1.0), mask
+
+
 def waypoint_targets(
     eef_pos_chunk: torch.Tensor, plan_steps: int, waypoint_range: float
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -142,6 +200,7 @@ class WaypointActuator:
             (``cfg.waypoint_range``) — converts the prediction to metres.
         horizon: Which predicted step to servo toward, 1-indexed
             (``cfg.waypoint_horizon``); clamped to the number of rows.
+        row_stride: Control steps between waypoint rows (``cfg.waypoint_row_stride``).
         gain_scale: Extra proportional scaling (``cfg.waypoint_gain_scale``).
             1.0 means "close the whole remaining gap in one control step",
             i.e. move at whatever speed the action clip allows; lower values
@@ -165,6 +224,7 @@ class WaypointActuator:
         gain_scale: float = 1.0,
         clip: float = 1.0,
         anchor_real: bool = False,
+        row_stride: int = 1,
     ) -> None:
         g = gain.gain if isinstance(gain, WaypointGain) else np.asarray(gain, dtype=np.float64)
         g = np.asarray(g, dtype=np.float64).reshape(-1)
@@ -177,6 +237,12 @@ class WaypointActuator:
         self.gain_scale = float(gain_scale)
         self.clip = float(clip)
         self.anchor_real = bool(anchor_real)
+        # Control steps between consecutive waypoint rows. 1 for native-spaced
+        # targets; tick_hz/real_frame_hz for SAMPLED-spaced ones (10 at LIBERO's
+        # 20 Hz control against 2 Hz sampling). The per-step rate divides by the
+        # number of CONTROL steps remaining, so getting this wrong under-delivers
+        # the command by exactly the stride.
+        self.row_stride = max(1, int(row_stride))
         self._target: Optional[np.ndarray] = None
         self._steps_left: int = 1
 
@@ -221,7 +287,7 @@ class WaypointActuator:
         row = max(0, row)
         if self._target is None or is_real or not self.anchor_real:
             self._target = eef + disp[row] * self.waypoint_range
-            self._steps_left = row + 1
+            self._steps_left = (row + 1) * self.row_stride
         # UNITS: `gain` is metres per unit action per ONE control step, while
         # the error spans `_steps_left` steps. Dividing by the step count turns
         # a positional error into the per-step RATE that closes it — without
