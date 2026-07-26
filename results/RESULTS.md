@@ -1,6 +1,6 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T01:56:20+00:00 · 66 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T01:58:43+00:00 · 67 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
@@ -88,22 +88,24 @@ Generated 2026-07-26T01:56:20+00:00 · 66 records · **do not hand-edit** (regen
 |---|---|---|---|---|---|---|---|
 | v7_pilot | data/libero_v7 (libero_object only) | 0.369 | 0.2 | 0.49 | 0.93 | 1.7% | False |
 | v72_stageB_nospatial | data/libero_object_v7 | 0.175 | 0.19 | 0.28 | 0.93 | -7.3% | False |
+| v72_stageB_tqsa | data/libero_object_v7 | 0.12 | 0.197 | 0.35 | 0.52 | -7.3% | True |
 
 `spatial=False` on a TQSA-TRAINED checkpoint means the planner was scored without ~27% of its memory tokens — see paper.md §0.
 
 ### Planner input sensitivity (mean |dPlan| when withheld)
 
-| input | v7_pilot | v72_stageB_nospatial |
-|---|---|---|
-| current_emb | 0.0250 | 0.0133 |
-| fused | 0.0230 | 0.0218 |
-| geometry | 0.0040 | 0.0914 |
-| next_emb->cur | 0.0010 | 0.0017 |
-| next_emb->stale | — | 0.0059 |
-| pred_box_emb | 0.0130 | 0.0029 |
-| proprio | 0.2910 | 0.2243 |
-| state_delta | 0.0750 | 0.0134 |
-| wm_msg | 0.0310 | 0.0007 |
+| input | v7_pilot | v72_stageB_nospatial | v72_stageB_tqsa |
+|---|---|---|---|
+| current_emb | 0.0250 | 0.0133 | 0.0092 |
+| fused | 0.0230 | 0.0218 | 0.0248 |
+| geometry | 0.0040 | 0.0914 | 0.0041 |
+| next_emb->cur | 0.0010 | 0.0017 | 0.0017 |
+| next_emb->stale | — | 0.0059 | 0.0059 |
+| pred_box_emb | 0.0130 | 0.0029 | 0.0204 |
+| proprio | 0.2910 | 0.2243 | 0.3492 |
+| spatial | — | — | 0.0688 |
+| state_delta | 0.0750 | 0.0134 | 0.0994 |
+| wm_msg | 0.0310 | 0.0007 | 0.0016 |
 
 ## Infrastructure measurements
 

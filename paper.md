@@ -404,10 +404,12 @@ Three readings:
 | next_emb->cur | 0.001 | 0.0017 | ~flat |
 | wm_msg | 0.031 | 0.0007 | **−98%** |
 
-**The pruning candidates from the pilot are refuted.** `geometry` was the
-deadest input at 0.004 and is now the second-strongest at 0.0914 — a 23x jump.
-Pruning it on pilot evidence would have removed the input that full data says
-matters most after proprioception. `pred_box_emb` and the `next_emb` path remain
+**The pruning candidate from the pilot is refuted — but conditionally, and the
+condition is the point (see §4b).** `geometry` was the deadest input at 0.004
+and is 0.0914 here, the second-strongest. Pruning it on pilot evidence would
+have removed the input this configuration relies on most after proprioception.
+§4b shows why the two readings disagree: geometry and TQSA are SUBSTITUTES, and
+the pilot had TQSA while this arm does not. `pred_box_emb` and the `next_emb` path remain
 dead, and `next_emb->stale` (0.0059) confirms it at full magnitude: substituting
 a *wrong* prediction of the same size barely moves the plan, so the low
 `next_emb->cur` reading is not merely an amplitude artifact.
@@ -416,6 +418,82 @@ Methodological note: `next_emb->cur` zeroes only the TRM's residual, which is
 small next to `‖current_emb‖`, so it reads low by construction. `next_emb->stale`
 (the previous tick's prediction — full magnitude, in-distribution, wrong) was
 added to separate "the path is dead" from "the perturbation was tiny".
+
+## 4b. Bench — TQSA arm, scored WITH spatial (the first honest TQSA reading)
+
+`eval.bench --data-dir data/libero_object_v7 --sensitivity --tqsa`, 30 episodes,
+1.30 s/eval (vs 0.81 without the backbone). Checkpoint = `full_stageB_full.pt`,
+epoch 11 (val 0.5613); the run was interrupted at epoch 13, so this is the
+best-val checkpoint, not an early-stopped one.
+
+| metric | v7 pilot (blind) | v7.2 no-TQSA | v7.2 TQSA (with spatial) |
+|---|---|---|---|
+| std_ratio | 0.369 | 0.175 | **0.120** |
+| pose_mae | 0.20 | 0.190 | 0.197 |
+| corr | 0.49 | 0.28 | **0.35** |
+| grip_acc | 0.93 | 0.93 | **0.52** |
+| wm_margin | +1.7% | −7.3% | −7.3% |
+
+`wm_margin` is identical across both v7.2 arms, as it must be: it measures the
+stage-A world model on a latent rollout and never touches the planner. It is a
+useful internal consistency check on the harness.
+
+### Sensitivity — the substitution result
+
+| input | v7 pilot (had TQSA, scored blind) | v7.2 no-TQSA | v7.2 TQSA |
+|---|---|---|---|
+| proprio | 0.291 | 0.2243 | **0.3492** |
+| state_delta | 0.075 | 0.0134 | **0.0994** |
+| **spatial** | not measurable | n/a | **0.0688** |
+| fused | 0.023 | 0.0218 | 0.0248 |
+| pred_box_emb | 0.013 | 0.0029 | 0.0204 |
+| current_emb | 0.025 | 0.0133 | 0.0092 |
+| next_emb->stale | — | 0.0059 | 0.0059 |
+| **geometry** | 0.004 | **0.0914** | **0.0041** |
+| next_emb->cur | 0.001 | 0.0017 | 0.0017 |
+| wm_msg | 0.031 | 0.0007 | 0.0016 |
+
+**Result 1 — TQSA carries real signal.** `spatial` at 0.0688 is the third
+strongest input, an order of magnitude above the dead paths. This is the first
+measurement of TQSA's contribution that has ever existed in this repo; before
+2026-07-25 bench could not pass it at all (§0).
+
+**Result 2 — geometry and TQSA are SUBSTITUTES, not complements.** Turn TQSA on
+and `geometry` collapses 0.0914 -> 0.0041 (22x down) while `spatial` takes up
+0.0688. Both encode "where in the wrist frame is the object": raw box centers
+versus text-queried attention maps. The planner routes through whichever is
+richer and abandons the other. This retro-explains the pilot's `geometry`
+0.004 — the pilot had TQSA. The two readings were never in conflict; they are
+the same input measured in two different configurations, and neither alone
+licenses a pruning decision. Concretely: `--planner-drop geometry` is safe with
+TQSA on and destructive with it off.
+
+**Result 3 — proprio and state_delta strengthen with spatial present** (0.2243
+-> 0.3492 and 0.0134 -> 0.0994). With a spatial channel to locate the target,
+the planner leans harder on knowing where the arm IS and how far the task has
+progressed. The world model's channel stays dead either way (`wm_msg` 0.0016).
+
+### The gripper regression
+
+**grip_acc 0.93 -> 0.52 is at chance.** Per-episode: most sit at 0.44/0.47/0.50/
+0.53 with a handful at 0.93-1.00; the no-TQSA arm was uniformly 0.83-1.00.
+
+The trainer disagreed — TQSA val grip 0.773 vs no-TQSA 0.762 — and the reason is
+the same dilution that hides everything else in this corpus: bridge is ~75% of
+episodes, carries no frames, and therefore trains the gripper head with
+`spatial=None`. The trainer's val averages a gripper that works (bridge, no
+spatial) with one that does not (LIBERO, with spatial). **Trainer val grip is
+not a usable proxy for LIBERO gripper behaviour in a mixed-corpus run.**
+
+Verification still owed: bench the SAME checkpoint without `--tqsa`. If grip
+returns to ~0.93, feeding spatial is what breaks the gripper (a real property
+of the adapter). If it stays ~0.52 the head is broken independent of the input,
+and the newly-written bench `--tqsa` path is exonerated.
+
+**Net: as configured, TQSA is not worth it.** It buys corr (+0.07) and costs
+std_ratio (-0.055) and the gripper (-0.41). The gripper is the binary that
+decides whether a pick-and-place task can succeed at all, so a chance-level
+gripper is disqualifying regardless of the other metrics.
 
 ## 5. Infrastructure results (method-section material)
 
