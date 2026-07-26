@@ -874,6 +874,97 @@ approach failure remains the expected mode — and the next lever is whatever
 raises grounding, with TQSA the obvious candidate (`spatial` measured 0.0688,
 third strongest, in §4b).
 
+## 4h. Weight-level analysis of the stage-A checkpoint — where vision dies
+
+Probes run directly on `checkpoints/full_stageA_wrist_v72.pt` (the +19.8%
+world model), measuring the TRAINED modules' functional sensitivity to each
+input rather than inspecting weights in the abstract. Fixes the location of the
+grounding failure to ONE module.
+
+**Method caveat, recorded because it inverted a conclusion.** A first pass fed
+the TRM randomly-generated `fused` with mean |.| ~= 1.0. Real fusion output has
+mean |.| = **9.0**. At 1/9 scale the TRM looked almost insensitive to `fused`
+(0.7% of next_emb), supporting a "the world model ignores the observation"
+reading. With REAL fused that reading is WRONG — see below. Synthetic probe
+inputs must be scale-matched to the module that produces them, or the measured
+sensitivity is an out-of-distribution artifact.
+
+### Fusion is vision-rich
+
+Change in `fused` (mean |dfused| as % of mean |fused|), trained weights:
+
+| perturbation | change |
+|---|---|
+| box embeddings (new draw) | **47.0%** |
+| `box_weight` -> 0 (full evidence fade) | **43.0%** |
+| frame embedding | 38.3% |
+| last action | 31.5% |
+| text tokens | 13.8% |
+| box centers | 12.0% |
+
+Nearly half of `fused` is determined by box evidence. The evidence-fade path is
+alive and strong (43%), so the v5 design claim holds at the weight level.
+
+### The TRM uses vision too
+
+Sensitivity measured against the RESIDUAL the TRM actually predicts
+(`||next_emb - cur|| / ||cur||` = 0.0366), which is the honest denominator —
+next_emb is dominated by the residual convention `cur + delta`:
+
+| perturbation | change in residual | change in msg |
+|---|---|---|
+| `fused` -> 0 | 89.3% | 9.5% |
+| `state_delta` -> 0 | 65.5% | 6.6% |
+| box_weight -> 0 (faded) | **40.6%** | 4.4% |
+| box embeddings (new draw) | **38.5%** | 4.7% |
+| box centers (new draw) | 8.0% | 0.9% |
+
+And by direction: `cos(residual, residual | fused=0)` = **0.634** vs
+`cos(residual, residual | state_delta=0)` = **0.706**. Removing the grounded
+observation destroys MORE of the residual direction than removing the drift
+code. The world model is not drift-dominated, and its +19.8% margin (4g) is
+grounded prediction — which strengthens Claim 2 rather than qualifying it.
+Contrast the v6 probe that found 0.63-0.88 of the residual drift-explained:
+`--drift-dropout` appears to have done its job.
+
+### So the grounding failure is ENTIRELY in the planner
+
+Fusion hands over a matrix that is ~47% box-driven. The TRM consumes it and
+uses it. The planner receives the same `fused` DIRECTLY, plus `geometry`, and
+weights them at 0.0178 and 0.0218 against 0.464 for phase.
+
+**Vision is available and discarded, not absent.** No amount of upstream work
+fixes this; it is a stage-B incentive problem, which is what `--phase-dropout`
+targets (withhold the shortcut, since the regularizer previously withheld only
+the vision paths).
+
+### `wm_msg` is a broken channel at the SOURCE, not an ignored one
+
+| quantity | value |
+|---|---|
+| mean \|msg\| | 0.479 |
+| ||constant part|| (batch mean) | **3.315** |
+| ||varying part|| | **0.268** |
+| across-batch std / mean \|msg\| | 0.100 |
+| dead dims (std < 1e-3) | 0 / 32 |
+| effective rank of the varying part | **6.08 / 32** (top-4 = 71.5% energy) |
+
+msg is a nearly FIXED 32-d vector — the informative component is 8% of its
+magnitude, at ~6 effective dimensions. A constant input is absorbable into the
+consumer's bias, so a planner sensitivity of 0.0006 is the CORRECT response to
+it, not negligence. Fixing `wm_msg` means making msg_head's output vary, which
+is a training-signal question (the planner's gradient is the only thing shaping
+it in stage B) — and it DID reach 0.2394 in the agentview waypoint arm, so the
+channel is capable of carrying information under some conditions.
+
+### `next_emb->cur` is amplitude-limited by construction
+
+The residual is 3.66% of ||cur||, so substituting `cur` for `next_emb` perturbs
+that input by only ~3.7%. A near-zero `next_emb->cur` reading therefore cannot
+distinguish "dead path" from "small perturbation" — which is exactly why
+`next_emb->stale` (a full-magnitude, in-distribution wrong prediction) was added
+to bench. Quote the stale probe, not the cur probe.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over

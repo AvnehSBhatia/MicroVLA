@@ -1,6 +1,6 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T06:29:48+00:00 · 96 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T06:44:31+00:00 · 97 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
