@@ -43,6 +43,7 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
+from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import waypoint_targets
 
 
@@ -264,6 +265,7 @@ def main(argv=None) -> None:
                          "slower than the default wind-tunnel pass.")
     ap.add_argument("--out", default="eval_results/bench.json")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     dev = torch.device(args.device)
     torch.set_num_threads(max(1, torch.get_num_threads()))

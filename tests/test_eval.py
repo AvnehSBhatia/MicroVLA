@@ -523,3 +523,46 @@ class TestScorecardSmoke:
         assert result["planner"] is not None
         assert result["planner"]["n_episodes"] >= 0
         assert out_path.exists()
+
+
+class TestSigtermShield:
+    """Every CLI declines SIGTERM by default; the host reaper sends SIGTERM."""
+
+    def test_installs_and_is_idempotent(self):
+        import signal
+
+        from microvla.utils import signals
+
+        signals._installed = False
+        try:
+            assert signals.ignore_sigterm(verbose=False) is True
+            assert signal.getsignal(signal.SIGTERM) == signal.SIG_IGN
+            assert signals.ignore_sigterm(verbose=False) is True   # idempotent
+        finally:
+            signals._installed = False
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+    def test_env_opt_out(self, monkeypatch):
+        import signal
+
+        from microvla.utils import signals
+
+        monkeypatch.setenv(signals.ENV_OPT_OUT, "1")
+        signals._installed = False
+        try:
+            assert signals.ignore_sigterm(verbose=False) is False
+            assert signal.getsignal(signal.SIGTERM) != signal.SIG_IGN
+        finally:
+            signals._installed = False
+
+    def test_every_cli_installs_it(self):
+        """A new entry point that forgets this will be reaped mid-run."""
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        missing = [str(p.relative_to(root))
+                   for d in ("train", "eval", "preprocess")
+                   for p in sorted((root / d).glob("*.py"))
+                   if "def main(" in p.read_text()
+                   and "ignore_sigterm()" not in p.read_text()]
+        assert not missing, f"CLIs without the SIGTERM shield: {missing}"

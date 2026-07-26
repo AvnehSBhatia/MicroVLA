@@ -62,6 +62,7 @@ from train.losses import planner_bc_loss, smoothness_loss  # noqa: E402
 from train.train_full import _MultiDataset, _episode_real_paths, _rollout  # noqa: E402
 from train.train_planner import resolve_device  # noqa: E402
 from TRM import RecursiveTRM, spec_loss  # noqa: E402
+from microvla.utils.signals import ignore_sigterm
 
 #: k-step open-loop rollout lengths scored in section (a); paper.md E2.
 ROLLOUT_KS: tuple[int, ...] = (1, 5, 10, 15)
@@ -284,6 +285,7 @@ def render_report(result: dict) -> str:
 
 def main(argv: list[str] | None = None) -> dict:
     args = parse_args(argv)
+    ignore_sigterm()
     device = resolve_device(args.device)
 
     cfg, fusion, drift, trm, planner = load_checkpoint(args.checkpoint, device)

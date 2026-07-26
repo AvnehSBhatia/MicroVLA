@@ -43,6 +43,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from preprocess.libero import _demo_sort_key, _instruction_for_file  # noqa: E402
+from microvla.utils.signals import ignore_sigterm
 
 
 def _euler_to_6d(rpy: np.ndarray) -> np.ndarray:
@@ -76,6 +77,7 @@ def main(argv=None) -> None:
     ap.add_argument("--action-10d", action="store_true",
                     help="emit Franka 10-dim actions (xyz + 6D rot + grip) instead of 7")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     import h5py  # lazy heavy dep
 

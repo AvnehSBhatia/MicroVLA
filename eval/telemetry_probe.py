@@ -32,6 +32,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from microvla.utils.signals import ignore_sigterm
 
 
 def summarize(records: list[dict]) -> dict:
@@ -109,6 +110,7 @@ def main(argv=None) -> None:
                     help="every non-empty telemetry file of the newest run "
                          "(default: only the most recently written one)")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     if args.file:
         _report(Path(args.file))

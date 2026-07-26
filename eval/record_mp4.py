@@ -25,6 +25,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+from microvla.utils.signals import ignore_sigterm
 
 
 def _label(img, text, cv2):
@@ -93,6 +94,7 @@ def main(argv=None) -> None:
                     help="denormalize actions zero-centered (x=0 -> no motion), so a "
                          "collapsed policy stays still instead of drifting into a wall.")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     from eval._libero_compat import prepare_libero
     prepare_libero()

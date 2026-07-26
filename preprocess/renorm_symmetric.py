@@ -41,6 +41,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from preprocess.common import ActionNormalizer
+from microvla.utils.signals import ignore_sigterm
 
 
 def renorm_dir(data_dir: Path) -> None:
@@ -101,6 +102,7 @@ def main(argv=None) -> None:
                     help="baked dataset dir containing *.npz + norm_stats.json "
                          "(repeatable)")
     args = ap.parse_args(argv)
+    ignore_sigterm()
     for d in args.data_dir:
         renorm_dir(Path(d))
     print("done. RETRAIN before evaluating — old checkpoints pair with the old stats.")

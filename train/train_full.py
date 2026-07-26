@@ -70,6 +70,7 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
+from microvla.utils.signals import ignore_sigterm
 from train.dataset import EpisodeDataset
 from train.losses import planner_bc_loss, smoothness_loss, split_planner_loss, total_planner_loss
 from train.train_planner import resolve_device
@@ -528,6 +529,7 @@ def save(args, cfg, name, **modules) -> None:
 
 def main(argv=None) -> None:
     args = parse_args(argv)
+    ignore_sigterm()
     cfg: MicroVLAConfig = DEFAULT_CONFIG
     if args.ablate_evidence_fade:
         # E6 (paper.md Claim 4): train without the evidence-fade dream-regime

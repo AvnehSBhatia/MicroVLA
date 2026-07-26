@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
+from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
 
@@ -535,6 +536,7 @@ def _parallel_worker(payload: dict) -> dict:
     policy build and task enumeration with their own heartbeats.
     """
     w = payload["worker"]
+    ignore_sigterm(verbose=False)   # spawned process: its own signal handlers
     print(f"[w{w}] spawned (pid {os.getpid()}, {len(payload['tasks'])} tasks)", flush=True)
     # A worker can stall INSIDE a C call the heartbeats cannot reach (the prime
     # suspect for the 20-minute hang is concurrent HIP context creation inside
@@ -718,6 +720,7 @@ def _run_parallel(args: argparse.Namespace, tasks: list[_TaskSpec]) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    ignore_sigterm()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     # Enumerate ONCE, in the parent: N workers importing libero and re-reading

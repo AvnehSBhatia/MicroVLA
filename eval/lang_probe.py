@@ -32,6 +32,7 @@ import itertools
 
 import numpy as np
 import torch
+from microvla.utils.signals import ignore_sigterm
 
 
 # Deliberately diverse instructions: different objects, verbs, and
@@ -60,6 +61,7 @@ def main(argv=None) -> None:
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--frame", default=None, help="optional saved RGB frame (png/npy)")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     from eval.policy import MicroVLAPolicy
 

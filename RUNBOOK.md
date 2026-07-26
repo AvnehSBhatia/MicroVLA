@@ -8,6 +8,14 @@ Two machines. **Mac** = dev + tests, `.venv` has torch/numpy/pytest only.
 The box is SHARED with other users' jobs — wall-clock numbers vary by 5x and are
 not hardware claims.
 
+**SIGTERM is ignored by default in every CLI here.** The host reaps jobs from
+outside the container (exit 143, no dmesg entry, no visible reaper), so every
+entry point installs `microvla/utils/signals.py::ignore_sigterm` at startup.
+Consequences: `kill <pid>` does nothing — use `kill -9`; Ctrl-C still works;
+`MICROVLA_ALLOW_SIGTERM=1` opts out. If a process still dies with **exit 137**
+the reaper escalated to SIGKILL, and `train_batched.py --resume-stage-a` (which
+banks progress every epoch) is the remaining defence.
+
 Real-LIBERO commands need this prefix (EGL is broken in the container):
 
 ```bash

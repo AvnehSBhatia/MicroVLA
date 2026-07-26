@@ -34,6 +34,7 @@ from pathlib import Path
 import numpy as np
 
 from preprocess.common import ActionNormalizer
+from microvla.utils.signals import ignore_sigterm
 
 
 def fit_gain(
@@ -127,6 +128,7 @@ def main(argv=None) -> None:
     ap.add_argument("--out", default=None,
                     help="output path (default: <first data dir>/waypoint_stats.json)")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     result = fit_gain(args.data_dir, args.norm_stats, args.episodes)
     out = Path(args.out) if args.out else Path(args.data_dir[0]) / "waypoint_stats.json"

@@ -22,6 +22,7 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+from microvla.utils.signals import ignore_sigterm
 
 
 def main(argv=None) -> None:
@@ -35,6 +36,7 @@ def main(argv=None) -> None:
     ap.add_argument("--montage-frames", type=int, default=12)
     ap.add_argument("--out", default="eval_results/rollout.png")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     from eval._libero_compat import prepare_libero
     prepare_libero()

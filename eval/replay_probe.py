@@ -34,6 +34,7 @@ from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.planner.chrono_planner import ChronoQueryPlanner
+from microvla.utils.signals import ignore_sigterm
 
 
 def main(argv=None) -> None:
@@ -44,6 +45,7 @@ def main(argv=None) -> None:
     ap.add_argument("--episode", required=True, help="a baked .npz training episode")
     ap.add_argument("--device", default="cpu")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     from eval.policy import _load_relaxed  # tolerant loader (arch may have moved)
     from TRM import RecursiveTRM

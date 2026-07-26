@@ -40,6 +40,7 @@ import numpy as np
 
 from preprocess.common import SourceEpisode, run_conversion
 from preprocess.teacher import build_teacher
+from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +202,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--teacher-repo", default=None)
     parser.add_argument("--teacher-cache", default=None)
     args = parser.parse_args(argv)
+    ignore_sigterm()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     # Rotation follows the camera unless overridden: robosuite renders agentview

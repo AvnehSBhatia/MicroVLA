@@ -24,6 +24,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+from microvla.utils.signals import ignore_sigterm
 
 
 def main(argv=None) -> None:
@@ -34,6 +35,7 @@ def main(argv=None) -> None:
     ap.add_argument("--size", type=int, default=128, help="render size (training used 128)")
     ap.add_argument("--steps", type=int, default=5)
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     if "MUJOCO_GL" not in os.environ:
         # Linux GPU box: egl is the headless renderer (osmesa is the CPU fallback).

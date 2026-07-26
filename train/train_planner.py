@@ -45,6 +45,7 @@ from microvla.planner.chrono_planner import ChronoQueryPlanner  # noqa: E402
 from microvla.trm.mock_trm import MockTRM  # noqa: E402
 from train.dataset import EpisodeDataset, make_synthetic_episode, save_episode  # noqa: E402
 from train.losses import planner_bc_loss, smoothness_loss, total_planner_loss  # noqa: E402
+from microvla.utils.signals import ignore_sigterm
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -191,6 +192,7 @@ def run_episode(
 def main(argv: list[str] | None = None) -> None:
     """Trains the heads for a few epochs and saves checkpoints."""
     args = parse_args(argv)
+    ignore_sigterm()
     cfg: MicroVLAConfig = dataclasses.replace(
         DEFAULT_CONFIG, modality_dropout=args.modality_dropout
     )

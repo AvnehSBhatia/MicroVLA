@@ -46,6 +46,7 @@ from pathlib import Path
 import numpy as np
 
 from preprocess.common import ActionNormalizer
+from microvla.utils.signals import ignore_sigterm
 
 
 def _symmetric_scale(stats_path: Path) -> np.ndarray:
@@ -134,6 +135,7 @@ def main(argv=None) -> None:
     ap.add_argument("--data-dir", action="append", required=True,
                     help="baked episode dir (repeatable; needs >= 2 to be useful)")
     args = ap.parse_args(argv)
+    ignore_sigterm()
     unify(args.data_dir)
     print("done — every dir now shares one norm_stats.json; pair ANY of them "
           "with the checkpoint trained on the set.")

@@ -57,6 +57,7 @@ import numpy as np
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from preprocess.common import ActionNormalizer, EpisodeBuilder, SourceEpisode, chunk_actions
 from preprocess.teacher import build_teacher
+from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
 
@@ -440,6 +441,7 @@ def main(argv: list[str] | None = None) -> None:
         "correctly oriented; agentview is not)",
     )
     args = parser.parse_args(argv)
+    ignore_sigterm()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     shards = [

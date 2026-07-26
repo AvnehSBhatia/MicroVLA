@@ -55,6 +55,7 @@ from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.trm.interface import TRMBase
 
 from eval.baselines import LinearExtrapolationTRM, PersistenceTRM
+from microvla.utils.signals import ignore_sigterm
 
 DEFAULT_PERCEPTION_PERIODS: tuple[int, ...] = (1, 2, 5, 10, 15, 20)
 DEFAULT_CONDITIONS: tuple[str, ...] = ("ours", "persistence", "linear")
@@ -484,6 +485,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    ignore_sigterm()
     if args.device == "mps":
         print("eval.sweep: refusing --device mps (hard constraint on this machine); "
               "use --device cpu.", file=sys.stderr)

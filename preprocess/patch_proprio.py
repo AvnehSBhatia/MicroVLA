@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from microvla.config import DEFAULT_CONFIG
 from microvla.utils.proprio import PROPRIO_DIM, build_proprio
 from preprocess.common import chunk_actions, subsample_indices
+from microvla.utils.signals import ignore_sigterm
 
 #: LIBERO native control rate (matches preprocess/libero.py::LIBERO_HZ).
 _LIBERO_HZ = 20.0
@@ -140,6 +141,7 @@ def main(argv=None) -> None:
                     help="mode B total disk budget (matches the shard pipeline)")
     ap.add_argument("--force", action="store_true", help="re-patch already-patched files")
     args = ap.parse_args(argv)
+    ignore_sigterm()
 
     data_dir = Path(args.data_dir)
     totals: dict[str, int] = {}
