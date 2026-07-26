@@ -10,9 +10,12 @@
 #    re-run continues instead of redoing ~4 hours. Kill it and restart freely.
 #  * NEVER exits on error. One dead arm must not cost the whole batch; failures
 #    are recorded and the run continues. So NO `set -e`.
-#  * SIGTERM is ignored by every CLI here (the host reaps jobs), so `kill` will
-#    not stop this. To stop it: `touch STOP` (checked between steps), or
-#    `kill -9 -<pgid>`.
+#  * SIGTERM is ignored by every CLI here AND by this script (the host reaps
+#    jobs; a SIGTERM to the bash wrapper killed an earlier batch mid-run). So
+#    `kill` will not stop it. To stop: `touch STOP` (checked between steps), or
+#    `kill -9 -<pgid>` — the pgid is printed at startup.
+#  * All output goes to logs/overnight/00_progress.log, not the terminal, so
+#    losing the terminal cannot break the run. Watch it with `tail -f`.
 #  * SEEDS BEFORE ARMS. Measured run-to-run variance on an IDENTICAL command
 #    spans std_ratio 0.022-0.245 — larger than any effect this project has
 #    claimed from an architecture change (paper.md 4l). So the core arms run at
@@ -23,6 +26,23 @@
 # Budget ~5-6 h on an uncontended card; longer if the box is shared.
 
 cd "$(dirname "$0")/.." || exit 1
+
+# --- survive the host reaper AND a dying terminal ----------------------------
+# The Python CLIs each ignore SIGTERM (microvla/utils/signals.py), but THIS
+# wrapper had no protection, so a SIGTERM to bash killed the whole batch mid-run
+# — observed. `trap ''` sets SIG_IGN, which children also inherit, so the shield
+# is now end-to-end.
+trap '' TERM HUP
+mkdir -p logs/overnight
+_LOG="logs/overnight/00_progress.log"
+echo "overnight batch: pid $$  pgid $(ps -o pgid= -p $$ | tr -d ' ')"
+echo "  watch:  tail -f $_LOG"
+echo "  stop :  touch STOP        (checked between steps)"
+echo "  force:  kill -9 -\$(ps -o pgid= -p $$ | tr -d ' ')   # SIGTERM is ignored"
+# Everything from here goes to the log, so losing the terminal cannot break the
+# run's output (a `tee` to a dead tty exits and takes the pipeline with it).
+exec >> "$_LOG" 2>&1
+
 export TORCH_BLAS_PREFER_HIPBLASLT=0
 export PFX_OSMESA="PYOPENGL_PLATFORM=osmesa MUJOCO_GL=osmesa PYTHONPATH=/root/LIBERO"
 
@@ -32,13 +52,13 @@ STAGE_A="checkpoints/full_stageA_wrist_v72.pt"
 NORM="data/libero_v7/norm_stats.json"
 WPSTATS="data/libero_v7/waypoint_stats.json"
 LOGS="logs/overnight"; mkdir -p "$LOGS" eval_results results
-SUMMARY="$LOGS/00_progress.log"
+SUMMARY="$_LOG"
 
 COMMON="$DATA --device cuda --batch-size 64 --lr 5e-4 --max-vram-gb 50 \
   --load-stage-a $STAGE_A --stage-b-epochs 40 --stage-b-patience 4 \
   --dream-frac 0.25 --waypoint-weight 1.0"
 
-say() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$SUMMARY"; }
+say() { echo "[$(date +%H:%M:%S)] $*"; }
 stop_requested() { [ -f STOP ] && { say "STOP file present — exiting cleanly."; return 0; }; return 1; }
 
 # --- preflight ---------------------------------------------------------------
@@ -47,7 +67,7 @@ for f in "$STAGE_A" "$NORM"; do
   [ -f "$f" ] || { say "FATAL: missing $f"; exit 1; }
 done
 [ -f "$WPSTATS" ] || { say "fitting waypoint gain"; python -m preprocess.fit_waypoint_gain data/libero_v7 2>&1 | tee -a "$LOGS/gain.log"; }
-say "episodes: $(ls data/libero_v7/*.npz | wc -l) libero, $(ls data/bridge/*.npz | wc -l) bridge"
+say "episodes: $(ls data/libero_v7/*.npz | wc -l | tr -d ' ') libero, $(ls data/bridge/*.npz | wc -l | tr -d ' ') bridge"
 
 # --- helpers ----------------------------------------------------------------
 # train_arm <tag> <extra flags...>   — idempotent, one retry, logged.
@@ -61,12 +81,13 @@ train_arm() {
     say "TRAIN $tag (attempt $try)"
     python train/train_batched.py $COMMON "$@" --tag "$tag" \
       > "$LOGS/train_${tag}.log" 2>&1
+    local rc=$?
     if [ -f "$ckpt" ]; then
       say "  done: $(grep -c 'stage B\] epoch' "$LOGS/train_${tag}.log") epochs, \
 $(grep -o 'best val [0-9.]*' "$LOGS/train_${tag}.log" | tail -1)"
       return 0
     fi
-    say "  FAILED (rc=$?), see $LOGS/train_${tag}.log"
+    say "  FAILED (rc=$rc): $(tail -3 "$LOGS/train_${tag}.log" | tr '\n' ' ' | cut -c1-160)"
   done
   return 1
 }
@@ -82,7 +103,8 @@ train_arm_data() {
     --max-vram-gb 50 --load-stage-a "$STAGE_A" --stage-b-epochs 40 \
     --stage-b-patience 4 --dream-frac 0.25 --waypoint-weight 1.0 "$@" --tag "$tag" \
     > "$LOGS/train_${tag}.log" 2>&1
-  [ -f "$ckpt" ] || { say "  FAILED, see $LOGS/train_${tag}.log"; return 1; }
+  local rc=$?
+  [ -f "$ckpt" ] || { say "  FAILED (rc=$rc): $(tail -3 "$LOGS/train_${tag}.log" | tr '\n' ' ' | cut -c1-160)"; return 1; }
   say "  done"
 }
 
@@ -97,7 +119,8 @@ bench_ckpt() {
   python -m eval.bench --checkpoint "$ckpt" --data-dir data/libero_v7 \
     --sensitivity --episodes 30 --device cuda:0 --out "$out" "$@" \
     > "$LOGS/bench_${name}.log" 2>&1
-  grep -m1 AGGREGATE "$LOGS/bench_${name}.log" | tee -a "$SUMMARY"
+  grep -m1 AGGREGATE "$LOGS/bench_${name}.log" \
+    || say "  FAILED bench $name: $(tail -3 "$LOGS/bench_${name}.log" | tr '\n' ' ' | cut -c1-160)"
 }
 
 # ============================================================================
@@ -175,9 +198,9 @@ if [ -n "$BEST" ] && [ -f "checkpoints/full_stageB_${BEST}.pt" ]; then
       --device cuda:0 --heads-device cuda:0 \
       --workers 5 --stagger 10 --worker-timeout 3600 \
       > "$LOGS/closedloop_${BEST}.log" 2>&1
-    grep -E '"mean_success"|tasks_completed' "$LOGS/closedloop_${BEST}.log" | tee -a "$SUMMARY"
+    grep -E '"mean_success"|tasks_completed' "$LOGS/closedloop_${BEST}.log"
     python -m eval.telemetry_probe --all > "$LOGS/telemetry_${BEST}.log" 2>&1
-    tail -20 "$LOGS/telemetry_${BEST}.log" | tee -a "$SUMMARY"
+    tail -20 "$LOGS/telemetry_${BEST}.log"
   else
     say "SKIP closed loop (log exists)"
   fi
@@ -261,4 +284,4 @@ print("variance that undermines the arm rankings does not apply to it.")
 PY
 
 say "=== done. table: results/PAPER_TABLE.md | logs: $LOGS ==="
-say "failures (if any):"; grep -h FAILED "$SUMMARY" | tee -a "$SUMMARY" || true
+say "failures (if any):"; grep -h FAILED "$SUMMARY" || true
