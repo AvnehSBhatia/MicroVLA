@@ -463,6 +463,15 @@ class MicroVLAPolicy:
             "trust": float(result.trust),
             "plan_norm": float(plan.norm().item()),
             "waypoint_cmd": None if wp_cmd is None else [float(v) for v in wp_cmd],
+            # The EMITTED action, in raw env units — what the arm was actually
+            # told to do. Its absence made "does the gripper ever close?"
+            # unanswerable without re-running with a video, and a missed grasp
+            # puts every subsequent step off-distribution.
+            "action": [float(v) for v in action],
+            # EEF position, so a trajectory can be reconstructed from telemetry
+            # alone (did it descend to the object, or go straight up?).
+            "eef": (None if proprio is None
+                    else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1
