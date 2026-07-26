@@ -519,11 +519,17 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
     Matches the deployment forward (planner sees every input), so the number
     tracks generalization of the actual policy, not the regularized training
     objective.
+
+    Returns:
+        ``(bc, grip_acc, wp)`` — the BC term and the waypoint term SEPARATELY,
+        because folding them into one number makes a ``--waypoint-weight`` run
+        incomparable to every other arm and gives no way to decompose it after
+        the fact. Callers sum them for early stopping and print both.
     """
     planner.eval()
     if tqsa is not None:
         tqsa.eval()
-    tot = ga = 0.0
+    tot = ga = wp_tot = 0.0
     nb = 0
     for T, batch in iter_batches(val_b, 1, args.batch_size, rng, need=1):
         fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
@@ -549,14 +555,14 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
         if wps:
             wp_t, row_mask = waypoint_targets(batch["eef_pos_chunk"], cfg.plan_steps,
                                               cfg.waypoint_range)
-            tot += args.waypoint_weight * float(waypoint_loss(
+            wp_tot += float(waypoint_loss(
                 torch.stack(wps, dim=1), wp_t, row_mask, valid=batch["proprio"][..., -1]))
         ga += float(((G > 0) == (Y[..., -1] > 0)).float().mean())
         nb += 1
     planner.train()
     if tqsa is not None:
         tqsa.train()
-    return tot / max(nb, 1), ga / max(nb, 1)
+    return tot / max(nb, 1), ga / max(nb, 1), wp_tot / max(nb, 1)
 
 
 def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
@@ -681,8 +687,9 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                       f"| {last_beat-t0:.0f}s", flush=True)
         extra = {"tqsa": tqsa} if tqsa is not None else {}
         if args.stage_b_patience > 0:
-            val_loss, val_ga = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
-                                            planner, device, tqsa, backbone, rng)
+            val_bc, val_ga, val_wp = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
+                                                  planner, device, tqsa, backbone, rng)
+            val_loss = val_bc + args.waypoint_weight * val_wp
             tag = ""
             if val_loss < best_val - args.min_delta:
                 best_val, stale = val_loss, 0
@@ -692,8 +699,11 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             else:
                 stale += 1
                 tag = f" (no improve {stale}/{args.stage_b_patience})"
+            # `val bc` is the SAME quantity across every arm; the waypoint term
+            # is reported beside it, never folded in, so runs stay comparable.
+            wp_txt = f" wp {val_wp:.4f}" if val_wp else ""
             print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
-                  f"| grip_acc {grip_acc/max(nb,1):.3f} | val {val_loss:.4f} "
+                  f"| grip_acc {grip_acc/max(nb,1):.3f} | val bc {val_bc:.4f}{wp_txt} "
                   f"grip {val_ga:.3f}{tag} | {time.time()-t0:.0f}s", flush=True)
             if stale >= args.stage_b_patience:
                 print(f"[stage B] early stop, best val {best_val:.4f} (checkpoint kept)", flush=True)
