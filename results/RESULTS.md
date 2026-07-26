@@ -1,6 +1,6 @@
 # MicroVLA — Results (auto-generated from results/metrics.jsonl)
 
-Generated 2026-07-26T04:43:01+00:00 · 94 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
+Generated 2026-07-26T06:29:48+00:00 · 96 records · **do not hand-edit** (regenerate: `python -m experiments.tracker report`)
 
 ## Provenance
 
@@ -40,6 +40,7 @@ Generated 2026-07-26T04:43:01+00:00 · 94 records · **do not hand-edit** (regen
 | v72_stageA_full |  | 20/40 | 6 | 0.0389 | 0.0109 | 0.0115 | +5% | 367 |
 | v72_stageA_full |  | 21/40 | 6 | 0.0376 | 0.0112 | 0.0115 | +3% | 364 |
 | v72_stageA_full |  | 22/40 | 6 | 0.0381 | 0.0115 | 0.0115 | +0% | 363 |
+| v72_stageA_wrist | wrist camera, patience 6, lr-patience 2 | 34/40 | 6 | 0.0356 | 0.0097 | 0.0111 | +13% | 74 |
 
 ## Stage-B policy (behavior cloning)
 
@@ -114,23 +115,24 @@ Generated 2026-07-26T04:43:01+00:00 · 94 records · **do not hand-edit** (regen
 | v72_stageB_tqsa | data/libero_object_v7 | 0.12 | 0.197 | 0.35 | 0.52 | -7.3% | True |
 | v72_stageB_waypoint | data/libero_object_v7 | 0.237 | 0.18 | 0.38 | 0.93 | -7.3% | False |
 | v72_stageB_waypoint_head_loaded | data/libero_object_v7 | 0.237 | 0.18 | 0.38 | 0.93 | -7.3% | False |
+| v72_stageB_wrist_wp | data/libero_v7 | 0.126 | 0.243 | 0.31 | 0.93 | 19.8% | False |
 
 `spatial=False` on a TQSA-TRAINED checkpoint means the planner was scored without ~27% of its memory tokens — see paper.md §0.
 
 ### Planner input sensitivity (mean |dPlan| when withheld)
 
-| input | v7_pilot | v72_stageB_nospatial | v72_stageB_tqsa | v72_stageB_waypoint |
-|---|---|---|---|---|
-| current_emb | 0.0250 | 0.0133 | 0.0092 | 0.0193 |
-| fused | 0.0230 | 0.0218 | 0.0248 | 0.0137 |
-| geometry | 0.0040 | 0.0914 | 0.0041 | 0.0048 |
-| next_emb->cur | 0.0010 | 0.0017 | 0.0017 | 0.0029 |
-| next_emb->stale | — | 0.0059 | 0.0059 | 0.0097 |
-| pred_box_emb | 0.0130 | 0.0029 | 0.0204 | 0.0053 |
-| proprio | 0.2910 | 0.2243 | 0.3492 | 0.1747 |
-| spatial | — | — | 0.0688 | — |
-| state_delta | 0.0750 | 0.0134 | 0.0994 | 0.0561 |
-| wm_msg | 0.0310 | 0.0007 | 0.0016 | 0.2394 |
+| input | v7_pilot | v72_stageB_nospatial | v72_stageB_tqsa | v72_stageB_waypoint | v72_stageB_wrist_wp |
+|---|---|---|---|---|---|
+| current_emb | 0.0250 | 0.0133 | 0.0092 | 0.0193 | 0.0132 |
+| fused | 0.0230 | 0.0218 | 0.0248 | 0.0137 | 0.0178 |
+| geometry | 0.0040 | 0.0914 | 0.0041 | 0.0048 | 0.0218 |
+| next_emb->cur | 0.0010 | 0.0017 | 0.0017 | 0.0029 | 0.0006 |
+| next_emb->stale | — | 0.0059 | 0.0059 | 0.0097 | 0.0031 |
+| pred_box_emb | 0.0130 | 0.0029 | 0.0204 | 0.0053 | 0.0125 |
+| proprio | 0.2910 | 0.2243 | 0.3492 | 0.1747 | 0.1904 |
+| spatial | — | — | 0.0688 | — | — |
+| state_delta | 0.0750 | 0.0134 | 0.0994 | 0.0561 | 0.2740 |
+| wm_msg | 0.0310 | 0.0007 | 0.0016 | 0.2394 | 0.0006 |
 
 ## Infrastructure measurements
 

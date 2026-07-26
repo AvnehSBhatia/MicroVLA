@@ -781,6 +781,99 @@ up" — and then reading the sensitivity table as a statement about which inputs
 the policy could physically be using. Aggregate scores cannot see a train/deploy
 interface defect, because both sides are individually self-consistent.
 
+## 4g. Wrist-camera rerun — the world model result, and grounding still absent
+
+Same corpus as the v7 pilot (`data/bridge` + `data/libero_v7`, libero_object,
+wrist camera, 500 episodes), `--waypoint-weight 1.0`, no TQSA. So this is the
+camera-correct replication of §4c/§4d, and it is directly comparable to the
+pilot on data but not on architecture (the pilot had TQSA, this does not).
+
+### Stage A — the best world model this project has trained
+
+Persistence 0.0111 (identical to the pilot's, confirming the same corpus).
+Best val **0.0098 at epoch 34** under `--patience 6 --lr-patience 2`, LR decayed
+to 1.3e-4, still at 0.0097 when patience expired.
+
+| run | val | persistence | margin |
+|---|---|---|---|
+| v7 pilot (wrist, patience 3, stopped ep 18) | 0.0106 | 0.0111 | +4.5% |
+| v7.2 agentview (3 suites + bridge) | 0.0109 | 0.0115 | +5.2% |
+| **v7.2 wrist (patience 6, ep 34)** | **0.0098** | 0.0111 | **+12.6%** |
+
+The pilot was ALREADY wrist-baked, so this ~8-point gain over it is NOT the
+camera — it is the training schedule. `--patience 3` stops stage A on the same
+epoch the LR halving fires, so the schedule never acts (see §6.7).
+
+### Bench
+
+| metric | pilot (wrist, TQSA, scored blind) | agentview wp | **wrist wp** |
+|---|---|---|---|
+| `std_ratio` | 0.369 | 0.237 | **0.126** |
+| `wp_std_ratio` | — | 0.787 | **0.604** |
+| `wp_mae_mm` | — | 3.0 | **4.8** |
+| `pose_mae` | 0.20 | 0.180 | 0.243 |
+| `corr` | 0.49 | 0.38 | 0.31 |
+| `grip_acc` | 0.93 | 0.93 | 0.93 |
+| **`wm_margin`** | +1.7% | −7.3% | **+19.8%** |
+
+**Result 1 — the camera explanation is confirmed quantitatively.** `wm_margin`
++1.7% (pilot, wrist) → −7.3% (agentview) → **+19.8%** (wrist, better-trained).
+A FIXED third-person camera is nearly static frame-to-frame, making persistence
+a very strong baseline; a WRIST camera moves with the arm, so persistence is weak
+and prediction earns its keep. The sign flip and its magnitude are properties of
+the viewpoint, and this is the cleanest support for Claim 2 to date — larger than
+the +11-13% previously recorded on the older mix.
+
+**Result 2 — the target-parameterization claim replicates and strengthens.**
+Regressing metric displacement vs regressing normalized actions: **0.604 vs
+0.126, a 4.8x ratio**, against 3.3x (0.787 vs 0.237) on agentview. The absolute
+`wp_std_ratio` is lower and `wp_mae` slightly worse (4.8 mm vs 3.0), but the
+relative claim — the collapse is a property of the TARGET, not the inputs — holds
+on a second corpus with a different world model and a different camera. Note the
+action head collapsed HARDER here (0.126), so at deployment the waypoint
+actuation is carrying translation at ~5x the vigor the BC head would.
+
+**Result 3 — grounding is still essentially absent, and this is now the
+bottleneck.**
+
+| input | agentview wp | wrist wp | change |
+|---|---|---|---|
+| `state_delta` | 0.0561 | **0.2740** | 4.9x up |
+| `proprio` | 0.1747 | 0.1904 | ~flat |
+| `geometry` | 0.0048 | 0.0218 | 4.5x up |
+| `fused` | 0.0137 | 0.0178 | ~flat |
+| `current_emb` | 0.0193 | 0.0132 | down |
+| `pred_box_emb` | 0.0053 | 0.0125 | up |
+| `next_emb->stale` | 0.0097 | 0.0031 | down |
+| `wm_msg` | 0.2394 | **0.0006** | 400x DOWN |
+| `next_emb->cur` | 0.0029 | 0.0006 | down |
+
+PHASE signals (`state_delta` + `proprio`) sum to **0.464**; VISION (`geometry` +
+`fused`) sums to **0.040**, a 12:1 ratio. Grounding did improve 4.5x with the
+correct camera, but the policy remains a phase-conditioned trajectory prior:
+it knows how far through the task it is and where its arm is, and almost nothing
+about where the object is. That is the same mechanism §4f diagnosed from the
+video (basket reached, object never approached), and the camera fix alone did not
+resolve it.
+
+**Result 4 — `wm_msg` died again (0.2394 → 0.0006), while the world model got
+much better.** The two are independent: `wm_margin` +19.8% says the TRM predicts
+frames well; `wm_msg` 0.0006 says the planner ignores its 32-d readout entirely.
+A better world model did NOT buy a better control signal. §4c's revival of
+`wm_msg` under the waypoint loss therefore does not reproduce here, and the
+distinguishing variable is unknown — candidates are the corpus (3 suites +
+bridge vs object + bridge) and the far stronger stage-A model this planner was
+frozen against. Recorded as unexplained rather than smoothed into a trend.
+
+### What this predicts for closed-loop
+
+Translation is actuated at ~0.6 vigor with 4.8 mm accuracy and a gain fitted at
+R² 0.88/0.99/0.94, so the arm should MOVE properly. But with vision at 4% of the
+planner's sensitivity it has little basis for going to the right place, so
+approach failure remains the expected mode — and the next lever is whatever
+raises grounding, with TQSA the obvious candidate (`spatial` measured 0.0688,
+third strongest, in §4b).
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
