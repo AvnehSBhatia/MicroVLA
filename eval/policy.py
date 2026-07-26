@@ -472,6 +472,16 @@ class MicroVLAPolicy:
             # alone (did it descend to the object, or go straight up?).
             "eef": (None if proprio is None
                     else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
+            # Grounding, on real ticks only. Separates "the detector never finds
+            # the source object" from "the detector finds it and the planner
+            # ignores it" — indistinguishable from behaviour alone, and they
+            # need opposite fixes. confidence 0 is the miss/fallback sentinel.
+            **({} if result.perception is None else {
+                "src_conf": float(result.perception.source.confidence),
+                "tgt_conf": float(result.perception.target.confidence),
+                "src_center": [float(v) for v in result.perception.source.center],
+                "tgt_center": [float(v) for v in result.perception.target.center],
+            }),
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1
