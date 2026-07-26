@@ -1229,6 +1229,84 @@ keep the inverted ordering while leaving the BC head enough gradient to stay
 non-degenerate. If `fused` holds above `state_delta` at a recovered `std_ratio`
 and `grip_acc`, that is the first grounded policy this project has produced.
 
+## 4l. Long-horizon arm A, RERUN — best arm yet, and large run-to-run variance
+
+Identical command to 4k (`--waypoint-long --waypoint-weight 1.0`, same frozen
+stage A, same seed), re-run after the bench waypoint-scoring fix. So the
+waypoint numbers here are valid where 4k's were void.
+
+| metric | v7 pilot | wrist native (4g) | 4k arm A | **4l rerun** |
+|---|---|---|---|---|
+| `std_ratio` | 0.369 | 0.126 | 0.022 | **0.245** |
+| `wp_std_ratio` | — | 0.604 | void | **0.799** |
+| `wp_mae_mm` | — | 4.8 (0.2 s) | void | **58.2 (2.5 s)** |
+| `corr` | 0.49 | 0.31 | 0.02 | **0.45** |
+| `grip_acc` | 0.93 | 0.93 | 0.50 | 0.88 |
+| `pose_mae` | 0.20 | 0.243 | 0.257 | **0.212** |
+| `wm_margin` | +1.7% | +19.8% | +19.8% | +19.8% |
+
+Pose-only sensitivity (the split instrument, so comparable ONLY to 4k):
+
+| input | 4k arm A (collapsed) | **4l rerun** |
+|---|---|---|
+| proprio | 0.0020 | **0.1220** |
+| state_delta | 0.0305 | 0.0953 |
+| fused | **0.0967** | 0.0939 |
+| wm_msg | 0.0071 | 0.0471 |
+| current_emb | 0.0080 | 0.0230 |
+| geometry | 0.0008 | 0.0137 |
+| wm_latent | 0.0041 | 0.0092 |
+| pred_box_emb | 0.0053 | 0.0083 |
+| PHASE : VISION | 0.33 : 1 | **2.0 : 1** |
+
+### THE FINDING THAT MATTERS MOST: run-to-run variance is enormous
+
+4k and 4l are the SAME COMMAND at the same seed. One produced `std_ratio` 0.022
+with `corr` 0.02 and a chance-level gripper; the other produced 0.245 / 0.45 /
+0.88. **A single stage-B run is not a measurement of a configuration.**
+
+Consequences that must be applied retroactively:
+
+* **4k's headline — "the phase:vision ordering INVERTED" — is not supported.**
+  That reading came from the collapsed run, where the output was nearly constant
+  and I flagged the sensitivity as measured on a degenerate plan. With a healthy
+  output from the identical config, phase is back on top (proprio 0.1220 >
+  fused 0.0939). The inversion was a property of a collapsed run, not of the
+  horizon.
+* **The unexplained collapse in 4k is now attributable to variance**, not to
+  the long horizon and not to loss weighting (which 4k already retracted). No
+  `--waypoint-weight` sweep is needed to explain it.
+* **Every single-run A/B in 4b, 4c, 4d, 4g, 4i is one sample.** Differences
+  smaller than the 4k-vs-4l gap — which spans std_ratio 0.022 to 0.245 — carry
+  no information. That gap is larger than every effect this project has claimed
+  from an architecture or regularizer change.
+
+### What survives, and it is real
+
+**Long horizon is the best configuration measured**, on `std_ratio`, `corr` and
+`pose_mae` simultaneously, with the gripper nearly intact. And vision is
+materially stronger than in any native-spaced arm: `fused` 0.0939 with
+`geometry` 0.0137 gives phase:vision 2.0:1, against 5-12:1 for every native arm
+(on the older combined instrument, so treat the ratio as indicative, not exact).
+
+**The target-parameterization result replicates at the long horizon**:
+`wp_std_ratio` 0.799 against action `std_ratio` 0.245 is **3.3x**, matching the
+3.3x measured at native spacing in 4d (0.787 vs 0.237) and the 4.8x in 4g. Three
+corpora, two horizons, one conclusion — regressing metric displacement shrinks
+far less than regressing normalized actions. This is the most robust claim the
+project has, and notably it is the one measured WITHIN a run rather than across
+runs, which is why variance does not threaten it.
+
+`wp_mae` 58.2 mm is over a 2.5 s horizon (against 4.8 mm over 0.2 s). Judge it
+against the distance the arm covers in 2.5 s, not against the short-horizon
+number.
+
+### Required next step: seeds, not new arms
+
+Before any further architecture work, run the SAME configuration at 3 seeds and
+report the spread. Any claim resting on a single stage-B run — including several
+already in this document — needs that error bar before it means anything.
+
 ## 5. Infrastructure results (method-section material)
 
 **Frozen-backbone map caching.** Stage B with `--tqsa` re-ran YOLO-World over
