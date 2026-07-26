@@ -74,6 +74,12 @@ def main(argv=None) -> None:
     ap.add_argument("--checkpoint", default="checkpoints/full_stageB.pt")
     ap.add_argument("--norm-stats", required=True)
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--heads-device", default=None,
+                    help="device for fusion/drift/TRM/planner (see eval.libero_eval)")
+    ap.add_argument("--waypoint-stats", default=None,
+                    help="v7.2 waypoint_stats.json — REQUIRED to film the same policy "
+                         "eval.libero_eval scores when the checkpoint has a waypoint "
+                         "head; without it the translation dims come from the BC head.")
     ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--res", type=int, default=128,
                     help="render height/width (px). osmesa is CPU software "
@@ -105,8 +111,13 @@ def main(argv=None) -> None:
     # CRITICAL ORDER (matches libero_eval / rollout_video): build the torch/YOLO
     # policy BEFORE importing the robosuite/mujoco env, or mujoco's GL stack
     # segfaults. Build the policy ONCE and reuse it across episodes.
+    # Same construction as eval/libero_eval, or the video shows a DIFFERENT
+    # policy than the one being scored — without --waypoint-stats the
+    # translation dims come from the BC head instead of the actuator.
     policy = MicroVLAPolicy(checkpoint=args.checkpoint, norm_stats=args.norm_stats,
-                            device=args.device, zero_center_actions=args.zero_center_actions)
+                            device=args.device, zero_center_actions=args.zero_center_actions,
+                            waypoint_stats=args.waypoint_stats,
+                            heads_device=args.heads_device)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)
