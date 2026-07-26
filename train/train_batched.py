@@ -917,16 +917,18 @@ def main(argv=None) -> None:
         print(f"waypoint head ON (weight {args.waypoint_weight}, range {rng_m} m, "
               f"{'SAMPLED (2 Hz)' if args.waypoint_long else 'native'} spacing, "
               f"row_stride {stride})", flush=True)
-        if args.waypoint_long and args.waypoint_weight > 0.2:
-            # Long-horizon targets are ~3.5x larger, so their MSE is ~12x larger
-            # at the same weight — measured. At --waypoint-weight 1.0 the wp term
-            # swamps BC and the action head collapses (std_ratio 0.126 -> 0.022,
-            # corr 0.31 -> 0.02 on the first such run).
-            print(f"WARNING: --waypoint-long with --waypoint-weight "
-                  f"{args.waypoint_weight} puts ~12x more weight on the waypoint "
-                  f"term than the same value does at native spacing, because the "
-                  f"targets are ~3.5x larger. The action head starves. Try ~0.08, "
-                  f"and watch the `val bc` / `wp` split per epoch.", flush=True)
+        if args.waypoint_long:
+            # Long-horizon targets are ~3.5x larger in magnitude. That does NOT
+            # imply the loss term is larger — measured on a weight-1.0 run,
+            # val bc 0.6924 vs val wp 0.1107, so BC dominated 6:1. The first
+            # long-horizon arm still collapsed the action head (std_ratio
+            # 0.126 -> 0.022, corr 0.31 -> 0.02) for a reason not yet identified,
+            # so watch the split rather than assuming a weight fixes it.
+            print("note: --waypoint-long targets are ~3.5x larger in magnitude, but "
+                  "the observed val split was BC-dominated 6:1 — read the per-epoch "
+                  "`val bc X wp Y` line rather than assuming the wp term dominates. "
+                  "The first long-horizon arm collapsed std_ratio 0.126 -> 0.022 for "
+                  "reasons not yet attributed (paper.md 4k).", flush=True)
     device = resolve_device(args.device)
     torch.manual_seed(args.seed)
     cap_vram(device, args.max_vram_gb)

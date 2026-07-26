@@ -1170,12 +1170,22 @@ error.
 | `pose_mae` | 0.243 | 0.257 |
 | `wm_margin` | +19.8% | +19.8% (same stage A) |
 
-Measured: long-horizon targets have RMS ~0.163 against ~0.047 native, so their
-MSE is **~12x larger at the same `--waypoint-weight`**. At weight 1.0 the
-waypoint term swamps the BC term, and the shared trunk optimizes the waypoint
-head at the action head's expense — `corr` 0.02 is no directional agreement at
-all. The trainer now WARNS when `--waypoint-long` is combined with a weight
-above 0.2 and suggests ~0.08 (1/12).
+**RETRACTED explanation.** This was first recorded as loss imbalance: long
+horizon targets have RMS ~0.163 against ~0.047 native, so ~12x the MSE at equal
+`--waypoint-weight`, therefore the waypoint term swamps BC. A later
+long-horizon run at weight 1.0 reported `val bc 0.6924` against `val wp 0.1107`
+— **BC is 6x LARGER**, so the waypoint term was never dominating. The 12x figure
+is the ratio of target MAGNITUDES and does not transfer to the loss, because a
+head that fits a large target still has a small residual. The reasoning was
+wrong even though the arithmetic behind it was right.
+
+**The collapse is therefore UNEXPLAINED.** The leading candidate is
+representational interference on the shared trunk rather than loss weighting: a
+2.5 s displacement target is smooth and low-frequency while the action target is
+high-frequency, and `feats` feeds both heads, so capacity allocated to the
+former may cost the latter exactly the detail `std_ratio` measures. That is a
+hypothesis, not a measurement. It is testable — sweep `--waypoint-weight` and
+see whether `std_ratio` tracks it (loss weighting) or does not (interference).
 
 ### THE RESULT: vision finally dominates the planner
 
