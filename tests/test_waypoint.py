@@ -223,6 +223,49 @@ class TestWaypointGainIO:
             fit_gain([tmp_path])
 
 
+class TestBenchBuildsFromCheckpointCfg:
+    """cfg now decides ARCHITECTURE, so bench must resolve it before building."""
+
+    def _ckpt(self, tmp_path: Path, cfg) -> Path:
+        from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
+        from microvla.fusion.slot_fusion import SlotResonanceFusion
+
+        p = tmp_path / "ck.pt"
+        torch.save({"cfg": dataclasses.asdict(cfg), "trm_d": 1024,
+                    "fusion": SlotResonanceFusion(cfg).state_dict(),
+                    "drift": AnchoredDriftEncoder(cfg).state_dict(),
+                    "planner": ChronoQueryPlanner(cfg).state_dict()}, p)
+        return p
+
+    def _run(self, tmp_path: Path, cfg) -> str:
+        import subprocess
+        import sys
+
+        out = subprocess.run(
+            [sys.executable, "-m", "eval.bench", "--checkpoint",
+             str(self._ckpt(tmp_path, cfg)), "--synthetic", "2",
+             "--out", str(tmp_path / "b.json")],
+            capture_output=True, text=True,
+            cwd=str(Path(__file__).resolve().parents[1]))
+        return out.stdout + out.stderr
+
+    def test_waypoint_head_is_not_dropped(self, tmp_path):
+        """Building from DEFAULT_CONFIG silently discarded wp_disp_head."""
+        log = self._run(tmp_path, WP_CFG)
+        dropped = [l for l in log.splitlines()
+                   if "dropped=[" in l and "dropped=[]" not in l]
+        assert not dropped, f"checkpoint keys discarded: {dropped}"
+        assert "waypoint head (v7.2)" in log, "wp metrics missing from the report"
+
+    def test_ablated_planner_inputs_round_trip(self, tmp_path):
+        cfg = dataclasses.replace(
+            CFG, planner_inputs=tuple(n for n in CFG.planner_inputs if n != "geometry"))
+        log = self._run(tmp_path, cfg)
+        dropped = [l for l in log.splitlines()
+                   if "dropped=[" in l and "dropped=[]" not in l]
+        assert not dropped, f"checkpoint keys discarded: {dropped}"
+
+
 class TestPolicyWaypointPath:
     """End-to-end through MicroVLAPolicy with mock perception (no sim, no net)."""
 

@@ -267,33 +267,35 @@ def main(argv=None) -> None:
 
     dev = torch.device(args.device)
     torch.set_num_threads(max(1, torch.get_num_threads()))
+
+    # Resolve cfg from the checkpoint BEFORE constructing anything. cfg now
+    # carries fields that change ARCHITECTURE — `waypoint_action` builds the
+    # waypoint head, `planner_inputs` selects which memory projections exist —
+    # so building from DEFAULT_CONFIG and loading afterwards silently drops
+    # whatever the checkpoint actually trained (observed: `dropped=
+    # ['wp_disp_head.weight', 'wp_disp_head.bias']`, and wp_std_ratio nan).
     cfg = DEFAULT_CONFIG
     state: dict = {}
+    if str(args.checkpoint).lower() != "none":
+        state = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+        if "cfg" in state:
+            cfg = MicroVLAConfig(**state["cfg"])
+
     mods = {
         "fusion": SlotResonanceFusion(cfg), "drift": AnchoredDriftEncoder(cfg),
         "planner": ChronoQueryPlanner(cfg),
     }
-    if str(args.checkpoint).lower() != "none":
+    if state:
         from eval.policy import _load_relaxed
         from TRM import RecursiveTRM
 
-        state = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-        if "cfg" in state:
-            cfg = MicroVLAConfig(**state["cfg"])
         mods["trm"] = RecursiveTRM(cfg, d=state.get("trm_d", 1024))
         for name in ("fusion", "drift", "trm", "planner"):
-            if name in state or name in mods:
-                target = mods.get(name)
-                if target is None:
-                    continue
-                if name in state:
-                    _load_relaxed(target, state[name], name)
+            if name in state:
+                _load_relaxed(mods[name], state[name], name)
     else:
         from microvla.trm.mock_trm import MockTRM
 
-        mods["trm"] = MockTRM(cfg)
-    if "trm" not in mods:  # checkpoint without trm key (shouldn't happen)
-        from microvla.trm.mock_trm import MockTRM
         mods["trm"] = MockTRM(cfg)
     # The planner takes 22 of its ~82 memory tokens from TQSA, and this bench
     # never passed `spatial=` — so a TQSA-TRAINED checkpoint has been scored
