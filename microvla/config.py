@@ -168,6 +168,24 @@ class MicroVLAConfig:
     #   version of this comment said tick_hz and implied 15.
     waypoint_long: bool = False
     waypoint_row_stride: int = 1
+    # ---- v8: relational head (replaces SlotResonanceFusion) ------------------
+    # Runs AFTER the TRM, on the predicted latent, so relational reasoning
+    # operates on the same state the planner is conditioned on.
+    max_objects: int = 8            # K proposals kept per frame (data-rich: full
+                                    # 512-d each, no [32,5] bottleneck)
+    rel_dim: int = 384              # relational token width
+    rel_tokens: int = 12            # tokens emitted to the planner
+    rel_layers: int = 2
+    rel_heads: int = 8
+    # ---- v8: HRM long-horizon backbone (replaces AnchoredDriftEncoder) -------
+    # Two timescales matched to the loop itself: the SLOW module steps only on
+    # real perception ticks (2 Hz), the FAST module every tick (30 Hz). Absorbs
+    # the hand-fitted proportional gains of fit_waypoint_gain.py into learned
+    # parameters ("learned PID"), plus drift and long-horizon reasoning.
+    hrm_dim: int = 256              # state code width (matches drift's [B,256])
+    hrm_slow_layers: int = 2
+    hrm_fast_layers: int = 2
+    hrm_gain_dim: int = 3           # learned per-axis control gains (x, y, z)
     trainable_param_budget: int = 9_000_000
 
     @property

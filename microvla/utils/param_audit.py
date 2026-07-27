@@ -66,11 +66,24 @@ DRIFT_PARAM_CAP: int = 1_500_000     # target ~0.9M
 PLANNER_PARAM_CAP: int = 2_500_000   # target ~1.6M
 TQSA_PARAM_CAP: int = 500_000        # v7 spatial adapter, target ~0.13M
 
+# v8 successors. RelationalHead replaces SlotResonanceFusion and inherits its
+# cap unchanged. HRMBackbone replaces AnchoredDriftEncoder and takes a RAISED
+# cap: it absorbs three jobs the v7 stack did separately — drift encoding, the
+# hand-fitted proportional control gains of preprocess/fit_waypoint_gain.py
+# ("learned PID"), and long-horizon reasoning across the context window — so
+# 1.5M was sized for a strictly smaller module. Raised on explicit request
+# (2026-07-26); the JOINT budget of cfg.trainable_param_budget is unchanged and
+# still binds, and v8 is projected at ~6.7M against it.
+RELATIONAL_PARAM_CAP: int = 5_000_000   # target ~2.4M
+HRM_PARAM_CAP: int = 3_000_000          # target ~2.5M (was 1.5M as drift)
+
 _PER_MODULE_CAPS = {
     "fusion (SlotResonanceFusion)": FUSION_PARAM_CAP,
     "drift (AnchoredDriftEncoder)": DRIFT_PARAM_CAP,
     "planner (ChronoQueryPlanner)": PLANNER_PARAM_CAP,
     "tqsa (TextQueriedSpatialAdapter)": TQSA_PARAM_CAP,
+    "relational (RelationalHead)": RELATIONAL_PARAM_CAP,
+    "hrm (HRMBackbone)": HRM_PARAM_CAP,
 }
 
 TOTAL_LEDGER_PARAMS: int = (

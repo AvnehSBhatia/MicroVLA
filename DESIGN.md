@@ -554,3 +554,125 @@ Build order: P1 re-bake (frames [+ teacher] + proprio + symmetric) -> P2 TQSA +
 planner/fusion/trainer wiring -> P3 stage A (unchanged objective) + stage B
 (distill + waypoint) -> P4 probe -> parallel eval. The world-model contract
 (TRM v4, JEPA loop v5.1) is unchanged by v7.
+
+## v8 plan — relational reasoning after the TRM, HRM long-horizon backbone (BINDING once built)
+
+Locked 2026-07-26 on explicit request. v8 replaces three of five trainable
+modules. Every v7 checkpoint is incompatible, including
+`full_stageA_wrist_v72.pt` — the +19.8% `wm_margin` result must be re-earned by
+a full retrain before any v8 number exists.
+
+### Motivating evidence
+
+Three measurements drive this, all from `paper.md` §4m:
+
+1. **Closed-loop collapse is directional, not magnitudinal.** Per-axis `|cmd|`
+   on the overnight run was x 0.1186, y 0.8550, z 0.2420 — one axis at 7.2x
+   another, sustained over 3000 steps at 0% clipping. Which axis dominates
+   differs per checkpoint (an earlier run: x 0.5682, y 0.2339, z 0.4174). The
+   policy emits a near-constant direction that is a per-run artifact.
+2. **On-distribution variance is healthy** (`wp_std_ratio` 0.75–0.94) while
+   closed-loop behaviour is constant, which is exposure bias, not underfitting.
+3. **Nothing in v7 reasons about object-object relations**, yet every task in
+   the corpus is relational ("put the soup IN the basket").
+
+### Ordering change
+
+v7 ran fusion -> TRM. v8 runs **TRM -> relational**: the TRM does temporal
+prediction (the one component with a positive result), and relational reasoning
+then operates on the predicted latent — the same state the planner is
+conditioned on, rather than a separate pre-TRM summary.
+
+```
+perception (frozen YOLO-World-S)   DATA RICH: K=cfg.max_objects proposals at
+   |                               full vis_dim, no [32,5] bottleneck
+   |  frame_emb [B,512] + obj_emb [B,K,512] + obj_center [B,K,2] + obj_weight [B,K]
+   v
+HRMBackbone      (replaces AnchoredDriftEncoder)
+   |  slow module steps on REAL ticks (real_frame_hz); fast module every tick
+   |  -> HRMState(state [B,hrm_dim], gains [B,hrm_gain_dim])
+   v
+RecursiveTRM     (unchanged contract, residual convention preserved)
+   |  -> next_emb [B,512]
+   v
+RelationalHead   (replaces SlotResonanceFusion)
+   |  cross-attn(obj tokens x next_emb x text), obj_weight fades PROJECTED content
+   |  -> [B, rel_tokens, rel_dim]
+   v
+ChronoQueryPlanner -> plan [B,5,7] + waypoint [B,5,3]
+```
+
+### Why an HRM specifically
+
+An HRM's two coupled timescales are not an arbitrary import: the hierarchy
+already exists in the deployment loop. The slow module steps only on real
+perception ticks (2 Hz), the fast module every tick (30 Hz), and the fast module
+converges toward a local equilibrium between slow updates — which is exactly the
+dream-tick regime. It subsumes three jobs v7 did separately or by hand: drift
+encoding, the hand-fitted per-axis proportional gains of
+`preprocess/fit_waypoint_gain.py` (x 0.01085, y 0.01306, z 0.01180 — now learned
+outputs, "learned PID"), and long-horizon reasoning over `cfg.context_window`.
+
+### Exact signatures
+
+```python
+# microvla/relational/relational_head.py
+class RelationalHead(nn.Module):
+    def __init__(self, cfg: MicroVLAConfig) -> None: ...
+    def forward(
+        self,
+        next_emb: torch.Tensor,       # [B, vis_dim]   TRM's predicted latent
+        obj_emb: torch.Tensor,        # [B, K, vis_dim]  K = cfg.max_objects
+        obj_center: torch.Tensor,     # [B, K, 2]
+        obj_weight: torch.Tensor,     # [B, K]  confidence x freshness, [0,1]
+        text_tokens: torch.Tensor,    # [B, 3, text_dim]
+        last_action: Optional[torch.Tensor] = None,   # [B, num_servos]
+    ) -> torch.Tensor:                # [B, rel_tokens, rel_dim]
+
+# microvla/hrm/hrm_backbone.py
+@dataclass
+class HRMState:
+    state: torch.Tensor               # [B, hrm_dim]
+    gains: torch.Tensor               # [B, hrm_gain_dim], strictly positive
+
+class HRMBackbone(nn.Module):
+    def __init__(self, cfg: MicroVLAConfig) -> None: ...
+    def reset(self) -> None: ...
+    def forward(self, frame_emb: torch.Tensor, is_real: bool = True,
+                eef: Optional[torch.Tensor] = None) -> HRMState: ...
+
+# microvla/perception/text_region.py
+class TextRegionExtractor:            # ZERO trainable params
+    """Top-K class-agnostic proposals with embeddings in YOLO-World's TEXT
+    space, via a hook on WorldDetect.cv4 (verified present: WorldDetect
+    children == ['cv2', 'cv3', 'dfl', 'cv4'])."""
+```
+
+### Carried over unchanged (do not re-litigate)
+
+* **Graded evidence fade, one shared path.** `obj_weight` multiplies PROJECTED
+  object content before any type/positional embedding. Dream ticks pass held
+  boxes at `confidence * staleness_decay**k`; misses pass 0.0; train-time
+  `modality_dropout` fades the same weights. No binary zeroing, no dream flag.
+  The last-action token is never faded.
+* **TRM residual convention** (`return current_emb + delta`) and statelessness;
+  the context window stays caller-owned.
+* **HRM runtime-state semantics inherited from the drift encoder**: first
+  forward after `reset()` returns an exactly-zero code without stepping; hidden
+  detached between steps; anchor/window/hidden in plain attributes, never
+  buffers or parameters, so a checkpoint never carries episode state.
+* **Canonical embedding space** — standardize at the perception boundary, never
+  normalize inside a module or a loss.
+
+### Parameter ledger
+
+| module | v7 | v8 target | cap |
+|---|---|---|---|
+| fusion -> relational | 4,460,165 | ~2.4M | 5,000,000 (inherited) |
+| drift -> HRM | 724,993 | ~2.5M | 3,000,000 (raised from 1,500,000) |
+| planner | 1,803,527 | 1,803,527 | 2,500,000 |
+| **total** | 6,988,685 | **~6.7M** | 9,000,000 (unchanged) |
+
+The HRM cap rise is the only budget change, granted because the module absorbs
+work v7 did in three places. The joint `cfg.trainable_param_budget` is untouched
+and still binds.
