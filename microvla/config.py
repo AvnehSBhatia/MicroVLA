@@ -160,8 +160,12 @@ class MicroVLAConfig:
     # where the object is becomes first-order. Zero new parameters.
     # Both companions are MANDATORY when it is on, or the units silently break:
     #   waypoint_range must cover a whole reach (0.15 m clamps and destroys it)
-    #   waypoint_row_stride must be tick_hz/real_frame_hz, or the actuator's
-    #   per-step rate under-delivers by exactly that factor.
+    #   waypoint_row_stride must be the SOURCE env's control rate / real_frame_hz
+    #   (LIBERO: 20 Hz / 2 Hz = 10), or the actuator's per-step rate is wrong by
+    #   exactly that factor. NOT tick_hz/real_frame_hz — tick_hz (30) is the Pi
+    #   deployment loop, while the actuator counts steps of whatever control loop
+    #   is actually calling it, which under LIBERO eval is 20 Hz. An earlier
+    #   version of this comment said tick_hz and implied 15.
     waypoint_long: bool = False
     waypoint_row_stride: int = 1
     trainable_param_budget: int = 9_000_000
