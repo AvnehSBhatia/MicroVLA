@@ -63,6 +63,11 @@ DEV="${DEV:-cuda}"
 # on it is what produced every previous null result.
 GATE_PCT="${GATE_PCT:-20}"
 
+# A leftover STOP from a previous run aborts instantly and looks like a bug.
+if [ -f STOP ]; then
+  say "removing stale STOP file from a previous run"
+  rm -f STOP
+fi
 say "=== box v8 start: $(git rev-parse --short HEAD) | suites: $SUITES ==="
 say "disk: $(df -h . | tail -1 | awk '{print $4}') free"
 
