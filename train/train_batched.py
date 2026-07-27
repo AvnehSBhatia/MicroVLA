@@ -48,9 +48,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
-from microvla.hrm import HRMBackbone
 from microvla.relational import RelationalHead
-from microvla.relational.evidence import EvidenceEncoder
+from microvla.v8 import DriftAdapter, FusionAdapter, pack_objects
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from microvla.utils.phase import pre_grasp_weights
@@ -350,6 +349,29 @@ def _obj_tokens(batch, idx, fade, cfg, ablate):
     ctr[:, 0], ctr[:, 1] = sc, tc
     w[:, :2] = bw
     return obj, ctr, w
+
+
+def _relational(relational, next_emb, batch, t, boxes, cfg):
+    """Relational tokens for the planner, or None on the v7 stack.
+
+    The v8 ordering change lives here: this runs on the TRM's PREDICTED latent,
+    so object-object reasoning is conditioned on the same state the planner is
+    about to decode, rather than on a separate pre-TRM summary.
+
+    ``boxes`` is the caller's ALREADY-EXTRACTED ``_boxes`` tuple, deliberately
+    not re-derived: on a dream step the caller holds t-1 boxes at the mid-dream
+    fade, and re-extracting here would silently hand the relational head fresh
+    evidence the rest of the step does not have.
+    """
+    if relational is None:
+        return None
+    sbe, tbe, sc, tc, bw = boxes
+    obj, ctr, w = pack_objects(sbe, tbe, sc, tc, bw, cfg)
+    last_action = (batch["pwm_targets"][:, t - 1, 0] if t > 0
+                   else batch["pwm_targets"].new_zeros(
+                       obj.shape[0], batch["pwm_targets"].shape[-1]))
+    return relational(next_emb, obj, ctr, w, batch["text_tokens"],
+                      last_action=last_action)
 
 
 def real_paths_v8(batch, evidence, hrm, cfg, ablate):
@@ -739,7 +761,7 @@ def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch
 
 @torch.no_grad()
 def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
-                 tqsa, backbone, rng):
+                 tqsa, backbone, rng, relational=None):
     """Clean stage-B val loss: real path, NO input-dropout, NO dream steps.
 
     Matches the deployment forward (planner sees every input), so the number
@@ -766,11 +788,14 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
             sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
             geom = torch.cat([sc, tc, bw], dim=-1)
             spatial = _batch_spatial(batch, t, tqsa, backbone, device)
+            rel = _relational(relational, wm["next_emb"], batch, t,
+                              (sbe, tbe, sc, tc, bw), cfg)
             plan, grip, wp = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
                                      fused=fused_all[t], pred_box_emb=wm["next_box"],
                                      geometry=geom, proprio=batch["proprio"][:, t],
                                      spatial=spatial, wm_msg=wm["msg"],
-                                         wm_latent=wm.get("latent"), return_wp=True)
+                                         wm_latent=wm.get("latent"), relational=rel,
+                                         return_wp=True)
             preds.append(plan); grips.append(grip)
             if wp is not None:
                 wps.append(wp)
@@ -792,7 +817,9 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
 
 
 def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
-            tqsa=None, backbone=None):
+            tqsa=None, backbone=None, relational=None):
+    if relational is not None:
+        relational.train()
     for m in (fusion, drift):
         for p in m.parameters():
             p.requires_grad_(False)
@@ -804,6 +831,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
     for name, p in trm.named_parameters():
         p.requires_grad_(unfreeze or name.startswith("msg_head"))
     params = list(planner.parameters()) + (list(tqsa.parameters()) if tqsa is not None else [])
+    if relational is not None:
+        # v8: the relational head is POLICY, not world model — it consumes the
+        # frozen TRM's prediction and feeds the planner. Omitting it here would
+        # leave it at init while everything else trained, which looks exactly
+        # like "the relational head does not help".
+        params += list(relational.parameters())
     groups = [{"params": params, "lr": args.lr}]
     trm_trainable = [p for p in trm.parameters() if p.requires_grad]
     if trm_trainable:
@@ -888,12 +921,14 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # step had no full-input sample anywhere in its gradient. Fading
                 # also keeps the token count, which deletion did not.
                 fade = _fade_weights(args._drop_rates, cur.shape[0], cur.device)
+                rel = _relational(relational, next_emb, batch, t,
+                                  (sbe, tbe, sc, tc, bw), cfg)
                 plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                          fused=fused_t, pred_box_emb=next_box,
                                          geometry=geom, proprio=batch["proprio"][:, t],
                                          spatial=spatial, wm_msg=wm["msg"],
-                                         wm_latent=wm.get("latent"), fade=fade,
-                                         return_wp=True)
+                                         wm_latent=wm.get("latent"), relational=rel,
+                                         fade=fade, return_wp=True)
                 preds.append(plan); grips.append(grip)
                 if wp is not None:
                     wps.append(wp)
@@ -943,9 +978,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                       f"loss {run/max(nb,1):.4f} | grip {grip_acc/max(nb,1):.3f} "
                       f"| {last_beat-t0:.0f}s", flush=True)
         extra = {"tqsa": tqsa} if tqsa is not None else {}
+        if relational is not None:
+            extra["relational"] = relational
         if args.stage_b_patience > 0:
             val_bc, val_ga, val_wp = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
-                                                  planner, device, tqsa, backbone, rng)
+                                                  planner, device, tqsa, backbone, rng,
+                                                  relational=relational)
             # Selection metric. `bc` alone is the only term on a scale shared by
             # every arm; folding in the waypoint term against an ABSOLUTE
             # --min-delta gives long-horizon arms a harsher effective patience
@@ -994,7 +1032,12 @@ def main(argv=None) -> None:
     # Resolve per-input withhold rates once: the coarse flags set the defaults,
     # --planner-drop-rate overrides any individual name.
     rates = {n: 0.0 for n in ChronoQueryPlanner.INPUT_NAMES}
-    rates["fused"] = rates["current_emb"] = args.planner_input_dropout
+    rates["current_emb"] = args.planner_input_dropout
+    # The withhold regularizer exists to stop ONE dominant visual group starving
+    # the redundant paths. On v8 that group is `relational`, not `fused` —
+    # pointing it at `fused` there would silently regularize nothing, since
+    # fusion is gone and the name is not in cfg.planner_inputs.
+    rates["relational" if args.v8 else "fused"] = args.planner_input_dropout
     rates["state_delta"] = rates["proprio"] = args.phase_dropout
     for item in (s for s in args.planner_drop_rate.split(",") if s.strip()):
         name, _, val = item.partition("=")
@@ -1053,19 +1096,18 @@ def main(argv=None) -> None:
                                      if n not in ("fused", "geometry", "pred_box_emb"))
                 + ("relational",),
             )
-        evidence = EvidenceEncoder(cfg).to(device)
-        hrm = HRMBackbone(cfg).to(device)
+        fusion = FusionAdapter(cfg).to(device)     # wraps EvidenceEncoder
+        drift = DriftAdapter(cfg).to(device)       # wraps HRMBackbone
         relational = RelationalHead(cfg).to(device)
-        fusion = drift = None
         trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
         planner = ChronoQueryPlanner(cfg).to(device)
-        print(f"v8 stack: evidence {count_trainable_params(evidence):,} | "
-              f"hrm {count_trainable_params(hrm):,} | "
+        print(f"v8 stack: evidence {count_trainable_params(fusion):,} | "
+              f"hrm {count_trainable_params(drift):,} | "
               f"relational {count_trainable_params(relational):,} | "
               f"planner {count_trainable_params(planner):,} | "
               f"inputs {cfg.planner_inputs}", flush=True)
     else:
-        evidence = hrm = relational = None
+        relational = None
         fusion = SlotResonanceFusion(cfg).to(device)
         drift = AnchoredDriftEncoder(cfg).to(device)
         trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
@@ -1113,7 +1155,7 @@ def main(argv=None) -> None:
                           f"less backbone compute over this run). --no-cache-spatial "
                           f"trades the RAM back.", flush=True)
         stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
-                tqsa=tqsa, backbone=backbone)
+                tqsa=tqsa, backbone=backbone, relational=relational)
     print("done.", flush=True)
 
 
