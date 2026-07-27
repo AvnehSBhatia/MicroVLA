@@ -41,6 +41,8 @@ import torch.nn as nn
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
+from microvla.hrm import HRMBackbone
+from microvla.relational import RelationalHead
 from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.trm.mock_trm import MockTRM
@@ -136,13 +138,26 @@ def audit(cfg: MicroVLAConfig | None = None, verbose: bool = True) -> dict[str, 
         "tqsa (TextQueriedSpatialAdapter)": count_trainable_params(TextQueriedSpatialAdapter(cfg)),
         "planner (ChronoQueryPlanner)": count_trainable_params(ChronoQueryPlanner(cfg)),
         "mock_trm (MockTRM, stub)": count_trainable_params(MockTRM(cfg)),
+        # v8 successors. Counted and cap-checked alongside their v7 predecessors
+        # during the transition: both stacks are buildable, and the joint
+        # trainable_total below still reports the ACTIVE (v7) one until the loop
+        # is rewired. Omitting these from `counts` while listing them in
+        # _PER_MODULE_CAPS is what broke this command at 24a0753.
+        "relational (RelationalHead)": count_trainable_params(RelationalHead(cfg)),
+        "hrm (HRMBackbone)": count_trainable_params(HRMBackbone(cfg)),
     }
+    v8_total = (
+        counts["relational (RelationalHead)"]
+        + counts["hrm (HRMBackbone)"]
+        + counts["planner (ChronoQueryPlanner)"]
+    )
     trainable_total = (
         counts["fusion (SlotResonanceFusion)"]
         + counts["drift (AnchoredDriftEncoder)"]
         + counts["planner (ChronoQueryPlanner)"]
     )
     counts["trainable_total"] = trainable_total
+    counts["v8_trainable_total"] = v8_total
 
     if verbose:
         print("=" * 72)
@@ -158,8 +173,24 @@ def audit(cfg: MicroVLAConfig | None = None, verbose: bool = True) -> dict[str, 
             status = "OK" if counts[name] <= cap else "OVER CAP"
             print(f"  {name:<32s} {_fmt(counts[name])}  cap {_fmt(cap)}  [{status}]")
         print(f"  {'-' * 64}")
-        print(f"  {'TRAINABLE TOTAL':<32s} {_fmt(trainable_total)}")
+        print(f"  {'TRAINABLE TOTAL (v7, ACTIVE)':<32s} {_fmt(trainable_total)}")
         print(f"  {'budget (cfg.trainable_param_budget)':<32s} {_fmt(cfg.trainable_param_budget)}")
+
+        # v8 successors: buildable and cap-checked, but not yet wired into the
+        # loop, so they are reported separately rather than folded into the
+        # active total. Printed because a cap that is enforced but never shown
+        # is a cap nobody checks.
+        print("\nv8 successors (built, cap-enforced, NOT yet wired into the loop):\n")
+        for name in ("relational (RelationalHead)", "hrm (HRMBackbone)"):
+            cap = _PER_MODULE_CAPS[name]
+            status = "OK" if counts[name] <= cap else "OVER CAP"
+            replaces = ("replaces fusion" if name.startswith("relational")
+                        else "replaces drift")
+            print(f"  {name:<32s} {_fmt(counts[name])}  cap {_fmt(cap)}  "
+                  f"[{status}]  ({replaces})")
+        print(f"  {'-' * 64}")
+        print(f"  {'v8 TOTAL (+ planner)':<32s} {_fmt(v8_total)}  "
+              f"vs v7 {_fmt(trainable_total)}")
 
         print("\nStand-in (NOT the real TRM, NOT trained, NOT part of the budget):\n")
         print(f"  {'mock_trm (MockTRM, stub)':<32s} {_fmt(counts['mock_trm (MockTRM, stub)'])}")
@@ -187,6 +218,12 @@ def audit(cfg: MicroVLAConfig | None = None, verbose: bool = True) -> dict[str, 
             f"cap of {cap:,d}."
         )
 
+    # The v8 stack must clear the SAME joint budget as v7, or the successors
+    # are only cap-checked individually and could jointly bust it.
+    assert v8_total < cfg.trainable_param_budget, (
+        f"v8 trainable total {v8_total:,d} >= budget "
+        f"{cfg.trainable_param_budget:,d} (relational + hrm + planner)."
+    )
     assert trainable_total < cfg.trainable_param_budget, (
         f"Trainable heads (fusion + drift + planner) use {trainable_total:,d} "
         f"params, exceeding the budget of {cfg.trainable_param_budget:,d}."

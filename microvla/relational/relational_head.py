@@ -10,15 +10,18 @@ in between.
 
 Two things v7 could not do, and this exists to do:
 
-1.  **Objects are compared against each other.** v7's perception pre-assigned
-    exactly two roles (source box, target box, best box per class) and fusion
-    saw them as two fixed slots — nothing anywhere in the stack could relate
-    object *i* to object *j*. Here ``cfg.max_objects`` proposals arrive as full
-    ``vis_dim`` embeddings and every layer is full self-attention over the
-    whole token set, so "the bowl that is BETWEEN the plate and the stove"
-    (measured: the relational-phrase failures listed in DESIGN.md's grounding
-    notes) is representable: the head binds phrases to proposals itself
-    instead of trusting the detector's per-class argmax.
+1.  **Objects are compared against each other.** v7 pre-assigned exactly two
+    roles in perception (source box, target box) and fusion saw them as two
+    fixed slots — nothing anywhere in the stack could relate object *i* to
+    object *j*. A relational phrase like "the black bowl BETWEEN the plate and
+    the ramekin" was handled by asking the FROZEN region-text head for the
+    whole phrase and falling back to the bare noun (DESIGN.md, "Spatial
+    grounding (Feature 1)"); when that fallback fires, the role becomes
+    whichever same-noun box won on raw confidence, and no module downstream
+    can revisit the choice. Here ``cfg.max_objects`` proposals arrive intact
+    as full ``vis_dim`` embeddings and every layer is full self-attention over
+    the whole token set, so binding phrases to proposals is trainable instead
+    of delegated to a frozen head's recall.
 2.  **Spatial relations are first-class.** Object-object attention logits get
     an additive bias read off the Fourier code of the *displacement* between
     the two centers (``rel_bias``), so relative geometry does not have to be
@@ -123,6 +126,9 @@ _TOKEN_TYPES = (
 )
 _TYPE_INDEX = {name: i for i, name in enumerate(_TOKEN_TYPES)}
 
+#: The ordered text roles, in the order ``ClipTaskEncoder`` emits them.
+_TEXT_TYPES = ("command", "source_text", "target_text")
+
 #: MLP hidden width as a multiple of ``rel_dim`` — see the module docstring's
 #: budget arithmetic for why this is not 4.
 _MLP_RATIO = 1.25
@@ -164,10 +170,21 @@ class RelationalHead(nn.Module):
                 ``rel_heads``, ``n_fourier``, and ``modality_dropout``.
         """
         super().__init__()
+        if cfg.n_text_tokens != len(_TEXT_TYPES):
+            # Each text position owns a distinct type embedding, so a fourth
+            # phrase would silently borrow the OBJECT type. Fail loudly rather
+            # than mis-tag a token.
+            raise ValueError(
+                f"RelationalHead expects the {len(_TEXT_TYPES)} ordered text "
+                f"tokens {_TEXT_TYPES}; cfg.n_text_tokens is {cfg.n_text_tokens}"
+            )
         self.cfg = cfg
         d = cfg.rel_dim
         k = cfg.max_objects
         self.modality_dropout = cfg.modality_dropout
+        # Plain list of ints, not a buffer: it is a constant index, and the
+        # module must own no state the JEPA loop would have to reset.
+        self._text_types = [_TYPE_INDEX[name] for name in _TEXT_TYPES]
 
         # --- Shared projections ---------------------------------------------
         # ONE visual projection for the predicted latent and all K object
@@ -302,11 +319,7 @@ class RelationalHead(nn.Module):
         latent_tok = self.visual_proj(next_emb) + self.type_emb[_TYPE_INDEX["latent"]]
         latent_tok = latent_tok.unsqueeze(1)
 
-        text_toks = self.text_proj(text_tokens)
-        text_types = self.type_emb[
-            _TYPE_INDEX["command"] : _TYPE_INDEX["command"] + text_tokens.shape[1]
-        ]
-        text_toks = text_toks + text_types.unsqueeze(0)
+        text_toks = self.text_proj(text_tokens) + self.type_emb[self._text_types]
 
         # Object content: appearance + geometry, faded TOGETHER by the single
         # per-object evidence weight. Multiplying the content (not masking the

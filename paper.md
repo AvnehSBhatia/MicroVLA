@@ -1573,6 +1573,42 @@ tasks = **50/50 failures, `mean_success` 0.000**, all 10 tasks completed, 0
 scavenged, no failed workers. Previous zeros were single small runs; this one is
 sampled well enough to state as a result.
 
+### Closed-loop telemetry: the collapse is DIRECTIONAL, and not saturation
+
+`eval.telemetry_probe` over the five workers of the 0/50 run (3000 steps each,
+200 real ticks each, 10 trials each):
+
+| worker | \|cmd\| mean | max | clipped | x | y | z | plan_norm | trust mean / min |
+|---|---|---|---|---|---|---|---|---|
+| w0 | 0.4005 | 0.9575 | 0.0% | 0.1204 | 0.8461 | 0.2349 | 2.865 | 0.519 / 0.119 |
+| w1 | 0.4037 | 0.9575 | 0.0% | 0.1192 | 0.8570 | 0.2349 | 2.872 | 0.522 / 0.135 |
+| w2 | 0.4007 | 0.9575 | 0.0% | 0.1140 | 0.8511 | 0.2372 | 2.866 | 0.517 / 0.131 |
+| w3 | 0.4052 | 0.9575 | 0.0% | 0.1196 | 0.8575 | 0.2386 | 2.887 | 0.518 / 0.147 |
+| w4 | 0.4052 | 0.9575 | 0.0% | 0.1186 | 0.8550 | 0.2420 | 2.879 | 0.521 / 0.138 |
+
+**One axis carries 7.2x the weakest** (y 0.855 against x 0.119), sustained across
+3000 steps, and the pattern is identical across all five workers to three decimal
+places. The dominant axis is a per-CHECKPOINT artifact, not a property of the
+architecture: an earlier arm on the same suite ran x 0.5682, y 0.2339, z 0.4174
+(x-dominant), and another x 0.0953, y 0.1049, z 0.1053 (uniform and tiny, mean
+0.1018).
+
+**`clipped` is 0.0%, which excludes actuator saturation as the explanation.**
+That matters: a policy pinned at the command limit and a policy emitting a
+near-constant interior command look alike in `mean_success` and are
+distinguished only by this number. Earlier arms did saturate (2.3-3.7%, and
+24.8-32.5% before the actuator fix), so the instrument does register it. Here it
+does not, so the arm is freely commanding a nearly constant direction.
+
+Set against `wp_std_ratio` 0.75-0.94 measured open-loop on demo observations,
+this is exposure bias stated precisely: **healthy output variance
+on-distribution, collapse to a near-constant direction off-distribution.**
+
+`trust` mean is 0.517-0.522 against `cfg.brake_trust` 0.5, so roughly half of
+all steps are being attenuated by the delta-mode brake — against a waypoint
+command, which is a positional error rather than a held motion. `policy.py`'s
+own comment records that symmetry as "an assumption, not a result". Untested.
+
 ### What the batch leaves standing
 
 1. **Displacement regresses less shrunk than action** — `wp_std_ratio` /
