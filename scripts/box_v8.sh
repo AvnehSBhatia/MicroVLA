@@ -187,52 +187,92 @@ say "=== fit waypoint gain on $FIRST ==="
 python -m preprocess.fit_waypoint_gain "$FIRST" \
   --out "$FIRST/waypoint_stats.json" 2>&1 | tail -5
 
-# ---------------------------------------------------------------------------
-# 3. Train v8. Bigger budget than the Mac run, and the stop criterion fixed:
-#    --stage-b-select bc is the only term on a scale shared across arms, and
-#    --stage-b-min-epochs stops a noisy plateau from ending a run at epoch 8
-#    (the confound that made every bench metric track epochs-survived, 4m).
-# ---------------------------------------------------------------------------
-stopped || {
-  say "=== train v8 (stage A 60 / stage B 100) ==="
-  run_logged logs/box_v8/train_v8_big.log \
-    python -u train/train_batched.py $BAKED \
-    --device "$DEV" --batch-size 64 --lr 5e-4 --max-vram-gb 50 \
-    --stage-a-epochs 60 --warmup-epochs 5 --max-horizon 6 --patience 5 \
-    --stage-b-epochs 100 --stage-b-patience 6 \
-    --stage-b-select bc --stage-b-min-epochs 30 \
-    --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long \
-    --v8 --tag v8_big
-  say "  train rc=$RC (137 => SIGKILL: host reaper or OOM kill; SIGTERM is"
-  say "  trapped, SIGKILL cannot be)"
-}
-
-CKPT=checkpoints/full_stageB_v8_big.pt
-[ -f "$CKPT" ] || { say "NO STAGE-B CHECKPOINT — stopping before eval."; exit 1; }
-
-# ---------------------------------------------------------------------------
-# 4. Bench, then the number this project has never had: closed-loop success.
-# ---------------------------------------------------------------------------
-say "=== bench ==="
-run_logged logs/box_v8/bench_v8_big.log \
-  python -u -m eval.bench --checkpoint "$CKPT" --data-dir "$FIRST" \
-  --sensitivity --episodes 30 --device "${DEV}:0" \
-  --out eval_results/bench_v8_big.json
-
-say "=== closed loop (real sim) ==="
-for S in $SUITES; do
-  stopped && break
-  [ -d "data/${S}_v8" ] || continue
-  say "--- closed loop: $S ---"
-  env PYOPENGL_PLATFORM=osmesa MUJOCO_GL=osmesa PYTHONPATH=/root/LIBERO \
-  python -u -m eval.libero_eval --suite "$S" --n-trials 5 --max-steps 300 \
-    --checkpoint "$CKPT" \
-    --norm-stats "$FIRST/norm_stats.json" \
-    --waypoint-stats "$FIRST/waypoint_stats.json" \
-    --device "${DEV}:0" --heads-device "${DEV}:0" \
-    --workers 5 --stagger 10 --worker-timeout 3600 \
-    > "logs/box_v8/closedloop_${S}.log" 2>&1
-  say "  $(grep -m1 '\"mean_success\"' "logs/box_v8/closedloop_${S}.log" || echo 'no mean_success line')"
+# --- 3. BLIND CONTROL: same frames/actions/architecture, evidence removed. ---
+# This is what ATTRIBUTES the result. Built by zeroing weights rather than
+# re-baking, so the two corpora differ in exactly one thing.
+BLIND=""
+for d in $(echo "$BAKED" | tr ' ' '\n' | grep '_v8$'); do
+  bd="${d%_v8}_blind"; BLIND="$BLIND --data-dir $bd"
+  [ "$(ls "$bd"/*.npz 2>/dev/null | wc -l)" -gt 0 ] && { say "SKIP blind $bd"; continue; }
+  say "=== blind control $d -> $bd ==="; mkdir -p "$bd"
+  python - "$d" "$bd" <<'PY2'
+import glob, pathlib, sys
+import numpy as np
+src, dst = sys.argv[1], pathlib.Path(sys.argv[2]); n = 0
+for f in sorted(glob.glob(f"{src}/*.npz")):
+    d = dict(np.load(f))
+    d["box_weights"] = np.zeros_like(d["box_weights"])
+    d["source_centers"] = np.full_like(d["source_centers"], 0.5)
+    d["target_centers"] = np.full_like(d["target_centers"], 0.5)
+    if "obj_weights" in d:
+        d["obj_weights"] = np.zeros_like(d["obj_weights"])
+        d["obj_centers"] = np.full_like(d["obj_centers"], 0.5)
+    np.savez_compressed(dst / pathlib.Path(f).name, **d); n += 1
+print(f"  wrote {n} blind episodes")
+PY2
+  cp "$d/norm_stats.json" "$d/waypoint_stats.json" "$bd/" 2>/dev/null || true
 done
 
-say "=== DONE. bench: eval_results/bench_v8_big.json | logs: logs/box_v8 ==="
+# --- 4. ARMS, ordered by paper value so a short night still yields the claim ---
+COMMON="--device $DEV --batch-size 64 --lr 5e-4 --max-vram-gb 50 --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long --stage-b-select bc --stage-b-min-epochs 30"
+SA="--stage-a-epochs 60 --warmup-epochs 5 --max-horizon 6 --patience 5"
+SB="--stage-b-epochs 100 --stage-b-patience 6"
+
+arm_full() {
+  local tag="$1"; shift; local ck="checkpoints/full_stageB_${tag}.pt"
+  [ -f "$ck" ] && { say "SKIP arm $tag"; return 0; }; stopped && return 1
+  say "=== ARM $tag (stage A + B) ==="
+  run_logged "logs/box_v8/train_${tag}.log" python -u train/train_batched.py $COMMON $SA $SB --tag "$tag" "$@"
+  say "  $tag rc=$RC $( [ -f "$ck" ] && echo OK || echo 'NO CHECKPOINT')"
+}
+arm_stageb() {
+  local tag="$1" sa="$2"; shift 2; local ck="checkpoints/full_stageB_${tag}.pt"
+  [ -f "$ck" ] && { say "SKIP arm $tag"; return 0; }
+  [ -f "$sa" ] || { say "SKIP arm $tag (no $sa)"; return 1; }; stopped && return 1
+  say "=== ARM $tag (stage B only) ==="
+  run_logged "logs/box_v8/train_${tag}.log" python -u train/train_batched.py $COMMON $SB --load-stage-a "$sa" --tag "$tag" "$@"
+  say "  $tag rc=$RC $( [ -f "$ck" ] && echo OK || echo 'NO CHECKPOINT')"
+}
+SA_MAIN=checkpoints/full_stageA_v8_s0.pt
+
+arm_full   v8_s0     $BAKED --v8 --seed 0
+arm_full   v8_blind  $BLIND --v8 --seed 0
+arm_stageb v8_s1 "$SA_MAIN" $BAKED --v8 --seed 1
+arm_stageb v8_s2 "$SA_MAIN" $BAKED --v8 --seed 2
+arm_full   v7_arch  $BAKED --seed 0
+arm_stageb v8_norel "$SA_MAIN" $BAKED --v8 --seed 0 --planner-drop relational
+
+# --- 5. bench every arm (blind arm scored on the blind corpus) ---
+say "=== bench ==="
+for tag in v8_s0 v8_blind v8_s1 v8_s2 v7_arch v8_norel; do
+  ck="checkpoints/full_stageB_${tag}.pt"; out="eval_results/bench_${tag}.json"
+  [ -f "$ck" ] || continue; [ -f "$out" ] && continue; stopped && break
+  bdir="$FIRST"; case "$tag" in v8_blind) bdir="${FIRST%_v8}_blind";; esac
+  run_logged "logs/box_v8/bench_${tag}.log" python -u -m eval.bench --checkpoint "$ck" \
+    --data-dir "$bdir" --sensitivity --episodes 30 --device "${DEV}:0" --out "$out"
+done
+
+# --- 6. closed loop, main + control first ---
+say "=== closed loop ==="
+for tag in v8_s0 v8_blind v7_arch v8_s1 v8_s2 v8_norel; do
+  ck="checkpoints/full_stageB_${tag}.pt"; [ -f "$ck" ] || continue
+  for S in $SUITES; do
+    [ -d "data/${S}_v8" ] || continue
+    lg="logs/box_v8/cl_${tag}_${S}.log"; [ -f "$lg" ] && continue
+    stopped && break 2
+    say "--- closed loop $tag / $S ---"
+    env PYOPENGL_PLATFORM=osmesa MUJOCO_GL=osmesa PYTHONPATH=/root/LIBERO \
+    python -u -m eval.libero_eval --suite "$S" --n-trials 5 --max-steps 300 \
+      --checkpoint "$ck" --norm-stats "$FIRST/norm_stats.json" \
+      --waypoint-stats "$FIRST/waypoint_stats.json" \
+      --device "${DEV}:0" --heads-device "${DEV}:0" \
+      --workers 5 --stagger 10 --worker-timeout 3600 > "$lg" 2>&1
+    say "  $tag/$S -> $(grep -m1 '"mean_success"' "$lg" || echo none)"
+  done
+done
+
+# --- 7. paper table ---
+say "=== summary -> results/V8_TABLE.md ==="
+mkdir -p results
+python scripts/v8_table.py > results/V8_TABLE.md 2>/dev/null && cat results/V8_TABLE.md
+say "=== DONE. table: results/V8_TABLE.md | logs: logs/box_v8 ==="
