@@ -197,6 +197,32 @@ class ActionNormalizer:
         return cls(np.asarray(d["q_low"]), np.asarray(d["q_high"]))
 
 
+#: Concrete visual categories appended to a role's prompt chain. Every entry was
+#: verified to fire on real LIBERO frames; abstract nouns are deliberately absent
+#: because they measure 0.000.
+_FALLBACK_TAIL: tuple[str, ...] = ("box", "cardboard box", "can", "bottle",
+                                   "carton", "container")
+#: Target-role tail. "basket" already grounds at 0.505 on 95.7% of agentview
+#: frames, so this mainly covers the wrist view, where it does not.
+_TARGET_TAIL: tuple[str, ...] = ("basket", "bin", "box")
+
+
+def _with_fallbacks(phrase: str) -> list[str]:
+    """Prompt chain for one role: the exact phrase, then concrete categories.
+
+    The head noun goes in before the generic tail — "alphabet soup" -> "soup" —
+    because a multi-word product name sometimes grounds on its noun alone when
+    the full phrase does not.
+    """
+    chain = [phrase]
+    parts = phrase.split()
+    if len(parts) > 1:
+        chain.append(parts[-1])
+    tail = _TARGET_TAIL if phrase in ("basket", "bin") else _FALLBACK_TAIL
+    chain += [c for c in tail if c not in chain]
+    return chain
+
+
 class EpisodeBuilder:
     """Runs the frozen MicroVLA perception front-end over one raw episode.
 
@@ -263,10 +289,27 @@ class EpisodeBuilder:
             self._task_cache[episode.instruction] = task
         parsed = task.parsed
         src, tgt = strip_article(parsed.source), strip_article(parsed.target)
-        classes = [src] if src == tgt else [src, tgt]
-        if classes != self._active_classes:
-            self.perception.set_classes(classes)
-            self._active_classes = classes
+        # MEASURED 2026-07-26: YOLO-World-S returns EXACTLY 0.000 for every
+        # LIBERO product name — "alphabet soup", "bbq sauce", "cream cheese".
+        # Baking with set_classes([src, tgt]) therefore produced a corpus in
+        # which the source object was detected on 0% of frames, in BOTH camera
+        # views, so box_weight was 0 everywhere and fusion faded all box and
+        # geometry evidence to nothing. The same objects DO detect under
+        # concrete visual categories on the same frames: agentview "bottle"
+        # 0.604 / "can" 0.246 / "box" 0.195; wrist "box" 0.499 / "cardboard
+        # box" 0.424. Abstract fallbacks are useless ("product", "package",
+        # "item", "object", "thing" all 0.000) — a tail must name a CONCRETE
+        # visual category to recover anything.
+        #
+        # set_role_prompts takes the best box of the FIRST prompt that detected
+        # anything, so the exact phrase still wins wherever it grounds and the
+        # tail only supplies recall where it does not.
+        role_src = _with_fallbacks(src)
+        role_tgt = None if src == tgt else _with_fallbacks(tgt)
+        signature = [role_src, role_tgt]
+        if signature != self._active_classes:
+            self.perception.set_role_prompts(role_src, role_tgt)
+            self._active_classes = signature
 
         indices = subsample_indices(
             len(episode.frames), episode.source_hz, self.cfg.real_frame_hz

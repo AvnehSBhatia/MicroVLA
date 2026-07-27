@@ -1622,3 +1622,91 @@ own comment records that symmetry as "an assumption, not a result". Untested.
 
 Everything else in §3, §4j, §4k and §4l that rests on a single stage-B run is
 suspended pending the fixed-protocol re-run.
+
+## 4n. ROOT CAUSE: the corpus contained no object evidence at all
+
+Measured 2026-07-26 while baking LIBERO locally. This supersedes the grounding
+diagnosis in 4h and reframes every open-loop result in this document.
+
+### The measurement
+
+`preprocess/common.py` set the detector's classes to the PARSED TASK PHRASES —
+`set_classes([source, target])`, e.g. `["alphabet soup", "basket"]`. Freshly
+baked 3-episode samples of `libero_object`, per role, fraction of steps with a
+detection:
+
+| view | source (object to pick) | target (basket) | source-center std |
+|---|---|---|---|
+| **wrist** (`eye_in_hand_rgb`) | **0.0%**, weight 0.0000 | **0.0%**, weight 0.0000 | 0.000, 0.000 |
+| agentview | **0.0%**, weight 0.0000 | 95.7%, weight 0.5048 | 0.000, 0.000 |
+
+**The source object was never detected — in either view, on any frame.** Every
+`source_center` was the fallback 0.5, 0.5 with standard deviation exactly zero.
+Because `SlotResonanceFusion` weights box and geometry tokens by `box_weight`, a
+weight of 0 fades them to nothing: the policy was trained with **no object
+information whatsoever**, only `frame_emb`, the text tokens, proprioception and
+the last action.
+
+### Why it happened, and why no aggregate metric caught it
+
+YOLO-World-S returns exactly 0.000 for LIBERO's product names. The objects are
+plainly visible and DO detect under concrete visual categories, on the same
+frames:
+
+| prompt | agentview | wrist |
+|---|---|---|
+| `alphabet soup` (what was baked) | **0.000** | **0.000** |
+| `bottle` | 0.604 | 0.000 |
+| `box` | 0.195 | **0.499** |
+| `cardboard box` | 0.217 | 0.424 |
+| `can` | 0.246 | 0.000 |
+| `soup can` | 0.232 | 0.000 |
+| `carton` | 0.136 | 0.136 |
+| `product` / `package` / `item` / `object` / `thing` | 0.000 | 0.000 |
+
+Abstract nouns recover nothing; only concrete categories do. The failure is
+silent by construction: a missed detection is indistinguishable from a
+legitimately faded one, which is exactly what the graded-evidence design
+intends, so `box_weight = 0` flows through fusion as a valid input rather than
+an error. `det_conf` is 0.10 and resolution was not the cause — 0.000 at
+`min_side` 128, 512 and 1024 alike.
+
+### What this invalidates
+
+* **4h's central conclusion — "the grounding failure is ENTIRELY in the planner"
+  — is WRONG.** The planner could not use object evidence because none existed.
+  The weight-level analysis showing fusion to be "vision-rich" was reading
+  weights on inputs that were identically zero at training time.
+* **Every `geometry` sensitivity reading is explained.** Centers were constant,
+  so withholding them changed nothing; the 46x-134x seed folds in 4m were
+  variation in how each run fit a constant.
+* **The closed-loop behaviour is explained exactly.** On the agentview corpus
+  the basket was detected on 95.7% of frames and the object on 0%, which is
+  precisely the reported failure: the arm reaches the basket reliably and never
+  approaches an object. On the wrist corpus — `full_stageA_wrist_v72.pt` and
+  every long-horizon arm — there was no evidence at all.
+* **The v8 relational head would have been provably inert.** It would have
+  reasoned over two object slots whose weights were zero on every frame.
+
+### The fix
+
+`microvla/perception/yolo_world.py::set_role_prompts` already implements the
+right mechanism — an ordered prompt chain per role, taking the best box of the
+FIRST prompt that detected anything — and the bake was not using it. Now wired,
+with a concrete-category tail after the exact phrase and its head noun:
+
+`"alphabet soup"` -> `["alphabet soup", "soup", "box", "cardboard box", "can",
+"bottle", "carton", "container"]`
+
+Re-baked, same 3 episodes, wrist view:
+
+| | source detected | target detected | source-center std |
+|---|---|---|---|
+| before | 0.0% | 0.0% | 0.000, 0.000 |
+| **after** | **55.3%** | **34.0%** | **0.192, 0.177** |
+
+The exact phrase still wins wherever it grounds, so this only adds recall. This
+is the first time in the project that the corpus has carried object evidence,
+and it means every open-loop number in 3, 4 and 4m was measured on a policy that
+had no object input. Those results are not wrong about what they measured; they
+were measuring a different system than intended.
