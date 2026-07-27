@@ -24,12 +24,36 @@ cd "$(dirname "$0")/.." || exit 1
 mkdir -p logs/box_v8 data checkpoints eval_results
 LOG=logs/box_v8/00_progress.log
 echo "box v8: pid $$  pgid $(ps -o pgid= -p $$ | tr -d ' ')"
-echo "  watch:  tail -f $LOG"
+echo "  log  :  $LOG   (also printed here, live)"
 echo "  stop :  touch STOP"
 echo "  force:  kill -9 -$(ps -o pgid= -p $$ | tr -d ' ')"
+
+# Keep the ORIGINAL terminal on fd 3 before redirecting everything to the log,
+# so progress can go to both. Deliberately not `tee`: a tee whose reader dies
+# (closed terminal, dropped ssh) exits and takes the whole pipeline with it,
+# which is how a previous overnight run died. Every write to fd 3 is guarded, so
+# losing the terminal costs the live view and nothing else.
+exec 3>&1
 exec >> "$LOG" 2>&1
 
-say() { echo "[$(date +%H:%M:%S)] $*"; }
+#: Print to the log AND the terminal.
+say() {
+  local line="[$(date +%H:%M:%S)] $*"
+  echo "$line"
+  echo "$line" >&3 2>/dev/null || true
+}
+
+#: Run a command, streaming its output to BOTH a log file and the terminal.
+#: Sets RC to the command's own exit status (not the loop's).
+run_logged() {
+  local logfile="$1"; shift
+  "$@" > >(while IFS= read -r l; do
+             printf '%s\n' "$l" >> "$logfile"
+             printf '  %s\n' "$l" >&3 2>/dev/null || true
+           done) 2>&1
+  RC=$?
+  wait 2>/dev/null || true
+}
 stopped() { [ -f STOP ] && { say "STOP present — exiting."; return 0; }; return 1; }
 
 SUITES="${SUITES:-libero_object libero_spatial libero_goal}"
@@ -85,9 +109,9 @@ for S in $SUITES; do
   say "--- $S: bake (wrist view, sighted prompts, class-agnostic proposals) ---"
   # --camera eye_in_hand_rgb is REQUIRED: eval reads robot0_eye_in_hand_image,
   # and baking agentview trains the policy on a view it never sees (4f).
-  python -u -m preprocess.libero "$RAW/$S" "$OUT" \
-    --camera eye_in_hand_rgb --device "$DEV" > "logs/box_v8/bake_${S}.log" 2>&1
-  tail -3 "logs/box_v8/bake_${S}.log"
+  run_logged "logs/box_v8/bake_${S}.log" \
+    python -u -m preprocess.libero "$RAW/$S" "$OUT" \
+    --camera eye_in_hand_rgb --device "$DEV"
   N_EP=$(ls "$OUT"/*.npz 2>/dev/null | wc -l | tr -d ' ')
   say "  baked $N_EP episodes, $(du -sh "$OUT" 2>/dev/null | cut -f1)"
   # A LIBERO suite is ~500 episodes (10 tasks x ~50 demos). preprocess/libero.py
@@ -166,17 +190,16 @@ python -m preprocess.fit_waypoint_gain "$FIRST" \
 # ---------------------------------------------------------------------------
 stopped || {
   say "=== train v8 (stage A 60 / stage B 100) ==="
-  python -u train/train_batched.py $BAKED \
+  run_logged logs/box_v8/train_v8_big.log \
+    python -u train/train_batched.py $BAKED \
     --device "$DEV" --batch-size 64 --lr 5e-4 --max-vram-gb 50 \
     --stage-a-epochs 60 --warmup-epochs 5 --max-horizon 6 --patience 5 \
     --stage-b-epochs 100 --stage-b-patience 6 \
     --stage-b-select bc --stage-b-min-epochs 30 \
     --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long \
-    --v8 --tag v8_big > logs/box_v8/train_v8_big.log 2>&1
-  TRC=$?
-  say "  train rc=$TRC (rc=137 => SIGKILL, i.e. the host reaper or an OOM kill;"
-  say "  SIGTERM is trapped but SIGKILL cannot be)"
-  tail -25 logs/box_v8/train_v8_big.log
+    --v8 --tag v8_big
+  say "  train rc=$RC (137 => SIGKILL: host reaper or OOM kill; SIGTERM is"
+  say "  trapped, SIGKILL cannot be)"
 }
 
 CKPT=checkpoints/full_stageB_v8_big.pt
@@ -186,9 +209,10 @@ CKPT=checkpoints/full_stageB_v8_big.pt
 # 4. Bench, then the number this project has never had: closed-loop success.
 # ---------------------------------------------------------------------------
 say "=== bench ==="
-python -u -m eval.bench --checkpoint "$CKPT" --data-dir "$FIRST" \
+run_logged logs/box_v8/bench_v8_big.log \
+  python -u -m eval.bench --checkpoint "$CKPT" --data-dir "$FIRST" \
   --sensitivity --episodes 30 --device "${DEV}:0" \
-  --out eval_results/bench_v8_big.json 2>&1 | tail -30
+  --out eval_results/bench_v8_big.json
 
 say "=== closed loop (real sim) ==="
 for S in $SUITES; do
@@ -203,7 +227,7 @@ for S in $SUITES; do
     --device "${DEV}:0" --heads-device "${DEV}:0" \
     --workers 5 --stagger 10 --worker-timeout 3600 \
     > "logs/box_v8/closedloop_${S}.log" 2>&1
-  grep -E '"mean_success"|tasks_completed' "logs/box_v8/closedloop_${S}.log" | head -2
+  say "  $(grep -m1 '\"mean_success\"' "logs/box_v8/closedloop_${S}.log" || echo 'no mean_success line')"
 done
 
 say "=== DONE. bench: eval_results/bench_v8_big.json | logs: logs/box_v8 ==="
