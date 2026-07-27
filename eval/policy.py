@@ -292,8 +292,19 @@ class MicroVLAPolicy:
 
         from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
 
-        fusion = SlotResonanceFusion(cfg)
-        drift = AnchoredDriftEncoder(cfg)
+        # v8 is detected from the checkpoint's own keys, never a flag: loading
+        # v8 weights into v7 modules silently yields a random stack.
+        self.is_v8 = state is not None and "relational" in state
+        if self.is_v8:
+            from microvla.relational import RelationalHead
+            from microvla.v8 import DriftAdapter, FusionAdapter
+
+            fusion, drift = FusionAdapter(cfg), DriftAdapter(cfg)
+            relational = RelationalHead(cfg)
+        else:
+            fusion = SlotResonanceFusion(cfg)
+            drift = AnchoredDriftEncoder(cfg)
+            relational = None
         planner = ChronoQueryPlanner(cfg)
         tqsa = TextQueriedSpatialAdapter(cfg)
 
@@ -319,6 +330,9 @@ class MicroVLAPolicy:
                 _load_relaxed(trm, state["trm"], "trm")
             if is_stage_b:
                 _load_relaxed(planner, state["planner"], "planner")
+            if relational is not None:
+                _load_relaxed(relational, state["relational"], "relational")
+                logger.info("MicroVLAPolicy: v8 stack (relational head active)")
             if "tqsa" in state:
                 _load_relaxed(tqsa, state["tqsa"], "tqsa")
             else:
@@ -356,6 +370,7 @@ class MicroVLAPolicy:
             trm=trm,
             planner=planner,
             tqsa=tqsa,
+            relational=relational,
         )
 
         # v7.2 waypoint actuation: only ever active when BOTH the checkpoint

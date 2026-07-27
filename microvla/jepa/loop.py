@@ -155,6 +155,44 @@ class JEPALoop:
         planner: Chrono-Query Planner module.
     """
 
+    def _rel_tokens(self, next_emb, percept, box_weight, text_tokens, last_action):
+        """Relational tokens from a Perception, or None on a v7 stack.
+
+        Uses ``percept.proposals`` — the class-agnostic scene from the SAME
+        detector forward — and falls back to the two role slots when a
+        perception implementation does not supply them. ``box_weight`` is the
+        caller's own confidence x freshness, so a dream tick's held evidence
+        fades here exactly as it does everywhere else.
+        """
+        if self.relational is None:
+            return None
+        from microvla.v8 import pack_objects
+
+        k = self.cfg.max_objects
+        props = getattr(percept, "proposals", ())
+        if props:
+            obj = next_emb.new_zeros(1, k, self.cfg.vis_dim)
+            ctr = next_emb.new_zeros(1, k, 2)
+            w = next_emb.new_zeros(1, k)
+            # box_weight is [1, 2] for the two roles; a proposal's own
+            # confidence is its weight, scaled by the SAME staleness factor the
+            # roles got so dream decay stays one shared path.
+            stale = float(box_weight.max()) / max(
+                float(max(percept.source.confidence, percept.target.confidence)), 1e-6
+            ) if box_weight is not None else 1.0
+            stale = min(max(stale, 0.0), 1.0)
+            for j, b in enumerate(props[:k]):
+                obj[0, j] = b.emb.to(obj.device)
+                ctr[0, j] = b.center.to(obj.device)
+                w[0, j] = b.confidence * stale
+        else:
+            obj, ctr, w = pack_objects(
+                percept.source.emb.unsqueeze(0), percept.target.emb.unsqueeze(0),
+                percept.source.center.unsqueeze(0), percept.target.center.unsqueeze(0),
+                box_weight, self.cfg)
+        return self.relational(next_emb, obj, ctr, w, text_tokens,
+                               last_action=last_action)
+
     def __init__(
         self,
         cfg: MicroVLAConfig,
@@ -165,11 +203,15 @@ class JEPALoop:
         trm: TRMBase,
         planner: ChronoQueryPlanner,
         tqsa=None,
+        relational=None,
     ) -> None:
         self.cfg = cfg
         self.task_encoder = task_encoder
         self.perception = perception
         self.fusion = fusion
+        # v8: runs AFTER the TRM, on the predicted latent. None on a v7 stack,
+        # in which case the planner simply never receives the group.
+        self.relational = relational
         self.drift = drift
         self.trm = trm
         self.planner = planner
@@ -462,6 +504,8 @@ class JEPALoop:
                 pred_box_emb=next_box, geometry=geom,
                 proprio=proprio_tok, spatial=self._last_spatial,
                 wm_msg=wm["msg"], wm_latent=wm.get("latent"),
+                relational=self._rel_tokens(next_emb, self._last_percept,
+                                            box_weight, text_tokens, last_action),
                 return_wp=True)
             raw_plan = raw_plan.squeeze(0)              # [plan_steps, num_servos]
             # v7.2: the metric EEF displacement the caller may actuate against
@@ -571,6 +615,7 @@ class JEPALoop:
         cfg: Optional[MicroVLAConfig] = None,
         trm: Optional[TRMBase] = None,
         device: str = "cpu",
+        v8: bool = False,
     ) -> "JEPALoop":
         """Builds the real loop with frozen YOLO-World-S perception + CLIP text.
 
@@ -583,6 +628,11 @@ class JEPALoop:
             trm: Optional real TRM implementing ``TRMBase``. If ``None``, a
                 ``MockTRM`` placeholder is used and a warning is logged.
             device: Torch device string for the frozen encoders.
+            v8: Build the v8 stack — ``HRMBackbone`` in the drift slot,
+                ``EvidenceEncoder`` in the fusion slot, and a ``RelationalHead``
+                running after the TRM. The v7 modules are structurally
+                incompatible with a v8 checkpoint, so this must match whatever
+                produced the weights being loaded.
 
         Returns:
             A fully wired ``JEPALoop``.
@@ -601,13 +651,23 @@ class JEPALoop:
                 "microvla/trm/TRM_SPEC.md) for meaningful next-frame prediction."
             )
             trm = MockTRM(cfg)
+        if v8:
+            from microvla.relational import RelationalHead
+            from microvla.v8 import DriftAdapter, FusionAdapter
+
+            fusion, drift = FusionAdapter(cfg), DriftAdapter(cfg)
+            relational = RelationalHead(cfg)
+        else:
+            fusion, drift = SlotResonanceFusion(cfg), AnchoredDriftEncoder(cfg)
+            relational = None
         return cls(
             cfg=cfg,
             task_encoder=ClipTaskEncoder(perception),
             perception=perception,
-            fusion=SlotResonanceFusion(cfg),
-            drift=AnchoredDriftEncoder(cfg),
+            fusion=fusion,
+            drift=drift,
             trm=trm,
             planner=ChronoQueryPlanner(cfg),
             tqsa=TextQueriedSpatialAdapter(cfg),
+            relational=relational,
         )
