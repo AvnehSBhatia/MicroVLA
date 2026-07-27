@@ -38,8 +38,10 @@ def main(argv=None) -> None:
     ignore_sigterm()
 
     if "MUJOCO_GL" not in os.environ:
-        # Linux GPU box: egl is the headless renderer (osmesa is the CPU fallback).
-        os.environ["MUJOCO_GL"] = "egl"
+        # Platform-aware: egl/osmesa are Linux-only, and mujoco raises on an
+        # invalid value rather than falling back. macOS offscreen is cgl.
+        import platform
+        os.environ["MUJOCO_GL"] = "cgl" if platform.system() == "Darwin" else "egl"
     print(f"MUJOCO_GL={os.environ['MUJOCO_GL']}")
 
     # torch>=2.6 weights_only + LIBERO config shims (before any libero import).

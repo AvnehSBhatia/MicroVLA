@@ -46,3 +46,5 @@ eval_results/
 logs/
 checkpoints/
 *.output
+.libero_raw/
+.libero_src/
