@@ -47,6 +47,34 @@ from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 
 
+def _rel_tokens(mods, ep, i, next_emb, cfg, last_action):
+    """Relational tokens for one bench step, or None on a v7 stack.
+
+    Prefers the baked class-agnostic scene (``obj_*``) and falls back to the two
+    role slots, exactly as the trainer does — scoring a v8 checkpoint on
+    different evidence than it trained on is the same class of error as the
+    camera mismatch.
+    """
+    rel = mods.get("relational")
+    if rel is None:
+        return None
+    import torch as _t
+
+    from microvla.v8 import pack_objects
+
+    if "obj_embs" in ep:
+        obj = ep["obj_embs"][i].unsqueeze(0)
+        ctr = ep["obj_centers"][i].unsqueeze(0)
+        w = ep["obj_weights"][i].unsqueeze(0)
+    else:
+        obj, ctr, w = pack_objects(
+            ep["source_box_embs"][i].unsqueeze(0), ep["target_box_embs"][i].unsqueeze(0),
+            ep["source_centers"][i].unsqueeze(0), ep["target_centers"][i].unsqueeze(0),
+            ep["box_weights"][i].unsqueeze(0), cfg)
+    return rel(next_emb, obj, ctr, w, ep["text_tokens"].unsqueeze(0),
+               last_action=last_action)
+
+
 def _spatial_at(ep: dict, i: int, mods: dict) -> dict | None:
     """TQSA output for step ``i``, or None when the bench runs spatial-free.
 
@@ -112,6 +140,7 @@ def _episode_metrics(ep: dict, mods: dict, cfg: MicroVLAConfig, horizon: int) ->
                 pred_box_emb=next_box, geometry=geom,
                 proprio=ep["proprio"][i].unsqueeze(0), wm_msg=wm["msg"],
                 wm_latent=wm.get("latent"), spatial=_spatial_at(ep, i, mods),
+                relational=_rel_tokens(mods, ep, i, next_emb, cfg, last_action),
                 return_wp=True,
             )
             emitted.append(plan[0, 0].cpu().numpy())
@@ -213,7 +242,7 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
     pwm = ep["pwm_targets"]
     deltas: dict[str, list[float]] = {k: [] for k in
         ("fused", "current_emb", "state_delta", "geometry", "proprio",
-         "pred_box_emb", "wm_msg", "wm_latent", "spatial",
+         "pred_box_emb", "wm_msg", "wm_latent", "spatial", "relational",
          "next_emb->cur", "next_emb->stale")}
     grip_flips: dict[str, list[float]] = {k: [] for k in deltas}
     prev_next_emb = None
@@ -237,7 +266,8 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
             kw = dict(current_emb=cur, state_delta=delta, fused=fused,
                       pred_box_emb=next_box, geometry=geom, proprio=prop,
                       wm_msg=wm["msg"], wm_latent=wm.get("latent"),
-                      spatial=_spatial_at(ep, i, mods))
+                      spatial=_spatial_at(ep, i, mods),
+                      relational=_rel_tokens(mods, ep, i, next_emb, cfg, last_action))
             base = planner(next_emb, **kw)
 
             def _delta(alt):
@@ -258,6 +288,10 @@ def _episode_sensitivity(ep: dict, mods: dict, cfg: MicroVLAConfig) -> dict:
                       "proprio", "pred_box_emb", "wm_msg", "wm_latent"]
             if kw["spatial"] is not None:
                 probes.append("spatial")
+            # v8's relational tokens carry ALL object evidence, so withholding
+            # them is the direct test of whether the redesign is used at all.
+            if kw.get("relational") is not None:
+                probes.append("relational")
             for name in probes:
                 pose, flip = _delta(planner(next_emb, **{**kw, name: None}))
                 deltas[name].append(pose)
@@ -326,18 +360,36 @@ def main(argv=None) -> None:
         if "cfg" in state:
             cfg = MicroVLAConfig(**state["cfg"])
 
-    mods = {
-        "fusion": SlotResonanceFusion(cfg), "drift": AnchoredDriftEncoder(cfg),
-        "planner": ChronoQueryPlanner(cfg),
-    }
+    # v8 checkpoints carry a `relational` state_dict and were trained with the
+    # HRM/evidence adapters in the fusion and drift slots. Detected from the
+    # checkpoint's own keys, not a flag: building the v7 modules against v8
+    # weights would load nothing and score a randomly-initialised stack, which
+    # is exactly the class of silent mis-build that voided the TQSA numbers.
+    is_v8 = bool(state) and "relational" in state
+    if is_v8:
+        from microvla.relational import RelationalHead
+        from microvla.v8 import DriftAdapter, FusionAdapter
+
+        mods = {"fusion": FusionAdapter(cfg), "drift": DriftAdapter(cfg),
+                "planner": ChronoQueryPlanner(cfg),
+                "relational": RelationalHead(cfg)}
+    else:
+        mods = {
+            "fusion": SlotResonanceFusion(cfg), "drift": AnchoredDriftEncoder(cfg),
+            "planner": ChronoQueryPlanner(cfg),
+        }
     if state:
         from eval.policy import _load_relaxed
         from TRM import RecursiveTRM
 
         mods["trm"] = RecursiveTRM(cfg, d=state.get("trm_d", 1024))
-        for name in ("fusion", "drift", "trm", "planner"):
-            if name in state:
+        for name in ("fusion", "drift", "trm", "planner", "relational"):
+            if name in state and name in mods:
                 _load_relaxed(mods[name], state[name], name)
+        if is_v8:
+            print(f"v8 checkpoint: relational head loaded "
+                  f"({sum(p.numel() for p in mods['relational'].parameters()):,} params)",
+                  flush=True)
     else:
         from microvla.trm.mock_trm import MockTRM
 
