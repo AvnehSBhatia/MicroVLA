@@ -178,6 +178,24 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--stage-b-select", choices=("bc", "total"), default="bc",
+                   help="which VAL quantity gates early stopping and best-checkpoint "
+                        "selection. 'bc' (default) uses the behavior-cloning term ALONE "
+                        "— it is the only term on a common scale across arms, so it is "
+                        "the one that makes arms comparable. 'total' adds "
+                        "waypoint_weight*val_wp, which is what the 2026-07-25 overnight "
+                        "batch used and is NOT comparable: --min-delta is absolute, so "
+                        "an arm whose waypoint targets are ~10x larger (--waypoint-long) "
+                        "registers 'no improvement' sooner and early-stops sooner. Every "
+                        "bench metric in that batch tracked epochs-survived at Spearman "
+                        ">=0.84, so the arm rankings measured stop timing, not "
+                        "architecture. Kept only to reproduce those runs.")
+    p.add_argument("--stage-b-min-epochs", type=int, default=0,
+                   help="floor on stage-B epochs: track val and keep the best checkpoint "
+                        "as usual, but do not let --stage-b-patience halt before this "
+                        "epoch. Guards against a noisy early plateau ending a run at "
+                        "epoch 8 of a 40-epoch budget (observed: 8-28 epochs across "
+                        "otherwise-identical arms).")
     p.add_argument("--resume-stage-a", action="store_true",
                    help="continue stage A from its last completed epoch (weights, "
                         "optimizer, LR schedule, patience counter) instead of starting "
@@ -730,6 +748,13 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
     # mid-rollout dream tick as the representative training regime.
     period_fade = cfg.staleness_decay ** max(1, cfg.dream_ticks_per_real // 2)
 
+    if args.stage_b_patience > 0:
+        # Logged because the selection metric decides how long the run lives, and
+        # run length turned out to predict every bench metric.
+        print(f"[stage B] select on val {args.stage_b_select} | patience "
+              f"{args.stage_b_patience} | min epochs {args.stage_b_min_epochs} "
+              f"| budget {args.stage_b_epochs}", flush=True)
+
     for epoch in range(1, args.stage_b_epochs + 1):
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
         if tqsa is not None:
@@ -850,7 +875,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         if args.stage_b_patience > 0:
             val_bc, val_ga, val_wp = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
                                                   planner, device, tqsa, backbone, rng)
-            val_loss = val_bc + args.waypoint_weight * val_wp
+            # Selection metric. `bc` alone is the only term on a scale shared by
+            # every arm; folding in the waypoint term against an ABSOLUTE
+            # --min-delta gives long-horizon arms a harsher effective patience
+            # (see --stage-b-select).
+            val_loss = (val_bc if args.stage_b_select == "bc"
+                        else val_bc + args.waypoint_weight * val_wp)
             tag = ""
             if val_loss < best_val - args.min_delta:
                 best_val, stale = val_loss, 0
@@ -866,7 +896,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
                   f"| grip_acc {grip_acc/max(nb,1):.3f} | val bc {val_bc:.4f}{wp_txt} "
                   f"grip {val_ga:.3f}{tag} | {time.time()-t0:.0f}s", flush=True)
-            if stale >= args.stage_b_patience:
+            if stale >= args.stage_b_patience and epoch >= args.stage_b_min_epochs:
                 print(f"[stage B] early stop, best val {best_val:.4f} (checkpoint kept)", flush=True)
                 break
         else:

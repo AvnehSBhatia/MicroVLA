@@ -1189,6 +1189,11 @@ see whether `std_ratio` tracks it (loss weighting) or does not (interference).
 
 ### THE RESULT: vision finally dominates the planner
 
+> **RETRACTED (§4m).** This heading rests on `phase:vision = 2.0:1`. Three
+> seeds of the identical config later gave 0.3:1, 1.0:1 and 5.5:1 — the
+> ratio is not measurable from one run. `fused` itself is stable; its size
+> relative to proprioception is not.
+
 First readings on the pose/grip-split instrument (4i), so not comparable to the
 combined numbers above — but internally consistent:
 
@@ -1231,6 +1236,11 @@ and `grip_acc`, that is the first grounded policy this project has produced.
 
 ## 4l. Long-horizon arm A, RERUN — best arm yet, and large run-to-run variance
 
+> **SUPERSEDED (§4m).** "Best arm yet" is withdrawn: `std_ratio` 0.245 is the
+> top of a 5-sample distribution of this same config (mean 0.084, sd 0.097,
+> 11.1x fold), and the arm's training length — not its configuration —
+> predicts its bench numbers.
+
 Identical command to 4k (`--waypoint-long --waypoint-weight 1.0`, same frozen
 stage A, same seed), re-run after the bench waypoint-scoring fix. So the
 waypoint numbers here are valid where 4k's were void.
@@ -1258,6 +1268,8 @@ Pose-only sensitivity (the split instrument, so comparable ONLY to 4k):
 | wm_latent | 0.0041 | 0.0092 |
 | pred_box_emb | 0.0053 | 0.0083 |
 | PHASE : VISION | 0.33 : 1 | **2.0 : 1** |
+
+> **RETRACTED (§4m):** the phase:vision row. Seed range 0.3–5.5:1.
 
 ### THE FINDING THAT MATTERS MOST: run-to-run variance is enormous
 
@@ -1342,13 +1354,21 @@ fusion 4,460,165 · drift 724,993 · planner 1,770,247 · **total 6,955,405** of
 ablations: `geometry` −1,792 · `pred_box_emb` −16,640 · both −18,432 ·
 plus `next_emb` −35,072 · `spatial` → 1,720,583.
 
-Test suite over this session: **149 → 198** passing (CPU-only, mock-only, no
-network, no cv2).
+Test suite over this session: **149 → 231** passing (CPU-only, mock-only, no
+network, no cv2). Parameter ledger after v7.4: fusion 4,460,165 · drift 724,993 ·
+planner 1,803,527 · **total 6,988,685** of 9,000,000.
 
 ## 6. Defects found and fixed (2026-07-25)
 
 Ordered by what they would have cost if undetected.
 
+0. **Stage-B early stopping was not comparable across arms** (§4m). The stop
+   metric folded `waypoint_weight * val_wp` into the decision while `--min-delta`
+   stayed absolute, so arms whose waypoint targets are ~10x larger early-stopped
+   sooner. Runs ranged 8–28 epochs and every bench metric tracked epochs-survived
+   at Spearman >= 0.84 — the arm rankings in §3/§4j/§4k/§4l measured stop timing,
+   not architecture. This is the costliest defect in the project so far: it
+   silently invalidated a 12-arm batch and several earlier single-run A/Bs.
 1. **Bench scored TQSA checkpoints blind** (§0) — invalidates the comparability
    of every recorded TQSA-checkpoint number.
 2. **Silent cache corruption path.** The SPPF hook retains only the LAST
@@ -1372,13 +1392,197 @@ Ordered by what they would have cost if undetected.
    TQSA feature map).
 7. **`t0` shadow** in stage B: `t0 = rng.randrange(...)` overwrote the epoch
    timer under `--unfreeze-trm`, printing ~1.7e9 s epoch times.
+8. **Seed groups matched by prefix** (§4m): `startswith("longh_s")` pulled the
+   unrelated `longh_sdfade` arm into the longh error bar, reported as "4 seeds".
+9. **Ragged summary rows.** Checkpoints benched on the pre-split sensitivity
+   instrument were rendered in the same table as pose-split ones, with a variable
+   cell count. Now padded to fixed width and marked `~` as not comparable.
+10. **The overnight wrapper had no SIGTERM shield** while all 21 Python CLIs did,
+    so one signal to the wrapper killed the batch. `trap '' TERM HUP`, and output
+    via `exec` rather than `tee` (a `tee` to a dead tty exits and takes the
+    pipeline with it). Failure lines also reported `rc=$?` captured after a
+    `[ -f ]` test, so every failure logged `rc=0`.
 
 ## 7. Open
 
-* **Closed-loop `mean_success` remains unobtained** — the number the paper's
-  Claim 1 needs. Harness is now self-localizing (handoff §0).
-* Waypoint-absolute arm untrained; `wp_std_ratio` vs `std_ratio` is the test.
-* TQSA arm mid-flight; `spatial` sensitivity will be its first honest reading.
-* LIBERO-only stage B untested — bridge is 75% of stage-B steps and supplies
-  neither proprio nor frames, so it may be diluting the policy rather than
-  regularizing it.
+* **Closed-loop `mean_success` is 0.000 over 50 trials** (§4m). Obtained, and
+  negative. Every claim the paper can currently make is open-loop.
+* ~~Waypoint-absolute arm untrained~~ — trained and measured; the
+  displacement-vs-action ratio is 3.0x–29.1x across 19 arms (§4m).
+* ~~TQSA `spatial` sensitivity unread~~ — read: 0.0487 pose, but the with/without
+  head-to-head is within noise at 1.6x inference cost (§4m).
+* ~~LIBERO-only stage B untested~~ — tested once, `std_ratio` 0.253 at +2.96
+  prediction-sd over the training-length trend, but only 0.87 seed-sd over the
+  best mixed-corpus arm. Needs 3 seeds (§4m).
+* **Re-run the whole batch under the fixed protocol**
+  (`SUFFIX=_fx bash scripts/overnight.sh`, `--stage-b-select bc`,
+  `--stage-b-min-epochs 20`). Until then no arm ranking in this document means
+  anything, and the closed-loop zero cannot be attributed to any one arm.
+* **The sensitivity instrument needs a variance budget.** `proprio` and
+  `geometry` vary 46–134x across seeds; any future claim on them needs >= 3 runs,
+  or a different instrument.
+
+## 4m. The 12-arm overnight batch (2026-07-26) — the arm comparison was measuring training length
+
+`scripts/overnight.sh`, 08:34–11:10, 12 stage-B arms trained and 19 checkpoints
+benched on the pose/grip-split instrument, zero failures. All arms share the one
+frozen stage A (`full_stageA_wrist_v72.pt`), so `wm_margin` is **one** number
+replicated across 19 rows (+19.8%), not 19 measurements. Full table:
+`results/PAPER_TABLE.md`; raw records in `results/metrics.jsonl`.
+
+### The batch's primary result is a defect in its own protocol
+
+Arms early-stopped anywhere from **8 to 28 epochs**, and every bench metric is a
+monotone function of how long the run survived (n = 9 mixed-corpus arms):
+
+| metric | Pearson vs epochs | Spearman |
+|---|---|---|
+| `wp_std_ratio` | 0.891 | **0.924** |
+| `grip_acc` | 0.901 | **0.907** |
+| `std_ratio` | 0.770 | **0.866** |
+| `pose_mae` | −0.793 | **−0.865** |
+| `corr` | 0.915 | **0.840** |
+
+Sorted by epochs, every column moves together:
+
+| epochs | best val | `std_ratio` | `corr` | `grip` | `pose_mae` | arm |
+|---|---|---|---|---|---|---|
+| 8 | 0.8200 | 0.024 | 0.09 | 0.50 | 0.250 | `longh_s2` |
+| 8 | 0.7683 | 0.020 | 0.07 | 0.59 | 0.253 | `longh_sdfade` |
+| 9 | 0.7523 | 0.022 | 0.02 | 0.50 | 0.257 | `longh_s0` |
+| 14 | 0.6829 | 0.044 | 0.24 | 0.73 | 0.250 | `longh_pregrasp` |
+| 15 | 0.6952 | 0.070 | 0.13 | 0.88 | 0.247 | `longh_novis` |
+| 22 | 0.6138 | 0.114 | 0.46 | 0.87 | 0.233 | `native_s1` |
+| 22 | 0.6281 | 0.106 | 0.31 | 0.88 | 0.243 | `longh_s1` |
+| 24 | 0.6450 | 0.187 | 0.45 | 0.93 | 0.227 | `native_s2` |
+| 28 | 0.6299 | 0.072 | 0.39 | 0.91 | 0.242 | `longh_tqsa` |
+
+Grouped: **≤9 epochs → `std_ratio` 0.022, `corr` 0.06, `grip` 0.53**; **≥22
+epochs → 0.120, 0.40, 0.90.** An under-trained planner emits near-constant
+actions, which is exactly what a low `std_ratio` measures.
+
+### Mechanism (a real bug, not just variance)
+
+`train/train_batched.py` gated early stopping on
+`val_loss = val_bc + waypoint_weight * val_wp`, compared against an **absolute**
+`--min-delta` of 1e-4. `val_wp` is ~10x larger under `--waypoint-long`
+(0.5–2.5 s displacement targets vs 0.05–0.20 s), and a larger term carries
+larger noise, so a fixed absolute threshold is cleared less often and `stale`
+accrues faster. Long-horizon arms therefore ran a harsher effective patience
+than native ones. The function's own comment asserts `val bc` is "the SAME
+quantity across every arm" — true of the printed line, false of the decision it
+gated. Observed best-val totals confirm the scale split: longh 0.75–0.82 against
+native 0.61–0.65, consistent with the reported decomposition `val bc 0.6924` +
+`wp 0.1107` = 0.803.
+
+**Consequence.** No single-seed arm comparison in this batch is interpretable,
+including the four that "lost": `longh_pregrasp` (14 ep), `longh_sdfade` (8 ep),
+`longh_novis` (15 ep), `longh_all` (skipped, pre-existing). Nor is
+native-beats-longh (mean `std_ratio` 0.112 vs 0.051) — native trained 22/24
+epochs and longh 8/9/22.
+
+**Fixed.** `--stage-b-select {bc,total}`, now defaulting to `bc` (the only term
+on a scale shared by every arm); `--stage-b-min-epochs` floors the run length so
+a noisy plateau cannot end a 40-epoch budget at epoch 8. `total` is retained
+solely to reproduce this batch. `tests/test_stage_b_selection.py` pins both.
+`scripts/overnight.sh` defaults to `MIN_EPOCHS=20` and takes a `SUFFIX` so a
+protocol change re-runs instead of being skipped onto the old checkpoints.
+
+### Seed spread, corrected
+
+The generated table reported "longh over 4 seeds" because `startswith("longh_s")`
+also matched `longh_sdfade` — an unrelated arm averaged into the error bar. Fixed
+to an exact `_s\d+$` match. Corrected:
+
+| config | n | mean | sd | range | fold |
+|---|---|---|---|---|---|
+| `native` | 3 | 0.112 | 0.076 | 0.035–0.187 | 5.4x |
+| `longh` | 3 | 0.051 | 0.048 | 0.022–0.106 | 4.7x |
+
+Pooling every sample of the identical `longh` config this project has run —
+{0.022, 0.245, 0.022, 0.106, 0.024} — gives mean 0.084, sd 0.097, **11.1x
+fold**. §4l's 0.245 is the top of that distribution, not a reproducible level.
+
+### The sensitivity instrument is unmeasurable at n=1 for most inputs
+
+Same config, seed the only difference:
+
+| input | native (3 seeds) | fold | longh (3 seeds) | fold |
+|---|---|---|---|---|
+| `fused` | 0.0605, 0.0479, 0.0596 | **1x** | 0.0967, 0.0327, 0.0626 | 3x |
+| `state_delta` | 0.0072, 0.0234, 0.0419 | 6x | 0.0305, 0.1068, 0.0119 | 9x |
+| `proprio` | 0.0020, 0.1216, 0.1511 | **76x** | 0.0020, 0.0919, 0.0543 | 46x |
+| `geometry` | 0.0, 0.0134, 0.0064 | **134x** | 0.0, 0.0035, 0.0046 | 46x |
+
+`fused` is stable enough to read off a single run. `proprio` and `geometry` are
+not, which makes the **phase:vision ratio unusable at n=1**: it spans 0.2–2.9
+across native seeds and 0.3–5.5 across longh seeds.
+
+**RETRACTION (§4k, §4l).** The claim "vision finally dominates the planner",
+resting on longh `phase:vision = 2.0:1`, is withdrawn. Three seeds of that exact
+config give 0.3:1, 1.0:1 and 5.5:1; 2.0 sits inside the range. What survives is
+the weaker, instrument-supported statement: `fused` pose-sensitivity is
+0.03–0.10 and is the largest single visual contribution, but its size relative
+to proprioception cannot be established from one run.
+
+### `longh_liberoonly` — the one arm worth 3 seeds
+
+Trained on LIBERO alone (bridge is ~75% of mixed-corpus stage-B steps and
+supplies neither proprio nor frames). 26 epochs, best val 0.5724 — not
+comparable to the others, since its val set is a different corpus. It is in the
+well-trained group, so the confound above does not explain it away by itself.
+Fitting each metric on the 9 mixed-corpus arms and holding libero-only out:
+
+| metric | observed | predicted @26 ep | residual | prediction-sd |
+|---|---|---|---|---|
+| `std_ratio` | 0.253 | 0.126 | +0.127 | **+2.96** |
+| `corr` | 0.480 | 0.432 | +0.048 | +0.57 |
+| `grip` | 0.940 | 0.954 | −0.014 | −0.14 |
+
+So its best-in-batch `corr` and `grip` are **entirely explained by training
+length**; only `std_ratio` exceeds the trend. Against the strongest single
+comparator (`native_s2`, 0.187 at 24 ep) the margin is 1.35x but only **0.87
+seed-sd** — one run cannot separate them (n = 9, 7 df; directional).
+
+Its distinctive-looking sensitivity profile (`state_delta` 0.1933, `fused`
+0.1558, `proprio` 0.1337, `wm_latent` 0.0871, `current_emb` 0.0772,
+`pred_box_emb` 0.0507 — the only arm where every input registers) is **not**
+claimable: it rests on `proprio`/`geometry`, the two least stable inputs.
+
+**Status: hypothesis.** Corpus dilution is a plausible mechanism for the
+grounding failure and this is the first evidence for it, but it needs 3 seeds
+under the fixed protocol.
+
+### TQSA spatial input is near-worthless
+
+Same checkpoint, benched with and without the spatial pathway:
+
+| | `std_ratio` | `wp_std_ratio` | `corr` | `grip` | s/eval |
+|---|---|---|---|---|---|
+| `longh_tqsa` (spatial on) | 0.072 | 0.913 | 0.39 | 0.91 | 0.74 |
+| same ckpt, spatial off | 0.075 | 0.739 | 0.38 | 0.87 | 0.45 |
+
+Withholding `spatial` moves pose by 0.0487 (third-ranked) but the head-to-head
+is within noise on every action metric, at **1.6x the inference cost**. This is
+the 2-minute measurement §4b owed.
+
+### Closed loop: a well-sampled zero
+
+`libero_object`, the best arm by `std_ratio` with `grip > 0.7`, 5 trials × 10
+tasks = **50/50 failures, `mean_success` 0.000**, all 10 tasks completed, 0
+scavenged, no failed workers. Previous zeros were single small runs; this one is
+sampled well enough to state as a result.
+
+### What the batch leaves standing
+
+1. **Displacement regresses less shrunk than action** — `wp_std_ratio` /
+   `std_ratio` = **3.0x–29.1x** across 19 arms (median ~8x). Measured WITHIN one
+   forward pass, so neither the seed spread nor the stop-timing confound touches
+   it. Still the project's most robust claim.
+2. **Closed-loop success is 0/50.**
+3. **`fused` pose-sensitivity is 0.03–0.10** and stable across seeds.
+4. The confound, its mechanism, and its fix.
+5. `longh_liberoonly` as a hypothesis on `std_ratio` alone.
+
+Everything else in §3, §4j, §4k and §4l that rests on a single stage-B run is
+suspended pending the fixed-protocol re-run.

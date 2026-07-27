@@ -54,8 +54,18 @@ WPSTATS="data/libero_v7/waypoint_stats.json"
 LOGS="logs/overnight"; mkdir -p "$LOGS" eval_results results
 SUMMARY="$_LOG"
 
+# SUFFIX namespaces every tag, so a protocol change can be re-run without the
+# skip-if-exists guard silently reusing the old checkpoints:
+#   SUFFIX=_fx bash scripts/overnight.sh
+SUFFIX="${SUFFIX:-}"
+# MIN_EPOCHS is the fix for the 2026-07-25 confound: arms early-stopped anywhere
+# from 8 to 28 epochs, and every bench metric tracked epochs-survived (Spearman
+# >=0.84 on std_ratio/corr/grip/pose_mae/wp_std_ratio). Comparing arms of
+# unequal training length compares stop timing, not architecture.
+MIN_EPOCHS="${MIN_EPOCHS:-20}"
 COMMON="$DATA --device cuda --batch-size 64 --lr 5e-4 --max-vram-gb 50 \
   --load-stage-a $STAGE_A --stage-b-epochs 40 --stage-b-patience 4 \
+  --stage-b-select bc --stage-b-min-epochs $MIN_EPOCHS \
   --dream-frac 0.25 --waypoint-weight 1.0"
 
 say() { echo "[$(date +%H:%M:%S)] $*"; }
@@ -63,6 +73,7 @@ stop_requested() { [ -f STOP ] && { say "STOP file present — exiting cleanly."
 
 # --- preflight ---------------------------------------------------------------
 say "=== overnight batch starting: $(git rev-parse --short HEAD) ==="
+say "suffix '${SUFFIX:-<none>}' | select bc | min epochs $MIN_EPOCHS"
 for f in "$STAGE_A" "$NORM"; do
   [ -f "$f" ] || { say "FATAL: missing $f"; exit 1; }
 done
@@ -72,7 +83,7 @@ say "episodes: $(ls data/libero_v7/*.npz | wc -l | tr -d ' ') libero, $(ls data/
 # --- helpers ----------------------------------------------------------------
 # train_arm <tag> <extra flags...>   — idempotent, one retry, logged.
 train_arm() {
-  local tag="$1"; shift
+  local tag="$1$SUFFIX"; shift
   local ckpt="checkpoints/full_stageB_${tag}.pt"
   if [ -f "$ckpt" ]; then say "SKIP train $tag (checkpoint exists)"; return 0; fi
   stop_requested && return 1
@@ -94,7 +105,7 @@ $(grep -o 'best val [0-9.]*' "$LOGS/train_${tag}.log" | tail -1)"
 
 # train_arm_data <tag> <data flags> <extra...> — for a different corpus.
 train_arm_data() {
-  local tag="$1" data="$2"; shift 2
+  local tag="$1$SUFFIX" data="$2"; shift 2
   local ckpt="checkpoints/full_stageB_${tag}.pt"
   if [ -f "$ckpt" ]; then say "SKIP train $tag (checkpoint exists)"; return 0; fi
   stop_requested && return 1
@@ -110,7 +121,7 @@ train_arm_data() {
 
 # bench_ckpt <name> <checkpoint> [extra flags...] — idempotent.
 bench_ckpt() {
-  local name="$1" ckpt="$2"; shift 2
+  local name="$1$SUFFIX" ckpt="$2"; shift 2
   local out="eval_results/bench_${name}.json"
   [ -f "$out" ] && { say "SKIP bench $name"; return 0; }
   [ -f "$ckpt" ] || { say "SKIP bench $name (no $ckpt)"; return 0; }
@@ -153,30 +164,35 @@ train_arm_data "longh_liberoonly" "$LIBERO_ONLY" --waypoint-long
 # ============================================================================
 say "--- phase 3: bench all ---"
 for S in 0 1 2; do
-  bench_ckpt "native_s$S" "checkpoints/full_stageB_native_s$S.pt"
-  bench_ckpt "longh_s$S"  "checkpoints/full_stageB_longh_s$S.pt"
+  bench_ckpt "native_s$S" "checkpoints/full_stageB_native_s$S$SUFFIX.pt"
+  bench_ckpt "longh_s$S"  "checkpoints/full_stageB_longh_s$S$SUFFIX.pt"
 done
 for T in longh_pregrasp longh_sdfade longh_all longh_novis longh_liberoonly; do
-  bench_ckpt "$T" "checkpoints/full_stageB_${T}.pt"
+  bench_ckpt "$T" "checkpoints/full_stageB_${T}$SUFFIX.pt"
 done
-bench_ckpt "longh_tqsa"    "checkpoints/full_stageB_longh_tqsa.pt" --tqsa
+bench_ckpt "longh_tqsa"    "checkpoints/full_stageB_longh_tqsa$SUFFIX.pt" --tqsa
 # The 2-minute run paper.md 4b owes: the SAME TQSA checkpoint scored WITHOUT
 # spatial, which attributes its gripper collapse to the input vs the head.
-bench_ckpt "longh_tqsa_nospatial" "checkpoints/full_stageB_longh_tqsa.pt"
+bench_ckpt "longh_tqsa_nospatial" "checkpoints/full_stageB_longh_tqsa$SUFFIX.pt"
 # Any pre-existing checkpoints, on the new instrument.
-for f in checkpoints/full_stageB.pt checkpoints/full_stageB_longh.pt \
-         checkpoints/full_stageB_wristwp.pt; do
-  [ -f "$f" ] && bench_ckpt "legacy_$(basename "$f" .pt)" "$f"
-done
+if [ -z "$SUFFIX" ]; then
+  for f in checkpoints/full_stageB.pt checkpoints/full_stageB_longh.pt \
+           checkpoints/full_stageB_wristwp.pt; do
+    [ -f "$f" ] && bench_ckpt "legacy_$(basename "$f" .pt)" "$f"
+  done
+else
+  say "SKIP legacy re-bench (suffix run; those rows already exist unsuffixed)"
+fi
 
 # ============================================================================
 # 4. CLOSED LOOP on the best arm by std_ratio — the number the paper is missing.
 # ============================================================================
 say "--- phase 4: closed loop ---"
-BEST=$(python - <<'PY'
-import glob, json
+BEST=$(SUFFIX="$SUFFIX" python - <<'PY'
+import glob, json, os
+suffix = os.environ.get("SUFFIX", "")
 best = (None, -1)
-for f in glob.glob("eval_results/bench_*.json"):
+for f in glob.glob(f"eval_results/bench_*{suffix}.json"):
     try:
         a = json.load(open(f))["aggregate"]
         sr = a.get("std_ratio")
@@ -213,7 +229,7 @@ fi
 # ============================================================================
 say "--- phase 5: summary ---"
 python - <<'PY' | tee results/PAPER_TABLE.md
-import glob, json, os, statistics as st
+import glob, json, os, re, statistics as st
 
 rows = {}
 for f in sorted(glob.glob("eval_results/bench_*.json")):
@@ -224,8 +240,11 @@ for f in sorted(glob.glob("eval_results/bench_*.json")):
         continue
     a = d.get("aggregate", {})
     sens = d.get("sensitivity") or {}
-    pose = sens.get("pose", sens if "fused" in sens else {})
-    rows[name] = (a, pose)
+    if "pose" in sens:                      # current instrument: pose/grip split
+        pose, split = sens["pose"], True
+    else:                                   # pre-split: pose CONTAMINATED by grip
+        pose, split = (sens if "fused" in sens else {}), False
+    rows[name] = (a, pose, split)
 
 def g(a, k):
     v = a.get(k)
@@ -241,15 +260,16 @@ print("`results/metrics.jsonl` is the durable store.\n")
 print("## Bench\n")
 print("| arm | std_ratio | wp_std_ratio | corr | grip | pose_mae | wm_margin |")
 print("|---|---|---|---|---|---|---|")
-for n, (a, _) in rows.items():
+for n, (a, _, _) in rows.items():
     print(f"| {n} | {fmt(g(a,'std_ratio'))} | {fmt(g(a,'wp_std_ratio'))} | "
           f"{fmt(g(a,'corr'),2)} | {fmt(g(a,'grip_acc'),2)} | "
           f"{fmt(g(a,'pose_mae'))} | {fmt(g(a,'wm_margin_pct') or (g(a,'wm_margin') or 0)*100,1)}% |")
 
 print("\n## Seed spread — the error bar every single-run A/B needs\n")
 for base in ("native", "longh"):
-    vals = {k: g(a, "std_ratio") for k, (a, _) in rows.items()
-            if k.startswith(base + "_s") and g(a, "std_ratio") is not None}
+    seed_re = re.compile(r"^" + re.escape(base) + r"_s\d+$")
+    vals = {k: g(a, "std_ratio") for k, (a, _, _) in rows.items()
+            if seed_re.match(k) and g(a, "std_ratio") is not None}
     if len(vals) >= 2:
         v = list(vals.values())
         print(f"**{base}** std_ratio over {len(v)} seeds: "
@@ -261,21 +281,25 @@ for base in ("native", "longh"):
 print("\n## Planner input sensitivity (POSE only; the gripper bit is excluded)\n")
 keys = ["proprio", "state_delta", "fused", "geometry", "wm_msg", "wm_latent",
         "current_emb", "pred_box_emb", "next_emb->stale"]
-present = [n for n, (_, p) in rows.items() if p]
+present = [n for n, (_, p, _) in rows.items() if p]
 if present:
+    print("Rows marked `~` were benched on the PRE-SPLIT instrument, which mixed")
+    print("pose with the discrete gripper bit — not comparable to the rest.\n")
     print("| arm | " + " | ".join(keys) + " | phase:vision |")
     print("|---" * (len(keys) + 2) + "|")
     for n in present:
-        p = rows[n][1]
+        p, split = rows[n][1], rows[n][2]
+        label = n if split else f"{n} ~"   # ~ = pre-split instrument, not comparable
         phase = (p.get("proprio", 0) or 0) + (p.get("state_delta", 0) or 0)
         vis = (p.get("fused", 0) or 0) + (p.get("geometry", 0) or 0)
         ratio = f"{phase/vis:.1f}:1" if vis > 1e-9 else "—"
-        print(f"| {n} | " + " | ".join(fmt(p.get(k), 4) for k in keys) + f" | {ratio} |")
+        cells = [fmt(p.get(k), 4) for k in keys]     # fixed width: never a ragged row
+        print(f"| {label} | " + " | ".join(cells) + f" | {ratio} |")
 
 print("\n## Within-run claim: does displacement regress less shrunk than action?\n")
 print("| arm | action std_ratio | waypoint std_ratio | ratio |")
 print("|---|---|---|---|")
-for n, (a, _) in rows.items():
+for n, (a, _, _) in rows.items():
     s, w = g(a, "std_ratio"), g(a, "wp_std_ratio")
     if s and w:
         print(f"| {n} | {s:.3f} | {w:.3f} | **{w/s:.1f}x** |")
