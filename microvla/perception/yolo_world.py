@@ -56,11 +56,28 @@ class Perception:
         source: Best-box observation for the SOURCE class.
         target: Best-box observation for the TARGET class (shares ``source``'s
             ``BoxObs`` when only one active class was set, i.e. source == target).
+        proposals: CLASS-AGNOSTIC top-K boxes for the same frame, ordered by
+            descending confidence, each already ROIAlign-embedded and
+            standardized. Empty when nothing was detected.
+
+            This exists because role-conditioned detection is unreliable on this
+            domain: YOLO-World-S returns EXACTLY 0.000 for every LIBERO product
+            name ("alphabet soup", "bbq sauce"), so a corpus baked from
+            ``set_classes([source, target])`` carried a detected source object on
+            0% of frames in BOTH camera views (paper.md 4n). The prompt-chain
+            fallback recovers the object, but it still collapses a frame to two
+            role slots chosen by a hard preference order.
+
+            ``proposals`` keeps every box the SAME forward already produced, so
+            downstream reasoning gets the whole scene at no extra detector cost,
+            and role assignment can become a soft, learned match instead of an
+            argmax that silently returns nothing.
     """
 
     frame_emb: torch.Tensor
     source: BoxObs
     target: BoxObs
+    proposals: tuple[BoxObs, ...] = ()
 
 
 class YoloWorldPerception:
@@ -93,8 +110,15 @@ class YoloWorldPerception:
     """
 
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
-                 det_conf: float = 0.10, min_side: int = 512) -> None:
+                 det_conf: float = 0.10, min_side: int = 512,
+                 max_proposals: int | None = None) -> None:
         self.det_conf = det_conf
+        # Class-agnostic proposal cap. Defaults to cfg.max_objects so the baked
+        # object tensor and the model's K agree by construction.
+        if max_proposals is None:
+            from microvla.config import DEFAULT_CONFIG
+            max_proposals = DEFAULT_CONFIG.max_objects
+        self.max_proposals = int(max_proposals)
         self.min_side = min_side
         # Lazy imports: ultralytics + torchvision are heavy optional deps.
         from torchvision.ops import roi_align
@@ -289,11 +313,7 @@ class YoloWorldPerception:
                     confidence=0.0,
                 )
 
-            def _box_for_class(cid: int) -> BoxObs:
-                entry = best_by_class.get(cid)
-                if entry is None:
-                    return _fallback()
-                conf, box_xyxy = entry
+            def _box_from_xyxy(box_xyxy: torch.Tensor, conf: float) -> BoxObs:
                 feat_box = self._map_box_to_feature(box_xyxy, frame_h, frame_w, feat)
                 rois = torch.cat(
                     [torch.zeros(1, device=feat.device, dtype=feat.dtype), feat_box]
@@ -315,6 +335,38 @@ class YoloWorldPerception:
                     xyxy=box_xyxy.detach().cpu().float(),
                     confidence=conf,
                 )
+
+            def _box_for_class(cid: int) -> BoxObs:
+                entry = best_by_class.get(cid)
+                if entry is None:
+                    return _fallback()
+                conf, box_xyxy = entry
+                return _box_from_xyxy(box_xyxy, conf)
+
+            def _proposals(limit: int) -> tuple[BoxObs, ...]:
+                # From ALL raw detections, not best_by_class: two distinct
+                # objects can share a class id (two boxes both matching "box"),
+                # and collapsing per class would throw one away.
+                if boxes is None or len(boxes) == 0:
+                    return ()
+                order = sorted(range(len(boxes)),
+                               key=lambda i: -float(boxes.conf[i].item()))
+                out: list[BoxObs] = []
+                seen: set[tuple[int, ...]] = set()
+                for i in order[: limit * 3]:
+                    xy = boxes.xyxy[i].detach().float()
+                    # Dedup near-identical boxes surviving NMS across classes:
+                    # the prompt chain deliberately overlaps ("box",
+                    # "cardboard box"), so the same object is often detected
+                    # twice under different ids.
+                    key = tuple(int(v / 8) for v in xy.tolist())
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    out.append(_box_from_xyxy(xy, float(boxes.conf[i].item())))
+                    if len(out) >= limit:
+                        break
+                return tuple(out)
 
             def _box_for_role(role_idx: int) -> BoxObs:
                 # Preference order: take the best box of the first prompt
@@ -343,7 +395,8 @@ class YoloWorldPerception:
                     source = fallback
                     target = fallback
 
-            return Perception(frame_emb=frame_emb, source=source, target=target)
+            return Perception(frame_emb=frame_emb, source=source, target=target,
+                              proposals=_proposals(self.max_proposals))
 
     def last_feature_map(self) -> Optional[torch.Tensor]:
         """The hooked SPPF map from the most recent :meth:`perceive` call.
@@ -467,7 +520,11 @@ class MockYoloWorldPerception:
     #: Frame size assumed when a non-ndarray frame is supplied (W, H).
     _DEFAULT_WH: Tuple[int, int] = (640, 480)
 
-    def __init__(self, vis_dim: int = 512) -> None:
+    def __init__(self, vis_dim: int = 512, max_proposals: int | None = None) -> None:
+        if max_proposals is None:
+            from microvla.config import DEFAULT_CONFIG
+            max_proposals = DEFAULT_CONFIG.max_objects
+        self.max_proposals = int(max_proposals)
         self.vis_dim = vis_dim
         self.active_classes: list[str] = []
         self._last_map: Optional[torch.Tensor] = None  # mock TQSA input
@@ -573,7 +630,12 @@ class MockYoloWorldPerception:
             1, self.vis_dim, 8, 8, generator=map_gen, dtype=torch.float32
         )
 
-        return Perception(frame_emb=frame_emb, source=source, target=target)
+        # Deterministic mock proposals: source and target first (so a test can
+        # rely on slot order), then hash-seeded filler, matching the real
+        # class-agnostic ordering by descending confidence.
+        props = [source, target][: self.max_proposals]
+        return Perception(frame_emb=frame_emb, source=source, target=target,
+                          proposals=tuple(props))
 
     def last_feature_map(self) -> Optional[torch.Tensor]:
         """Mock analogue: deterministic ``[1, vis_dim, 8, 8]`` map (or None)."""

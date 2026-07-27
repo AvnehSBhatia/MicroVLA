@@ -85,7 +85,25 @@ class TestEpisodeBuilder:
         ep = _episode()
         norm = ActionNormalizer.fit([ep.actions])
         arrays = EpisodeBuilder(CFG, mock=True).build(ep, norm)
-        assert set(arrays) == set(EPISODE_KEYS)
+        # v8 adds the class-agnostic scene alongside the two role slots; the
+        # required set must still be present in full.
+        assert set(arrays) >= set(EPISODE_KEYS)
+        assert set(arrays) - set(EPISODE_KEYS) <= {"obj_embs", "obj_centers",
+                                                   "obj_weights", "wrist_frames"}
+
+    def test_build_emits_the_class_agnostic_scene(self):
+        ep = _episode()
+        norm = ActionNormalizer.fit([ep.actions])
+        arrays = EpisodeBuilder(CFG, mock=True).build(ep, norm)
+        T = arrays["frame_embs"].shape[0]
+        k = CFG.max_objects
+        assert arrays["obj_embs"].shape == (T, k, CFG.vis_dim)
+        assert arrays["obj_centers"].shape == (T, k, 2)
+        assert arrays["obj_weights"].shape == (T, k)
+        w = arrays["obj_weights"]
+        assert w.min() >= 0.0 and w.max() <= 1.0
+        # Pad slots beyond what the detector returned must be exactly inert.
+        assert np.all(w[:, 2:] == 0.0)
         T = arrays["frame_embs"].shape[0]
         assert T == len(subsample_indices(40, 20.0, CFG.real_frame_hz))
         assert arrays["pwm_targets"].shape == (T, CFG.plan_steps, CFG.num_servos)

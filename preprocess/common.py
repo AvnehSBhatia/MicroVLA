@@ -315,6 +315,8 @@ class EpisodeBuilder:
             len(episode.frames), episode.source_hz, self.cfg.real_frame_hz
         )
         frame_embs, s_embs, t_embs, s_ctrs, t_ctrs, weights = [], [], [], [], [], []
+        o_embs, o_ctrs, o_wts = [], [], []
+        k = self.cfg.max_objects
         for i in indices:
             frame_rgb = np.ascontiguousarray(episode.frames[i])
             frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1])  # detector convention
@@ -325,6 +327,20 @@ class EpisodeBuilder:
             s_ctrs.append(p.source.center.numpy())
             t_ctrs.append(p.target.center.numpy())
             weights.append([p.source.confidence, p.target.confidence])
+            # v8: the CLASS-AGNOSTIC scene, from the same detector forward. The
+            # two role slots above collapse a frame to a hard argmax that
+            # returns nothing when the phrase does not ground (paper.md 4n);
+            # these keep every box the forward already produced. Padded to
+            # cfg.max_objects at weight 0.0, which is bit-identically inert
+            # downstream, so K is a fixed shape rather than a real cap.
+            oe = np.zeros((k, self.cfg.vis_dim), dtype=np.float32)
+            oc = np.zeros((k, 2), dtype=np.float32)
+            ow = np.zeros((k,), dtype=np.float32)
+            for j, b in enumerate(p.proposals[:k]):
+                oe[j] = b.emb.numpy()
+                oc[j] = b.center.numpy()
+                ow[j] = b.confidence
+            o_embs.append(oe); o_ctrs.append(oc); o_wts.append(ow)
 
         pwm = chunk_actions(normalizer(episode.actions), indices, self.cfg.plan_steps)
         out = {
@@ -334,6 +350,9 @@ class EpisodeBuilder:
             "source_centers": np.stack(s_ctrs).astype(np.float32),
             "target_centers": np.stack(t_ctrs).astype(np.float32),
             "box_weights": np.asarray(weights, dtype=np.float32),
+            "obj_embs": np.stack(o_embs).astype(np.float32),
+            "obj_centers": np.stack(o_ctrs).astype(np.float32),
+            "obj_weights": np.stack(o_wts).astype(np.float32),
             "text_tokens": task.tokens().numpy().astype(np.float32),
             "pwm_targets": pwm,
         }

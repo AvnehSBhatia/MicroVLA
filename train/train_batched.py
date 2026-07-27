@@ -49,7 +49,8 @@ from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.relational import RelationalHead
-from microvla.v8 import DriftAdapter, FusionAdapter, pack_objects
+from microvla.v8 import (DriftAdapter, FusionAdapter, objects_from_batch,
+                         pack_objects)
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from microvla.utils.phase import pre_grasp_weights
@@ -351,22 +352,22 @@ def _obj_tokens(batch, idx, fade, cfg, ablate):
     return obj, ctr, w
 
 
-def _relational(relational, next_emb, batch, t, boxes, cfg):
+def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg):
     """Relational tokens for the planner, or None on the v7 stack.
 
     The v8 ordering change lives here: this runs on the TRM's PREDICTED latent,
     so object-object reasoning is conditioned on the same state the planner is
     about to decode, rather than on a separate pre-TRM summary.
 
-    ``boxes`` is the caller's ALREADY-EXTRACTED ``_boxes`` tuple, deliberately
-    not re-derived: on a dream step the caller holds t-1 boxes at the mid-dream
-    fade, and re-extracting here would silently hand the relational head fresh
-    evidence the rest of the step does not have.
+    ``box_idx``/``box_fade`` mirror the caller's own evidence choice exactly —
+    on a dream step that is t-1 at the mid-dream fade, on a real step t at 1.0.
+    They are passed rather than assumed because handing the relational head
+    fresher evidence than the rest of the step sees would leak the future into
+    the one module whose job is to reason about the present.
     """
     if relational is None:
         return None
-    sbe, tbe, sc, tc, bw = boxes
-    obj, ctr, w = pack_objects(sbe, tbe, sc, tc, bw, cfg)
+    obj, ctr, w = objects_from_batch(batch, box_idx, box_fade, cfg)
     last_action = (batch["pwm_targets"][:, t - 1, 0] if t > 0
                    else batch["pwm_targets"].new_zeros(
                        obj.shape[0], batch["pwm_targets"].shape[-1]))
@@ -788,8 +789,7 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
             sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
             geom = torch.cat([sc, tc, bw], dim=-1)
             spatial = _batch_spatial(batch, t, tqsa, backbone, device)
-            rel = _relational(relational, wm["next_emb"], batch, t,
-                              (sbe, tbe, sc, tc, bw), cfg)
+            rel = _relational(relational, wm["next_emb"], batch, t, t, 1.0, cfg)
             plan, grip, wp = planner(wm["next_emb"], current_emb=cur, state_delta=delta_all[t],
                                      fused=fused_all[t], pred_box_emb=wm["next_box"],
                                      geometry=geom, proprio=batch["proprio"][:, t],
@@ -878,7 +878,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     if dream:
                         prev = batch["frame_embs"][:, t - 1]
                         cur = standardize(trm(fused_all[t - 1], delta_all[t - 1], prev))
-                        sbe, tbe, sc, tc, bw = _boxes(batch, t - 1, period_fade, cfg,
+                        box_idx, box_fade = t - 1, period_fade
+                        sbe, tbe, sc, tc, bw = _boxes(batch, box_idx, box_fade, cfg,
                                                       args.ablate_grounding)
                         fused_t = fusion(batch["text_tokens"], cur, sbe, tbe, sc, tc,
                                          box_weight=bw,
@@ -886,6 +887,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                         delta_t = delta_all[t - 1]
                     else:
                         cur = batch["frame_embs"][:, t]
+                        box_idx, box_fade = t, 1.0
                         sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
                         fused_t, delta_t = fused_all[t], delta_all[t]
                 # forward_full OUTSIDE no_grad: msg_head (and, under
@@ -922,7 +924,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # also keeps the token count, which deletion did not.
                 fade = _fade_weights(args._drop_rates, cur.shape[0], cur.device)
                 rel = _relational(relational, next_emb, batch, t,
-                                  (sbe, tbe, sc, tc, bw), cfg)
+                                  box_idx, box_fade, cfg)
                 plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                          fused=fused_t, pred_box_emb=next_box,
                                          geometry=geom, proprio=batch["proprio"][:, t],

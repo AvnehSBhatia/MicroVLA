@@ -88,6 +88,33 @@ class DriftAdapter(nn.Module):
         return self.hrm(frame_emb, is_real=True).state
 
 
+def objects_from_batch(batch, idx, fade, cfg):
+    """Per-step object tokens, preferring the BAKED class-agnostic scene.
+
+    A v8 corpus carries ``obj_*``: every box the detector's forward produced,
+    padded to ``cfg.max_objects``. A v7 corpus does not, so the two role slots
+    are packed instead and effective K is 2.
+
+    ``fade`` scales the weights exactly as ``_boxes`` does — held dream evidence
+    decays by ``staleness_decay**k`` — so the graded-evidence contract is the
+    same whichever corpus is loaded.
+
+    Returns ``(obj_emb [B,K,vis_dim], obj_center [B,K,2], obj_weight [B,K])``.
+    """
+    # `has_objects`, not an all-zero check: a v7 corpus is zero-filled, and a
+    # legitimately empty frame in a v8 corpus is ALSO all-zero. Only provenance
+    # separates them, and guessing wrong silently starves the relational head.
+    if "obj_embs" in batch and float(batch.get("has_objects", torch.zeros(1)).max()) > 0.5:
+        return (batch["obj_embs"][:, idx],
+                batch["obj_centers"][:, idx],
+                batch["obj_weights"][:, idx] * fade)
+    return pack_objects(
+        batch["source_box_embs"][:, idx], batch["target_box_embs"][:, idx],
+        batch["source_centers"][:, idx], batch["target_centers"][:, idx],
+        batch["box_weights"][:, idx] * fade, cfg,
+    )
+
+
 def pack_objects(
     source_box_emb: torch.Tensor,
     target_box_emb: torch.Tensor,

@@ -44,7 +44,20 @@ EPISODE_KEYS: tuple[str, ...] = (
 #: flag, so a zero-fill is self-describing ("no proprio available").
 #:   proprio        [T, PROPRIO_DIM=10]  — arm state per sampled frame
 #:   eef_pos_chunk  [T, plan_steps, 3]   — absolute EEF xyz at the chunk steps
-OPTIONAL_KEYS: tuple[str, ...] = ("proprio", "eef_pos_chunk")
+#:   obj_embs       [T, K, vis_dim]       — v8 class-agnostic proposal embeddings
+#:   obj_centers    [T, K, 2]             — their normalized centers
+#:   obj_weights    [T, K]                — their confidences, 0.0 on pad slots
+#: The obj_* trio is OPTIONAL so a v7 corpus still loads; train_batched falls
+#: back to packing the two role slots when they are absent.
+#:   has_objects    [1]                   — 1.0 iff obj_* came from disk
+#: obj_* is zero-filled when absent so bucket stacking stays uniform across a
+#: mixed corpus. Zero-fill is INDISTINGUISHABLE from "detector found nothing on
+#: every frame", which is exactly the v7 corpus's real state (paper.md 4n), so
+#: `has_objects` records provenance explicitly rather than letting a consumer
+#: infer it from all-zero weights.
+OPTIONAL_KEYS: tuple[str, ...] = ("proprio", "eef_pos_chunk",
+                                  "obj_embs", "obj_centers", "obj_weights",
+                                  "has_objects")
 
 
 class EpisodeDataset(Dataset):
@@ -101,12 +114,18 @@ class EpisodeDataset(Dataset):
             # is part of the vector, so zeros self-describe as "unavailable").
             T = episode["frame_embs"].shape[0]
             plan_steps = episode["pwm_targets"].shape[1]
-            fills = {"proprio": (T, 10), "eef_pos_chunk": (T, plan_steps, 3)}
+            from microvla.config import DEFAULT_CONFIG as _cfg
+            k = _cfg.max_objects
+            fills = {"proprio": (T, 10), "eef_pos_chunk": (T, plan_steps, 3),
+                     "obj_embs": (T, k, _cfg.vis_dim), "obj_centers": (T, k, 2),
+                     "obj_weights": (T, k), "has_objects": (1,)}
             for key in OPTIONAL_KEYS:
                 if key in data:
                     episode[key] = torch.as_tensor(data[key], dtype=torch.float32)
                 else:
                     episode[key] = torch.zeros(fills[key], dtype=torch.float32)
+            episode["has_objects"] = torch.tensor(
+                [1.0 if "obj_embs" in data else 0.0], dtype=torch.float32)
             if self.load_frames and "wrist_frames" in data:
                 # uint8 on purpose: keep RAM/VRAM small; the trainer converts
                 # per-batch right before the frozen backbone forward.

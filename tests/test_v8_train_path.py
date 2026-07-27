@@ -159,25 +159,55 @@ class TestStageBPath:
             "relational tokens did not move the plan — the group is wired but inert."
         )
 
-    def test_helper_uses_the_boxes_it_is_given_not_fresh_ones(self, cfg, batch):
-        """A dream step holds t-1 boxes at a fade; re-deriving would leak t."""
-        from train.train_batched import _boxes, _relational
+    def test_helper_uses_the_evidence_it_is_given_not_fresh(self, cfg, batch):
+        """A dream step holds t-1 evidence at a fade; re-deriving would leak t."""
+        from train.train_batched import _relational
 
         rel = RelationalHead(cfg).eval()
         next_emb = batch["frame_embs"][:, 2]
-        held = _boxes(batch, 1, 0.5, cfg, False)     # dream: t-1, faded
-        fresh = _boxes(batch, 2, 1.0, cfg, False)    # real: t
-        a = _relational(rel, next_emb, batch, 2, held, cfg)
-        b = _relational(rel, next_emb, batch, 2, fresh, cfg)
-        assert not torch.allclose(a, b, atol=1e-4), (
+        held = _relational(rel, next_emb, batch, 2, 1, 0.5, cfg)   # dream
+        fresh = _relational(rel, next_emb, batch, 2, 2, 1.0, cfg)  # real
+        assert not torch.allclose(held, fresh, atol=1e-4), (
             "held and fresh evidence produced the same tokens — the helper is "
-            "ignoring the boxes it was handed."
+            "ignoring the index/fade it was handed."
         )
 
     def test_v7_stack_still_gets_none(self, cfg, batch):
-        from train.train_batched import _boxes, _relational
-        assert _relational(None, batch["frame_embs"][:, 1], batch, 1,
-                           _boxes(batch, 1, 1.0, cfg, False), cfg) is None
+        from train.train_batched import _relational
+        assert _relational(None, batch["frame_embs"][:, 1], batch, 1, 1, 1.0, cfg) is None
+
+    def test_baked_objects_are_preferred_over_the_two_role_slots(self, cfg, batch):
+        """A v8 corpus must reach the relational head; a v7 one must fall back."""
+        from microvla.v8 import objects_from_batch
+
+        K = cfg.max_objects
+        v7 = objects_from_batch(batch, 1, 1.0, cfg)
+        assert torch.count_nonzero(v7[2][:, 2:]) == 0, "v7 fallback filled >2 slots"
+
+        v8_batch = dict(batch)
+        v8_batch["obj_embs"] = torch.randn(B, T, K, cfg.vis_dim)
+        v8_batch["obj_centers"] = torch.rand(B, T, K, 2)
+        v8_batch["obj_weights"] = torch.rand(B, T, K)
+        v8_batch["has_objects"] = torch.ones(B, 1)
+        obj, ctr, w = objects_from_batch(v8_batch, 1, 1.0, cfg)
+        assert torch.equal(obj, v8_batch["obj_embs"][:, 1])
+        assert torch.count_nonzero(w[:, 2:]) > 0, "baked slots beyond 2 were dropped"
+
+    def test_zero_filled_objects_do_not_masquerade_as_a_real_scene(self, cfg, batch):
+        """The v7 corpus is zero-filled; provenance, not zeros, must decide."""
+        from microvla.v8 import objects_from_batch
+
+        K = cfg.max_objects
+        blind = dict(batch)
+        blind["obj_embs"] = torch.zeros(B, T, K, cfg.vis_dim)
+        blind["obj_centers"] = torch.zeros(B, T, K, 2)
+        blind["obj_weights"] = torch.zeros(B, T, K)
+        blind["has_objects"] = torch.zeros(B, 1)      # zero-filled, not baked
+        obj, _, w = objects_from_batch(blind, 1, 1.0, cfg)
+        assert torch.count_nonzero(obj[:, 0]) > 0, (
+            "fell through to the zero-fill instead of the role slots — the "
+            "relational head would train on nothing."
+        )
 
 
 def test_v8_fits_the_joint_budget(cfg):
