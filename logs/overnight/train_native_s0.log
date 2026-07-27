@@ -1,0 +1,26 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+stage-B input withhold rates: {'current_emb': 0.15, 'fused': 0.15}
+waypoint head ON (weight 1.0, range 0.15 m, native spacing, row_stride 1)
+VRAM cap: 50 GB of 192 GB total (fraction 0.261)
+batched training on cuda | batch 64 | data ['data/bridge', 'data/libero_v7']
+episodes: train 5073 (37 length-buckets), val 266
+loaded world model from checkpoints/full_stageA_wrist_v72.pt; skipping stage A
+[stage B] epoch 1/40 | loss 1.5118 | grip_acc 0.568 | val bc 0.7663 wp 0.0890 grip 0.623 *best* | 55s
+[stage B] epoch 2/40 | loss 0.8853 | grip_acc 0.582 | val bc 0.7437 wp 0.0420 grip 0.623 *best* | 54s
+[stage B] epoch 3/40 | loss 0.8197 | grip_acc 0.582 | val bc 0.7303 wp 0.0030 grip 0.623 *best* | 60s
+[stage B] epoch 4/40 | loss 0.7832 | grip_acc 0.597 | val bc 0.7316 wp 0.0052 grip 0.620 (no improve 1/4) | 55s
+[stage B] epoch 5/40 | loss 0.7406 | grip_acc 0.623 | val bc 0.8052 wp 0.0056 grip 0.526 (no improve 2/4) | 63s
+[stage B] epoch 6/40 | loss 0.7530 | grip_acc 0.621 | val bc 0.6961 wp 0.0209 grip 0.670 *best* | 61s
+[stage B] epoch 7/40 | loss 0.7366 | grip_acc 0.669 | val bc 0.8505 wp 0.0539 grip 0.547 (no improve 1/4) | 61s
+[stage B] epoch 8/40 | loss 0.7679 | grip_acc 0.636 | val bc 0.6905 wp 0.0183 grip 0.660 *best* | 63s
+[stage B] epoch 9/40 | loss 0.7162 | grip_acc 0.659 | val bc 0.7265 wp 0.0038 grip 0.613 (no improve 1/4) | 60s
+[stage B] epoch 10/40 | loss 0.7203 | grip_acc 0.665 | val bc 0.6758 wp 0.0043 grip 0.680 *best* | 62s
+[stage B] epoch 11 .. 101 batches | loss 0.7366 | grip 0.673 | 60s
+[stage B] epoch 11/40 | loss 0.7365 | grip_acc 0.673 | val bc 0.6986 wp 0.0045 grip 0.665 (no improve 1/4) | 68s
+[stage B] epoch 12 .. 103 batches | loss 0.7027 | grip 0.675 | 61s
+[stage B] epoch 12/40 | loss 0.7027 | grip_acc 0.675 | val bc 0.7067 wp 0.0031 grip 0.643 (no improve 2/4) | 65s
+[stage B] epoch 13 .. 101 batches | loss 0.6853 | grip 0.683 | 60s
+[stage B] epoch 13/40 | loss 0.6866 | grip_acc 0.683 | val bc 0.6646 wp 0.0240 grip 0.695 (no improve 3/4) | 66s
+[stage B] epoch 14/40 | loss 0.6752 | grip_acc 0.689 | val bc 0.7556 wp 0.0033 grip 0.651 (no improve 4/4) | 65s
+[stage B] early stop, best val 0.6801 (checkpoint kept)
+done.

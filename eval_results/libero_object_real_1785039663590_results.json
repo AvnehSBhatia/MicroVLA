@@ -1,0 +1,29 @@
+{
+  "suite": "libero_object",
+  "per_task": {
+    "pick_up_the_cream_cheese_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_butter_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_alphabet_soup_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_tomato_sauce_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_ketchup_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_orange_juice_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_salad_dressing_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_milk_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_bbq_sauce_and_place_it_in_the_basket": 0.0,
+    "pick_up_the_chocolate_pudding_and_place_it_in_the_basket": 0.0
+  },
+  "mean_success": 0.0,
+  "n_trials": 3,
+  "workers": 5,
+  "tasks_expected": 10,
+  "tasks_completed": 10,
+  "tasks_scavenged": 0,
+  "failed_workers": {},
+  "telemetry_paths": [
+    "eval_results/libero_object_real_1785039290641_w1_telemetry.jsonl",
+    "eval_results/libero_object_real_1785039280265_w0_telemetry.jsonl",
+    "eval_results/libero_object_real_1785039322033_w4_telemetry.jsonl",
+    "eval_results/libero_object_real_1785039300984_w2_telemetry.jsonl",
+    "eval_results/libero_object_real_1785039311124_w3_telemetry.jsonl"
+  ]
+}

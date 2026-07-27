@@ -1,0 +1,10 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+stage-B input withhold rates: {'current_emb': 0.15, 'fused': 0.15}
+waypoint head ON (weight 1.0, range 0.15 m, native spacing, row_stride 1)
+VRAM cap: 50 GB of 192 GB total (fraction 0.261)
+batched training on cuda | batch 64 | data ['data/bridge', 'data/libero_v7']
+episodes: train 5073 (37 length-buckets), val 266
+loaded world model from checkpoints/full_stageA_wrist_v72.pt; skipping stage A
+[stage B] select on val bc | patience 4 | min epochs 20 | budget 40
+[stage B] epoch 1/40 | loss 1.5118 | grip_acc 0.568 | val bc 0.7663 wp 0.0890 grip 0.623 *best* | 54s
+[stage B] epoch 2/40 | loss 0.8853 | grip_acc 0.582 | val bc 0.7437 wp 0.0420 grip 0.623 *best* | 57s

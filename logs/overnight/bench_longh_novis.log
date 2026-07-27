@@ -1,0 +1,56 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+
+episode                                      std_ratio    mae   corr  grip   wm+%   sec
+pick_up_the_alphabet_soup_and_place_it_in_th     0.065  0.265   0.25  0.73   10.7  1.31
+pick_up_the_alphabet_soup_and_place_it_in_th     0.113  0.225   0.31  0.83   26.2  0.40
+pick_up_the_alphabet_soup_and_place_it_in_th     0.067  0.251   0.13  0.88   18.6  0.50
+pick_up_the_alphabet_soup_and_place_it_in_th     0.051  0.277   0.13  0.62   14.7  0.52
+pick_up_the_alphabet_soup_and_place_it_in_th     0.066  0.254   0.10  1.00   12.1  0.36
+pick_up_the_alphabet_soup_and_place_it_in_th     0.075  0.232   0.08  0.87   14.4  0.33
+pick_up_the_alphabet_soup_and_place_it_in_th     0.091  0.198   0.07  0.93   20.9  0.47
+pick_up_the_alphabet_soup_and_place_it_in_th     0.065  0.258   0.15  0.75   15.8  0.54
+pick_up_the_alphabet_soup_and_place_it_in_th     0.068  0.261   0.20  0.94   33.6  0.39
+pick_up_the_alphabet_soup_and_place_it_in_th     0.106  0.211   0.10  0.94   18.3  0.41
+pick_up_the_alphabet_soup_and_place_it_in_th     0.093  0.235   0.04  0.88   23.2  0.57
+pick_up_the_alphabet_soup_and_place_it_in_th     0.074  0.250   0.20  0.88   22.0  0.38
+pick_up_the_alphabet_soup_and_place_it_in_th     0.048  0.303   0.34  0.36   14.4  0.36
+pick_up_the_alphabet_soup_and_place_it_in_th     0.072  0.265   0.12  0.94   22.7  0.38
+pick_up_the_alphabet_soup_and_place_it_in_th     0.076  0.217   0.12  1.00   21.4  0.39
+pick_up_the_alphabet_soup_and_place_it_in_th     0.070  0.287   0.13  0.93   15.8  0.33
+pick_up_the_alphabet_soup_and_place_it_in_th     0.053  0.253   0.13  0.59   26.7  0.40
+pick_up_the_alphabet_soup_and_place_it_in_th     0.050  0.266   0.15  0.50   18.6  0.36
+pick_up_the_alphabet_soup_and_place_it_in_th     0.065  0.232   0.22  0.87   13.2  0.32
+pick_up_the_alphabet_soup_and_place_it_in_th     0.073  0.221   0.16  0.71   11.5  0.36
+pick_up_the_alphabet_soup_and_place_it_in_th     0.079  0.241   0.22  0.94   19.6  0.38
+pick_up_the_alphabet_soup_and_place_it_in_th     0.071  0.256   0.13  0.93   20.1  0.36
+pick_up_the_alphabet_soup_and_place_it_in_th     0.095  0.232   0.11  0.83   18.9  0.34
+pick_up_the_alphabet_soup_and_place_it_in_th     0.067  0.277   0.21  0.93   15.9  0.24
+pick_up_the_alphabet_soup_and_place_it_in_th     0.079  0.228   0.10  0.94   26.3  0.28
+pick_up_the_alphabet_soup_and_place_it_in_th     0.065  0.244   0.11  0.89   24.9  0.24
+pick_up_the_alphabet_soup_and_place_it_in_th     0.068  0.233   0.10  0.88   26.3  0.24
+pick_up_the_alphabet_soup_and_place_it_in_th     0.088  0.213   0.16  0.88   23.3  0.24
+pick_up_the_alphabet_soup_and_place_it_in_th     0.070  0.244   0.19  0.69   24.2  0.24
+pick_up_the_alphabet_soup_and_place_it_in_th     0.054  0.257   0.12  0.73   22.2  0.20
+
+AGGREGATE (median): std_ratio 0.070 | mae 0.247 | corr 0.13 | grip 0.88 | wm_margin 19.8% | 0.40s/eval
+read: std_ratio ~1.0 = healthy magnitude (collapse shows as ~0.1); wm_margin > 0 = world model beats persistence.
+waypoint head (v7.2): std_ratio 0.478 | mae 95.3 mm  —  compare against the action std_ratio above: the lever only pays if positions regress with less shrinkage than actions do.
+
+planner input sensitivity when the input is WITHHELD (10 episodes):
+  input            POSE |dplan|  grip flip %
+  state_delta            0.1074        37.7%
+  proprio                0.0798        54.6%
+  fused                  0.0528        24.3%
+  wm_latent              0.0363        33.1%
+  current_emb            0.0198         8.4%
+  pred_box_emb           0.0122         1.1%
+  wm_msg                 0.0117         0.4%
+  geometry               0.0044         1.6%
+  next_emb->stale        0.0008         0.4%
+  next_emb->cur          0.0001         0.0%
+read: POSE and the GRIPPER are reported SEPARATELY on purpose. The plan's
+last column is a hard +/-1, so one flipped gripper decision per step adds
+exactly 0.2857 to a whole-plan mean — indistinguishable from the largest
+pose effect ever measured here. Earlier combined readings (paper.md 4g) mixed
+the two and must be re-measured with this build.
+saved -> eval_results/bench_longh_novis.json

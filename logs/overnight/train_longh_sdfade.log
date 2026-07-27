@@ -1,0 +1,18 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+stage-B input withhold rates: {'current_emb': 0.15, 'fused': 0.15, 'state_delta': 0.4}
+waypoint head ON (weight 1.0, range 0.5 m, SAMPLED (2 Hz) spacing, row_stride 10)
+note: --waypoint-long targets are ~3.5x larger in magnitude, but the observed val split was BC-dominated 6:1 — read the per-epoch `val bc X wp Y` line rather than assuming the wp term dominates. The first long-horizon arm collapsed std_ratio 0.126 -> 0.022 for reasons not yet attributed (paper.md 4k).
+VRAM cap: 50 GB of 192 GB total (fraction 0.261)
+batched training on cuda | batch 64 | data ['data/bridge', 'data/libero_v7']
+episodes: train 5073 (37 length-buckets), val 266
+loaded world model from checkpoints/full_stageA_wrist_v72.pt; skipping stage A
+[stage B] epoch 1/40 | loss 1.6077 | grip_acc 0.570 | val bc 0.7750 wp 0.1205 grip 0.623 *best* | 54s
+[stage B] epoch 2/40 | loss 1.0540 | grip_acc 0.585 | val bc 0.7410 wp 0.1212 grip 0.622 *best* | 52s
+[stage B] epoch 3/40 | loss 0.9963 | grip_acc 0.591 | val bc 0.7139 wp 0.1306 grip 0.623 *best* | 50s
+[stage B] epoch 4/40 | loss 0.9351 | grip_acc 0.613 | val bc 0.7165 wp 0.0518 grip 0.647 *best* | 53s
+[stage B] epoch 5/40 | loss 0.8323 | grip_acc 0.620 | val bc 0.8313 wp 0.0508 grip 0.529 (no improve 1/4) | 56s
+[stage B] epoch 6/40 | loss 0.7819 | grip_acc 0.620 | val bc 0.6958 wp 0.0730 grip 0.661 (no improve 2/4) | 56s
+[stage B] epoch 7/40 | loss 0.8391 | grip_acc 0.662 | val bc 0.7554 wp 0.1205 grip 0.574 (no improve 3/4) | 52s
+[stage B] epoch 8/40 | loss 0.8324 | grip_acc 0.633 | val bc 0.6903 wp 0.1006 grip 0.651 (no improve 4/4) | 51s
+[stage B] early stop, best val 0.7683 (checkpoint kept)
+done.

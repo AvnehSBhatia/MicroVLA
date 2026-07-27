@@ -1,0 +1,207 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+
+libero_object_real_1785063819440_w4_telemetry.jsonl
+  steps 3000 | 0/10 succeeded | real ticks 200
+  waypoint |cmd| mean 0.4052 max 0.9575 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1186, 0.8550, 0.2420
+  plan_norm mean 2.879 | trust mean 0.521 min 0.138
+
+libero_object_real_1785063809041_w3_telemetry.jsonl
+  steps 3000 | 0/10 succeeded | real ticks 200
+  waypoint |cmd| mean 0.4052 max 0.9575 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1196, 0.8575, 0.2386
+  plan_norm mean 2.887 | trust mean 0.518 min 0.147
+
+libero_object_real_1785063798981_w2_telemetry.jsonl
+  steps 3000 | 0/10 succeeded | real ticks 200
+  waypoint |cmd| mean 0.4007 max 0.9575 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1140, 0.8511, 0.2372
+  plan_norm mean 2.866 | trust mean 0.517 min 0.131
+
+libero_object_real_1785063788974_w1_telemetry.jsonl
+  steps 3000 | 0/10 succeeded | real ticks 200
+  waypoint |cmd| mean 0.4037 max 0.9575 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1192, 0.8570, 0.2349
+  plan_norm mean 2.872 | trust mean 0.522 min 0.135
+
+libero_object_real_1785063778532_w0_telemetry.jsonl
+  steps 3000 | 0/10 succeeded | real ticks 200
+  waypoint |cmd| mean 0.4005 max 0.9575 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1204, 0.8461, 0.2349
+  plan_norm mean 2.865 | trust mean 0.519 min 0.119
+
+libero_object_real_1785047455117_w2_telemetry.jsonl
+  steps 12000 | 0/40 succeeded | real ticks 800
+  waypoint |cmd| mean 0.1018 max 0.9528 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.0953, 0.1049, 0.1053
+  plan_norm mean 2.269 | trust mean 0.496 min 0.164
+
+libero_object_real_1785047444808_w1_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.1113 max 0.8881 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.0912, 0.1280, 0.1146
+  plan_norm mean 2.273 | trust mean 0.530 min 0.220
+
+libero_object_real_1785047434604_w0_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.1102 max 0.9615 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.0881, 0.1175, 0.1250
+  plan_norm mean 2.274 | trust mean 0.514 min 0.162
+
+libero_object_real_1785047475420_w4_telemetry.jsonl
+  steps 1200 | 0/4 succeeded | real ticks 80
+  waypoint |cmd| mean 0.1102 max 0.8979 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.0969, 0.1100, 0.1238
+  plan_norm mean 2.276 | trust mean 0.520 min 0.209
+
+libero_object_real_1785047465209_w3_telemetry.jsonl
+  steps 1200 | 0/4 succeeded | real ticks 80
+  waypoint |cmd| mean 0.1329 max 1.0000 | clipped 0.0% of steps
+  per-axis |cmd| (x, y, z): 0.1266, 0.1346, 0.1374
+  plan_norm mean 2.270 | trust mean 0.497 min 0.206
+
+libero_object_real_1785039311124_w3_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4065 max 1.0000 | clipped 3.2% of steps
+  per-axis |cmd| (x, y, z): 0.5682, 0.2339, 0.4174
+  plan_norm mean 2.446 | trust mean 0.547 min 0.176
+
+libero_object_real_1785039300984_w2_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4126 max 1.0000 | clipped 2.7% of steps
+  per-axis |cmd| (x, y, z): 0.5713, 0.2406, 0.4258
+  plan_norm mean 2.456 | trust mean 0.556 min 0.206
+
+libero_object_real_1785039322033_w4_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4087 max 1.0000 | clipped 3.4% of steps
+  per-axis |cmd| (x, y, z): 0.5525, 0.2514, 0.4223
+  plan_norm mean 2.458 | trust mean 0.559 min 0.193
+
+libero_object_real_1785039280265_w0_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4345 max 1.0000 | clipped 3.3% of steps
+  per-axis |cmd| (x, y, z): 0.5986, 0.2338, 0.4710
+  plan_norm mean 2.460 | trust mean 0.550 min 0.175
+
+libero_object_real_1785039290641_w1_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4346 max 1.0000 | clipped 2.7% of steps
+  per-axis |cmd| (x, y, z): 0.5791, 0.2524, 0.4722
+  plan_norm mean 2.473 | trust mean 0.550 min 0.212
+
+libero_object_real_1785038178553_w4_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.3952 max 1.0000 | clipped 3.7% of steps
+  per-axis |cmd| (x, y, z): 0.5660, 0.2402, 0.3795
+  plan_norm mean 2.427 | trust mean 0.557 min 0.184
+
+libero_object_real_1785038158179_w2_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4173 max 1.0000 | clipped 2.7% of steps
+  per-axis |cmd| (x, y, z): 0.5696, 0.2539, 0.4285
+  plan_norm mean 2.449 | trust mean 0.553 min 0.202
+
+libero_object_real_1785038168241_w3_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.3962 max 1.0000 | clipped 2.3% of steps
+  per-axis |cmd| (x, y, z): 0.5612, 0.2161, 0.4114
+  plan_norm mean 2.443 | trust mean 0.541 min 0.185
+
+libero_object_real_1785038136688_w0_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4320 max 1.0000 | clipped 2.8% of steps
+  per-axis |cmd| (x, y, z): 0.5931, 0.2371, 0.4659
+  plan_norm mean 2.465 | trust mean 0.548 min 0.177
+
+libero_object_real_1785038147900_w1_telemetry.jsonl
+  steps 1800 | 0/6 succeeded | real ticks 120
+  waypoint |cmd| mean 0.4014 max 1.0000 | clipped 2.5% of steps
+  per-axis |cmd| (x, y, z): 0.5560, 0.2360, 0.4122
+  plan_norm mean 2.443 | trust mean 0.552 min 0.200
+
+libero_object_real_1785037789830_w4_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.5156 max 1.0000 | clipped 28.7% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.5657, 0.4412, 0.5399
+  plan_norm mean 2.393 | trust mean 0.524 min 0.206
+
+libero_object_real_1785037769586_w2_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.5210 max 1.0000 | clipped 32.5% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.5787, 0.4396, 0.5447
+  plan_norm mean 2.391 | trust mean 0.535 min 0.222
+
+libero_object_real_1785037779766_w3_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.5054 max 1.0000 | clipped 24.8% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.5663, 0.4247, 0.5251
+  plan_norm mean 2.380 | trust mean 0.517 min 0.199
+
+libero_object_real_1785037748938_w0_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.5078 max 1.0000 | clipped 26.4% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.5688, 0.4097, 0.5448
+  plan_norm mean 2.382 | trust mean 0.531 min 0.228
+
+libero_object_real_1785037759303_w1_telemetry.jsonl
+  steps 1500 | 0/5 succeeded | real ticks 100
+  waypoint |cmd| mean 0.5144 max 1.0000 | clipped 27.1% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.5549, 0.4315, 0.5567
+  plan_norm mean 2.393 | trust mean 0.531 min 0.221
+
+libero_object_real_1785037035405_telemetry.jsonl
+  steps 100 | 0/1 succeeded | real ticks 7
+  waypoint |cmd| mean 0.3213 max 1.0000 | clipped 8.3% of steps  <-- SATURATED
+  per-axis |cmd| (x, y, z): 0.3971, 0.2668, 0.3000
+  plan_norm mean 2.365 | trust mean 0.498 min 0.257
+
+libero_object_real_1784953826755_telemetry.jsonl
+  steps 1540 | 0/7 succeeded | real ticks 105
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.541 | trust mean 0.591 min 0.431
+
+libero_object_real_1784951302981_telemetry.jsonl
+  steps 220 | 0/1 succeeded | real ticks 15
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.502 | trust mean 0.690 min 0.607
+
+libero_object_real_1784877567223_telemetry.jsonl
+  steps 2200 | 0/10 succeeded | real ticks 150
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.409 | trust mean 0.667 min 0.508
+
+libero_object_real_1784872120871_telemetry.jsonl
+  steps 1760 | 0/8 succeeded | real ticks 120
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.431 | trust mean 0.578 min 0.318
+
+libero_object_real_1784788912042_telemetry.jsonl
+  steps 2200 | 0/10 succeeded | real ticks 150
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.496 | trust mean 0.608 min 0.336
+
+libero_spatial_real_1784779442961_telemetry.jsonl
+  steps 900 | 0/3 succeeded | real ticks 60
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.673 | trust mean 0.550 min 0.263
+
+libero_spatial_real_1784779115137_telemetry.jsonl
+  steps 300 | 0/1 succeeded | real ticks 20
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.685 | trust mean 0.552 min 0.303
+
+libero_object_real_1784705516828_telemetry.jsonl
+  steps 9000 | 0/30 succeeded | real ticks 600
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.629 | trust mean 0.572 min 0.140
+
+libero_object_real_1784704615313_telemetry.jsonl
+  steps 1200 | 0/4 succeeded | real ticks 80
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.548 | trust mean 0.544 min 0.182
+
+libero_object_real_1784704529996_telemetry.jsonl
+  steps 300 | 0/1 succeeded | real ticks 20
+  waypoint actuation OFF (no waypoint_cmd in telemetry)
+  plan_norm mean 2.544 | trust mean 0.583 min 0.365
