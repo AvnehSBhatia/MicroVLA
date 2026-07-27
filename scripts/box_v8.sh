@@ -51,10 +51,15 @@ BAKED=""
 for S in $SUITES; do
   stopped && break
   OUT="data/${S}_v8"
-  if [ -d "$OUT" ] && [ "$(ls "$OUT"/*.npz 2>/dev/null | wc -l)" -gt 100 ]; then
-    say "SKIP $S (already baked: $(ls "$OUT"/*.npz | wc -l) episodes)"
+  MIN_EP="${MIN_EP:-300}"
+  HAVE=$(ls "$OUT"/*.npz 2>/dev/null | wc -l | tr -d ' ')
+  # Threshold matches the partial-bake gate below. A fixed 100 here would have
+  # made any partial bake of >100 episodes permanently "done" and never retried.
+  if [ "$HAVE" -ge "$MIN_EP" ]; then
+    say "SKIP $S (already baked: $HAVE episodes)"
     BAKED="$BAKED --data-dir $OUT"; continue
   fi
+  [ "$HAVE" -gt 0 ] && say "  $S has $HAVE episodes (< $MIN_EP) — re-baking"
 
   say "--- $S: download ---"
   mkdir -p "$RAW"
@@ -80,9 +85,22 @@ for S in $SUITES; do
   say "--- $S: bake (wrist view, sighted prompts, class-agnostic proposals) ---"
   # --camera eye_in_hand_rgb is REQUIRED: eval reads robot0_eye_in_hand_image,
   # and baking agentview trains the policy on a view it never sees (4f).
-  python -m preprocess.libero "$RAW/$S" "$OUT" \
-    --camera eye_in_hand_rgb --device "$DEV" 2>&1 | tail -4
-  say "  baked $(ls "$OUT"/*.npz 2>/dev/null | wc -l) episodes, $(du -sh "$OUT" 2>/dev/null | cut -f1)"
+  python -u -m preprocess.libero "$RAW/$S" "$OUT" \
+    --camera eye_in_hand_rgb --device "$DEV" > "logs/box_v8/bake_${S}.log" 2>&1
+  tail -3 "logs/box_v8/bake_${S}.log"
+  N_EP=$(ls "$OUT"/*.npz 2>/dev/null | wc -l | tr -d ' ')
+  say "  baked $N_EP episodes, $(du -sh "$OUT" 2>/dev/null | cut -f1)"
+  # A LIBERO suite is ~500 episodes (10 tasks x ~50 demos). preprocess/libero.py
+  # can die partway through a suite and leave a valid-looking directory, so a
+  # count far below that means a partial bake, not a small suite. Training on
+  # 85 episodes instead of 500 is what produced a stage A that never beat
+  # persistence: with H=6 rollouts the val set is a handful of episodes.
+  if [ "$N_EP" -lt "$MIN_EP" ]; then
+    say "  PARTIAL BAKE: $N_EP < $MIN_EP episodes for $S."
+    say "  Raw kept at $RAW/$S for a retry; see logs/box_v8/bake_${S}.log."
+    say "  Re-run to resume, or set MIN_EP=<n> to accept a smaller suite."
+    continue
+  fi
 
   say "--- $S: GATE (is the corpus sighted?) ---"
   python - "$OUT" "$GATE_PCT" <<'PY'
@@ -107,13 +125,25 @@ PY
   if [ $? -ne 0 ]; then say "  GATE FAILED for $S — not adding it to the corpus"; continue; fi
 
   BAKED="$BAKED --data-dir $OUT"
+  say "  $S ACCEPTED: $N_EP episodes"
   say "--- $S: delete raw ($(du -sh "$RAW/$S" | cut -f1)) ---"
   rm -rf "${RAW:?}/${S:?}"
   say "  disk: $(df -h . | tail -1 | awk '{print $4}') free"
 done
 
 [ -z "$BAKED" ] && { say "NO SIGHTED CORPUS — aborting."; exit 1; }
-say "=== corpus:$BAKED ==="
+TOTAL_EP=0
+for d in $(echo "$BAKED" | tr ' ' '\n' | grep -v '^--data-dir$' | grep -v '^$'); do
+  TOTAL_EP=$((TOTAL_EP + $(ls "$d"/*.npz 2>/dev/null | wc -l | tr -d ' ')))
+done
+say "=== corpus:$BAKED  ($TOTAL_EP episodes) ==="
+MIN_TOTAL="${MIN_TOTAL:-400}"
+if [ "$TOTAL_EP" -lt "$MIN_TOTAL" ]; then
+  say "CORPUS TOO SMALL ($TOTAL_EP < $MIN_TOTAL). Stage A on ~140 episodes never"
+  say "beat persistence; that is a data problem, not an architecture one."
+  say "Fix the bakes and re-run, or set MIN_TOTAL=<n> to override."
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # 2. One shared normalizer + waypoint gain across the suites.
@@ -142,7 +172,11 @@ stopped || {
     --stage-b-epochs 100 --stage-b-patience 6 \
     --stage-b-select bc --stage-b-min-epochs 30 \
     --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long \
-    --v8 --tag v8_big 2>&1 | tail -200
+    --v8 --tag v8_big > logs/box_v8/train_v8_big.log 2>&1
+  TRC=$?
+  say "  train rc=$TRC (rc=137 => SIGKILL, i.e. the host reaper or an OOM kill;"
+  say "  SIGTERM is trapped but SIGKILL cannot be)"
+  tail -25 logs/box_v8/train_v8_big.log
 }
 
 CKPT=checkpoints/full_stageB_v8_big.pt
