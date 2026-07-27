@@ -48,6 +48,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
+from microvla.hrm import HRMBackbone
+from microvla.relational import RelationalHead
+from microvla.relational.evidence import EvidenceEncoder
 from microvla.planner.chrono_planner import ChronoQueryPlanner
 from microvla.utils.embedding import standardize
 from microvla.utils.phase import pre_grasp_weights
@@ -57,6 +60,7 @@ from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
                           total_planner_loss, waypoint_loss)
 from train.train_full import _scheduled_horizon, _tagged_name, save
+from microvla.utils.param_audit import count_trainable_params
 from train.train_planner import resolve_device
 from TRM import RecursiveTRM, spec_loss
 
@@ -178,6 +182,17 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--v8", action="store_true",
+                   help="build the v8 stack (DESIGN.md 'v8 plan'): HRMBackbone in "
+                        "place of AnchoredDriftEncoder, RelationalHead in place of "
+                        "SlotResonanceFusion and running AFTER the TRM, and "
+                        "EvidenceEncoder feeding the TRM's unchanged [B,32,5] port. "
+                        "Drops the 'fused'/'geometry'/'pred_box_emb' planner inputs "
+                        "(fusion is gone; the relational tokens carry that evidence) "
+                        "and adds 'relational'. NOTE: v7 checkpoints are NOT "
+                        "loadable — --load-stage-a will fail, so stage A must be "
+                        "retrained. Effective K is 2 until the corpus is re-baked "
+                        "with microvla/perception/text_region.py; see _obj_tokens.")
     p.add_argument("--stage-b-select", choices=("bc", "total"), default="bc",
                    help="which VAL quantity gates early stopping and best-checkpoint "
                         "selection. 'bc' (default) uses the behavior-cloning term ALONE "
@@ -304,6 +319,62 @@ def _boxes(batch, idx, fade, cfg, ablate):
     return (batch["source_box_embs"][:, idx], batch["target_box_embs"][:, idx],
             batch["source_centers"][:, idx], batch["target_centers"][:, idx],
             batch["box_weights"][:, idx] * fade)
+
+
+def _obj_tokens(batch, idx, fade, cfg, ablate):
+    """v8 object tokens from the baked evidence, padded to ``cfg.max_objects``.
+
+    The baked ``.npz`` episodes carry TWO roles (source, target), not K
+    class-agnostic proposals — the v7 bake ran YOLO-World with
+    ``set_classes([source, target])`` and kept one box each. So v8 trains today
+    at an effective K of 2, with the remaining ``cfg.max_objects - 2`` slots
+    padded at weight 0.0. That is not a degenerate case: weight-0 objects are
+    bit-identically inert through both ``EvidenceEncoder`` and
+    ``RelationalHead``, so the padding costs nothing but also buys nothing.
+
+    The full data-rich path needs a re-bake through ``preprocess/`` with
+    ``microvla/perception/text_region.py``, which is what supplies K
+    class-agnostic proposals with text-space embeddings. Until then the
+    relational head reasons over two objects, which is exactly enough to
+    express the source->target relation every task in the corpus is built on,
+    and not enough to test distractor rejection.
+
+    Returns ``(obj_emb [B,K,vis_dim], obj_center [B,K,2], obj_weight [B,K])``.
+    """
+    sbe, tbe, sc, tc, bw = _boxes(batch, idx, fade, cfg, ablate)
+    B, K = sbe.shape[0], cfg.max_objects
+    obj = sbe.new_zeros(B, K, cfg.vis_dim)
+    ctr = sbe.new_zeros(B, K, 2)
+    w = sbe.new_zeros(B, K)
+    obj[:, 0], obj[:, 1] = sbe, tbe
+    ctr[:, 0], ctr[:, 1] = sc, tc
+    w[:, :2] = bw
+    return obj, ctr, w
+
+
+def real_paths_v8(batch, evidence, hrm, cfg, ablate):
+    """v8 counterpart of :func:`real_paths`: evidence port + HRM state per step.
+
+    Returns ``ev_all[t] -> [B, fused_rows, fused_cols]`` (the TRM's unchanged
+    evidence port) and ``state_all[t] -> [B, hrm_dim]``, lists over t, with grad.
+
+    Every timestep here is a REAL tick (``is_real=True``): this is the
+    data-rate path, one entry per baked 2 Hz frame. The fast/slow split only
+    becomes observable in the 30 Hz deployment loop, where dream ticks step the
+    fast module alone.
+    """
+    B, T = batch["frame_embs"].shape[:2]
+    text = batch["text_tokens"]
+    hrm.reset()
+    ev_all, state_all = [], []
+    zeros_act = batch["pwm_targets"].new_zeros(B, batch["pwm_targets"].shape[-1])
+    for t in range(T):
+        last_action = batch["pwm_targets"][:, t - 1, 0] if t > 0 else zeros_act
+        obj, ctr, w = _obj_tokens(batch, t, 1.0, cfg, ablate)
+        ev_all.append(evidence(obj, ctr, w, batch["frame_embs"][:, t], text,
+                               last_action=last_action))
+        state_all.append(hrm(batch["frame_embs"][:, t], is_real=True).state)
+    return ev_all, state_all
 
 
 def real_paths(batch, fusion, drift, cfg, ablate):
@@ -970,10 +1041,35 @@ def main(argv=None) -> None:
     n_val = sum(v["frame_embs"].shape[0] for v in val_b.values())
     print(f"episodes: train {n_train} ({len(train_b)} length-buckets), val {n_val}", flush=True)
 
-    fusion = SlotResonanceFusion(cfg).to(device)
-    drift = AnchoredDriftEncoder(cfg).to(device)
-    trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
-    planner = ChronoQueryPlanner(cfg).to(device)
+    if args.v8:
+        # v8 stack: HRM replaces the drift encoder, RelationalHead replaces
+        # fusion and runs AFTER the TRM (on the predicted latent, the same state
+        # the planner is conditioned on), and EvidenceEncoder feeds the TRM's
+        # UNCHANGED [B,32,5] port. See DESIGN.md "v8 plan".
+        if "relational" not in cfg.planner_inputs:
+            cfg = dataclasses.replace(
+                cfg,
+                planner_inputs=tuple(n for n in cfg.planner_inputs
+                                     if n not in ("fused", "geometry", "pred_box_emb"))
+                + ("relational",),
+            )
+        evidence = EvidenceEncoder(cfg).to(device)
+        hrm = HRMBackbone(cfg).to(device)
+        relational = RelationalHead(cfg).to(device)
+        fusion = drift = None
+        trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
+        planner = ChronoQueryPlanner(cfg).to(device)
+        print(f"v8 stack: evidence {count_trainable_params(evidence):,} | "
+              f"hrm {count_trainable_params(hrm):,} | "
+              f"relational {count_trainable_params(relational):,} | "
+              f"planner {count_trainable_params(planner):,} | "
+              f"inputs {cfg.planner_inputs}", flush=True)
+    else:
+        evidence = hrm = relational = None
+        fusion = SlotResonanceFusion(cfg).to(device)
+        drift = AnchoredDriftEncoder(cfg).to(device)
+        trm = RecursiveTRM(cfg, d=args.trm_d).to(device)
+        planner = ChronoQueryPlanner(cfg).to(device)
 
     resume_state: dict = {}
     if args.load_stage_a:

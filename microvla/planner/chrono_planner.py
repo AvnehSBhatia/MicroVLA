@@ -143,6 +143,7 @@ class ChronoQueryPlanner(nn.Module):
     INPUT_NAMES: tuple[str, ...] = (
         "next_emb", "current_emb", "fused", "state_delta", "pred_box_emb",
         "geometry", "proprio", "spatial", "wm_msg", "wm_latent",
+        "relational",
     )
 
     def __init__(self, cfg: MicroVLAConfig) -> None:
@@ -239,11 +240,22 @@ class ChronoQueryPlanner(nn.Module):
         else:
             self.wm_latent_chunk = 0
             self.wm_latent_proj = None
+
+        # v8: RelationalHead's output tokens. This is the group that carries
+        # object-object structure — nothing in v7 supplied it, and every task in
+        # the corpus is relational ("put the soup IN the basket"). Each of the
+        # cfg.rel_tokens tokens becomes one memory token.
+        if "relational" in self.inputs:
+            self.rel_proj = nn.Linear(cfg.rel_dim, cfg.d_plan)
+        else:
+            self.rel_proj = None
         # 12 rows always (one per memory GROUP, spatial contributing three), so
         # a checkpoint trained with a different `planner_inputs` still loads its
         # type rows by index — see eval/policy.py::_load_relaxed, which
         # prefix-copies a grown leading dim.
-        self.type_emb = nn.Parameter(torch.randn(12, cfg.d_plan) * cfg.d_plan**-0.5)
+        # 13 rows: index 12 is v8's relational group. Grown by appending only —
+        # _load_relaxed prefix-copies, so a v7 checkpoint still loads its 12.
+        self.type_emb = nn.Parameter(torch.randn(13, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -298,6 +310,7 @@ class ChronoQueryPlanner(nn.Module):
                 spatial: dict | None = None,
                 wm_msg: torch.Tensor | None = None,
                 wm_latent: torch.Tensor | None = None,
+                relational: torch.Tensor | None = None,
                 fade: dict | None = None,
                 return_aux: bool = False,
                 return_wp: bool = False):
@@ -418,6 +431,9 @@ class ChronoQueryPlanner(nn.Module):
                 _fade("wm_latent", self.wm_latent_proj(
                     wm_latent.reshape(batch, self.n_mem_tokens, self.wm_latent_chunk)))
                 + self.type_emb[11])   # [B, 8, d_plan]
+        if relational is not None and self.rel_proj is not None:
+            mem_parts.append(_fade("relational", self.rel_proj(relational))
+                             + self.type_emb[12])   # [B, rel_tokens, d_plan]
         if not mem_parts:
             # Every enabled group's argument was None (only reachable when
             # `next_emb` is ablated away and the caller passed nothing else).
