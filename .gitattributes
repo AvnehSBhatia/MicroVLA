@@ -1,0 +1,2 @@
+checkpoints/*.pt filter=lfs diff=lfs merge=lfs -text
+checkpoints/v8_seed/*.pt filter=lfs diff=lfs merge=lfs -text
