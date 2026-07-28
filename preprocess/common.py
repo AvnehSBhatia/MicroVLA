@@ -197,14 +197,37 @@ class ActionNormalizer:
         return cls(np.asarray(d["q_low"]), np.asarray(d["q_high"]))
 
 
-#: Concrete visual categories appended to a role's prompt chain. Every entry was
-#: verified to fire on real LIBERO frames; abstract nouns are deliberately absent
-#: because they measure 0.000.
-_FALLBACK_TAIL: tuple[str, ...] = ("box", "cardboard box", "can", "bottle",
-                                   "carton", "container")
-#: Target-role tail. "basket" already grounds at 0.505 on 95.7% of agentview
-#: frames, so this mainly covers the wrist view, where it does not.
-_TARGET_TAIL: tuple[str, ...] = ("basket", "bin", "box")
+#: Concrete visual categories appended to a role's prompt chain, keyed by what
+#: the phrase is ABOUT. A single tail cannot work: libero_object is groceries
+#: ("alphabet soup" -> box/can/bottle) while libero_spatial is tableware
+#: ("the black bowl between the plate and the ramekin" -> bowl/plate). The
+#: grocery-only tail is why libero_spatial baked 500 episodes and then failed
+#: the sighted gate — nothing in it could fire on a bowl.
+#:
+#: Abstract nouns are deliberately absent throughout: "product", "package",
+#: "item", "object" and "thing" all measure exactly 0.000 (paper.md 4n).
+_TAIL_GROCERY: tuple[str, ...] = ("box", "cardboard box", "can", "bottle",
+                                  "carton", "container")
+_TAIL_TABLEWARE: tuple[str, ...] = ("bowl", "plate", "cup", "mug", "dish",
+                                    "tray", "pan", "pot")
+_TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin", "box", "tray")
+
+#: Head nouns that select a tail. Matched against the LAST word of the phrase
+#: first, then anywhere in it, so "black bowl" and "wine bottle" both resolve.
+_TAIL_BY_NOUN: dict[str, tuple[str, ...]] = {}
+for _n in ("bowl", "plate", "cup", "mug", "dish", "tray", "pan", "pot",
+           "ramekin", "saucer"):
+    _TAIL_BY_NOUN[_n] = _TAIL_TABLEWARE
+for _n in ("basket", "bin", "caddy", "crate"):
+    _TAIL_BY_NOUN[_n] = _TAIL_RECEPTACLE
+for _n in ("soup", "sauce", "cheese", "butter", "juice", "milk", "pudding",
+           "ketchup", "dressing", "can", "bottle", "box", "carton", "cream"):
+    _TAIL_BY_NOUN[_n] = _TAIL_GROCERY
+
+#: Used when the phrase matches nothing above. Both families, tableware first —
+#: a wrongly-fired grocery box on a tableware scene is worse than a miss,
+#: because set_role_prompts takes the FIRST prompt that detected anything.
+_TAIL_DEFAULT: tuple[str, ...] = _TAIL_TABLEWARE + _TAIL_GROCERY
 
 
 def _with_fallbacks(phrase: str) -> list[str]:
@@ -215,11 +238,18 @@ def _with_fallbacks(phrase: str) -> list[str]:
     the full phrase does not.
     """
     chain = [phrase]
-    parts = phrase.split()
+    parts = phrase.lower().split()
     if len(parts) > 1:
         chain.append(parts[-1])
-    tail = _TARGET_TAIL if phrase in ("basket", "bin") else _FALLBACK_TAIL
-    chain += [c for c in tail if c not in chain]
+    tail = None
+    if parts:
+        tail = _TAIL_BY_NOUN.get(parts[-1])      # head noun wins
+    if tail is None:
+        for w in parts:                          # then any word in the phrase
+            if w in _TAIL_BY_NOUN:
+                tail = _TAIL_BY_NOUN[w]
+                break
+    chain += [c for c in (tail or _TAIL_DEFAULT) if c not in chain]
     return chain
 
 
