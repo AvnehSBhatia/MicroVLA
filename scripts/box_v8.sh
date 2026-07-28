@@ -129,7 +129,15 @@ for S in $SUITES; do
       # Direct HuggingFace fallback — verified working.
       mkdir -p "$RAW/$S"
       BASE="https://huggingface.co/datasets/yifengzhu-hf/LIBERO-datasets/resolve/main/$S"
-      FILES=$(curl -sS "https://huggingface.co/api/datasets/yifengzhu-hf/LIBERO-datasets" \
+      # Anonymous HF downloads are rate-limited hard — measured decaying from
+      # 3.2 MB/s to 60 KB/s mid-suite. A token lifts that. Export HF_TOKEN (or
+      # HUGGING_FACE_HUB_TOKEN) before running; without one it still works, just
+      # slowly.
+      HF_TOK="${HF_TOKEN:-${HUGGING_FACE_HUB_TOKEN:-}}"
+      AUTH=()
+      [ -n "$HF_TOK" ] && AUTH=(-H "Authorization: Bearer $HF_TOK")
+      [ -n "$HF_TOK" ] && say "  using HF token for downloads" || say "  no HF_TOKEN — anonymous (slow, rate-limited)"
+      FILES=$(curl -sS "${AUTH[@]}" "https://huggingface.co/api/datasets/yifengzhu-hf/LIBERO-datasets" \
               | python -c "import json,sys;print('\n'.join(x['rfilename'] for x in json.load(sys.stdin)['siblings'] if x['rfilename'].startswith('$S/')))")
       # PARALLEL + RESUMABLE. Serial single-stream curl measured 3.2 MB/s
       # decaying to 60 KB/s, which is hours per suite. And `[ -s ]` treated a
@@ -140,10 +148,10 @@ for S in $SUITES; do
       for f in $FILES; do
         n=$(basename "$f")
         (
-          want=$(curl -sIL "$BASE/$n" | awk 'BEGIN{IGNORECASE=1}/^content-length:/{v=$2}END{print v+0}' | tr -d '\r')
+          want=$(curl -sIL "${AUTH[@]}" "$BASE/$n" | awk 'BEGIN{IGNORECASE=1}/^content-length:/{v=$2}END{print v+0}' | tr -d '\r')
           have=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
           if [ "$want" -gt 0 ] && [ "$have" -eq "$want" ]; then exit 0; fi
-          curl -sSL --retry 5 --retry-delay 3 -C - -o "$RAW/$S/$n" "$BASE/$n"
+          curl -sSL --retry 5 --retry-delay 3 -C - "${AUTH[@]}" -o "$RAW/$S/$n" "$BASE/$n"
           got=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
           [ "$want" -gt 0 ] && [ "$got" -ne "$want" ] && echo "  TRUNCATED $n: $got != $want"
         ) &
