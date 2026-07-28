@@ -1837,3 +1837,99 @@ conditions changed, and both times the cause was the same corpus defect.
    architecture failure and was a data failure.
 4. **A fixed batch size on a shared box.** The OOM above is not a model-size
    problem; it is contention. Arms now retry down a batch ladder.
+
+## 4p. THE ACCURACY BAR: LIBERO tolerates ~5% magnitude error, and we are 2-4x outside it
+
+Measured 2026-07-28 on RunPod. This supersedes every prior explanation of the
+closed-loop zero and makes further architecture work on that failure pointless
+until it is addressed.
+
+### Three controls, in order
+
+**1. The environment is sound.** `eval/replay_check.py` replays a demo's own
+actions from the demo's own recorded initial state:
+
+```
+replay success 5/5 = 1.000
+```
+
+So the eval harness, controller (OSC_POSE), init-state selection and 7-dim
+action convention are all correct. Every closed-loop 0.000 this project has
+recorded was measuring a policy, not a broken pipeline. That question had been
+open since 4e and is now closed.
+
+**2. The actuation path is faithful.** `eval/actuation_check.py` pushes
+ground-truth actions through each deployed stage:
+
+| stage | success | `|a|` vs raw |
+|---|---|---|
+| raw | 5/5 | 1.000x |
+| normalizer round-trip | 5/5 | 1.000x |
+| trust brake @ deployed mean | 5/5 | 1.000x |
+| both | 5/5 | 1.000x |
+
+The normalizer round-trips EXACTLY (max `|a - inverse(norm(a))|` = 0.0000). The
+15% of dims reported "clipped" are the +/-1 gripper column, which is lossless.
+
+**3. The task tolerates almost no magnitude error.** Scaling the POSE columns of
+ground-truth actions (gripper untouched), 4 demos each:
+
+| scale | 1.30 | 1.20 | 1.10 | **1.05** | **1.00** | 0.95 | 0.90 | 0.85 | 0.80 | 0.60 | 0.50 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| success | 0.00 | 0.00 | 0.25 | **1.00** | **1.00** | 0.50 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+**The passing band is approximately [0.95, 1.05].** A 5% magnitude error halves
+success; 10% eliminates it.
+
+### Why this ends the search
+
+`std_ratio` is precisely the ratio this sweep varies — emitted action magnitude
+over demonstrated. Measured across every arm this project has trained:
+
+| stack | `std_ratio` | inside [0.95, 1.05]? |
+|---|---|---|
+| v7, 19 arms | 0.02-0.25 | no, 4-50x low |
+| v8, sighted corpus | 0.44-0.56 | no, ~2x low |
+| v8_s0 (best world model, `wm_margin` +43.3%) | 0.264 | no, ~4x low |
+
+No arm has ever been within a factor of two of the passing band. **The 0.000 is
+fully explained by magnitude, and no change to perception, fusion, the world
+model or the relational head could have fixed it** — those improve *direction*,
+and `corr` reached 0.54 while success stayed at zero. The grounding work in
+4n/4o was worth doing and was solving a different problem than the one that
+gates the benchmark.
+
+### The caveat that must travel with this number
+
+This is an OPEN-LOOP replay: the full action sequence is executed from the
+initial state with no feedback, so a constant magnitude error integrates over
+~150 steps into a large terminal position error. A closed-loop policy observing
+state each tick can in principle correct such drift, and the band for a
+feedback controller would be wider.
+
+It applies to our failure anyway, and this is the substantive point: MSE
+behaviour cloning shrinks toward the conditional mean, which is a **systematic,
+signed** magnitude deficit, not zero-mean noise. A systematic deficit does not
+cancel across steps — it integrates exactly like the open-loop bias this sweep
+imposes. Random noise of the same variance would be far less damaging. So the
+measurement is the right one for the failure we have, and the honest statement
+is: *for a policy with systematic magnitude shrinkage, LIBERO's tolerance is
+about +/-5%.*
+
+Establishing the band for a genuinely feedback-corrected controller is a
+separate experiment and is not claimed here.
+
+### What follows
+
+1. **The delta brake can only hurt on this benchmark.** It scales commands DOWN
+   by `min(1, tau/brake_trust)`, and down is fatal: at trust 0.40 (scale 0.80)
+   ground truth scores 0/4. Deployment ran at trust mean 0.521, min 0.119, so
+   roughly half of all steps were attenuated. It must default off for `delta`
+   action spaces until a feedback-corrected band is measured.
+2. **The stage-B objective needs a magnitude term.** Pure MSE provably converges
+   to the conditional mean and therefore shrinks; the architecture is not
+   choosing to shrink, the loss is. Candidates: an explicit `|a_pred| / |a_demo|`
+   penalty, or a variance-matching term.
+3. **`std_ratio` should be reported against the band, not as a bare number.** A
+   run at 0.56 is not "better than" 0.26 in any way that matters if both are
+   outside [0.95, 1.05].
