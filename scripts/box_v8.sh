@@ -133,8 +133,14 @@ for S in $SUITES; do
 
   say "--- $S: download ---"
   mkdir -p "$RAW"
-  if [ ! -d "$RAW/$S" ] || [ "$(ls "$RAW/$S"/*.hdf5 2>/dev/null | wc -l)" -eq 0 ]; then
-    if [ -f /root/LIBERO/benchmark_scripts/download_libero_datasets.py ]; then
+  # ALWAYS run the download pass, never "only if the directory is empty". That
+  # guard meant a partially downloaded suite was never completed: libero_object
+  # sat at 4 of 10 files across several runs, and the bake of those 4 — one of
+  # them a truncated stub — produced 0 episodes in 3 seconds. The per-file h5py
+  # check below makes this pass idempotent, so running it every time is free.
+  if true; then
+    if [ -f /root/LIBERO/benchmark_scripts/download_libero_datasets.py ] \
+       && [ "$(ls "$RAW/$S"/*.hdf5 2>/dev/null | wc -l)" -eq 0 ]; then
       yes n | python /root/LIBERO/benchmark_scripts/download_libero_datasets.py \
         --datasets "$S" --download-dir "$RAW" 2>&1 | tail -3
     else
@@ -176,7 +182,14 @@ for S in $SUITES; do
     fi
   fi
   N_RAW=$(ls "$RAW/$S"/*.hdf5 2>/dev/null | wc -l)
-  say "  raw: $N_RAW files, $(du -sh "$RAW/$S" 2>/dev/null | cut -f1)"
+  N_OK=$(for g in "$RAW/$S"/*.hdf5; do
+           python -c "import h5py,sys;h5py.File(sys.argv[1],'r').close()" "$g" 2>/dev/null && echo x
+         done | wc -l)
+  say "  raw: $N_RAW files ($N_OK readable), $(du -sh "$RAW/$S" 2>/dev/null | cut -f1)"
+  if [ "$N_OK" -lt "$N_RAW" ]; then
+    say "  $((N_RAW - N_OK)) file(s) unreadable — a bake on those silently yields"
+    say "  far fewer episodes than the file count implies. Re-run to refetch them."
+  fi
   [ "$N_RAW" -eq 0 ] && { say "  DOWNLOAD FAILED for $S — skipping"; continue; }
 
   say "--- $S: bake (wrist view, sighted prompts, class-agnostic proposals) ---"
