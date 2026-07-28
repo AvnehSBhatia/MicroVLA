@@ -220,6 +220,7 @@ class MicroVLAPolicy:
         perception=None,
         task_encoder=None,
         zero_center_actions: bool = False,
+        action_gain: float = 1.0,
         waypoint_stats: Optional[str] = None,
         heads_device: Optional[str] = None,
         waypoint_brake: bool = True,
@@ -271,6 +272,18 @@ class MicroVLAPolicy:
         """
         self.perception_period = max(1, int(perception_period))
         self.zero_center_actions = bool(zero_center_actions)
+        # Multiplies the emitted POSE columns (gripper exempt — it is a hard
+        # +/-1 decision, and scaling it would only move it toward the threshold).
+        #
+        # Why this exists: measured on real demos, LIBERO's passing band for
+        # action magnitude is about [0.95, 1.05] — ground truth at 1.00 solves
+        # 4/4, at 0.90 solves 0/4 (paper.md 4p). Every policy this project has
+        # trained emits std_ratio 0.02-0.56, i.e. 2-50x below that band, because
+        # MSE behaviour cloning converges to the conditional mean and therefore
+        # shrinks. This is the eval-time test of whether the DIRECTION is right
+        # and only the SCALE is wrong; it is a diagnostic, not a fix. The fix is
+        # a magnitude term in the stage-B objective.
+        self.action_gain = float(action_gain)
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -447,6 +460,9 @@ class MicroVLAPolicy:
         action = self.normalizer.inverse(
             plan[0].detach().cpu().numpy(), zero_center=self.zero_center_actions
         )
+        if self.action_gain != 1.0:
+            action = action.copy()
+            action[:-1] = action[:-1] * self.action_gain
 
         # v7.2: replace the regressed TRANSLATION with a proportional move
         # toward the predicted end-effector position, measured against THIS

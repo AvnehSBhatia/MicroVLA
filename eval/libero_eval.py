@@ -422,6 +422,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             perception=perception,
             task_encoder=task_encoder,
             zero_center_actions=args.zero_center_actions,
+            action_gain=getattr(args, "action_gain", 1.0),
             waypoint_stats=getattr(args, "waypoint_stats", None),
             waypoint_brake=not getattr(args, "waypoint_no_brake", False),
             heads_device=getattr(args, "heads_device", None),
@@ -443,6 +444,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
     p.add_argument("--norm-stats", default=None,
                     help="norm_stats.json path; defaults to eval/identity_norm_stats.json")
+    p.add_argument("--action-gain", type=float, default=1.0,
+                   help="scale the emitted POSE action by this factor (gripper "
+                        "exempt). LIBERO's measured passing band for magnitude is "
+                        "~[0.95, 1.05] while our policies emit 0.02-0.56 of demo "
+                        "magnitude (paper.md 4p), so this tests whether the "
+                        "DIRECTION is right and only the SCALE is wrong. A "
+                        "diagnostic, not a fix.")
     p.add_argument("--waypoint-no-brake", action="store_true",
                     help="do NOT scale the waypoint translation command by the corrector's "
                          "trust. The delta-mode brake exists because a held DELTA is a "
