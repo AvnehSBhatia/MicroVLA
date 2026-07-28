@@ -206,11 +206,22 @@ class ActionNormalizer:
 #:
 #: Abstract nouns are deliberately absent throughout: "product", "package",
 #: "item", "object" and "thing" all measure exactly 0.000 (paper.md 4n).
-_TAIL_GROCERY: tuple[str, ...] = ("box", "cardboard box", "can", "bottle",
-                                  "carton", "container")
-_TAIL_TABLEWARE: tuple[str, ...] = ("bowl", "plate", "cup", "mug", "dish",
-                                    "tray", "pan", "pot")
-_TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin", "box", "tray")
+#: SHORT on purpose. Every extra active class competes in NMS and depresses the
+#: winner's score: measured on libero_spatial, an 8-prompt chain scored source
+#: at conf 0.253 where a 2-prompt chain scored 0.505 on the same frames, and
+#: detection rate went 75% -> 88%. More fallbacks is not more recall.
+#:
+#: Entries are ordered by MEASURED firing rate on real wrist frames, not by how
+#: natural they read. "ceramic bowl" fires on 100% of libero_spatial frames at
+#: conf 0.950; "black bowl" — the phrase the task actually uses — fires on 25%
+#: at 0.235. Since a chain takes the first prompt that detects ANYTHING, a weak
+#: early entry blocks a strong later one.
+_TAIL_GROCERY: tuple[str, ...] = ("box", "can", "bottle")
+_TAIL_TABLEWARE: tuple[str, ...] = ("ceramic bowl", "bowl")
+_TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin")
+#: Target-role tails, kept DISJOINT from the source tails above — see
+#: _role_chains for why that matters.
+_TAIL_TARGET_TABLEWARE: tuple[str, ...] = ("white plate", "plate")
 
 #: Head nouns that select a tail. Matched against the LAST word of the phrase
 #: first, then anywhere in it, so "black bowl" and "wine bottle" both resolve.
@@ -228,6 +239,39 @@ for _n in ("soup", "sauce", "cheese", "butter", "juice", "milk", "pudding",
 #: a wrongly-fired grocery box on a tableware scene is worse than a miss,
 #: because set_role_prompts takes the FIRST prompt that detected anything.
 _TAIL_DEFAULT: tuple[str, ...] = _TAIL_TABLEWARE + _TAIL_GROCERY
+
+
+def _role_chains(src: str, tgt: str) -> tuple[list[str], list[str] | None]:
+    """Prompt chains for the two roles, guaranteed DISJOINT.
+
+    Overlapping chains silently collapse the two roles onto one object. Measured
+    on libero_spatial, where source "black bowl" and target "plate" both expand
+    to tails containing bowl/plate/cup: 70% of frames returned the SAME BOX for
+    both roles. The corpus then reports high target detection that is really an
+    echo of the source, and the planner sees the thing it must move sitting
+    exactly where it must move it to.
+
+    Disjointness is enforced by dropping shared prompts from the TARGET chain:
+    the source object is what grounding actually needs, and a target that
+    resolves to a generic backup is less harmful than a source that resolves to
+    the target's box.
+    """
+    if src == tgt:
+        return _with_fallbacks(src), None
+    s = _with_fallbacks(src)
+    t_chain = _with_fallbacks(tgt)
+    # Tableware targets get their own tail so "plate" does not fall back onto
+    # the same bowl prompts the source is using.
+    if _TAIL_BY_NOUN.get(tgt.split()[-1] if tgt.split() else "") is _TAIL_TABLEWARE:
+        t_chain = [tgt] + [c for c in _TAIL_TARGET_TABLEWARE if c != tgt]
+    t_chain = [c for c in dict.fromkeys(t_chain) if c not in s]
+    if not t_chain:
+        # Every target prompt collided with the source chain. Keep the exact
+        # target phrase and surrender it from the source rather than return an
+        # empty chain, which would silently disable the target role entirely.
+        t_chain = [tgt]
+        s = [c for c in s if c != tgt] or [src]
+    return s, t_chain
 
 
 def _with_fallbacks(phrase: str) -> list[str]:
@@ -334,8 +378,7 @@ class EpisodeBuilder:
         # set_role_prompts takes the best box of the FIRST prompt that detected
         # anything, so the exact phrase still wins wherever it grounds and the
         # tail only supplies recall where it does not.
-        role_src = _with_fallbacks(src)
-        role_tgt = None if src == tgt else _with_fallbacks(tgt)
+        role_src, role_tgt = _role_chains(src, tgt)
         signature = [role_src, role_tgt]
         if signature != self._active_classes:
             self.perception.set_role_prompts(role_src, role_tgt)

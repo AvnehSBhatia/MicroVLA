@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from preprocess.common import _with_fallbacks
+from preprocess.common import _role_chains, _with_fallbacks
 
 ABSTRACT = {"product", "package", "item", "object", "thing", "stuff"}
 
@@ -46,10 +46,23 @@ class TestCategoryRouting:
     @pytest.mark.parametrize("phrase", ["black bowl", "plate", "ramekin", "white mug"])
     def test_tableware_phrases_get_a_tableware_tail(self, phrase):
         c = _with_fallbacks(phrase)
-        assert "bowl" in c and "plate" in c
+        assert "bowl" in c, f"{phrase!r} got no tableware fallback"
         assert "can" not in c and "carton" not in c, (
             f"{phrase!r} got the grocery tail; nothing in it can fire on tableware"
         )
+
+    def test_ceramic_bowl_is_present_because_it_is_what_actually_fires(self):
+        # Measured on real libero_spatial wrist frames: "ceramic bowl" fires on
+        # 100% of frames at conf 0.950, while "black bowl" — the phrase the task
+        # itself uses — fires on 25% at 0.235.
+        assert "ceramic bowl" in _with_fallbacks("black bowl")
+
+    def test_tails_are_short(self):
+        # Every extra active class competes in NMS and depresses the winner:
+        # an 8-prompt chain scored 0.253 where a 2-prompt chain scored 0.505 on
+        # the same frames. More fallbacks is not more recall.
+        for phrase in ("black bowl", "alphabet soup", "basket"):
+            assert len(_with_fallbacks(phrase)) <= 5, phrase
 
     @pytest.mark.parametrize("phrase", ["alphabet soup", "bbq sauce", "cream cheese",
                                         "orange juice", "wine bottle"])
@@ -61,7 +74,7 @@ class TestCategoryRouting:
         # libero_spatial's real phrasing.
         c = _with_fallbacks("black bowl between the plate and the ramekin")
         assert c[0] == "black bowl between the plate and the ramekin"
-        assert "bowl" in c and "plate" in c
+        assert "bowl" in c
 
     def test_basket_keeps_the_receptacle_tail(self):
         c = _with_fallbacks("basket")
@@ -70,6 +83,46 @@ class TestCategoryRouting:
     def test_unknown_noun_gets_both_families(self):
         c = _with_fallbacks("widget")
         assert "bowl" in c and "box" in c, "an unrecognized noun must not be left bare"
+
+
+class TestRoleChainsAreDisjoint:
+    """The two roles must never share a prompt.
+
+    set_role_prompts assigns each role the best box of the first of ITS prompts
+    that detected anything, and the active class list is deduplicated across
+    roles. So a prompt in both chains lets both roles resolve to the SAME box.
+    Measured on libero_spatial before this was enforced: 70% of frames returned
+    an identical box for source and target, which reads downstream as healthy
+    75% target detection while actually being an echo of the source — the
+    planner sees the object it must move sitting exactly where it must go.
+    """
+
+    @pytest.mark.parametrize("src,tgt", [
+        ("black bowl", "plate"),
+        ("alphabet soup", "basket"),
+        ("bbq sauce", "basket"),
+        ("white mug", "plate"),
+    ])
+    def test_no_shared_prompts(self, src, tgt):
+        s, t = _role_chains(src, tgt)
+        assert t is not None
+        assert not (set(s) & set(t)), f"{src}/{tgt} share {set(s) & set(t)}"
+
+    def test_both_chains_are_non_empty(self):
+        for src, tgt in (("black bowl", "plate"), ("plate", "plate2")):
+            s, t = _role_chains(src, tgt)
+            assert s, "source chain must never be empty"
+            assert t is None or t, "target chain must never be empty"
+
+    def test_single_role_task_returns_none_target(self):
+        s, t = _role_chains("bowl", "bowl")
+        assert t is None and s, "src == tgt is a single-role task"
+
+    def test_exact_phrases_survive_disjointing(self):
+        s, t = _role_chains("black bowl", "plate")
+        assert s[0] == "black bowl" and t[0] == "plate", (
+            "the task's own words must stay first; the tail is only for recall"
+        )
 
 
 def test_every_suite_family_is_covered():
