@@ -1,0 +1,71 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+stage-B input withhold rates: {'current_emb': 0.15, 'relational': 0.15}
+waypoint head ON (weight 1.0, range 0.5 m, SAMPLED (2 Hz) spacing, row_stride 10)
+note: --waypoint-long targets are ~3.5x larger in magnitude, but the observed val split was BC-dominated 6:1 — read the per-epoch `val bc X wp Y` line rather than assuming the wp term dominates. The first long-horizon arm collapsed std_ratio 0.126 -> 0.022 for reasons not yet attributed (paper.md 4k).
+VRAM cap: 50 GB of 192 GB total (fraction 0.261)
+batched training on cuda | batch 64 | data ['data/libero_object_v8', 'data/libero_goal_v8']
+episodes: train 950 (23 length-buckets), val 50
+v8 stack: evidence 116,288 | hrm 2,110,470 | relational 2,355,400 | planner 1,883,146 | inputs ('next_emb', 'current_emb', 'state_delta', 'proprio', 'spatial', 'wm_msg', 'wm_latent', 'relational')
+[stage A] epoch 1 | H=1 | lr 5.0e-04 | train 0.2262 | val 0.0279 vs persistence 0.0211 (not yet below persistence) | 8s | peakVRAM 3.1GB
+[stage A] epoch 2 | H=2 | lr 5.0e-04 | train 0.0948 | val 0.0365 vs persistence 0.0298 (not yet below persistence) | 7s | peakVRAM 5.1GB
+[stage A] epoch 3 | H=4 | lr 5.0e-04 | train 0.1028 | val 0.0554 vs persistence 0.0426 (not yet below persistence) | 14s | peakVRAM 9.1GB
+[W727 06:25:44.597683937 HIPCachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 33554432 bytes (free: 0, total: 205822885888).
+[W727 06:25:44.758249908 HIPCachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 33554432 bytes (free: 0, total: 205822885888).
+[W727 06:25:44.759238151 HIPCachingAllocator.cpp:3934] memory allocation failed with OOM on device 0 while trying to allocate 33554432 bytes (free: 0, total: 205822885888).
+Traceback (most recent call last):
+  File "/root/MicroVLA/train/train_batched.py", line 1165, in <module>
+    main()
+  File "/root/MicroVLA/train/train_batched.py", line 1137, in main
+    stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device)
+  File "/root/MicroVLA/train/train_batched.py", line 564, in stage_a
+    loss = loss + rollout(batch, t, fused_all[t], delta_in, fusion, trm,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/train/train_batched.py", line 444, in rollout
+    out = trm(fused_k, delta_k, latent, context=context, return_box=want_box)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/TRM.py", line 254, in forward
+    next_emb, next_box, y, z = self.refine_forward(
+                               ^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/TRM.py", line 204, in refine_forward
+    y, z = self.deep_refine(x, y, z)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/TRM.py", line 184, in deep_refine
+    y, z = self.refine_once(x, y, z)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/TRM.py", line 173, in refine_once
+    z = self.net(x + y + z)
+        ^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/MicroVLA/TRM.py", line 75, in forward
+    h = h + self.chan_mlp(self.norm2(h))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/eval_venv/lib/python3.12/site-packages/torch/nn/modules/activation.py", line 816, in forward
+    return F.gelu(input, approximate=self.approximate)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 32.00 MiB. GPU 0 has a total capacity of 191.69 GiB of which 0 bytes is free. 50.00 GiB allowed; Of the allocated memory 9.58 GiB is allocated by PyTorch, and 518.99 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

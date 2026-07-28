@@ -1,0 +1,132 @@
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+[info] using task orders [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+[Warning]: datasets path /root/LIBERO/libero/libero/../datasets does not exist!
+parallel eval: 10 tasks across 5 workers (10s stagger, 3600s timeout)
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[w0] spawned (pid 888220, 2 tasks)
+[w0] building policy...
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[w1] spawned (pid 888219, 2 tasks)
+[w1] staggering 10s (threads<=4)
+MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, or stage B trained without --tqsa) — running WITHOUT the spatial adapter rather than feeding the planner a random-init one. Retrain stage B with --tqsa to use it.
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[w2] spawned (pid 888217, 2 tasks)
+[w2] staggering 20s (threads<=4)
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[w3] spawned (pid 888214, 2 tasks)
+[w3] staggering 30s (threads<=4)
+<frozen runpy>:128: RuntimeWarning: 'eval.libero_eval' found in sys.modules after import of package 'eval', but prior to execution of 'eval.libero_eval'; this may result in unpredictable behaviour
+[w4] spawned (pid 888218, 2 tasks)
+[w4] staggering 40s (threads<=4)
+[w0] policy ready (2s); enumerating libero_object
+[w0] 2 task(s) (0s); starting trials
+[w0] START pick_up_the_alphabet_soup_and_place_it_in_the_basket trial 0
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+[robosuite WARNING] To setup, run: python /root/eval_venv/lib/python3.12/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+/root/eval_venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: DeprecationWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[w1] building policy...
+MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, or stage B trained without --tqsa) — running WITHOUT the spatial adapter rather than feeding the planner a random-init one. Retrain stage B with --tqsa to use it.
+[w1] policy ready (3s); enumerating libero_object
+[w1] 2 task(s) (0s); starting trials
+[w1] START pick_up_the_cream_cheese_and_place_it_in_the_basket trial 0
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+[robosuite WARNING] To setup, run: python /root/eval_venv/lib/python3.12/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+[w0] FAILED — RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)
+[w2] building policy...
+MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, or stage B trained without --tqsa) — running WITHOUT the spatial adapter rather than feeding the planner a random-init one. Retrain stage B with --tqsa to use it.
+/root/eval_venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: DeprecationWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[w2] policy ready (3s); enumerating libero_object
+[w2] 2 task(s) (0s); starting trials
+[w2] START pick_up_the_salad_dressing_and_place_it_in_the_basket trial 0
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+[robosuite WARNING] To setup, run: python /root/eval_venv/lib/python3.12/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+[w1] FAILED — RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)
+[w3] building policy...
+MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, or stage B trained without --tqsa) — running WITHOUT the spatial adapter rather than feeding the planner a random-init one. Retrain stage B with --tqsa to use it.
+/root/eval_venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: DeprecationWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[w3] policy ready (3s); enumerating libero_object
+[w3] 2 task(s) (0s); starting trials
+[w3] START pick_up_the_bbq_sauce_and_place_it_in_the_basket trial 0
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+[robosuite WARNING] To setup, run: python /root/eval_venv/lib/python3.12/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+[w2] FAILED — RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)
+[w4] building policy...
+MicroVLAPolicy: checkpoint carries no TQSA weights (pre-v7, or stage B trained without --tqsa) — running WITHOUT the spatial adapter rather than feeding the planner a random-init one. Retrain stage B with --tqsa to use it.
+/root/eval_venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: DeprecationWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[w4] policy ready (3s); enumerating libero_object
+[w4] 2 task(s) (0s); starting trials
+[w4] START pick_up_the_ketchup_and_place_it_in_the_basket trial 0
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+[robosuite WARNING] To setup, run: python /root/eval_venv/lib/python3.12/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+[w3] FAILED — RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)
+/root/eval_venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: DeprecationWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[w4] FAILED — RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)
+WARNING: 5/5 workers did not finish ({0: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)', 1: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)', 2: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)', 3: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)', 4: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)'}); mean_success covers 0/10 tasks and is NOT the suite number.
+{
+  "suite": "libero_object",
+  "per_task": {},
+  "mean_success": 0.0,
+  "n_trials": 5,
+  "workers": 5,
+  "tasks_expected": 10,
+  "tasks_completed": 0,
+  "tasks_scavenged": 0,
+  "failed_workers": {
+    "0": "RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)",
+    "1": "RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)",
+    "2": "RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)",
+    "3": "RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)",
+    "4": "RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu (when checking argument in method wrapper_CUDA_addmm)"
+  },
+  "telemetry_paths": []
+}

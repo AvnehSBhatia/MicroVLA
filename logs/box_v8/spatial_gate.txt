@@ -1,0 +1,16 @@
+source 14.1% | target 59.3% | weight mean 0.0965 | center std [0.09099999815225601, 0.07100000232458115]
+proposals/frame mean 0.96 | any-object 59.8%
+
+TASK PHRASES (this is what the prompt tail has to cover):
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?
+   ?

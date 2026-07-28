@@ -1,0 +1,15 @@
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+INFO baking camera=eye_in_hand_rgb rotate_180=False
+INFO pass 1/2: fitting SYMMETRIC action normalization stats
+INFO pass 2/2: running frozen perception and writing episodes
+INFO   50 episodes written
+INFO   100 episodes written
+INFO   150 episodes written
+INFO   200 episodes written
+INFO   250 episodes written
+INFO   300 episodes written
+INFO   350 episodes written
+INFO   400 episodes written
+INFO   450 episodes written
+INFO   500 episodes written
+INFO done: 500 episodes -> data/libero_goal_v8

@@ -1,0 +1,216 @@
+[05:48:46] === box v8 start: 5103475 | suites: libero_object libero_spatial libero_goal ===
+[05:48:46] disk: 181G free
+[05:48:46] --- libero_object: download ---
+[ ] Dataset libero_spatial not found!!!
+[ ] Dataset libero_10 not found!!!
+[ ] Dataset libero_90 not found!!!
+[05:49:04]   raw: 10 files, 7.0G
+[05:49:04] --- libero_object: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+INFO baking camera=eye_in_hand_rgb rotate_180=False
+INFO pass 1/2: fitting SYMMETRIC action normalization stats
+INFO pass 2/2: running frozen perception and writing episodes
+INFO   50 episodes written
+[05:50:09]   baked 85 episodes, 41M
+[05:50:09] --- libero_object: GATE (is the corpus sighted?) ---
+  source 44.0% | target 21.7% | weight mean 0.0714 | center std [0.16699999570846558, 0.1679999977350235] | obj_* True
+GATE PASSED
+[05:50:09] --- libero_object: delete raw (7.0G) ---
+[05:50:10]   disk: 181G free
+[05:50:10] --- libero_spatial: download ---
+[X] Dataset libero_spatial is complete
+[ ] Dataset libero_10 not found!!!
+[ ] Dataset libero_90 not found!!!
+[05:50:25]   raw: 10 files, 5.9G
+[05:50:25] --- libero_spatial: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+INFO pass 2/2: running frozen perception and writing episodes
+INFO   50 episodes written
+INFO   100 episodes written
+INFO   150 episodes written
+[05:51:42]   baked 157 episodes, 56M
+[05:51:42] --- libero_spatial: GATE (is the corpus sighted?) ---
+  source 13.8% | target 44.6% | weight mean 0.0707 | center std [0.08399999886751175, 0.06400000303983688] | obj_* True
+GATE FAILED: source detection 13.8% < 20.0% — this corpus is BLIND and training on it reproduces the null result.
+[05:51:42]   GATE FAILED for libero_spatial — not adding it to the corpus
+[05:51:42] --- libero_goal: download ---
+[X] Dataset libero_spatial is complete
+[ ] Dataset libero_10 not found!!!
+[ ] Dataset libero_90 not found!!!
+[05:51:55]   raw: 10 files, 6.0G
+[05:51:55] --- libero_goal: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+INFO baking camera=eye_in_hand_rgb rotate_180=False
+INFO pass 1/2: fitting SYMMETRIC action normalization stats
+INFO pass 2/2: running frozen perception and writing episodes
+INFO   50 episodes written
+[05:52:49]   baked 60 episodes, 23M
+[05:52:49] --- libero_goal: GATE (is the corpus sighted?) ---
+  source 42.2% | target 42.2% | weight mean 0.0974 | center std [0.12800000607967377, 0.09799999743700027] | obj_* True
+GATE PASSED
+[05:52:49] --- libero_goal: delete raw (6.0G) ---
+[05:52:51]   disk: 175G free
+[05:52:51] === corpus: --data-dir data/libero_object_v8 --data-dir data/libero_goal_v8 ===
+[05:52:51] === unify norm stats across 2 suites ===
+shared symmetric scale S = [0.9375, 0.9134, 0.9375, 0.2121, 0.2582, 0.375, 1.0]
+[data/libero_object_v8] scale [0.8438, 0.8759, 0.9375, 0.0804, 0.1479, 0.1629, 1.0] -> shared; rewrote 85/85 episodes
+[data/libero_goal_v8] scale [0.9375, 0.9134, 0.9375, 0.2121, 0.2582, 0.375, 1.0] -> shared; rewrote 0/60 episodes
+done — every dir now shares one norm_stats.json; pair ANY of them with the checkpoint trained on the set.
+[05:52:58] === fit waypoint gain on data/libero_object_v8 ===
+pairs: 5,332 from 85 episodes (0 skipped: no valid proprio)
+  x: gain +0.01109 m/unit-action/step   R2 0.891
+  y: gain +0.01308 m/unit-action/step   R2 0.993
+  z: gain +0.01207 m/unit-action/step   R2 0.957
+saved -> data/libero_object_v8/waypoint_stats.json
+[05:53:01] === train v8 (stage A 60 / stage B 100) ===
+[signals] SIGTERM ignored (host reaps jobs; see microvla/utils/signals.py). `kill <pid>` will not work — use `kill -9`. Opt out with MICROVLA_ALLOW_SIGTERM=1.
+stage-B input withhold rates: {'current_emb': 0.15, 'relational': 0.15}
+waypoint head ON (weight 1.0, range 0.5 m, SAMPLED (2 Hz) spacing, row_stride 10)
+note: --waypoint-long targets are ~3.5x larger in magnitude, but the observed val split was BC-dominated 6:1 — read the per-epoch `val bc X wp Y` line rather than assuming the wp term dominates. The first long-horizon arm collapsed std_ratio 0.126 -> 0.022 for reasons not yet attributed (paper.md 4k).
+VRAM cap: 50 GB of 192 GB total (fraction 0.261)
+batched training on cuda | batch 64 | data ['data/libero_object_v8', 'data/libero_goal_v8']
+episodes: train 138 (13 length-buckets), val 7
+v8 stack: evidence 116,288 | hrm 2,110,470 | relational 2,355,400 | planner 1,883,146 | inputs ('next_emb', 'current_emb', 'state_delta', 'proprio', 'spatial', 'wm_msg', 'wm_latent', 'relational')
+[stage A] epoch 1 | H=1 | lr 5.0e-04 | train 0.3982 | val 0.0343 vs persistence 0.0165 (not yet below persistence) | 4s | peakVRAM 1.7GB
+[stage A] epoch 2 | H=2 | lr 5.0e-04 | train 0.1071 | val 0.0362 vs persistence 0.0254 (not yet below persistence) | 3s | peakVRAM 2.7GB
+[stage A] epoch 3 | H=4 | lr 5.0e-04 | train 0.1018 | val 0.0532 vs persistence 0.0346 (not yet below persistence) | 4s | peakVRAM 4.6GB
+[stage A] epoch 4 | H=5 | lr 5.0e-04 | train 0.0972 | val 0.0465 vs persistence 0.0379 (not yet below persistence) | 5s | peakVRAM 5.5GB
+[stage A] epoch 5 | H=6 | lr 5.0e-04 | train 0.0978 | val 0.0582 vs persistence 0.0414 (not yet below persistence) *best* | 5s | peakVRAM 6.5GB
+[stage A] epoch 6 | H=6 | lr 5.0e-04 | train 0.0951 | val 0.0514 vs persistence 0.0414 (not yet below persistence) *best* | 6s | peakVRAM 6.5GB
+[stage A] epoch 7 | H=6 | lr 5.0e-04 | train 0.0887 | val 0.0537 vs persistence 0.0414 (not yet below persistence) (no improve 1/5) | 6s | peakVRAM 6.5GB
+[stage A] epoch 8 | H=6 | lr 5.0e-04 | train 0.0955 | val 0.0476 vs persistence 0.0414 (not yet below persistence) *best* | 7s | peakVRAM 6.5GB
+[stage A] epoch 9 | H=6 | lr 5.0e-04 | train 0.0962 | val 0.0592 vs persistence 0.0414 (not yet below persistence) (no improve 1/5) | 6s | peakVRAM 6.5GB
+[05:53:56] NO STAGE-B CHECKPOINT — stopping before eval.
+[06:01:55] === box v8 start: 60859e0 | suites: libero_object libero_spatial libero_goal ===
+[06:01:55] disk: 175G free
+[06:01:55] STOP present — exiting.
+[06:01:55] NO SIGHTED CORPUS — aborting.
+[06:03:31] === box v8 start: 3ac5b47 | suites: libero_object libero_spatial libero_goal ===
+[06:03:31] disk: 175G free
+[06:03:31]   libero_object has 85 episodes (< 300) — re-baking
+[06:03:31] --- libero_object: download ---
+[X] Dataset libero_spatial is complete
+[ ] Dataset libero_10 not found!!!
+[ ] Dataset libero_90 not found!!!
+[06:03:49]   raw: 10 files, 7.0G
+[06:03:49] --- libero_object: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+[06:09:42] === box v8 start: eb8efc4 | suites: libero_object libero_spatial libero_goal ===
+[06:09:42] disk: 168G free
+[06:09:42]   libero_object has 89 episodes (< 300) — re-baking
+[06:09:42] --- libero_object: download ---
+[06:09:42]   raw: 10 files, 7.0G
+[06:09:42] --- libero_object: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+[06:14:48]   baked 500 episodes, 249M
+[06:14:48] --- libero_object: GATE (is the corpus sighted?) ---
+  source 48.0% | target 20.3% | weight mean 0.0711 | center std [0.16300000250339508, 0.1720000058412552] | obj_* True
+GATE PASSED
+[06:14:49]   libero_object ACCEPTED: 500 episodes
+[06:14:49] --- libero_object: delete raw (7.0G) ---
+[06:14:49]   disk: 175G free
+[06:14:49]   libero_spatial has 157 episodes (< 300) — re-baking
+[06:14:49] --- libero_spatial: download ---
+[06:14:49]   raw: 10 files, 5.9G
+[06:14:49] --- libero_spatial: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+[06:18:58]   baked 500 episodes, 180M
+[06:18:58] --- libero_spatial: GATE (is the corpus sighted?) ---
+  source 13.8% | target 44.6% | weight mean 0.0707 | center std [0.08399999886751175, 0.06400000303983688] | obj_* True
+GATE FAILED: source detection 13.8% < 20.0% — this corpus is BLIND and training on it reproduces the null result.
+[06:18:58]   GATE FAILED for libero_spatial — not adding it to the corpus
+[06:18:58]   libero_goal has 60 episodes (< 300) — re-baking
+[06:18:58] --- libero_goal: download ---
+[X] Dataset libero_spatial is complete
+[ ] Dataset libero_10 not found!!!
+[ ] Dataset libero_90 not found!!!
+[06:19:10]   raw: 10 files, 6.0G
+[06:19:10] --- libero_goal: bake (wrist view, sighted prompts, class-agnostic proposals) ---
+[06:23:32]   baked 500 episodes, 177M
+[06:23:32] --- libero_goal: GATE (is the corpus sighted?) ---
+  source 39.3% | target 26.5% | weight mean 0.0760 | center std [0.12099999934434891, 0.09600000083446503] | obj_* True
+GATE PASSED
+[06:23:32]   libero_goal ACCEPTED: 500 episodes
+[06:23:32] --- libero_goal: delete raw (6.0G) ---
+[06:23:33]   disk: 174G free
+[06:23:34] === corpus: --data-dir data/libero_object_v8 --data-dir data/libero_goal_v8  (1000 episodes) ===
+[06:23:34] === unify norm stats across 2 suites ===
+shared symmetric scale S = [0.9375, 0.9134, 0.9375, 0.2121, 0.2582, 0.375, 1.0]
+[data/libero_object_v8] scale [0.8438, 0.8759, 0.9375, 0.0804, 0.1479, 0.1629, 1.0] -> shared; rewrote 500/500 episodes
+[data/libero_goal_v8] scale [0.9375, 0.9134, 0.9375, 0.2121, 0.2582, 0.375, 1.0] -> shared; rewrote 0/500 episodes
+done — every dir now shares one norm_stats.json; pair ANY of them with the checkpoint trained on the set.
+[06:24:05] === fit waypoint gain on data/libero_object_v8 ===
+pairs: 30,720 from 500 episodes (0 skipped: no valid proprio)
+  x: gain +0.01085 m/unit-action/step   R2 0.882
+  y: gain +0.01306 m/unit-action/step   R2 0.991
+  z: gain +0.01180 m/unit-action/step   R2 0.935
+saved -> data/libero_object_v8/waypoint_stats.json
+[06:24:08] === blind control data/libero_object_v8 -> data/libero_object_blind ===
+  wrote 500 blind episodes
+[06:24:36] === blind control data/libero_goal_v8 -> data/libero_goal_blind ===
+  wrote 500 blind episodes
+[06:24:56] === ARM v8_s0 (stage A + B) ===
+[06:25:45]   v8_s0 rc=1 NO CHECKPOINT
+[06:25:45] === ARM v8_blind (stage A + B) ===
+[06:26:29]   v8_blind rc=1 NO CHECKPOINT
+[06:26:29] === ARM v8_s1 (stage B only) ===
+[06:39:21]   v8_s1 rc=0 OK
+[06:39:21] === ARM v8_s2 (stage B only) ===
+[06:54:10]   v8_s2 rc=0 OK
+[06:54:10] === ARM v7_arch (stage A + B) ===
+[06:54:49]   v7_arch rc=1 NO CHECKPOINT
+[06:54:50] === ARM v8_norel (stage B only) ===
+[07:08:23]   v8_norel rc=0 OK
+[07:08:23] === bench ===
+[07:09:57] === closed loop ===
+[07:09:57] --- closed loop v8_s1 / libero_object ---
+[07:11:05]   v8_s1/libero_object ->   "mean_success": 0.0,
+[07:11:05] --- closed loop v8_s1 / libero_spatial ---
+[07:12:20]   v8_s1/libero_spatial ->   "mean_success": 0.0,
+[07:12:20] --- closed loop v8_s1 / libero_goal ---
+[07:13:28]   v8_s1/libero_goal ->   "mean_success": 0.0,
+[07:13:28] --- closed loop v8_s2 / libero_object ---
+[07:14:34]   v8_s2/libero_object ->   "mean_success": 0.0,
+[07:14:34] --- closed loop v8_s2 / libero_spatial ---
+[07:15:45]   v8_s2/libero_spatial ->   "mean_success": 0.0,
+[07:15:45] --- closed loop v8_s2 / libero_goal ---
+[07:16:52]   v8_s2/libero_goal ->   "mean_success": 0.0,
+[07:16:52] --- closed loop v8_norel / libero_object ---
+[07:17:54]   v8_norel/libero_object ->   "mean_success": 0.0,
+[07:17:54] --- closed loop v8_norel / libero_spatial ---
+[07:19:05]   v8_norel/libero_spatial ->   "mean_success": 0.0,
+[07:19:05] --- closed loop v8_norel / libero_goal ---
+[07:20:12]   v8_norel/libero_goal ->   "mean_success": 0.0,
+[07:20:12] === summary -> results/V8_TABLE.md ===
+# MicroVLA v8 — overnight results
+
+Generated by `scripts/box_v8.sh`. Arms that did not finish show `—`.
+
+| arm | closed-loop success | std_ratio | wp_std_ratio | corr | grip | pose_mae | wm_margin |
+|---|---|---|---|---|---|---|---|
+| v8, sighted (main) | — | — | — | — | — | — | — |
+| v8, BLIND control | — | — | — | — | — | — | — |
+| v8, seed 1 | **0.000** (3 suites) | 0.441 | 0.737 | 0.54 | 0.94 | 0.151 | — |
+| v8, seed 2 | **0.000** (3 suites) | 0.563 | 0.953 | 0.53 | 0.94 | 0.140 | — |
+| v7 architecture, sighted | — | — | — | — | — | — | — |
+| v8, no relational | **0.000** (3 suites) | 0.449 | 0.907 | 0.44 | 0.94 | 0.166 | — |
+
+## Seed spread — the bar every comparison must clear
+
+`std_ratio` over 2 seeds: mean **0.502**, sd **0.087**, range 0.441–0.563
+
+`{'v8_s1': 0.44052425026893616, 'v8_s2': 0.5632246732711792}`
+
+These arms share one stage A and differ only in the stage-B seed, so this
+is a POLICY-level error bar and understates full run-to-run variance
+(paper.md 4m measured an 11.1x fold end to end). **Any arm gap smaller
+than this sd is not a result.**
+
+## The attribution experiment: does perception explain it?
+
+Not available: the main arm or its blind control did not finish.
+
+## Design ablations
+
+| comparison | what it isolates |
+|---|---|
+| `v8, sighted` vs `v7 architecture, sighted` | HRM + relational head + TRM-before-relational ordering, holding the corpus fixed |
+| `v8, sighted` vs `v8, no relational` | the relational head alone, holding the world model fixed (same stage A) |
+| `v8, sighted` vs `v8, BLIND control` | object evidence alone, holding architecture fixed |
+
+Read each against the seed sd above before calling it an effect.
+[07:20:12] === DONE. table: results/V8_TABLE.md | logs: logs/box_v8 ===
