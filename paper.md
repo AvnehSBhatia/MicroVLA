@@ -2034,3 +2034,40 @@ cannot succeed closed-loop regardless of the rest, and reporting its `corr` or
 `grip_acc` as progress toward Claim 1 would be misleading. v8's contribution is
 to the world model and to grounding; the magnitude problem is orthogonal to it
 and is addressed in 4p.
+
+### 4p-CORRECTION: magnitude is necessary but NOT sufficient
+
+The eval-time gain sweep tests 4p's implied conclusion directly — if direction is
+right and only scale is wrong, a constant multiplier should rescue the task with
+no retraining. `full_stageB_v8_s0.pt`, `libero_object`, 3 tasks x 2 trials:
+
+| `--action-gain` | 1.0 | 2.0 | 3.0 | 3.8 | 5.0 | 8.0 |
+|---|---|---|---|---|---|---|
+| `mean_success` | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+
+**No gain rescues it**, including 3.8x, which is exactly the multiplier that
+would carry `std_ratio` 0.264 into the measured passing band.
+
+**What survives.** The band itself is a ground-truth measurement and stands:
+scaling DEMO actions to 0.90 gives 0/4, so any policy outside ~[0.95, 1.05]
+fails. Magnitude remains a *necessary* condition, and every arm this project has
+trained violates it.
+
+**What does not.** The inference "therefore fixing magnitude fixes the task" is
+wrong, and 4p should not be read that way. Rescaling multiplies the error
+component as much as the signal: ground truth has `corr` 1.0 by construction, so
+the sweep preserved perfect direction while varying only scale, whereas this
+policy sits at `corr` 0.48 — roughly half its commanded direction is wrong, and
+amplifying it amplifies the error too. A scalar gain cannot separate the two.
+
+**The honest joint statement:** LIBERO requires magnitude within ~5% AND
+direction far better than `corr` 0.48, and neither alone is enough. The
+`--action-gain` knob is retained as a diagnostic, and its negative result is the
+reason the actuation loss (which trains magnitude and direction jointly, through
+the command that is actually emitted) is the right fix rather than an
+inference-time correction.
+
+This is the second time in this project that a clean measurement supported a
+conclusion that a cheap follow-up then refuted — the first being the
+displacement-vs-action ratio in 4m/4o. Both times the measurement was sound and
+the inference from it was not.
