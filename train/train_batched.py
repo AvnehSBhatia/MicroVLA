@@ -548,9 +548,20 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
                   f"stale {stale}/{args.patience}, lr {opt.param_groups[0]['lr']:.1e})",
                   flush=True)
 
+    prev_H = None
     for epoch in range(start_epoch, args.stage_a_epochs + 1):
         H = _scheduled_horizon(epoch, args.warmup_epochs, args.max_horizon)
         at_max = H >= args.max_horizon
+        if prev_H is not None and H != prev_H and torch.cuda.is_available():
+            # The rollout graph is H steps deep, so every horizon bump asks the
+            # allocator for a strictly larger contiguous shape than any cached
+            # block holds. Observed: stage A died at exactly epoch 3 (H 2->4) at
+            # batch 64, 32 AND 16, each time failing a 32 MB allocation while
+            # holding 2-9 GB on a card with >100 GB free — a fragmentation
+            # signature, not a capacity one. Dropping the cache at the boundary
+            # costs one re-warm per ramp and removes the failure point.
+            torch.cuda.empty_cache()
+        prev_H = H
         fusion.train(); drift.train(); trm.train()
         run, nb, t0 = 0.0, 0, time.time()
         last_beat = t0
