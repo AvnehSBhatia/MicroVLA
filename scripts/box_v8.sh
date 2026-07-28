@@ -236,6 +236,23 @@ _train_retry() {
       python -u train/train_batched.py --batch-size "$b" "$@" --tag "$tag"
     [ -f "$ck" ] && { say "  $tag OK at batch $b"; return 0; }
     if grep -qi "out of memory" "logs/box_v8/train_${tag}.log"; then
+      # Distinguish OUR footprint from the box being full. "0 bytes is free"
+      # while we hold ~2 GB of a 192 GB card means other tenants own it, and
+      # shrinking our batch cannot help — it just burns another run. Observed:
+      # batch 32 OOM'd at peakVRAM 5.2 GB, batch 16 at 2.2 GB, both on a 32 MB
+      # allocation.
+      if grep -q "0 bytes is free" "logs/box_v8/train_${tag}.log"; then
+        say "  $tag: card is FULL (0 bytes free, we held only a few GB) —"
+        say "  external contention, not our batch. Waiting ${WAIT_S:-600}s at batch $b."
+        BATCHES="$b $BATCHES"        # retry this size first once memory frees
+        sleep "${WAIT_S:-600}"
+        WAITS=$((${WAITS:-0} + 1))
+        if [ "$WAITS" -ge "${MAX_WAITS:-6}" ]; then
+          say "  $tag: still contended after $WAITS waits — giving up on this arm."
+          return 1
+        fi
+        continue
+      fi
       say "  $tag OOM at batch $b — retrying smaller"; continue
     fi
     say "  $tag rc=$RC, not an OOM — see logs/box_v8/train_${tag}.log"; return 1

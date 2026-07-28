@@ -1611,10 +1611,11 @@ own comment records that symmetry as "an assumption, not a result". Untested.
 
 ### What the batch leaves standing
 
-1. **Displacement regresses less shrunk than action** — `wp_std_ratio` /
-   `std_ratio` = **3.0x–29.1x** across 19 arms (median ~8x). Measured WITHIN one
-   forward pass, so neither the seed spread nor the stop-timing confound touches
-   it. Still the project's most robust claim.
+1. ~~**Displacement regresses less shrunk than action** — 3.0x–29.1x across 19
+   arms~~ **RETRACTED (4o).** On a sighted corpus the ratio is 1.7–2.0x. The gap
+   was mostly an action head starved of object evidence, not a fact about target
+   parameterization. The within-forward-pass measurement stands; its magnitude
+   does not.
 2. **Closed-loop success is 0/50.**
 3. **`fused` pose-sensitivity is 0.03–0.10** and stable across seeds.
 4. The confound, its mechanism, and its fix.
@@ -1710,3 +1711,129 @@ is the first time in the project that the corpus has carried object evidence,
 and it means every open-loop number in 3, 4 and 4m was measured on a policy that
 had no object input. Those results are not wrong about what they measured; they
 were measuring a different system than intended.
+
+## 4o. v8 on a sighted corpus — the action head recovers, and one headline dies
+
+First results from the v8 stack (`DESIGN.md` "v8 plan") trained on a corpus
+baked AFTER the 4n fix. Box run 2026-07-27, `scripts/box_v8.sh`; artifacts in
+`eval_results/bench_v8_*.json` and `logs/box_v8/`.
+
+### Corpus
+
+Three suites baked at 500 episodes each, wrist view, with the prompt fallback
+chain and class-agnostic proposals. Detection rates, per suite:
+
+| suite | source detected | target detected | verdict |
+|---|---|---|---|
+| `libero_object` | **48.0%** | 20.3% | accepted |
+| `libero_goal` | accepted | — | accepted |
+| `libero_spatial` | **13.8%** | 44.6% | **gate FAILED** (floor 20%) |
+
+Corpus used: **1000 episodes** (950 train / 50 val) from object + goal.
+
+`libero_spatial` is not blind — it is under-detected. Its tasks are tableware
+("pick up the black bowl between the plate and the ramekin and place it on the
+plate") and the fallback tail was grocery-shaped (`box`, `can`, `bottle`,
+`carton`), so nothing in it could fire on a bowl. The plate already grounds at
+44.6%. Fixed by routing the tail on the phrase's head noun; unverified until the
+next bake.
+
+### What ran
+
+Of six planned arms, three died to an OOM that was not ours:
+
+```
+GPU 0 has a total capacity of 191.69 GiB of which 0 bytes is free.
+50.00 GiB allowed; Of the allocated memory 9.58 GiB is allocated by PyTorch
+```
+
+The card was fully occupied by other tenants while our process held 9.6 GB. The
+three that died — `v8_s0` (main), `v8_blind` (the attribution control) and
+`v7_arch` (the architecture ablation) — are exactly the three the design needed.
+The three that survived are stage-B-only arms that loaded `v8_s0`'s stage A.
+
+### Results
+
+Parameter ledger: evidence 116,288 · HRM 2,110,470 · relational 2,355,400 ·
+planner 1,883,146.
+
+| arm | `std_ratio` | `wp_std_ratio` | `corr` | `grip` | `pose_mae` | `wp_mae_mm` | best `val bc` |
+|---|---|---|---|---|---|---|---|
+| `v8_s1` | **0.441** | 0.737 | 0.54 | 0.94 | 0.151 | 68.2 | 0.2217 |
+| `v8_s2` | **0.563** | 0.953 | 0.53 | 0.94 | 0.140 | 95.0 | 0.1801 |
+| `v8_norel` | 0.449 | 0.907 | 0.44 | 0.94 | 0.166 | 57.8 | 0.1935 |
+
+**Every v8 arm beats every one of the 19 v7 arms on `std_ratio`.** The best v7
+arm ever measured was 0.253 (`longh_liberoonly`, 4m); the typical arm was
+0.02–0.19. The worst v8 arm is 0.441.
+
+### The relational head is the planner's principal input
+
+Pose-only sensitivity when an input is withheld:
+
+| arm | `relational` | rank | next-largest |
+|---|---|---|---|
+| `v8_s1` | **0.1355** | **1 of 11** | `state_delta` 0.0730 |
+| `v8_s2` | **0.1222** | **1 of 11** | `proprio` 0.1167 |
+| `v8_norel` | 0.0705 | 3 of 11 | `proprio` 0.1395 |
+
+Across all of v7, `fused` was the only stable visual reading at 0.03–0.10 and
+proprioception dominated. Object evidence is now the largest single
+contribution. This is the one v8 design claim the run supports.
+
+### RETRACTION: the displacement-vs-action gap was largely an artifact
+
+4m's headline — "displacement regresses 3.0x–29.1x less shrunk than action,
+across 19 arms, measured within one forward pass" — does not survive a sighted
+corpus:
+
+| | v7 (19 arms) | `v8_s1` | `v8_s2` | `v8_norel` |
+|---|---|---|---|---|
+| `wp_std_ratio` / `std_ratio` | 3.0–29.1x | **1.7x** | **1.7x** | **2.0x** |
+
+The ratio collapsed because the ACTION head improved (0.25 -> 0.44–0.56) while
+the waypoint head held (0.74–0.95). The gap was therefore mostly a symptom of an
+action head starved of object evidence, not a general fact about target
+parameterization. What survives is the weaker claim: displacement still
+regresses somewhat less shrunk than action (1.7–2.0x, three arms), and the
+within-forward-pass measurement remains sound — the magnitude of the effect was
+inflated by a blind corpus.
+
+This is the second time a v7 "most robust claim" has failed once its measurement
+conditions changed, and both times the cause was the same corpus defect.
+
+### What is still broken
+
+* **`wm_margin −46.8%`, identical across all three arms.** They share one stage
+  A that OOM'd at epoch 3 during the horizon ramp, before it saved anything at
+  max horizon. The world model is 47% WORSE than persistence. Notable
+  consequence: the planner reached `std_ratio` 0.5 anyway, so **these numbers
+  are a floor, not a ceiling** — no arm here has ever had a working world model.
+  For contrast, a Mac run on 500 `libero_object` episodes reached val 0.0388 vs
+  persistence 0.0402 (`wm_margin +3.5%`) from a cold start.
+* **Closed-loop success is 0.000 across all 9 runs** (3 arms x 3 suites, 5
+  trials x 10 tasks each). The policy now emits correctly-scaled, correlated
+  actions and completes nothing. Perception can no longer be the explanation,
+  which leaves exposure bias — consistent with the 4m telemetry showing a
+  near-constant emitted direction off-distribution.
+* **Seed spread is n = 2** (0.441 vs 0.563, spread 0.123). `v8_norel` at 0.449
+  sits inside it, so the ablation shows nothing — and it was void anyway (below).
+
+### Defects found in this run
+
+1. **The relational ablation measured nothing.** `--planner-drop` is applied
+   before the v8 block re-adds `relational` unconditionally, so
+   `--planner-drop relational --v8` silently kept it; the arm's own header
+   prints `inputs (... 'relational')`. Its bench does show `relational` demoted
+   to rank 3 behind proprio, but the input was present, so the arm is a seed
+   replicate rather than an ablation.
+2. **Skipping the bake skipped the gate.** An already-baked suite was added to
+   the corpus with `continue`, bypassing the sighted check — so `libero_spatial`,
+   which had already FAILED with 500 blind episodes, would be silently
+   re-included on the next run. Being cached says nothing about being sighted.
+3. **Partial bakes passed unnoticed.** An earlier run trained on 145 episodes
+   (85 + 60 against ~500/suite) because the script gated on detection RATE but
+   never on COUNT. Stage A never beat persistence, which reads as an
+   architecture failure and was a data failure.
+4. **A fixed batch size on a shared box.** The OOM above is not a model-size
+   problem; it is contention. Arms now retry down a batch ladder.
