@@ -63,6 +63,18 @@ DEV="${DEV:-cuda}"
 # on it is what produced every previous null result.
 GATE_PCT="${GATE_PCT:-20}"
 
+# One instance at a time. Two concurrent runs raced each other into a state
+# where a suite's raw tree was deleted by one while the other still needed it,
+# leaving 0 baked episodes and no way to tell why.
+LOCK=/tmp/box_v8.lock
+if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then
+  echo "box_v8 already running as pid $(cat "$LOCK") — refusing to start a second."
+  echo "  stop it with: touch STOP  (or kill -9 -\$(ps -o pgid= -p $(cat "$LOCK")))"
+  exit 1
+fi
+echo $$ > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT
+
 # A leftover STOP from a previous run aborts instantly and looks like a bug.
 if [ -f STOP ]; then
   say "removing stale STOP file from a previous run"
@@ -148,12 +160,15 @@ for S in $SUITES; do
       for f in $FILES; do
         n=$(basename "$f")
         (
-          want=$(curl -sIL "${AUTH[@]}" "$BASE/$n" | awk 'BEGIN{IGNORECASE=1}/^content-length:/{v=$2}END{print v+0}' | tr -d '\r')
-          have=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
-          if [ "$want" -gt 0 ] && [ "$have" -eq "$want" ]; then exit 0; fi
+          # Integrity by OPENING the file, not by Content-Length. HF redirects
+          # to a CDN and a HEAD through the redirect chain returns the wrong
+          # block — it reported 1136 bytes for a 711 MB file, so every complete
+          # download was flagged truncated and re-fetched forever. Whether h5py
+          # can read it is the property we actually care about.
+          ok() { python -c "import h5py,sys;h5py.File(sys.argv[1],'r').close()" "$1" 2>/dev/null; }
+          if ok "$RAW/$S/$n"; then exit 0; fi
           curl -sSL --retry 5 --retry-delay 3 -C - "${AUTH[@]}" -o "$RAW/$S/$n" "$BASE/$n"
-          got=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
-          [ "$want" -gt 0 ] && [ "$got" -ne "$want" ] && echo "  TRUNCATED $n: $got != $want"
+          ok "$RAW/$S/$n" || echo "  UNREADABLE after download: $n ($(stat -c %s "$RAW/$S/$n" 2>/dev/null) bytes)"
         ) &
         while [ "$(jobs -rp | wc -l)" -ge "$DL_JOBS" ]; do wait -n 2>/dev/null || sleep 2; done
       done
