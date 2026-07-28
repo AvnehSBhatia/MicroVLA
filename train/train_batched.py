@@ -1069,7 +1069,13 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                       else step_w.reshape(-1))
             if wps:
                 wp_t, row_mask = _wp_targets(batch, cfg)
-                wp_valid = batch["proprio"][..., -1]
+                # Clamped: this is a 0/1 validity FLAG, and it multiplies
+                # squared terms. An out-of-range value silently flips their sign
+                # and hands the optimizer an unbounded-below objective — it will
+                # take that free lunch and the BC signal goes with it. Observed
+                # while debugging with a synthetic corpus whose flag was
+                # gaussian: stage-B loss reached -3.06.
+                wp_valid = batch["proprio"][..., -1].clamp(0.0, 1.0)
                 if step_w is not None:
                     wp_valid = wp_valid * step_w
                 loss = loss + args.waypoint_weight * waypoint_loss(
