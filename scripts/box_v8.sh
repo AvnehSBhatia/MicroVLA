@@ -218,6 +218,9 @@ done
 # 192 GB card" into an OOM while other tenants owned the rest.
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 BATCHES="${BATCHES:-64 32 16 8}"
+# VRAM_GB=0 disables the cap entirely (see cap_vram). Worth trying when an OOM
+# reports a tiny footprint: the cap is a per-process fraction, so it can bind
+# even while the card has room.
 COMMON="--device $DEV --lr 5e-4 --max-vram-gb ${VRAM_GB:-40} --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long --stage-b-select bc --stage-b-min-epochs 30"
 SA="--stage-a-epochs 60 --warmup-epochs 5 --max-horizon 6 --patience 5"
 SB="--stage-b-epochs 100 --stage-b-patience 6"

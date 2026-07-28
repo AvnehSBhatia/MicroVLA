@@ -261,6 +261,12 @@ def cap_vram(device: torch.device, max_gb: float) -> None:
     """Hard-caps this process's GPU memory (cuda/ROCm)."""
     if device.type != "cuda":
         return
+    if max_gb <= 0:
+        # 0/negative means NO CAP. Without this, frac = 0/total = 0.0 and
+        # set_per_process_memory_fraction(0) forbids every allocation — the
+        # "disable it" value silently became the most restrictive one.
+        print("VRAM cap: disabled (--max-vram-gb <= 0)", flush=True)
+        return
     total = torch.cuda.get_device_properties(device).total_memory / 1024**3
     frac = min(1.0, max_gb / total)
     # set_per_process_memory_fraction requires an explicit device index;
