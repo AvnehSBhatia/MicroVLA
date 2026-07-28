@@ -182,6 +182,20 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--ckpt-rollout", action="store_true",
+                   help="gradient-checkpoint the TRM inside the rollout. Stage A "
+                        "sums --segments-per-episode rollouts of depth H into ONE "
+                        "graph before backward, so activations scale as segments x "
+                        "H and peak grew 3.2 -> 5.2 -> 9.3 GB as H ramped 1 -> 2 -> "
+                        "4. Checkpointing stores inputs and recomputes in backward: "
+                        "roughly H x less activation memory for one extra forward "
+                        "per step. Use when the card is shared.")
+    p.add_argument("--reserve-vram-gb", type=float, default=0.0,
+                   help="claim this much VRAM at startup and hold it for the whole "
+                        "run (see reserve_vram). On a SHARED card the free pool "
+                        "shrinks under you — a co-tenant was measured growing "
+                        "60 -> 83 GB mid-run — so asking first is the only reliable "
+                        "way to keep it. 0 disables.")
     p.add_argument("--v8", action="store_true",
                    help="build the v8 stack (DESIGN.md 'v8 plan'): HRMBackbone in "
                         "place of AnchoredDriftEncoder, RelationalHead in place of "
@@ -255,6 +269,46 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "planner automatically. Use `eval.bench --sensitivity` as the "
                         "evidence for what is safe to drop.")
     return p.parse_args(argv)
+
+
+def reserve_vram(device: torch.device, gb: float) -> None:
+    """Claim ``gb`` of VRAM up front and keep it for this process.
+
+    On a shared card the free pool is whatever the neighbours leave, and it
+    shrinks: a co-tenant was measured growing 60 -> 83 GB while a run was in
+    flight, which is why stage A failed a 32 MB allocation with a 10 GB reserve
+    and 119 GB free moments earlier. No batch size or allocator tuning survives
+    that, because the memory is gone by the time we ask.
+
+    The fix is to ask FIRST. Allocating a large block and immediately dropping
+    the reference frees it to PyTorch's CACHING allocator, which does not return
+    it to the driver — so it stays reserved to this process and every later
+    allocation is served from it without a driver call. Nothing else on the card
+    can take it back.
+
+    The one thing that WOULD give it back is ``empty_cache()``, which is why
+    stage A no longer calls it.
+    """
+    if device.type != "cuda" or gb <= 0:
+        return
+    free, total = torch.cuda.mem_get_info(device)
+    want = int(gb * 1024**3)
+    if want > free:
+        print(f"VRAM reserve: asked {gb:.0f} GB but only {free/1024**3:.0f} GB is "
+              f"free — reserving what is available minus 1 GB.", flush=True)
+        want = max(0, free - 1024**3)
+    if want <= 0:
+        print("VRAM reserve: nothing to reserve", flush=True)
+        return
+    try:
+        block = torch.empty(want, dtype=torch.uint8, device=device)
+    except RuntimeError as exc:
+        print(f"VRAM reserve: failed ({exc.__class__.__name__}); continuing "
+              f"without a reservation", flush=True)
+        return
+    del block  # -> caching allocator, NOT the driver
+    print(f"VRAM reserve: holding {torch.cuda.memory_reserved(device)/1024**3:.1f} GB "
+          f"for this process ({free/1024**3:.0f} GB was free)", flush=True)
 
 
 def cap_vram(device: torch.device, max_gb: float) -> None:
@@ -426,7 +480,8 @@ def real_paths(batch, fusion, drift, cfg, ablate):
     return fused_all, delta_all
 
 
-def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate, box_w=0.0):
+def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate, box_w=0.0,
+            ckpt_rollout=False):
     """Batched H-step data-rate rollout loss (mean over batch + discounted steps).
 
     ``box_w > 0`` adds the v4 TRM box-prediction term: at every rollout step the
@@ -447,7 +502,20 @@ def rollout(batch, t, fused_t, delta_t, fusion, trm, cfg, H, gamma, ablate, box_
     want_box = box_w > 0.0
     for k in range(1, H + 1):
         context = torch.stack(ctx[-cfg.context_window:], dim=1)  # [B, K, 512]
-        out = trm(fused_k, delta_k, latent, context=context, return_box=want_box)
+        if ckpt_rollout and torch.is_grad_enabled():
+            # Activation memory here is the whole problem: the graph is H TRM
+            # forwards deep, each a d=1024 recursive refinement, so peak grows
+            # linearly in H. On a SHARED MI300X VF whose free pool is whatever
+            # the neighbours leave (observed: one co-tenant grew 60 -> 83 GB
+            # mid-run), a peak that grows with H eventually loses the race no
+            # matter how small the batch is. Checkpointing stores only the
+            # inputs and recomputes the forward during backward: ~H x less
+            # activation memory for ~1 extra forward per step.
+            out = torch.utils.checkpoint.checkpoint(
+                lambda f, d, l, c: trm(f, d, l, context=c, return_box=want_box),
+                fused_k, delta_k, latent, context, use_reentrant=False)
+        else:
+            out = trm(fused_k, delta_k, latent, context=context, return_box=want_box)
         pred, box = out if want_box else (out, None)
         w = gamma ** (k - 1)
         loss = loss + w * spec_loss(pred, frames[:, t + k])
@@ -552,15 +620,13 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
     for epoch in range(start_epoch, args.stage_a_epochs + 1):
         H = _scheduled_horizon(epoch, args.warmup_epochs, args.max_horizon)
         at_max = H >= args.max_horizon
-        if prev_H is not None and H != prev_H and torch.cuda.is_available():
-            # The rollout graph is H steps deep, so every horizon bump asks the
-            # allocator for a strictly larger contiguous shape than any cached
-            # block holds. Observed: stage A died at exactly epoch 3 (H 2->4) at
-            # batch 64, 32 AND 16, each time failing a 32 MB allocation while
-            # holding 2-9 GB on a card with >100 GB free — a fragmentation
-            # signature, not a capacity one. Dropping the cache at the boundary
-            # costs one re-warm per ramp and removes the failure point.
-            torch.cuda.empty_cache()
+        # NOTE: deliberately NO empty_cache() here. An earlier version dropped
+        # the cache at each horizon bump on a fragmentation theory that the
+        # reserved-memory instrumentation later disproved (reserve was 10.2 GB
+        # while the device had 119 GB free). On a SHARED card, empty_cache()
+        # hands our pool back to the driver — i.e. straight to the co-tenant
+        # that grew 60 -> 83 GB mid-run — and we cannot get it back. Holding the
+        # reservation is the entire strategy; see reserve_vram.
         prev_H = H
         fusion.train(); drift.train(); trm.train()
         run, nb, t0 = 0.0, 0, time.time()
@@ -580,7 +646,8 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
                             if rng.random() < args.drift_dropout else delta_all[t])
                 loss = loss + rollout(batch, t, fused_all[t], delta_in, fusion, trm,
                                       cfg, H, args.gamma, args.ablate_grounding,
-                                      box_w=args.box_loss_weight)
+                                      box_w=args.box_loss_weight,
+                                      ckpt_rollout=args.ckpt_rollout)
             loss = loss / len(ts)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
@@ -985,7 +1052,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 t_aux = rng.randrange(0, T - 4)
                 loss = loss + args.wm_aux_weight * rollout(
                     batch, t_aux, fused_all[t_aux], delta_all[t_aux], fusion, trm, cfg,
-                    3, args.gamma, args.ablate_grounding)
+                    3, args.gamma, args.ablate_grounding,
+                    ckpt_rollout=args.ckpt_rollout)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
                 run += float(loss)
@@ -1101,6 +1169,9 @@ def main(argv=None) -> None:
     device = resolve_device(args.device)
     torch.manual_seed(args.seed)
     cap_vram(device, args.max_vram_gb)
+    # Claim our pool BEFORE the corpus load and the first forward, while memory
+    # is still free. Later is too late on a contended card.
+    reserve_vram(device, args.reserve_vram_gb)
     print(f"batched training on {device} | batch {args.batch_size} | data {args.data_dir}", flush=True)
 
     train_b, val_b = preload_buckets(args.data_dir, args.val_frac, args.seed, device,
