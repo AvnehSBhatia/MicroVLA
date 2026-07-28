@@ -182,6 +182,14 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B early stopping: >0 enables per-epoch VAL loss, keeps the "
                         "best checkpoint, and halts after this many epochs without a "
                         "--min-delta improvement. 0 = old fixed-epoch behavior.")
+    p.add_argument("--actuation-weight", type=float, default=1.0,
+                   help="weight on the ACTUATION loss: supervise the command the "
+                        "robot receives, not just the displacement the head "
+                        "predicts. This is the only gradient path to the HRM's "
+                        "learned control law (gain_head sat at exactly its zero "
+                        "init in the first v8 checkpoint) and the only term that "
+                        "sees emitted MAGNITUDE, which paper.md 4p measures as the "
+                        "barrier to task success. 0 disables.")
     p.add_argument("--ckpt-rollout", action="store_true",
                    help="gradient-checkpoint the TRM inside the rollout. Stage A "
                         "sums --segments-per-episode rollouts of depth H into ONE "
@@ -913,6 +921,20 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
     for m in (fusion, drift):
         for p in m.parameters():
             p.requires_grad_(False)
+    # ...except the HRM's learned control law. It converts a predicted
+    # displacement into an emitted command, so it belongs to the POLICY, not the
+    # world model — and freezing it with the rest left gain_head at exactly its
+    # zero init in the first v8 checkpoint, with log_gain_base still the
+    # hand-fitted prior. Nothing had ever given it a gradient. Magnitude is what
+    # paper.md 4p measures as the barrier to task success, and this is the one
+    # module that owns it.
+    gain_params = [p for n, p in drift.named_parameters()
+                   if "gain_head" in n or "log_gain_base" in n]
+    for p in gain_params:
+        p.requires_grad_(True)
+    if gain_params:
+        print(f"[stage B] HRM control law TRAINABLE: "
+              f"{sum(p.numel() for p in gain_params):,} params", flush=True)
     # TRM freeze policy (v7.1): core frozen, msg_head TRAINABLE — the planner's
     # gradient shapes the 32-d belief message while the world model stays
     # provably intact. --unfreeze-trm trains the whole TRM at 0.1x LR with a
@@ -927,6 +949,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         # leave it at init while everything else trained, which looks exactly
         # like "the relational head does not help".
         params += list(relational.parameters())
+    params += gain_params
     groups = [{"params": params, "lr": args.lr}]
     trm_trainable = [p for p in trm.parameters() if p.requires_grad]
     if trm_trainable:
@@ -955,8 +978,15 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             tqsa.train()
         run = 0.0; grip_acc = 0.0; nb = 0; t0 = last_beat = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
-            with torch.no_grad():
-                fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
+            # NOT under no_grad: every parameter in fusion/drift is frozen
+            # except the HRM's gain head, and that head needs a graph or it gets
+            # no gradient at all — which is exactly what happened in the first
+            # v8 checkpoint, where gain_head stayed bit-for-bit at its zero init
+            # through a full training run. Frozen params accumulate nothing
+            # regardless, so the only cost is the graph itself.
+            fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
+            fused_all = [f.detach() for f in fused_all]
+            delta_all = [d.detach() for d in delta_all]
             preds, grips, wps = [], [], []
             for t in range(T):
                 # Dream-consistent stage B (v5): with prob --dream-frac, train
@@ -1044,6 +1074,43 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     wp_valid = wp_valid * step_w
                 loss = loss + args.waypoint_weight * waypoint_loss(
                     torch.stack(wps, dim=1), wp_t, row_mask, valid=wp_valid)
+
+                # ACTUATION loss: supervise the command the robot actually
+                # receives, not just the displacement the head predicts.
+                #
+                # Two things this fixes. The HRM's learned control law had no
+                # gradient path at all — gain_head sat at exactly its zero init
+                # in the first v8 checkpoint while log_gain_base kept the
+                # hand-fitted prior — because nothing downstream of it appeared
+                # in any loss. And the deployed magnitude was never trained:
+                # paper.md 4p measures LIBERO's passing band at ~[0.95, 1.05] of
+                # demo magnitude while every arm emits 0.02-0.56, and the
+                # waypoint loss cannot see that because it supervises
+                # displacement in metres, upstream of the gain that converts it
+                # to a command.
+                #
+                # cmd = gain_scale * disp * waypoint_range / (gain * steps),
+                # which is the actuator's law with (target - eef) substituted by
+                # its definition, so this trains exactly what runs.
+                if args.actuation_weight > 0 and getattr(drift, "last_gains", None) is not None:
+                    # Shapes: wps stacks to [B, T, plan_steps, waypoint_dim];
+                    # Y is flattened to [B*T, plan_steps, num_servos]. The
+                    # actuator services ROW `waypoint_horizon - 1` (the last
+                    # SUPERVISED row — waypoint_targets masks the final one), so
+                    # both sides are taken at that row and flattened the same way.
+                    g = drift.last_gains.clamp_min(1e-6)             # [B, 3], grad
+                    steps = max(1, cfg.waypoint_horizon * cfg.waypoint_row_stride)
+                    disp = torch.stack(wps, dim=1)                   # [B,T,rows,3]
+                    row = max(0, min(cfg.waypoint_horizon, disp.shape[2]) - 1)
+                    d_row = disp[:, :, row, :cfg.waypoint_dim]       # [B, T, 3]
+                    cmd = (cfg.waypoint_gain_scale * d_row * cfg.waypoint_range) \
+                        / (g.unsqueeze(1) * steps)                   # [B, T, 3]
+                    y_row = Y[:, row, :cfg.waypoint_dim].reshape(
+                        cmd.shape[0], cmd.shape[1], cfg.waypoint_dim)
+                    m = wp_valid.reshape(cmd.shape[0], cmd.shape[1], 1)
+                    loss = loss + args.actuation_weight * (
+                        ((cmd - y_row) ** 2 * m).sum()
+                        / m.sum().clamp_min(1.0) / cfg.waypoint_dim)
             if unfreeze and T > 4:
                 # World-model auxiliary: one random 3-step rollout per batch so
                 # BC fine-tuning cannot erode frame prediction (bench verifies).

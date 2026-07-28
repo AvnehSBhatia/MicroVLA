@@ -72,20 +72,36 @@ class DriftAdapter(nn.Module):
     observable in the 30 Hz deployment loop, which steps the fast module alone
     on dream ticks — that path is the JEPA loop's, not the trainer's.
 
-    ``gains`` (the learned control law) is dropped here because the v7 signature
-    has nowhere to put it; callers wanting it hold the ``HRMBackbone`` directly
-    via :attr:`hrm`.
+    The v7 signature returns only the state code, so ``gains`` — the learned
+    control law, job (b) of the HRM design — had nowhere to go and was dropped.
+    That silently starved it: nothing downstream referenced ``gain_head``, so it
+    received no gradient in stage A, and stage B then froze the whole module.
+    Verified on the first trained v8 checkpoint: ``gain_head.weight`` and
+    ``.bias`` are EXACTLY zero (bit-for-bit their init) and ``log_gain_base`` is
+    still the hand-fitted least-squares prior. The arm ran on tuned constants
+    while the module built to learn them sat inert — and magnitude is precisely
+    what paper.md 4p measures as the thing blocking task success.
+
+    ``last_gains`` now retains the most recent gains so a caller that wants to
+    put them in a loss can, without changing the v7-shaped return.
     """
 
     def __init__(self, cfg: MicroVLAConfig) -> None:
         super().__init__()
         self.hrm = HRMBackbone(cfg)
+        #: Gains from the most recent forward, WITH grad. Plain attribute, never
+        #: a buffer — same rule as the drift encoder's runtime state, so a
+        #: checkpoint never carries it.
+        self.last_gains: Optional[torch.Tensor] = None
 
     def reset(self) -> None:
         self.hrm.reset()
+        self.last_gains = None
 
     def forward(self, frame_emb: torch.Tensor) -> torch.Tensor:
-        return self.hrm(frame_emb, is_real=True).state
+        out = self.hrm(frame_emb, is_real=True)
+        self.last_gains = out.gains
+        return out.state
 
 
 def objects_from_batch(batch, idx, fade, cfg):
