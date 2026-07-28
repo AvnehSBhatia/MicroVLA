@@ -1092,12 +1092,20 @@ def main(argv=None) -> None:
         # the planner is conditioned on), and EvidenceEncoder feeds the TRM's
         # UNCHANGED [B,32,5] port. See DESIGN.md "v8 plan".
         if "relational" not in cfg.planner_inputs:
+            # --planner-drop is applied BEFORE this block, so re-adding
+            # "relational" unconditionally silently undid `--planner-drop
+            # relational --v8` and the ablation measured nothing. Respect an
+            # explicit drop.
+            _dropped = {s.strip() for s in args.planner_drop.split(",") if s.strip()}
+            _add = () if "relational" in _dropped else ("relational",)
             cfg = dataclasses.replace(
                 cfg,
                 planner_inputs=tuple(n for n in cfg.planner_inputs
                                      if n not in ("fused", "geometry", "pred_box_emb"))
-                + ("relational",),
+                + _add,
             )
+            if not cfg.planner_inputs:
+                raise SystemExit("v8 planner would have no inputs left.")
         fusion = FusionAdapter(cfg).to(device)     # wraps EvidenceEncoder
         drift = DriftAdapter(cfg).to(device)       # wraps HRMBackbone
         relational = RelationalHead(cfg).to(device)

@@ -214,25 +214,59 @@ PY2
 done
 
 # --- 4. ARMS, ordered by paper value so a short night still yields the claim ---
-COMMON="--device $DEV --batch-size 64 --lr 5e-4 --max-vram-gb 50 --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long --stage-b-select bc --stage-b-min-epochs 30"
+# expandable_segments cuts fragmentation, which is what turned "9.6 GB held on a
+# 192 GB card" into an OOM while other tenants owned the rest.
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+BATCHES="${BATCHES:-64 32 16 8}"
+COMMON="--device $DEV --lr 5e-4 --max-vram-gb ${VRAM_GB:-40} --dream-frac 0.25 --waypoint-weight 1.0 --waypoint-long --stage-b-select bc --stage-b-min-epochs 30"
 SA="--stage-a-epochs 60 --warmup-epochs 5 --max-horizon 6 --patience 5"
 SB="--stage-b-epochs 100 --stage-b-patience 6"
+
+# Retry on OOM at a smaller batch. The box is SHARED: the previous run died with
+# "0 bytes free" on a 192 GB card while holding only 9.6 GB, i.e. other tenants
+# owned the rest. A fixed batch size cannot be right on a machine whose free
+# memory is somebody else's variable.
+_train_retry() {
+  local tag="$1" ck="$2"; shift 2
+  local b
+  for b in $BATCHES; do
+    stopped && return 1
+    say "  $tag: trying batch $b"
+    run_logged "logs/box_v8/train_${tag}.log" \
+      python -u train/train_batched.py --batch-size "$b" "$@" --tag "$tag"
+    [ -f "$ck" ] && { say "  $tag OK at batch $b"; return 0; }
+    if grep -qi "out of memory" "logs/box_v8/train_${tag}.log"; then
+      say "  $tag OOM at batch $b — retrying smaller"; continue
+    fi
+    say "  $tag rc=$RC, not an OOM — see logs/box_v8/train_${tag}.log"; return 1
+  done
+  say "  $tag FAILED at every batch size ($BATCHES)"; return 1
+}
 
 arm_full() {
   local tag="$1"; shift; local ck="checkpoints/full_stageB_${tag}.pt"
   [ -f "$ck" ] && { say "SKIP arm $tag"; return 0; }; stopped && return 1
   say "=== ARM $tag (stage A + B) ==="
-  run_logged "logs/box_v8/train_${tag}.log" python -u train/train_batched.py $COMMON $SA $SB --tag "$tag" "$@"
-  say "  $tag rc=$RC $( [ -f "$ck" ] && echo OK || echo 'NO CHECKPOINT')"
+  _train_retry "$tag" "$ck" $COMMON $SA $SB "$@"
 }
+
 arm_stageb() {
   local tag="$1" sa="$2"; shift 2; local ck="checkpoints/full_stageB_${tag}.pt"
   [ -f "$ck" ] && { say "SKIP arm $tag"; return 0; }
   [ -f "$sa" ] || { say "SKIP arm $tag (no $sa)"; return 1; }; stopped && return 1
+  # A stage A that died during the horizon ramp is WORSE than persistence and
+  # poisons every arm built on it — the previous run measured wm_margin -46.8%
+  # across three arms that all loaded such a checkpoint. Refuse it.
+  if [ -f logs/box_v8/train_v8_s0.log ] && \
+     ! grep -q "BEATS persistence" logs/box_v8/train_v8_s0.log; then
+    say "  SKIP arm $tag: $sa never beat persistence (see train_v8_s0.log)."
+    say "  Every arm built on it inherits a broken world model."
+    return 1
+  fi
   say "=== ARM $tag (stage B only) ==="
-  run_logged "logs/box_v8/train_${tag}.log" python -u train/train_batched.py $COMMON $SB --load-stage-a "$sa" --tag "$tag" "$@"
-  say "  $tag rc=$RC $( [ -f "$ck" ] && echo OK || echo 'NO CHECKPOINT')"
+  _train_retry "$tag" "$ck" $COMMON $SB --load-stage-a "$sa" "$@"
 }
+
 SA_MAIN=checkpoints/full_stageA_v8_s0.pt
 
 arm_full   v8_s0     $BAKED --v8 --seed 0
