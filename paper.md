@@ -2071,3 +2071,65 @@ This is the second time in this project that a clean measurement supported a
 conclusion that a cheap follow-up then refuted — the first being the
 displacement-vs-action ratio in 4m/4o. Both times the measurement was sound and
 the inference from it was not.
+
+## 4r. The wrist view is object-poor: K=8 slots, 0.68 objects per frame
+
+Weight analysis of `full_stageB_v8_s0.pt` found the evidence port's object slots
+`obj2`-`obj7` sitting at ~2.00 block norm, essentially identical to each other,
+while `obj0` (2.565) and `obj1` (2.387) had moved. Only two slots trained. The
+cause is the corpus, not the encoder.
+
+### Occupancy, measured over 637 frames of `libero_object_v8`
+
+| slot | % of frames used | mean weight |
+|---|---|---|
+| 0 | 52.7% | 0.1255 |
+| 1 | 13.2% | 0.0231 |
+| 2 | 1.9% | 0.0024 |
+| 3 | 0.2% | 0.0002 |
+| 4-7 | **0.0%** | 0.0000 |
+
+```
+proposals per frame: mean 0.68 | median 1 | max 4
+frames with exactly k objects: {0: 301, 1: 252, 2: 72, 3: 11, 4: 1}
+```
+
+**47% of frames contain no detected object at all**, and slots 4-7 are never
+occupied in the entire sample. A slot at weight 0 receives no gradient, which is
+exactly why those blocks are still at initialization — the graded-evidence
+design working as specified, on evidence that is not there.
+
+### What this means for v8
+
+The "data rich, K=8 class-agnostic proposals" premise (`DESIGN.md` v8, 4o) is
+not realized by this corpus. The relational head — 2,355,400 parameters built to
+reason about object-object structure — is being handed an empty scene on half
+its frames and a single object on most of the rest. Its measured planner
+sensitivity (0.0940, second behind `proprio` 0.1433) is therefore an upper bound
+on what it could show, not a verdict on the design.
+
+Earlier probes make the cause specific: on the SAME scenes the third-person view
+yields **3.40 proposals/frame** against the wrist view's **1.40**, and per-prompt
+firing rates are roughly double. The wrist camera at 128x128 is close to the
+objects, frequently occluded by the gripper, and often pointed at table surface;
+it is a hard detection target regardless of prompt engineering, and 4n's prompt
+work raised the source rate from 0.0% to ~48% without changing that ceiling.
+
+### The tension this exposes, and a way out
+
+4f established that the bake camera MUST match the eval camera, and eval reads
+`robot0_eye_in_hand_image`. That coupling is what forces detection onto the
+object-poor view.
+
+It is avoidable. LIBERO's observation dict carries `agentview_image` alongside
+the wrist image at every step, so a policy may legitimately consume BOTH: the
+third-person view for OBJECT DETECTION (3.4 proposals/frame) and the wrist view
+for the ego frame embedding the world model predicts. Nothing about the
+deployment story forbids it either — a real rig with a fixed scene camera plus a
+wrist camera is the ordinary configuration, and the Pi budget is unchanged
+because detection already runs at 2 Hz on one image.
+
+This is proposed, not measured. What is measured is that the current
+single-wrist-view corpus cannot support the relational head's premise, and that
+any conclusion about relational reasoning drawn from these checkpoints is
+bounded by 0.68 objects per frame.
