@@ -129,11 +129,27 @@ for S in $SUITES; do
       # Direct HuggingFace fallback — verified working.
       mkdir -p "$RAW/$S"
       BASE="https://huggingface.co/datasets/yifengzhu-hf/LIBERO-datasets/resolve/main/$S"
-      for f in $(curl -sS "https://huggingface.co/api/datasets/yifengzhu-hf/LIBERO-datasets" \
-                 | python -c "import json,sys;print('\n'.join(x['rfilename'] for x in json.load(sys.stdin)['siblings'] if x['rfilename'].startswith('$S/')))"); do
+      FILES=$(curl -sS "https://huggingface.co/api/datasets/yifengzhu-hf/LIBERO-datasets" \
+              | python -c "import json,sys;print('\n'.join(x['rfilename'] for x in json.load(sys.stdin)['siblings'] if x['rfilename'].startswith('$S/')))")
+      # PARALLEL + RESUMABLE. Serial single-stream curl measured 3.2 MB/s
+      # decaying to 60 KB/s, which is hours per suite. And `[ -s ]` treated a
+      # PARTIAL file as complete, so an interrupted download silently became a
+      # truncated dataset that still passed every downstream check — `curl -C -`
+      # resumes instead, and the size is verified against Content-Length.
+      DL_JOBS="${DL_JOBS:-4}"
+      for f in $FILES; do
         n=$(basename "$f")
-        [ -s "$RAW/$S/$n" ] || curl -sSL --retry 3 -o "$RAW/$S/$n" "$BASE/$n"
+        (
+          want=$(curl -sIL "$BASE/$n" | awk 'BEGIN{IGNORECASE=1}/^content-length:/{v=$2}END{print v+0}' | tr -d '\r')
+          have=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
+          if [ "$want" -gt 0 ] && [ "$have" -eq "$want" ]; then exit 0; fi
+          curl -sSL --retry 5 --retry-delay 3 -C - -o "$RAW/$S/$n" "$BASE/$n"
+          got=$(stat -c %s "$RAW/$S/$n" 2>/dev/null || echo 0)
+          [ "$want" -gt 0 ] && [ "$got" -ne "$want" ] && echo "  TRUNCATED $n: $got != $want"
+        ) &
+        while [ "$(jobs -rp | wc -l)" -ge "$DL_JOBS" ]; do wait -n 2>/dev/null || sleep 2; done
       done
+      wait
     fi
   fi
   N_RAW=$(ls "$RAW/$S"/*.hdf5 2>/dev/null | wc -l)
