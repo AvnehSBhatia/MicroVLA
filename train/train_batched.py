@@ -605,7 +605,13 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         if at_max:
             sched.step(val)  # only at fixed horizon (val rises during warmup by design)
         lr_now = opt.param_groups[0]["lr"]
-        peak = (f" | peakVRAM {torch.cuda.max_memory_allocated(device)/1024**3:.1f}GB"
+        # RESERVED, not just allocated. peakVRAM reported only live tensors, so a
+        # run showing "9.3GB" could be holding 100+ GB from the driver in cached
+        # blocks — which is what "0 bytes is free" means while our tensors are
+        # tiny. The gap between the two IS the fragmentation.
+        peak = (f" | VRAM alloc {torch.cuda.max_memory_allocated(device)/1024**3:.1f}"
+                f"/reserved {torch.cuda.max_memory_reserved(device)/1024**3:.1f}GB"
+                f" free {torch.cuda.mem_get_info(device)[0]/1024**3:.0f}GB"
                 if device.type == "cuda" else "")
         print(f"[stage A] epoch {epoch} | H={H} | lr {lr_now:.1e} | train {run/max(nb,1):.4f} "
               f"| val {val:.4f} vs persistence {pers:.4f} ({verdict}){tag} "

@@ -216,7 +216,14 @@ done
 # --- 4. ARMS, ordered by paper value so a short night still yields the claim ---
 # expandable_segments cuts fragmentation, which is what turned "9.6 GB held on a
 # 192 GB card" into an OOM while other tenants owned the rest.
-export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+# The allocator, not the card, is the constraint: stage A died at exactly the
+# same epoch at batch 64/32/16 while holding ~9 GB on a card with 129 GB free.
+# garbage_collection_threshold makes the allocator RECLAIM cached blocks instead
+# of growing its reserve, and max_split_size_mb stops large blocks being split
+# into pieces that can never serve the next, larger rollout-graph allocation.
+# Both are the standard remedy for "cannot allocate 32 MB while holding 2 GB".
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF-garbage_collection_threshold:0.6,max_split_size_mb:256}"
+export PYTORCH_HIP_ALLOC_CONF="${PYTORCH_HIP_ALLOC_CONF-$PYTORCH_CUDA_ALLOC_CONF}"
 BATCHES="${BATCHES:-64 32 16 8}"
 # VRAM_GB=0 disables the cap entirely (see cap_vram). Worth trying when an OOM
 # reports a tiny footprint: the cap is a per-process fraction, so it can bind
