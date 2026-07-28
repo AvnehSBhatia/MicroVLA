@@ -52,6 +52,13 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="representative trust for the brake stage; the deployed "
                         "mean was 0.521 against cfg.brake_trust 0.5")
     p.add_argument("--stages", default="raw,norm,brake,norm+brake")
+    p.add_argument("--scale-sweep", default=None,
+                   help="comma-separated magnitude multipliers applied to the POSE "
+                        "columns of ground-truth actions (gripper exempt). Maps how "
+                        "much magnitude error the task tolerates at all, which is the "
+                        "bar any policy has to clear: measured 1.0 -> 5/5 but "
+                        "0.8 -> 0/4, so a policy at std_ratio 0.5 cannot succeed no "
+                        "matter how correct its direction is.")
     return p.parse_args(argv)
 
 
@@ -109,6 +116,32 @@ def main(argv=None) -> None:
         return out
 
     env = OffScreenRenderEnv(bddl_file_name=bddl, camera_heights=128, camera_widths=128)
+
+    if args.scale_sweep:
+        scales = [float(s) for s in args.scale_sweep.split(",")]
+        print(f"{'scale':>7} {'success':>10}   (pose columns only; gripper untouched)")
+        with h5py.File(args.hdf5, "r") as f:
+            for k in scales:
+                ok = 0
+                for d in demos:
+                    a = np.asarray(f[f"data/{d}/actions"], dtype=np.float64).copy()
+                    a[:, :-1] *= k
+                    env.reset()
+                    env.set_init_state(np.asarray(f[f"data/{d}/states"])[0])
+                    for step in a:
+                        _o, _r, done, _i = env.step(step)
+                        if done:
+                            break
+                    ok += bool(env.check_success())
+                bar = "#" * int(round(ok / len(demos) * 20))
+                print(f"{k:7.2f} {ok}/{len(demos)} = {ok/len(demos):4.2f}  {bar}")
+        print()
+        print("Read this as the accuracy bar. Any policy whose emitted magnitude")
+        print("falls outside the passing band cannot solve the task regardless of")
+        print("how well it predicts DIRECTION — and std_ratio measures exactly")
+        print("that magnitude ratio.")
+        return
+
     print(f"{'stage':12s} {'success':>9} {'|a| vs raw':>12}")
     results = {}
     with h5py.File(args.hdf5, "r") as f:
