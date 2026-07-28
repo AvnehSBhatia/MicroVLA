@@ -68,6 +68,35 @@ if [ -f STOP ]; then
   say "removing stale STOP file from a previous run"
   rm -f STOP
 fi
+# Pick the emptiest GPU unless told otherwise. The failures were NOT ours:
+# stage A reported "alloc 9.3 / reserved 10.2 GB, free 119 GB" and then failed a
+# 32 MB allocation with "0 bytes is free". Our reserve is small and the device
+# was mostly empty at the epoch boundary, so a neighbour is filling the card
+# BETWEEN boundaries. No batch size or allocator setting can fix that; moving
+# off the contended device can.
+if [ -z "${HIP_VISIBLE_DEVICES:-}${CUDA_VISIBLE_DEVICES:-}" ]; then
+  PICK=$(python - <<'PY2'
+import torch
+best, best_free = None, -1
+for i in range(torch.cuda.device_count()):
+    try:
+        free, total = torch.cuda.mem_get_info(i)
+    except Exception:
+        continue
+    print(f"  gpu {i}: free {free/2**30:.0f} / {total/2**30:.0f} GiB")
+    if free > best_free:
+        best, best_free = i, free
+print(f"PICK={best}")
+PY2
+)
+  echo "$PICK" | grep -v '^PICK='
+  GPU_IDX=$(echo "$PICK" | sed -n 's/^PICK=//p')
+  if [ -n "$GPU_IDX" ] && [ "$GPU_IDX" != "None" ]; then
+    export HIP_VISIBLE_DEVICES="$GPU_IDX"
+    export CUDA_VISIBLE_DEVICES="$GPU_IDX"
+    say "using GPU $GPU_IDX (emptiest); override with HIP_VISIBLE_DEVICES=<n>"
+  fi
+fi
 say "=== box v8 start: $(git rev-parse --short HEAD) | suites: $SUITES ==="
 say "disk: $(df -h . | tail -1 | awk '{print $4}') free"
 
@@ -252,10 +281,12 @@ _train_retry() {
       # batch 32 OOM'd at peakVRAM 5.2 GB, batch 16 at 2.2 GB, both on a 32 MB
       # allocation.
       if grep -q "0 bytes is free" "logs/box_v8/train_${tag}.log"; then
-        say "  $tag: card is FULL (0 bytes free, we held only a few GB) —"
-        say "  external contention, not our batch. Waiting ${WAIT_S:-600}s at batch $b."
+        say "  $tag: OOM with a SMALL reserve — a neighbour is filling the card."
+        say "  Check the epoch line: if 'reserved' is small and 'free' was large,"
+        say "  no batch size fixes this. Waiting ${WAIT_S:-300}s at batch $b."
+        say "  Move to an idle GPU with HIP_VISIBLE_DEVICES=<n> to stop sharing."
         BATCHES="$b $BATCHES"        # retry this size first once memory frees
-        sleep "${WAIT_S:-600}"
+        sleep "${WAIT_S:-300}"
         WAITS=$((${WAITS:-0} + 1))
         if [ "$WAITS" -ge "${MAX_WAITS:-6}" ]; then
           say "  $tag: still contended after $WAITS waits — giving up on this arm."
