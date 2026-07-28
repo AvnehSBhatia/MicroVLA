@@ -1933,3 +1933,104 @@ separate experiment and is not claimed here.
 3. **`std_ratio` should be reported against the band, not as a bare number.** A
    run at 0.56 is not "better than" 0.26 in any way that matters if both are
    outside [0.95, 1.05].
+
+## 4q. The v8 architecture, and the first world model that clearly works
+
+Locked 2026-07-26, first trained end to end 2026-07-28. Contract in `DESIGN.md`
+("v8 plan"); weights and their paired stats in `checkpoints/v8_pod/`.
+
+### What changed and why
+
+v8 replaces three of the five trainable modules. Each change answers a specific
+measured failure, not a design preference.
+
+```
+perception (frozen YOLO-World-S)  — DATA RICH: K=8 class-agnostic proposals at
+   |                                full 512-d, from the SAME detector forward
+   |  frame_emb [512] + obj_emb [8,512] + obj_center [8,2] + obj_weight [8]
+   v
+HRMBackbone            replaces AnchoredDriftEncoder
+   |  slow module steps on REAL ticks (2 Hz); fast module every tick (30 Hz)
+   |  -> state [256] + learned per-axis control gains
+   v
+RecursiveTRM           unchanged contract, residual convention preserved
+   |  -> next_emb [512]
+   v
+RelationalHead         replaces SlotResonanceFusion, runs AFTER the TRM
+   |  cross-attn(object tokens x predicted latent x text)
+   v
+ChronoQueryPlanner  -> plan [5,7] + waypoint [5,3]
+```
+
+**Ordering.** v7 ran fusion -> TRM. v8 runs **TRM -> relational**, so
+object-object reasoning conditions on the latent the planner actually consumes
+rather than on a separate pre-TRM summary. The TRM is the one component with a
+consistently positive result, so it goes first and its contract is untouched;
+`EvidenceEncoder` (116,288 params) feeds its unchanged `[B,32,5]` port.
+
+**Why an HRM.** Its two timescales are not an imported abstraction — the
+hierarchy already exists in the deployment loop. It absorbs three jobs v7 did
+separately: drift encoding, the hand-fitted proportional gains of
+`fit_waypoint_gain.py` (now learned outputs), and long-horizon reasoning.
+
+**Why class-agnostic proposals.** 4n established that role-conditioned detection
+returns 0.000 on LIBERO product names. The same detector forward already
+produces every other box; v8 keeps them instead of discarding them, so the
+relational head reasons over a scene rather than two argmax slots.
+
+### Parameter ledger
+
+| module | params | cap |
+|---|---|---|
+| evidence (`EvidenceEncoder`) | 116,288 | — |
+| hrm (`HRMBackbone`) | 2,110,470 | 3,000,000 (raised from 1.5M) |
+| relational (`RelationalHead`) | 2,355,400 | 5,000,000 (inherited from fusion) |
+| planner (`ChronoQueryPlanner`) | 1,883,146 | 2,500,000 |
+| **trainable total** | **6,465,304** | 9,000,000 |
+
+Against v7's 6,988,685 — v8 is SMALLER while adding relational reasoning, a
+learned control law, and an 8-object scene representation.
+
+### The world model result
+
+Stage A on 1000 sighted episodes (`libero_object` + `libero_goal`), RTX A4500:
+
+```
+[stage A] epoch 44 | H=6 | val 0.0291 vs persistence 0.0504 (BEATS persistence)
+[stage A] early stop at H=6, best val 0.0287
+```
+
+**`wm_margin +43.3%`** — the best this project has produced, by more than 2x:
+
+| stage A | corpus | `wm_margin` |
+|---|---|---|
+| **v8_s0 (this)** | 1000 ep, sighted | **+43.3%** |
+| v7 `full_stageA_wrist_v72` | wrist, blind | +19.8% |
+| v8 Mac cold start | 500 ep, sighted | +3.5% |
+| v8 ROCm (OOM'd mid horizon-ramp) | 1000 ep | -46.8% |
+
+Two things made it possible. The corpus can see (4n): source objects detected on
+44-48% of frames against 0.0% for every earlier corpus. And gradient
+checkpointing held peak allocation at **1.5 GB** where the unchecked rollout
+graph had grown to 9.3 GB and lost a race for memory on a shared card — the
+world model had never before been given a full horizon ramp to train through.
+
+### Bench, and the honest reading
+
+`full_stageB_v8_s0.pt`, 20 held-out episodes, stage B still mid-training:
+
+| metric | value |
+|---|---|
+| `wm_margin` | **+43.3%** |
+| `std_ratio` | 0.264 |
+| `corr` | 0.48 |
+| `grip_acc` | 0.94 |
+| `pose_mae` | 0.202 |
+| `relational` sensitivity | 0.0940 (2nd of 11, behind `proprio` 0.1433) |
+
+The world model and the gripper are genuinely good. `std_ratio` 0.264 is **~4x
+below the [0.95, 1.05] band 4p measures as necessary**, so this checkpoint
+cannot succeed closed-loop regardless of the rest, and reporting its `corr` or
+`grip_acc` as progress toward Claim 1 would be misleading. v8's contribution is
+to the world model and to grounding; the magnitude problem is orthogonal to it
+and is addressed in 4p.
