@@ -2299,3 +2299,82 @@ The three-experiment chain of 4p (replay 5/5, stage isolation, magnitude sweep)
 established that the ENVIRONMENT can be solved; it did not establish that the
 policy was being fed what it was trained on, and that gap is where all four of
 these bugs lived.
+
+### 4t-CORRECTION: grounding was not what saturated the planner
+
+4t attributed the saturated policy to blind deployment: the policy trained with
+48% source detection and deployed with 0.0%, so its inputs were off-distribution
+and its outputs collapsed. The fix (commit `fbc7f8d`) worked as a grounding fix
+and **refuted the causal claim.**
+
+Re-running `v8_act` unchanged, with the shared prompt chains live:
+
+| | before the fix | after the fix |
+|---|---|---|
+| source detected | 0.0% of real ticks | **75.8%** (mean conf 0.058) |
+| target detected | 20.0%, conf 0.007 | 3.0%, conf 0.001 |
+| gripper, unique emitted values | `{-1.0}` | **`{-1.0}`** |
+| gripper closes | 0.0% of ticks | **0.0%** of ticks |
+| z, mean | -0.949 | **-0.948** |
+| mean_success | 0.000 | **0.000** |
+
+Deployment is now genuinely sighted — better than the corpus it trained on — and
+**not one digit of the policy's behaviour moved.** The gripper is still pinned at
+exactly -1.0 with std 0.000000 across 9000 ticks. Blind grounding was a real
+defect and a real train/deploy divergence, but it was not the cause of the
+saturation, and 4t's causal claim is withdrawn. What survives from 4t is the
+measurement (the first honest v8 closed-loop numbers) and the root-cause analysis
+of the grounding defect itself; what dies is the inference from it.
+
+Note also that the target role got WORSE (20% -> 3.0%). Disjoint role chains push
+the target onto "basket"/"bin", which the wrist camera rarely sees — consistent
+with 4r's finding that the wrist view is object-poor. Source and target grounding
+are not one problem.
+
+### The next candidate: proprio orientation is a different QUANTITY at deployment
+
+Since the inputs still had to explain a 0.94-open-loop head emitting one constant
+value, the input comparison was extended past grounding to proprio:
+
+| proprio dims 3:7 (orientation) | value |
+|---|---|
+| corpus, per-frame mean | `[3.108, -0.104, -0.088, 0.0]`, 4th slot zero on **100%** of frames |
+| live env, at reset | `[1.0, 0.0, -0.028, -0.0]` |
+
+`_ORI_KEYS = ("ee_ori", "robot0_eef_quat")` tried LIBERO's baked key and fell
+back to robosuite's live key — but `ee_ori` is an axis-angle rotation VECTOR (3)
+and `robot0_eef_quat` is a QUATERNION (4, xyzw). Two different quantities, packed
+into the same four slots, chosen by which key happened to exist. The bake path
+gets axis-angle; the deployed policy got a quaternion, every tick of every
+episode, with the first component moving from ~pi to ~1.0.
+
+Converting that same env pose through `quat2axisangle` yields `[pi, 0, -0.088]`,
+which lands on the corpus mean `[3.108, -0.104, -0.088]` to three decimals — so
+the conversion is confirmed by construction rather than by plausibility. Fixed in
+`87c133a`.
+
+**This is a candidate, not a confirmed cause.** It is a verified divergence with a
+verified conversion; whether it unsaturates the policy is an open measurement,
+and 4t's correction is precisely what happens when that distinction is skipped.
+The result is reported in 4u.
+
+### The pattern, now four for four (and the reason to distrust the next fix too)
+
+Every defect found in this stack so far is the same shape: **two sides of a
+train/deploy pair disagreeing about what a value means, with each side
+individually correct and individually tested.**
+
+| # | the two sides | what they disagreed about |
+|---|---|---|
+| §0 | bench vs checkpoint | whether TQSA weights were loaded |
+| 4n | bake vs detector | what a class name is |
+| 4s | eval harness vs policy | what device the heads live on |
+| 4t | bake vs deploy | what a detection prompt is |
+| — | bake vs env | what an orientation is (axis-angle vs quaternion) |
+
+None of these is a modelling error and none would be caught by a better loss, a
+bigger model, or more data. All five produced a plausible number instead of an
+error. The methodological consequence for this paper: **any single-sided test is
+evidence about one side only**, and the tests that actually caught these are
+comparisons — bake output against deploy output, on the same input. Where such a
+comparison does not exist, the corresponding number should be read as unverified.
