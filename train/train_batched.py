@@ -752,7 +752,7 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         prev_H = H
         fusion.train(); drift.train(); trm.train()
         run, nb, t0 = 0.0, 0, time.time()
-        n_skipped = 0
+        n_skipped = 0; n_nan_loss = 0
         last_beat = t0
         for T, batch in iter_batches(train_b, H, args.batch_size, rng, need=1):
             fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
@@ -785,7 +785,16 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
                 opt.step()
             else:
                 n_skipped += 1
-            run += float(loss.detach()); nb += 1
+            # Do NOT fold a non-finite loss into the running mean. One bad batch
+            # otherwise makes every epoch line read `nan` for the rest of the
+            # run even though the step was correctly skipped and the weights are
+            # clean -- which is exactly how a healthy run gets mistaken for a
+            # diverged one (and how a diverged one hides). Count them instead.
+            lv = float(loss.detach())
+            if lv == lv and abs(lv) != float("inf"):
+                run += lv; nb += 1
+            else:
+                n_nan_loss += 1
             if time.time() - last_beat >= _HEARTBEAT_SEC:
                 last_beat = time.time()
                 print(f"[stage A] epoch {epoch} .. {nb} batches | "
@@ -1173,7 +1182,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
         if tqsa is not None:
             tqsa.train()
-        run = 0.0; grip_acc = 0.0; nb = 0; n_skipped = 0; t0 = last_beat = time.time()
+        run = 0.0; grip_acc = 0.0; nb = 0; n_skipped = 0; n_nan_loss = 0; t0 = last_beat = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             # NOT under no_grad: every parameter in fusion/drift is frozen
             # except the HRM's gain head, and that head needs a graph or it gets
@@ -1457,6 +1466,9 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 opt.step()
             else:
                 n_skipped += 1
+            _lv = float(loss.detach())
+            if not (_lv == _lv and abs(_lv) != float("inf")):
+                n_nan_loss += 1
             with torch.no_grad():
                 run += float(loss)
                 # gripper decision accuracy vs the demo (are we learning to close?)
@@ -1500,7 +1512,9 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             # is reported beside it, never folded in, so runs stay comparable.
             wp_txt = f" wp {val_wp:.4f}" if val_wp else ""
             print(f"[stage B] epoch {epoch}/{args.stage_b_epochs} | loss {run/max(nb,1):.4f} "
-                  f"| grip_acc {grip_acc/max(nb,1):.3f} | val bc {val_bc:.4f}{wp_txt} "
+                  f"| grip_acc {grip_acc/max(nb,1):.3f}"
+                  f"{f' | NONFINITE {n_nan_loss}b/{n_skipped}skip' if (n_nan_loss or n_skipped) else ''}"
+                  f" | val bc {val_bc:.4f}{wp_txt} "
                   f"grip {val_ga:.3f}{tag} | {time.time()-t0:.0f}s", flush=True)
             if stale >= args.stage_b_patience and epoch >= args.stage_b_min_epochs:
                 print(f"[stage B] early stop, best val {best_val:.4f} (checkpoint kept)", flush=True)
