@@ -3072,3 +3072,45 @@ else here: verify the state, do not trust the issuing.
 
 The `grid10` arm (dense corpus + spatial grid + every fix) is the one that
 carries the question.
+
+## 5a. Two changes that came from reading the numbers, not the code
+
+### The world model was predicting almost nothing, and hiding it
+
+`RecursiveTRM.forward_full` returned `next_emb = current_emb + head(pooled)` —
+a residual, per the design contract — and then handed only the SUM downstream.
+4w measured consecutive frame embeddings at cosine **0.9922**, so `next_emb` is
+~99% a copy of its own input. Every consumer of it, including the planner's
+largest memory group, had to recover the prediction by subtracting two nearly
+equal vectors, and the 1-step margin over persistence (+1.7% MSE) says how little
+survived that subtraction.
+
+The residual is now returned as `delta` and reaches the planner as its own group
+(`wm_delta`), **standardized at the projection**. That detail is the whole point:
+the delta's magnitude is ~0.12 of the latent it rides on, so an unnormalized
+delta arrives as near-zero tokens and the group is inert — the same
+"wired but does nothing" failure that made the relational head's first result
+meaningless. Its DIRECTION is the signal. Pinned by a test that scales a
+realistically-sized delta and asserts the plan does not move.
+
+This costs 16k parameters (7,005,837 total, cap 9M) and no retraining of anything
+upstream: the quantity already existed and was being thrown away.
+
+### Stage A was training on NaN and early-stopping on it
+
+The dense run reported `train nan | val nan` from epoch 8 (the first at H=4)
+through the end, then "early stop at H=4, best val 0.0182" — a checkpoint
+selected on a number that had stopped meaning anything five epochs earlier.
+
+Cause: `clip_grad_norm_` RETURNS the pre-clip norm and does not sanitize.
+Clipping a NaN norm leaves NaN, so one bad batch writes NaN into the weights and
+every forward afterwards is NaN. Stage A had clipping and it did not help; stage
+B had no clipping at all. Both now skip the optimizer step when the gradient norm
+is non-finite, and count the skips.
+
+Worth noting how this presented: not as a crash, but as a training run that
+completed, early-stopped, saved a checkpoint, and reported a plausible best
+validation loss. The corpus itself is clean — 200 episodes scanned, zero
+non-finite values, zero degenerate embeddings — so nothing upstream would have
+flagged it either. Nineteen defects in, the pattern holds: **the failure mode of
+this system is not an error, it is a number.**
