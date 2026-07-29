@@ -3542,3 +3542,66 @@ magnitude ratio — while `val bc` improved throughout.
 `--action-gain` rescales the emitted pose at eval time, which tests the magnitude
 hypothesis in minutes rather than an hour: if 0.49 is the whole story, a gain
 near 2.0 should move success off zero without touching a weight.
+
+## 5h. Compounding error, measured — and the label that fixes it
+
+`rec_mid` closed the loop on every open-loop objection: gripper agreement
+**0.931**, closing rate **63.9%** against the demonstrator's 58.5%, pose
+correlation 0.59-0.69 against a linear probe's 0.415. Closed-loop success:
+**0.000**.
+
+Two hypotheses remained. Both were tested rather than argued.
+
+**Magnitude — refuted.** `std_ratio` is 0.490, and 4p put the passing band at
+[0.95, 1.05], so this looked decisive. `--action-gain` rescales the emitted pose
+at eval time, which tests it in minutes:
+
+| action gain | 1.0 | 1.4 | 1.8 | 2.2 |
+|---|---|---|---|---|
+| mean_success | 0.000 | 0.000 | 0.000 | 0.000 |
+
+Magnitude is necessary and not sufficient — the same conclusion 4p-CORRECTION
+reached, now confirmed on a policy that is otherwise healthy.
+
+**Compounding error — confirmed, and quantified.** Running the policy from a
+demonstration's own initial state and comparing its end-effector path to that
+demonstration's:
+
+| step | 5 | 10 | 20 | 40 | 80 |
+|---|---|---|---|---|---|
+| mean EEF separation | 2.25 cm | 3.40 cm | **5.34 cm** | 9.74 cm | **28.65 cm** |
+
+An object is a few centimetres across. By step 20 of a 150-step task the wrist
+camera is pointed somewhere no demonstration ever shows, and by step 80 the arm
+is a third of a metre away. The policy is accurate on the expert's states and
+spends almost all of every episode off them.
+
+### Why the obvious augmentation does not work
+
+`--proprio-noise` perturbs the observation and leaves the expert's action as the
+target. The gradient therefore teaches **"this perturbation does not matter"** —
+invariance, when what closed loop needs is **correction**. That is not a subtle
+distinction: it is the difference between a policy that ignores being 5 cm off
+and one that steers back. `rec_mid` has it, has the best open-loop numbers in the
+project, and still scores zero.
+
+### The label DAgger would provide, computed offline
+
+Displacing the measured end-effector by `delta` means the same waypoint now
+requires `delta` LESS motion. In raw action units the correction is
+`-delta / gain`; in the normalized units the loss uses, `-delta / (gain * q_high)`.
+The gain is the FITTED one the deployed actuator divides by, so the label is
+executable rather than notional, and the whole construction is possible only
+because the corpus stores absolute EEF positions alongside the actions.
+
+This is DAgger's *data* without DAgger's *expert*: for a positional perturbation
+the correct recovery action is derivable in closed form, so no on-policy expert
+queries are needed. Translation dims only — a positional displacement does not
+change the required orientation or gripper state. Pinned by a test on the SIGN,
+because getting it backwards would train the policy to run away from the
+trajectory while every loss curve looked fine.
+
+`dag_lo` (15 mm) and `dag_hi` (35 mm) report open-loop, the DIVERGENCE CURVE, and
+closed-loop success. The divergence curve is the one that matters: it measures
+the mechanism directly, so if recovery training works the separation at step 20
+should fall well below 5.3 cm whether or not success moves off zero yet.
