@@ -3038,3 +3038,37 @@ including one that made behaviour strictly worse than before it was "fixed".
 
 Every defect above is a commit with its measurement in the message. The paper is
 the git history.
+
+### `fixed`, completed configs — and a process correction
+
+| eval config | mean_success |
+|---|---|
+| plan-only, brake ON | 0.000 |
+| plan-only, no-brake | 0.000 |
+| plan-only, no-brake, chunk | 0.000 |
+| waypoint, no-brake | pending |
+
+Three configurations, none of which had ever been evaluated before (every prior
+closed-loop run passed `--waypoint-stats`, so the `WaypointActuator` overrode
+x/y/z and the planner's own regressed translation was never executed once), and
+all three are 0.000 on the 2 Hz corpus with a fully corrected objective.
+
+**Process correction, recorded because it changes what a later table means.**
+The dense-corpus run was reported in this document as "re-launched so stage A
+learns the eef branch". It was not. The relaunch command died with its SSH
+connection and the original process kept running; the checkpoint mtimes gave it
+away (05:14/05:21, both predating the claimed 05:26 restart) and `ps` confirmed
+the start time as 05:08:55. **`dense10` therefore never contained the HRM-eef or
+TRM-context fixes**, and since the HRM is frozen in stage B its control branch
+would have stayed dead for that entire arm. The run has been killed rather than
+reported, because a dense-supervision result confounded with two missing fixes
+answers no question anyone asked.
+
+Worth naming the shape: a command was issued, produced no output, and was
+recorded as done. That is the same class of error as everything else in this
+document — an absent signal read as a successful one — committed this time by
+the experimenter rather than the code. The fix is the same as it is everywhere
+else here: verify the state, do not trust the issuing.
+
+The `grid10` arm (dense corpus + spatial grid + every fix) is the one that
+carries the question.
