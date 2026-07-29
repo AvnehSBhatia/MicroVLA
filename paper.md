@@ -2199,3 +2199,103 @@ This is the third instance in this project of a null result that was an
 instrumentation failure rather than a finding — after bench scoring TQSA
 checkpoints blind (§0) and the blind corpus (4n). All three shared a signature:
 a failure that produced a PLAUSIBLE number instead of an error.
+
+## 4t. The first honest v8 closed-loop numbers — and the fourth instrumentation failure
+
+With the device bug of 4s fixed, both v8 arms ran to completion for the first
+time: 10 tasks x 3 trials x 300 steps, `tasks_completed 10` on each.
+
+| arm | mean_success | tasks_completed | trials |
+|---|---|---|---|
+| `v8_act` (actuation loss) | **0.000** | 10/10 | 3 |
+| `v8_s0` (no actuation loss) | **0.000** | 10/10 | 3 |
+
+These are real measurements, not crashes: 9000 executed ticks with full
+telemetry. And the telemetry says the policy was not merely inaccurate — it was
+**saturated**, in a way that makes success impossible rather than unlikely.
+
+### The emitted actions, against the corpus the policy was trained on
+
+| quantity | emitted (9000 ticks) | corpus (row 0) |
+|---|---|---|
+| gripper, unique values | `{-1.0}` — one value, std **0.000000** | closes (>0) on **52.3%** of frames |
+| z, mean | **-0.949** (max -0.432) | -0.037, std 0.490 |
+| net EEF displacement | 0.267 m mean | — |
+| lowest z minus start | -0.251 m | — |
+
+The gripper never closed, on any tick, of any trial, of any task. A pick-and-place
+policy whose gripper never closes cannot score above zero, so nothing else about
+these runs needed explaining — the accuracy question (4p) never arose. The z
+column tells the same story from the other side: pinned near the tanh bound, the
+arm drove 0.25 m straight down and stayed there.
+
+### Why saturation, when the same checkpoint scores 0.94 open-loop
+
+Stage B's own validation for this checkpoint:
+
+```
+[stage B] epoch 20/60 | grip_acc 0.940 | val bc 0.2055 wp 0.3480 grip 0.934 *best*
+```
+
+**0.94 gripper accuracy on held-out data**, against a 0.477 always-open baseline.
+The head is not degenerate and the column is not untrained. The difference
+between 0.94 and a single saturated value is therefore entirely in the INPUTS.
+
+The telemetry names the input difference directly. On the 600 real ticks of these
+runs:
+
+| grounding | closed-loop eval | the corpus it trained on |
+|---|---|---|
+| source detected | **0.0%** of real ticks | **48%** of frames |
+| target detected | 20% of ticks, mean conf **0.007** | — |
+
+**The policy was trained sighted and deployed blind.**
+
+### Root cause: the blind-corpus fix reached the corpus and never the robot
+
+4n fixed grounding by replacing the bare task phrase with a chain of concrete
+visual categories, taking source detection from 0% to 48%. That fix was written
+into `preprocess/common.py` — the bake path. `microvla/jepa/loop.py`, the
+DEPLOYMENT path, kept building its own prompts:
+
+```python
+def _role_prompts(phrase):        # microvla/jepa/loop.py, before the fix
+    return [phrase, strip_article(phrase)]      # -> ["alphabet soup"]
+```
+
+which is exactly the prompt 4n measured at **0.000**. Every closed-loop eval this
+project has ever run — v7 included — grounded with the prompts that do not
+ground.
+
+Writing the parity test surfaced a second, independent divergence on the same
+call: the bake applied `strip_article` before building chains and the loop passed
+the parser's raw phrase, so the two sides sent `"alphabet soup"` and `"the
+alphabet soup"` to the same detector. Both are now fixed by moving the chains to
+`microvla/perception/prompts.py`, which both sides import, and normalizing inside
+`role_chains` so no caller can re-introduce the skew.
+
+### What made this invisible
+
+Both sides were tested, and both test suites passed throughout.
+`tests/test_prompt_fallbacks.py` checked that the bake built good chains;
+`tests/test_grounding.py` checked that the loop built the chains the loop was
+written to build. **Neither compared the two.** A test that pins each side to its
+own behaviour cannot see a divergence between them, and the more thorough each
+suite is, the more confidence it lends to the skew.
+
+The general form, and the reason this keeps happening here: *a fix applied at one
+end of a train/deploy pair is not a fix, and the test that would have caught it
+is a comparison, not an assertion.* The same shape produced 4n itself (bake and
+detector disagreed about what a class name was) and 4s (the eval harness and the
+policy disagreed about what device meant).
+
+This is the **fourth** instrumentation failure in this project that produced a
+plausible number instead of an error — after bench scoring TQSA blind (§0), the
+blind corpus (4n), and the device bug (4s). Four for four, the null result was
+the instrument. The practical consequence for how these numbers should be read:
+**a 0.000 from this stack is not evidence about a policy until something
+independent confirms the policy ran under the conditions it was trained for.**
+The three-experiment chain of 4p (replay 5/5, stage isolation, magnitude sweep)
+established that the ENVIRONMENT can be solved; it did not establish that the
+policy was being fed what it was trained on, and that gap is where all four of
+these bugs lived.
