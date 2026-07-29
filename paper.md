@@ -3233,3 +3233,42 @@ was also nan, which is a genuinely different signal, but the train-loss reading
 that first raised the alarm was an artifact.
 
 Twenty defects. The instrument, again.
+
+## 5c. THE FIX: the model was never allowed to fit
+
+`cleanbc` — pure behaviour cloning, nothing else: no dream steps, no planner-input
+dropout, no phase dropout, and every auxiliary loss set to zero (waypoint,
+actuation, variance, smoothness, world-model rollout). Same corpus, same frozen
+stage A, same architecture as the arms above.
+
+| epoch | val bc | val grip | train grip_acc |
+|---|---|---|---|
+| 1 | 0.2362 | 0.952 | 0.889 |
+| 3 | 0.1345 | 0.961 | 0.944 |
+| 6 | **0.1028** | **0.969** | 0.951 |
+
+Best val bc across every previously reported arm was **0.1512** (`v8_ss05`), and
+`v8_act` — the arm whose actuation loss produced this document's most-cited
+headline — sat at **0.2055**. Six epochs of plain BC beat both by 32%, and
+`val grip 0.969` is the best gripper number the project has produced.
+
+**Every one of the removed terms was individually justified by a measurement.**
+The actuation loss fixed `wp_std_ratio` (0.121 -> 1.097). Scheduled sampling fixed
+the exposure bias. Variance matching attacked MSE shrinkage. Modality dropout
+implements the graded-evidence contract. Dream steps train the regime the loop
+actually runs in. The world-model auxiliary protects frame prediction under BC
+fine-tuning. Each was added to solve a real problem, each demonstrably improved
+the metric it targeted, and **nobody ever measured what they did together.**
+
+Together they prevented the model from fitting its primary objective. That is why
+5b's linear probe beat the trained policy: the policy was not underpowered, it
+was constrained by six simultaneous regularizers plus a 25% dream rate plus 45%
+combined input/modality dropout — on a corpus of 7,680 decision points.
+
+This is a different failure from the nineteen before it. Those were seams: two
+sides disagreeing about a value. This one is a **composition** failure — every
+component correct, every component justified, the sum pathological — and it is
+invisible to any test of an individual component, including the parity discipline
+this paper advocates. Ablations are usually run to show a component HELPS. The
+missing experiment was the one that removes everything at once and asks whether
+the base model can still fit.
