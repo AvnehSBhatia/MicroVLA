@@ -2133,3 +2133,69 @@ This is proposed, not measured. What is measured is that the current
 single-wrist-view corpus cannot support the relational head's premise, and that
 any conclusion about relational reasoning drawn from these checkpoints is
 bounded by 0.68 objects per frame.
+
+## 4s. The actuation loss works — and every prior v8 closed-loop number was void
+
+### The fix
+
+4r/weight analysis found the HRM's learned control law had never received a
+gradient: `gain_head.weight` and `.bias` were EXACTLY zero (bit-for-bit their
+init) and `log_gain_base` was still the hand-fitted least-squares prior. Three
+independent causes, all in the v8 wiring:
+
+1. `DriftAdapter.forward` returned only `.state`, discarding `.gains`, so
+   nothing downstream referenced the head.
+2. Stage B froze the entire HRM. The control law converts a predicted
+   displacement into an emitted command, which makes it POLICY, not world model.
+3. **No loss could see it.** `waypoint_loss` supervises displacement in METRES,
+   upstream of the gain that turns displacement into a command — so emitted
+   magnitude appeared in no objective in this project, ever.
+
+`--actuation-weight` supervises the actuator's own law,
+`cmd = gain_scale * disp * range / (gain * steps)`, against the demo's pose
+action, so it trains exactly what runs.
+
+### Result: `v8_act` vs `v8_s0`, same stage A, same corpus
+
+| metric | `v8_s0` | `v8_act` | |
+|---|---|---|---|
+| **`wp_std_ratio`** | 0.121 | **1.097** | **9.1x**, and inside the band 4p measures |
+| `std_ratio` | 0.264 | 0.421 | +59% |
+| `corr` | 0.48 | 0.55 | |
+| `pose_mae` | 0.202 | 0.144 | |
+| `grip_acc` | 0.94 | 0.94 | |
+| `relational` sensitivity | 0.0940 (2nd) | 0.0923 (**1st**) | first time above `proprio` |
+
+The learned gains moved off the prior: `[0.01085, 0.01306, 0.01180]` ->
+`[0.01133, 0.01325, 0.01456]`, with `gain_head` non-zero at 4.1e-02. The control
+law is being learned rather than tuned, as designed.
+
+`wp_std_ratio` is the quantity that drives the deployed actuator, and 1.097 is
+the first time any head in this project has landed near the [0.95, 1.05] band.
+`relational` overtaking `proprio` is the first evidence that object evidence is
+the planner's primary input rather than a decoration.
+
+### VOID: every v8 closed-loop number reported before 2026-07-28
+
+`eval/policy.py` moves fusion, drift, trm and planner to the heads device
+explicitly. `relational` was added later and missed, so every v8 closed-loop run
+died at the FIRST TICK with
+
+```
+RuntimeError: Expected all tensors to be on the same device, but got mat1 is on
+cuda:0, different from other tensors on cpu
+```
+
+and the harness summarised it as `tasks_completed 0`, `mean_success 0.000` —
+which in the results JSON is indistinguishable from a policy that merely never
+succeeds. **Every v8 closed-loop 0.000 in 4o and in `results/V8_TABLE.md` was
+measuring a crash, not a policy**, and is withdrawn. The v7 numbers are
+unaffected; v7 has no relational head.
+
+After the fix, episodes actually execute (`tasks_completed 2`, 200 steps each).
+The re-measured numbers are reported in 4t.
+
+This is the third instance in this project of a null result that was an
+instrumentation failure rather than a finding — after bench scoring TQSA
+checkpoints blind (§0) and the blind corpus (4n). All three shared a signature:
+a failure that produced a PLAUSIBLE number instead of an error.
