@@ -2880,3 +2880,72 @@ where a policy that does not close scores exactly zero.
 
 Running total: **nineteen** defects. Six of them were introduced by fixes made
 earlier in this same document.
+
+## 4z. Running log — corrected losses, dense supervision, and a spatial channel
+
+Recorded as results land, including the ones that did not work.
+
+### `fixed` — every loss correction, 2 Hz corpus, existing stage A
+
+First arm trained against a correct objective (units, chunk row, fitted gain,
+plus variance matching and scheduled sampling). Best val bc **0.1593**
+(`v8_act` 0.2055).
+
+| eval config | mean_success |
+|---|---|
+| plan-only, brake ON | **0.000** |
+| plan-only, no-brake | **0.000** |
+| plan-only, no-brake, chunk | pending |
+
+Both waypoint-free configs are new: every closed-loop run before this one went
+through the `WaypointActuator`, which overrides x/y/z, so the planner's own
+regressed translation had never once been executed. It is not the difference.
+
+Correcting the objective moved the OPEN-loop numbers (4y: gripper 7.6% -> 25.1%)
+and has so far moved closed-loop success not at all. That is the same pattern as
+every fix before it, and at some point the honest reading is that the objective
+was never the binding constraint on THIS corpus — 7,680 decision points is an
+order of magnitude below what LIBERO BC baselines use.
+
+### Dense corpus — 4.9x the supervision
+
+`--frame-hz 10` (stride 2 on 20 Hz demos): **500 episodes, T=74, 37,380
+supervised decision points** against 7,680 at 2 Hz. The 2 Hz rate was chosen for
+the PERCEPTION budget and then inherited, unexamined, by the ACTION supervision,
+which has no reason to be subsampled at all — the demonstrator's actions exist at
+every control step.
+
+Re-launched once, deliberately: the first run predated the HRM-eef and
+TRM-context fixes, and the HRM is FROZEN in stage B, so its control branch is
+learned in stage A or never.
+
+### The spatial channel — the architectural change
+
+The clearest remaining capability gap, and not one an objective or more data can
+close. `frame_emb` is a GAP of the SPPF map, so it discards WHERE — and on a
+wrist camera WHERE *is* the servo error. The only spatial signal reaching the
+planner was the two role-box centres, and 4r measured **0.68 proposals per
+frame** on this view: on roughly half of all frames the policy had no spatial
+information whatsoever. It was being asked to servo from a global average.
+
+`TextQueriedSpatialAdapter` was built for exactly this and has never run in a
+single trained checkpoint — every eval to date logs "checkpoint carries no TQSA
+weights". The reason is cost: it needed raw frames stored and the frozen backbone
+re-run every epoch.
+
+The fix removes that cost rather than paying it. The frozen backbone already runs
+once, at bake time, so its map is pooled to 4x4 and stored (`--spatial-grid 4`,
+16 x 512 per frame, ~1.2 GB for the dense corpus). TQSA then trains directly on
+the baked grid — no frames, no backbone, and it works on a `--no-frames` corpus.
+
+Two safeguards, both aimed at this project's characteristic failure:
+
+* the grid joins the BUCKET KEY, so one episode lacking it cannot strip it from
+  the whole bucket (the exact mechanism that once left TQSA with 0/37 buckets);
+* `--tqsa` now REFUSES to start when neither a grid nor frames is present,
+  instead of training on nothing while reporting healthy losses.
+
+The deployment loop prefers the baked grid too, so the two sides match in
+RESOLUTION and not merely in content — feeding TQSA a 4x4 grid in training and a
+full-resolution map at inference would be the resolution-flavoured version of
+every other defect in this document.
