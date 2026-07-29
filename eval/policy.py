@@ -331,8 +331,15 @@ class MicroVLAPolicy:
         # Resolved here because it reads cfg: one TRM step was trained to span
         # cfg.waypoint_row_stride env steps (the source control rate divided by
         # real_frame_hz), which is the correct re-planning interval.
+        # The chunk holds plan_steps NATIVE-rate actions, so it can only cover
+        # plan_steps env steps. Defaulting purely to waypoint_row_stride (10 on
+        # the 2 Hz corpus) mapped chunk positions 0..9 onto rows 0,1,2,3,4,4,4,4,4,4
+        # -- row 4 executed for 60% of steps. In a DELTA action space that is not
+        # "hold position", it is that delta commanded six more times, i.e. a
+        # large over-command exactly when the arm should be settling.
+        _stride = max(1, int(getattr(cfg, "waypoint_row_stride", 1)))
         self.replan_every = (self._replan_every_arg if self._replan_every_arg > 0
-                             else max(1, int(getattr(cfg, "waypoint_row_stride", 1))))
+                             else max(1, min(_stride, int(cfg.plan_steps))))
 
         from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
 

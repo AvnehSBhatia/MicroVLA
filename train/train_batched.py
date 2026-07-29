@@ -33,6 +33,7 @@ import random
 import sys
 import time
 from collections import defaultdict
+import json
 from pathlib import Path
 
 # ROCm's hipBLASLt throws INTERNAL_ERROR on some GEMM shapes (e.g. the v4 TRM
@@ -995,6 +996,25 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
     # TRAINING-ONLY head: shapes the planner during stage B and is then
     # discarded. Deliberately NOT added to the deployed stack and not counted
     # against cfg.trainable_param_budget, which governs what ships.
+    # Symmetric half-span per action dim, so the actuation loss can compare
+    # like with like. None when no norm_stats.json is found next to the data,
+    # in which case the actuation term is skipped rather than run in mixed units.
+    act_scale = None
+    for _d in (args.data_dir if isinstance(args.data_dir, (list, tuple)) else [args.data_dir]):
+        _ns = Path(_d) / "norm_stats.json"
+        if _ns.exists():
+            act_scale = torch.as_tensor(
+                json.loads(_ns.read_text())["q_high"], dtype=torch.float32,
+                device=device).clamp_min(1e-6)
+            print(f"[stage B] action scale for the actuation loss: "
+                  f"{[round(float(v), 4) for v in act_scale[:3]]} (from {_ns})",
+                  flush=True)
+            break
+    if act_scale is None and args.actuation_weight > 0:
+        print("[stage B] WARNING: no norm_stats.json found; the actuation loss "
+              "would compare raw-unit commands against normalized targets, so it "
+              "is DISABLED for this run.", flush=True)
+        args.actuation_weight = 0.0
     critic = None
     if args.critic_weight > 0:
         critic = ProgressCritic(cfg).to(device)
@@ -1248,7 +1268,23 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     d_row = disp[:, :, row, :cfg.waypoint_dim]       # [B, T, 3]
                     cmd = (cfg.waypoint_gain_scale * d_row * cfg.waypoint_range) \
                         / (g.unsqueeze(1) * steps)                   # [B, T, 3]
-                    y_row = Y[:, row, :cfg.waypoint_dim].reshape(
+                    # UNITS: `cmd` is in RAW action units (metres / gain), while Y
+                    # holds NORMALIZED targets in [-1, 1]. Comparing them directly
+                    # asked for a command 1/s times the demonstrator's, i.e.
+                    # +6.7% on x/z and +9.5% on y for the shipped norm_stats
+                    # (q_high [0.9375, 0.91339, 0.9375]) -- a magnitude bias baked
+                    # into the objective, on a task whose measured tolerance is
+                    # ~[0.95, 1.05] (paper.md 4p). The bake is fit_symmetric, so
+                    # normalized = raw / q_high exactly.
+                    if act_scale is not None:
+                        cmd = cmd / act_scale[: cfg.waypoint_dim].view(1, 1, -1)
+                    # ROW: `row` indexes the WAYPOINT grid, whose rows are
+                    # waypoint_row_stride control steps apart, but Y is the
+                    # NATIVE-rate action chunk. The actuator emits a per-step rate
+                    # to be executed NOW, so it must be regressed onto the action
+                    # executed NOW -- chunk row 0 -- not onto the demo action
+                    # row*stride steps in the future.
+                    y_row = Y[:, 0, :cfg.waypoint_dim].reshape(
                         cmd.shape[0], cmd.shape[1], cfg.waypoint_dim)
                     m = wp_valid.reshape(cmd.shape[0], cmd.shape[1], 1)
                     loss = loss + args.actuation_weight * (

@@ -590,9 +590,14 @@ class TestChunkExecutionSchedule:
             perception=MockYoloWorldPerception(),
             task_encoder=MockTaskEncoder(), **kw)
 
-    def test_replan_interval_defaults_to_the_trained_sample_stride(self, tmp_path):
+    def test_replan_interval_never_exceeds_the_chunk_length(self, tmp_path):
         p = self._policy(tmp_path, chunk_exec=True)
-        assert p.replan_every == max(1, p.cfg.waypoint_row_stride)
+        assert p.replan_every == max(1, min(p.cfg.waypoint_row_stride, p.cfg.plan_steps))
+        assert p.replan_every <= p.cfg.plan_steps, (
+            "re-planning less often than the chunk is long repeats the final row "
+            "for the remainder of the interval; in a delta action space that "
+            "re-commands the same motion instead of holding position"
+        )
 
     def test_the_loop_advances_once_per_interval_not_once_per_step(self, tmp_path):
         import numpy as np
