@@ -3272,3 +3272,50 @@ invisible to any test of an individual component, including the parity disciplin
 this paper advocates. Ablations are usually run to show a component HELPS. The
 missing experiment was the one that removes everything at once and asks whether
 the base model can still fit.
+
+### 5c-CORRECTION: five of the six were dead weight; one was load-bearing
+
+5c reported that pure BC beat every regularized arm by 32% on `val bc` and
+produced the best `val grip` (0.969) in the project. Both numbers are real. The
+conclusion drawn from them was wrong, and the check that caught it took four
+minutes: evaluating that same snapshot **self-fed**.
+
+| `cleanbc` snapshot | teacher-forced (validation) | self-fed (deployable) |
+|---|---|---|
+| gripper | val grip **0.969** | closes on **0.0%** of steps |
+| pose | val bc **0.1028** (best ever) | corr **-0.085 / 0.043 / -0.018** |
+| agreement with demo | — | **0.415** (vs 0.643 for `fixed`) |
+
+Pose correlation of approximately zero, and a gripper that never closes — from
+the arm with the best validation numbers this project has ever recorded.
+
+The cause is immediate once stated. Validation is TEACHER-FORCED: it feeds
+fusion and the relational head the demonstrator's previous action. `cleanbc`
+removed everything, and "everything" included `--action-token-sampling`. With the
+shortcut fully available and no term penalizing reliance on it, the model took
+it — reaching a record validation loss by predicting the demonstrator's next
+action from the demonstrator's last one, which is unavailable at deployment by
+construction.
+
+So the composition result stands with one correction: **five of the six
+auxiliaries were dead weight, and the sixth was doing essential work.** The
+regularizers were not collectively harmful; they were collectively hiding which
+one mattered. Removing them one at a time would never have shown this, because
+each removal leaves the others to mask it — and removing them all at once is what
+made the load-bearing one visible, by breaking loudly.
+
+`synth10`/`synth05` are the synthesis: no dreams, no dropout, no waypoint,
+actuation, variance, smoothness or world-model auxiliary — and scheduled sampling
+at 1.0 and 0.5.
+
+**The methodological point, which is the one worth publishing.** This project has
+now been misled twice by the same structure: a metric that improves while the
+quantity it stands in for gets worse. 4s (`wp_std_ratio` 0.121 -> 1.097, achieved
+by moving a gain deployment never reads) and 5c (`val grip` 0.969, achieved by
+reading an input deployment never has). In both cases the metric was correctly
+computed, the improvement was real, and the inference was invalid.
+
+The rule that would have caught both: **every training metric must be reported
+alongside its deployment-condition twin.** A teacher-forced validation number is
+not a policy number, and this document contains roughly two thousand lines
+written before anyone insisted on the distinction.
