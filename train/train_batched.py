@@ -463,7 +463,8 @@ def _obj_tokens(batch, idx, fade, cfg, ablate):
     return obj, ctr, w
 
 
-def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg):
+def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg,
+                last_action=None):
     """Relational tokens for the planner, or None on the v7 stack.
 
     The v8 ordering change lives here: this runs on the TRM's PREDICTED latent,
@@ -479,9 +480,15 @@ def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg):
     if relational is None:
         return None
     obj, ctr, w = objects_from_batch(batch, box_idx, box_fade, cfg)
-    last_action = (batch["pwm_targets"][:, t - 1, 0] if t > 0
-                   else batch["pwm_targets"].new_zeros(
-                       obj.shape[0], batch["pwm_targets"].shape[-1]))
+    # The v8 relational head carries its OWN action token, and it is the
+    # planner's dominant input. --action-token-sampling originally fed the
+    # model's own action to FUSION only, leaving this one teacher-forced --
+    # so the exposure bias of paper.md 4v survived in the module that replaced
+    # fusion. Same fix-one-side-of-the-pair shape as every other defect here.
+    if last_action is None:
+        last_action = (batch["pwm_targets"][:, t - 1, 0] if t > 0
+                       else batch["pwm_targets"].new_zeros(
+                           obj.shape[0], batch["pwm_targets"].shape[-1]))
     return relational(next_emb, obj, ctr, w, batch["text_tokens"],
                       last_action=last_action)
 
@@ -919,6 +926,12 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
     planner.eval()
     if tqsa is not None:
         tqsa.eval()
+    # The relational head was left in TRAIN mode, so its modality_dropout stayed
+    # ACTIVE during the "clean" validation pass -- the number that selects the
+    # best checkpoint was scored with random evidence withheld, and differently
+    # on every epoch. Restored to train() by the caller after each validation.
+    if relational is not None:
+        relational.eval()
     tot = ga = wp_tot = 0.0
     nb = 0
     for T, batch in iter_batches(val_b, 1, args.batch_size, rng, need=1):
@@ -1168,7 +1181,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # also keeps the token count, which deletion did not.
                 fade = _fade_weights(args._drop_rates, cur.shape[0], cur.device)
                 rel = _relational(relational, next_emb, batch, t,
-                                  box_idx, box_fade, cfg)
+                                  box_idx, box_fade, cfg,
+                                  last_action=prev_action if self_feed else None)
                 plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                          fused=fused_t, pred_box_emb=next_box,
                                          geometry=geom, proprio=batch["proprio"][:, t],
@@ -1365,6 +1379,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             val_bc, val_ga, val_wp = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
                                                   planner, device, tqsa, backbone, rng,
                                                   relational=relational)
+            if relational is not None:
+                relational.train()     # _stage_b_val put it in eval()
             # Selection metric. `bc` alone is the only term on a scale shared by
             # every arm; folding in the waypoint term against an ABSOLUTE
             # --min-delta gives long-horizon arms a harsher effective patience

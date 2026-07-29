@@ -120,15 +120,27 @@ def objects_from_batch(batch, idx, fade, cfg):
     # `has_objects`, not an all-zero check: a v7 corpus is zero-filled, and a
     # legitimately empty frame in a v8 corpus is ALSO all-zero. Only provenance
     # separates them, and guessing wrong silently starves the relational head.
-    if "obj_embs" in batch and float(batch.get("has_objects", torch.zeros(1)).max()) > 0.5:
-        return (batch["obj_embs"][:, idx],
-                batch["obj_centers"][:, idx],
-                batch["obj_weights"][:, idx] * fade)
-    return pack_objects(
+    fallback = pack_objects(
         batch["source_box_embs"][:, idx], batch["target_box_embs"][:, idx],
         batch["source_centers"][:, idx], batch["target_centers"][:, idx],
         batch["box_weights"][:, idx] * fade, cfg,
     )
+    if "obj_embs" not in batch:
+        return fallback
+    # PER SAMPLE, not per batch. `has_objects` was reduced with .max(), so a
+    # single v8 episode in a mixed bucket sent EVERY episode down the baked
+    # path -- and a v7 episode's obj_* are zero-filled, so those samples fed the
+    # relational head all-zero evidence instead of their two role slots. Buckets
+    # mix corpora whenever more than one --data-dir is given.
+    has = batch.get("has_objects")
+    if has is None:
+        return fallback
+    m = (has.reshape(-1, 1, 1) > 0.5).to(batch["obj_embs"].dtype)   # [B,1,1]
+    obj = torch.where(m.bool(), batch["obj_embs"][:, idx], fallback[0])
+    ctr = torch.where(m.bool(), batch["obj_centers"][:, idx], fallback[1])
+    w = torch.where(m.squeeze(-1).bool(), batch["obj_weights"][:, idx] * fade,
+                    fallback[2])
+    return obj, ctr, w
 
 
 def pack_objects(

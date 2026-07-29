@@ -386,3 +386,31 @@ class TestTaskAlignedLosses:
             "no gradient reached the planner from the critic value — the "
             "task-aligned term is inert and would train nothing"
         )
+
+    def test_mixed_bucket_selects_evidence_per_episode(self, cfg, batch):
+        """A v7 episode beside a v8 one must still get its role slots.
+
+        has_objects was reduced with .max() across the batch, so ONE v8 episode
+        sent every episode down the baked path — and a v7 episode's obj_* are
+        zero-filled, so those samples fed the relational head nothing. Buckets
+        mix corpora whenever more than one --data-dir is passed.
+        """
+        import torch
+
+        from microvla.v8 import objects_from_batch
+
+        K = cfg.max_objects
+        b = dict(batch)
+        b["obj_embs"] = torch.zeros(B, T, K, cfg.vis_dim)
+        b["obj_centers"] = torch.zeros(B, T, K, 2)
+        b["obj_weights"] = torch.zeros(B, T, K)
+        b["obj_embs"][0] = torch.randn(T, K, cfg.vis_dim)     # sample 0 is v8
+        b["obj_weights"][0] = torch.rand(T, K)
+        b["has_objects"] = torch.tensor([[1.0], [0.0]])       # sample 1 is v7
+
+        obj, ctr, w = objects_from_batch(b, 1, 1.0, cfg)
+        assert torch.equal(obj[0], b["obj_embs"][:, 1][0]), "v8 sample lost its baked scene"
+        assert torch.count_nonzero(obj[1]) > 0, (
+            "the v7 sample got the zero-filled baked array instead of its role "
+            "slots — the relational head trains on nothing for that episode"
+        )
