@@ -126,6 +126,12 @@ class EpisodeDataset(Dataset):
                     episode[key] = torch.zeros(fills[key], dtype=torch.float32)
             episode["has_objects"] = torch.tensor(
                 [1.0 if "obj_embs" in data else 0.0], dtype=torch.float32)
+            # The baked coarse spatial map. Always loaded when present: it is
+            # small, and it is the only spatial channel that exists on frames
+            # where nothing was detected.
+            if "spatial_grid" in data:
+                episode["spatial_grid"] = torch.as_tensor(
+                    data["spatial_grid"], dtype=torch.float32)
             if self.load_frames and "wrist_frames" in data:
                 # uint8 on purpose: keep RAM/VRAM small; the trainer converts
                 # per-batch right before the frozen backbone forward.

@@ -78,6 +78,15 @@ class Perception:
     source: BoxObs
     target: BoxObs
     proposals: tuple[BoxObs, ...] = ()
+    #: ``[g*g, vis_dim]`` coarse spatial grid: the hooked SPPF map
+    #: adaptive-average-pooled to g x g and standardized per cell. GAP
+    #: (``frame_emb``) destroys WHERE, which is exactly what a wrist camera
+    #: encodes -- the object's position in frame IS the servo error. The two
+    #: role boxes were the only spatial signal, and paper.md 4r measured just
+    #: 0.68 proposals per frame on this view, so on ~half of frames the policy
+    #: had no spatial information at all. This one is detection-independent:
+    #: it exists on every frame whether or not anything was grounded.
+    spatial_grid: Optional[torch.Tensor] = None
 
 
 class YoloWorldPerception:
@@ -111,7 +120,8 @@ class YoloWorldPerception:
 
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
                  det_conf: float = 0.10, min_side: int = 512,
-                 max_proposals: int | None = None) -> None:
+                 max_proposals: int | None = None,
+                 grid_size: int = 0) -> None:
         self.det_conf = det_conf
         # Class-agnostic proposal cap. Defaults to cfg.max_objects so the baked
         # object tensor and the model's K agree by construction.
@@ -119,6 +129,8 @@ class YoloWorldPerception:
             from microvla.config import DEFAULT_CONFIG
             max_proposals = DEFAULT_CONFIG.max_objects
         self.max_proposals = int(max_proposals)
+        #: g for the coarse spatial grid; 0 disables it (no extra cost).
+        self.grid_size = int(grid_size)
         self.min_side = min_side
         # Lazy imports: ultralytics + torchvision are heavy optional deps.
         from torchvision.ops import roi_align
@@ -290,6 +302,15 @@ class YoloWorldPerception:
             frame_emb = standardize(
                 feat.mean(dim=(2, 3)).squeeze(0).detach().cpu().float()
             )
+            # Same map, pooled to a coarse grid instead of collapsed. Each cell
+            # is standardized on its own so every token lives in the canonical
+            # space the rest of the stack assumes.
+            g = int(getattr(self, "grid_size", 0) or 0)
+            spatial_grid = None
+            if g > 0:
+                cells = torch.nn.functional.adaptive_avg_pool2d(feat, (g, g))
+                cells = cells.squeeze(0).flatten(1).transpose(0, 1)   # [g*g, C]
+                spatial_grid = torch.stack([standardize(c) for c in cells])
 
             frame_h, frame_w = frame_bgr.shape[:2]
             best_by_class: dict[int, tuple[float, torch.Tensor]] = {}
@@ -396,7 +417,8 @@ class YoloWorldPerception:
                     target = fallback
 
             return Perception(frame_emb=frame_emb, source=source, target=target,
-                              proposals=_proposals(self.max_proposals))
+                              proposals=_proposals(self.max_proposals),
+                              spatial_grid=spatial_grid)
 
     def last_feature_map(self) -> Optional[torch.Tensor]:
         """The hooked SPPF map from the most recent :meth:`perceive` call.
@@ -520,11 +542,13 @@ class MockYoloWorldPerception:
     #: Frame size assumed when a non-ndarray frame is supplied (W, H).
     _DEFAULT_WH: Tuple[int, int] = (640, 480)
 
-    def __init__(self, vis_dim: int = 512, max_proposals: int | None = None) -> None:
+    def __init__(self, vis_dim: int = 512, max_proposals: int | None = None,
+                 grid_size: int = 0) -> None:
         if max_proposals is None:
             from microvla.config import DEFAULT_CONFIG
             max_proposals = DEFAULT_CONFIG.max_objects
         self.max_proposals = int(max_proposals)
+        self.grid_size = int(grid_size)
         self.vis_dim = vis_dim
         self.active_classes: list[str] = []
         self._last_map: Optional[torch.Tensor] = None  # mock TQSA input
@@ -634,8 +658,17 @@ class MockYoloWorldPerception:
         # rely on slot order), then hash-seeded filler, matching the real
         # class-agnostic ordering by descending confidence.
         props = [source, target][: self.max_proposals]
+        grid = None
+        g = int(getattr(self, "grid_size", 0) or 0)
+        if g > 0:
+            # Pool the SAME deterministic map the mock already builds, so the
+            # mock's grid and its frame_emb stay consistent with each other
+            # exactly as the real detector's do.
+            cells = torch.nn.functional.adaptive_avg_pool2d(self._last_map, (g, g))
+            cells = cells.squeeze(0).flatten(1).transpose(0, 1)
+            grid = torch.stack([standardize(c) for c in cells])
         return Perception(frame_emb=frame_emb, source=source, target=target,
-                          proposals=tuple(props))
+                          proposals=tuple(props), spatial_grid=grid)
 
     def last_feature_map(self) -> Optional[torch.Tensor]:
         """Mock analogue: deterministic ``[1, vis_dim, 8, 8]`` map (or None)."""

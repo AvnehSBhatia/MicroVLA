@@ -227,23 +227,26 @@ class EpisodeBuilder:
     """
 
     def __init__(self, cfg: MicroVLAConfig = DEFAULT_CONFIG, mock: bool = False,
-                 device: str = "cpu", store_frames: bool = False) -> None:
+                 device: str = "cpu", store_frames: bool = False,
+                 grid_size: int = 0) -> None:
         self.cfg = cfg
         # v7: also bake the sampled raw frames (uint8) so perception (TQSA) is
         # trainable. Off by default (Bridge world-model-only bakes stay lean);
         # the LIBERO converter turns it on.
         self.store_frames = store_frames
+        self.grid_size = int(grid_size)
         if mock:
             from microvla.perception.text_encoder import MockTaskEncoder
             from microvla.perception.yolo_world import MockYoloWorldPerception
 
-            self.perception = MockYoloWorldPerception(vis_dim=cfg.vis_dim)
+            self.perception = MockYoloWorldPerception(vis_dim=cfg.vis_dim,
+                                                      grid_size=grid_size)
             self.task_encoder = MockTaskEncoder(cfg.text_dim)
         else:
             from microvla.perception.text_encoder import ClipTaskEncoder
             from microvla.perception.yolo_world import YoloWorldPerception
 
-            self.perception = YoloWorldPerception(device=device)
+            self.perception = YoloWorldPerception(device=device, grid_size=grid_size)
             self.task_encoder = ClipTaskEncoder(self.perception)
         # CLIP text encoding costs ~1-2 s per call; datasets repeat the same
         # instruction across many demos (LIBERO: 50 demos/instruction), so
@@ -305,6 +308,7 @@ class EpisodeBuilder:
             len(episode.frames), episode.source_hz, self.cfg.real_frame_hz
         )
         frame_embs, s_embs, t_embs, s_ctrs, t_ctrs, weights = [], [], [], [], [], []
+        grids = []      # [T, g*g, vis_dim] coarse spatial map, when enabled
         o_embs, o_ctrs, o_wts = [], [], []
         k = self.cfg.max_objects
         det = episode.detect_frames if episode.detect_frames is not None else episode.frames
@@ -319,6 +323,8 @@ class EpisodeBuilder:
                        else np.ascontiguousarray(np.asarray(det[i])[..., ::-1]))
             p = self.perception.perceive(det_bgr)
             frame_embs.append(p.frame_emb.numpy())
+            if p.spatial_grid is not None:
+                grids.append(p.spatial_grid.numpy())
             s_embs.append(p.source.emb.numpy())
             t_embs.append(p.target.emb.numpy())
             s_ctrs.append(p.source.center.numpy())
@@ -353,6 +359,14 @@ class EpisodeBuilder:
             "text_tokens": task.tokens().numpy().astype(np.float32),
             "pwm_targets": pwm,
         }
+        # The coarse spatial map. GAP (frame_embs) throws away WHERE, and on a
+        # wrist camera WHERE is the servo error; the two role boxes were the
+        # only spatial channel and 4r measured 0.68 proposals per frame, so on
+        # roughly half the frames the policy had none. Baking the grid makes the
+        # signal detection-independent AND lets TQSA train without storing raw
+        # frames or re-running the frozen backbone every epoch.
+        if grids:
+            out["spatial_grid"] = np.stack(grids).astype(np.float32)
         # v7: raw sampled frames (uint8, compressed by savez) — makes perception
         # TRAINABLE (TQSA) without ever re-downloading. ~50 KB/frame at 128 px.
         if self.store_frames:
@@ -381,6 +395,7 @@ def run_conversion(
     limit: int | None = None,
     teacher=None,
     store_frames: bool = False,
+    grid_size: int = 0,
 ) -> Path:
     """Two-pass conversion driver: fit action stats, then write episodes.
 
@@ -424,7 +439,8 @@ def run_conversion(
     normalizer.save(out / "norm_stats.json")
 
     logger.info("pass 2/2: running frozen perception and writing episodes")
-    builder = EpisodeBuilder(cfg, mock=mock, device=device, store_frames=store_frames)
+    builder = EpisodeBuilder(cfg, mock=mock, device=device,
+                             store_frames=store_frames, grid_size=grid_size)
     manifest = []
     for n, ep in enumerate(_take(episodes())):
         arrays = builder.build(ep, normalizer)

@@ -457,8 +457,21 @@ class JEPALoop:
                 # v7 TQSA on the frozen backbone map (real ticks only; outputs
                 # held across dreams like all other real evidence).
                 if self.tqsa is not None:
-                    fmap_fn = getattr(self.perception, "last_feature_map", None)
-                    fmap = fmap_fn() if callable(fmap_fn) else None
+                    # Prefer the SAME coarse grid the corpus bakes and the
+                    # trainer consumes: a full-resolution map here against a
+                    # g x g pooled one in training is the resolution-mismatch
+                    # version of every other train/deploy defect in this stack.
+                    fmap = None
+                    grid = getattr(percept, "spatial_grid", None)
+                    if grid is not None:
+                        n = grid.shape[0]
+                        side = int(round(n ** 0.5))
+                        if side * side == n:
+                            fmap = (grid.unsqueeze(0).transpose(1, 2)
+                                    .reshape(1, grid.shape[1], side, side))
+                    if fmap is None:
+                        fmap_fn = getattr(self.perception, "last_feature_map", None)
+                        fmap = fmap_fn() if callable(fmap_fn) else None
                     if fmap is not None:
                         # TQSA may sit with the frozen backbone rather than with
                         # the heads; feed it on ITS device, hand the planner the

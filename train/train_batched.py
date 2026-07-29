@@ -414,15 +414,23 @@ def preload_buckets(data_dirs, val_frac, seed, device, load_frames: bool = False
         by_key = defaultdict(list)
         for i, j in idx:
             ep = sets[i][j]
-            key = (ep["frame_embs"].shape[0], load_frames and "wrist_frames" in ep)
+            # The grid joins the bucket key for the same reason frames do: one
+            # episode without it would otherwise strip it from the whole bucket
+            # and TQSA would train on nothing while looking like it worked.
+            key = (ep["frame_embs"].shape[0],
+                   load_frames and "wrist_frames" in ep,
+                   "spatial_grid" in ep)
             by_key[key].append(ep)
         buckets = {}
         all_keys = EPISODE_KEYS + OPTIONAL_KEYS  # optional keys are zero-filled by the dataset
-        for (T, has_frames), eps in by_key.items():
+        for (T, has_frames, has_grid), eps in by_key.items():
             b = {k: torch.stack([e[k] for e in eps]).to(device) for k in all_keys}
             if has_frames:
                 b["wrist_frames"] = torch.stack([e["wrist_frames"] for e in eps])  # uint8, CPU
-            buckets[(T, has_frames)] = b
+            if has_grid:
+                b["spatial_grid"] = torch.stack(
+                    [e["spatial_grid"] for e in eps]).to(device)
+            buckets[(T, has_frames, has_grid)] = b
         out[name] = buckets
     return out["train"], out["val"]
 
@@ -863,6 +871,19 @@ def _batch_spatial(batch, t, tqsa, backbone, device):
     """
     if tqsa is None:
         return None
+    # BAKED coarse grid: the cheapest and most reliable source. The frozen
+    # backbone already ran once at bake time, so there is no reason to store raw
+    # frames and re-run it every epoch -- and this is the only path that works
+    # on a --no-frames corpus. [B, g*g, C] -> [B, C, g, g], the map layout TQSA
+    # expects.
+    if "spatial_grid" in batch:
+        g = batch["spatial_grid"][:, t].to(device=device, dtype=torch.float32)
+        n = g.shape[1]
+        side = int(round(n ** 0.5))
+        if side * side != n:
+            raise ValueError(f"spatial_grid has {n} cells, which is not square")
+        maps = g.transpose(1, 2).reshape(g.shape[0], g.shape[2], side, side)
+        return tqsa(maps, batch["text_tokens"])
     if "spatial_maps" in batch:
         maps = batch["spatial_maps"][:, t].to(device=device, dtype=torch.float32)
         return tqsa(maps, batch["text_tokens"])
@@ -1609,9 +1630,22 @@ def main(argv=None) -> None:
             if args.resume_stage_b and "tqsa" in resume_state:
                 tqsa.load_state_dict(resume_state["tqsa"])
                 print("resumed tqsa from stage-B checkpoint", flush=True)
-            backbone = YoloWorldPerception(device=str(device))  # frozen map extractor
+            n_grid = sum(1 for b in train_b.values() if "spatial_grid" in b)
             n_frames = sum(1 for b in train_b.values() if "wrist_frames" in b)
-            print(f"TQSA stage B: {n_frames}/{len(train_b)} train buckets carry frames", flush=True)
+            # A BAKED grid needs no backbone at all: the frozen map was already
+            # pooled once at bake time. Only build the (heavy, ultralytics-
+            # importing) extractor when we actually have to re-run it on frames.
+            backbone = None
+            if n_grid == 0:
+                backbone = YoloWorldPerception(device=str(device))
+            print(f"TQSA stage B: {n_grid}/{len(train_b)} buckets carry a BAKED "
+                  f"spatial grid, {n_frames}/{len(train_b)} carry raw frames",
+                  flush=True)
+            if n_grid == 0 and n_frames == 0:
+                raise SystemExit(
+                    "--tqsa needs either a baked spatial_grid (bake with "
+                    "--spatial-grid 4) or wrist_frames. Neither is present, and "
+                    "TQSA would train on nothing while looking like it worked.")
             if args.cache_spatial:
                 nb = precompute_spatial_maps(train_b, backbone, args.batch_size, "train")
                 if args.stage_b_patience > 0:   # val is only scored when it early-stops

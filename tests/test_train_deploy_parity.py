@@ -254,3 +254,51 @@ class TestHRMReceivesEndEffector:
         assert g is not None and float(g.abs().sum()) > 0.0, (
             "eef_proj got no gradient; the HRM's control branch cannot learn"
         )
+
+
+class TestSpatialGridParity:
+    """The spatial channel must be the same RESOLUTION on both sides.
+
+    GAP (``frame_emb``) destroys WHERE, and on a wrist camera WHERE is the servo
+    error. The only spatial channel was the two role boxes, and paper.md 4r
+    measured 0.68 proposals per frame on this view — so on roughly half of all
+    frames the policy had no spatial information at all. The baked grid is
+    detection-independent: it exists on every frame.
+
+    Feeding TQSA a g x g pooled grid in training and a full-resolution backbone
+    map at deployment would be the resolution version of every other defect
+    here, so the loop prefers the baked grid when perception supplies one.
+    """
+
+    def test_perception_grid_is_square_and_standardized(self):
+        import numpy as np
+
+        from microvla.perception.yolo_world import MockYoloWorldPerception
+
+        p = MockYoloWorldPerception(vis_dim=CFG.vis_dim, grid_size=4)
+        p.set_role_prompts(["can"], ["ball"])
+        out = p.perceive(np.zeros((64, 64, 3), dtype=np.uint8))
+        assert out.spatial_grid.shape == (16, CFG.vis_dim)
+        per_cell_std = out.spatial_grid.std(dim=-1)
+        assert torch.allclose(per_cell_std, torch.ones_like(per_cell_std), atol=1e-2), (
+            "grid cells must live in the canonical zero-mean/unit-std space"
+        )
+
+    def test_grid_is_off_by_default_so_old_corpora_are_unaffected(self):
+        import numpy as np
+
+        from microvla.perception.yolo_world import MockYoloWorldPerception
+
+        p = MockYoloWorldPerception(vis_dim=CFG.vis_dim)
+        p.set_role_prompts(["can"], ["ball"])
+        assert p.perceive(np.zeros((64, 64, 3), dtype=np.uint8)).spatial_grid is None
+
+    def test_trainer_reshapes_the_grid_to_the_map_layout_tqsa_expects(self):
+        """[B, g*g, C] -> [B, C, g, g]; a wrong transpose silently scrambles it."""
+        B, g, C = 2, 4, CFG.vis_dim
+        grid = torch.randn(B, 1, g * g, C)
+        got = grid[:, 0].transpose(1, 2).reshape(B, C, g, g)
+        assert got.shape == (B, C, g, g)
+        # cell (r, c) of the grid must land at map position [:, :, r, c]
+        r, c = 2, 3
+        assert torch.allclose(got[:, :, r, c], grid[:, 0, r * g + c, :])

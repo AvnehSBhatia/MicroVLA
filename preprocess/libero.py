@@ -213,6 +213,13 @@ def main(argv: list[str] | None = None) -> None:
                              "the PERCEPTION budget and then inherited, unexamined, "
                              "by the ACTION supervision. Pass 20 to supervise every "
                              "control step (paper.md 4w).")
+    parser.add_argument("--spatial-grid", type=int, default=0,
+                        help="bake a GxG coarse spatial map per frame (0 = off). "
+                             "GAP throws away WHERE, and on a wrist camera WHERE is "
+                             "the servo error; the two role boxes were the only "
+                             "spatial channel and yield 0.68 proposals/frame, so "
+                             "roughly half of frames carried none. 4 is a good "
+                             "default (16 tokens x vis_dim per frame).")
     parser.add_argument("--limit", type=int, default=None, help="max episodes")
     parser.add_argument("--dry-run", action="store_true", help="mock perception (no weights)")
     parser.add_argument("--device", default="cpu")
@@ -263,6 +270,7 @@ def main(argv: list[str] | None = None) -> None:
                                      rotate_180=args.rotate),
         args.out,
         cfg=cfg,
+        grid_size=args.spatial_grid,
         mock=args.dry_run,
         device=args.device,
         limit=args.limit,
