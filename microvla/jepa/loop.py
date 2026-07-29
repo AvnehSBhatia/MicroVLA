@@ -153,8 +153,20 @@ class JEPALoop:
         from microvla.v8 import pack_objects
 
         k = self.cfg.max_objects
-        props = getattr(percept, "proposals", ())
-        if props:
+        # ABSENT vs EMPTY, and the difference is load-bearing. A perception that
+        # supplies `proposals` at all is a v8 detector, and a frame where it
+        # found nothing must produce ZERO object evidence — which is what the
+        # v8 bake writes, so it is what the policy was trained to read. Falling
+        # back to the two role slots on an empty scene instead substitutes
+        # role-conditioned boxes for the class-agnostic ones, on the MAJORITY of
+        # frames: the wrist view yields 0.68 proposals per frame (paper.md 4r),
+        # so most frames took the fallback and diverged from training.
+        #
+        # The role-slot fallback is only for perception implementations that do
+        # not have the concept (v7 stacks, older mocks), which is `hasattr`, not
+        # truthiness.
+        props = getattr(percept, "proposals", None)
+        if props is not None:
             obj = next_emb.new_zeros(1, k, self.cfg.vis_dim)
             ctr = next_emb.new_zeros(1, k, 2)
             w = next_emb.new_zeros(1, k)
