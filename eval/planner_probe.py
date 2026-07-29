@@ -138,6 +138,26 @@ def main(argv=None) -> None:
                 print(f"{'':14s} {'delta':>6}  mean is {z:.1f} corpus-sd away, "
                       f"std ratio {s / s2:.3f}{flag}")
 
+    # Aggregate stats hide a per-dimension mismatch, and proprio is the one
+    # input whose dimensions mean different physical things (position,
+    # orientation, gripper opening, validity). A gripper block that matches in
+    # aggregate can still be wrong in exactly the two slots the grip head reads.
+    if "proprio" in seen and "proprio" in corpus:
+        d = np.concatenate([v.reshape(-1, corpus["proprio"].shape[-1])
+                            for v in seen["proprio"]])
+        c = corpus["proprio"].reshape(-1, d.shape[-1])
+        names = ["x", "y", "z", "ori0", "ori1", "ori2", "ori3",
+                 "grip0", "grip1", "valid"]
+        print("\nproprio, PER DIMENSION (deploy vs corpus)")
+        print(f"{'dim':7s} {'deploy mean':>12} {'deploy std':>11} "
+              f"{'corpus mean':>12} {'corpus std':>11} {'z':>6}")
+        for i in range(d.shape[-1]):
+            cm, cs = c[:, i].mean(), c[:, i].std()
+            z = abs(d[:, i].mean() - cm) / cs if cs > 1e-8 else 0.0
+            flag = "  <== MISMATCH" if z > 2 else ""
+            print(f"{names[i]:7s} {d[:, i].mean():12.4f} {d[:, i].std():11.4f} "
+                  f"{cm:12.4f} {cs:11.4f} {z:6.1f}{flag}")
+
     P = np.stack(plans)
     print(f"\nemitted action over {len(P)} ticks")
     print(f"  gripper unique : {np.unique(np.round(P[:, -1], 3)).tolist()[:8]}")
