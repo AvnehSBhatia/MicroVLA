@@ -97,6 +97,20 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(current latent = TRM prediction, held/faded boxes) the "
                         "planner actually runs in 14/15 ticks at deployment. "
                         "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--proprio-noise", type=float, default=0.0,
+                   help="stage B: Gaussian noise std added to the proprio vector "
+                        "(validity flag exempt). BC fails in closed loop because "
+                        "the policy only ever saw the demonstrator's states; its "
+                        "own small errors take it somewhere training never "
+                        "visited and there is no gradient teaching recovery. "
+                        "paper.md 5e: pose corr 0.69 on demo frames, 0.000 "
+                        "closed loop. 0.02-0.05 is the usual range.")
+    p.add_argument("--latent-noise", type=float, default=0.0,
+                   help="stage B: Gaussian noise std added to the frame embedding "
+                        "before it is re-standardized. Same purpose as "
+                        "--proprio-noise on the visual channel; the embedding is "
+                        "unit-variance per vector, so 0.05-0.15 is a real but "
+                        "recoverable perturbation.")
     p.add_argument("--grip-weight", type=float, default=1.0,
                    help="weight on the gripper BCE. The gripper is the binding "
                         "constraint on a pick task -- a policy that never closes "
@@ -521,6 +535,22 @@ def _trm_context(batch, t, cur, cfg):
     lo = max(0, t - k + 1)
     hist = batch["frame_embs"][:, lo:t]                 # [B, <k-1, D]
     return torch.cat([hist, cur.unsqueeze(1)], dim=1)   # ends with `cur`
+
+
+
+def _noisy_proprio(batch, t, args):
+    """Proprio at t, optionally perturbed. The VALIDITY FLAG is never touched.
+
+    Noising the last element would turn a valid episode into a partly-invalid
+    one at random, which every consumer keyed on that flag would then read as a
+    missing sensor rather than a jittered one.
+    """
+    pro = batch["proprio"][:, t]
+    if getattr(args, "proprio_noise", 0.0) <= 0:
+        return pro
+    noise = args.proprio_noise * torch.randn_like(pro)
+    noise[..., -1] = 0.0
+    return pro + noise
 
 
 def _eef_of(batch, t, cfg):
@@ -1237,6 +1267,16 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                         delta_t = delta_all[t - 1]
                     else:
                         cur = batch["frame_embs"][:, t]
+                        # STATE-RECOVERY AUGMENTATION. The demonstrations only
+                        # ever show the expert's own trajectory, so nothing in
+                        # the objective teaches the policy what to do once it is
+                        # slightly off it -- and in closed loop it always is.
+                        # Perturbing the observation is the cheapest way to put
+                        # near-trajectory states into the training distribution
+                        # with the expert's action still as the target.
+                        if args.latent_noise > 0:
+                            cur = standardize(
+                                cur + args.latent_noise * torch.randn_like(cur))
                         box_idx, box_fade = t, 1.0
                         sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
                         fused_t, delta_t = fused_all[t], delta_all[t]
@@ -1285,7 +1325,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                   last_action=prev_action if self_feed else None)
                 plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                          fused=fused_t, pred_box_emb=next_box,
-                                         geometry=geom, proprio=batch["proprio"][:, t],
+                                         geometry=geom, proprio=_noisy_proprio(batch, t, args),
                                          spatial=spatial, wm_msg=wm["msg"],
                                          wm_latent=wm.get("latent"), wm_delta=wm.get("delta"), relational=rel,
                                          fade=fade, return_wp=True)

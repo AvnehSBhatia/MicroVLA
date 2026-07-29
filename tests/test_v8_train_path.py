@@ -414,3 +414,34 @@ class TestTaskAlignedLosses:
             "the v7 sample got the zero-filled baked array instead of its role "
             "slots — the relational head trains on nothing for that episode"
         )
+
+    def test_proprio_noise_never_touches_the_validity_flag(self, cfg, batch):
+        """Jittering the flag would read as a MISSING sensor, not a noisy one.
+
+        Every consumer keys on proprio[..., -1]: _eef_of returns None for the
+        whole batch when it drops below 0.5, and wp_valid masks the waypoint
+        loss with it. Perturbing it turns a valid episode into a randomly
+        invalid one instead of a slightly-off one.
+        """
+        import argparse
+
+        import torch
+
+        from train.train_batched import _noisy_proprio
+
+        args = argparse.Namespace(proprio_noise=0.5)
+        b = {"proprio": torch.cat([torch.zeros(B, T, 9), torch.ones(B, T, 1)], dim=-1)}
+        out = _noisy_proprio(b, 1, args)
+        assert torch.equal(out[..., -1], torch.ones(B)), "validity flag was perturbed"
+        assert out[..., :9].abs().sum() > 0, "noise did not reach the state dims"
+
+    def test_noise_is_off_by_default(self):
+        import argparse
+
+        import torch
+
+        from train.train_batched import _noisy_proprio
+
+        b = {"proprio": torch.randn(B, T, 10)}
+        out = _noisy_proprio(b, 1, argparse.Namespace(proprio_noise=0.0))
+        assert torch.equal(out, b["proprio"][:, 1])
