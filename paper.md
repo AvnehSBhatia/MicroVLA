@@ -3388,3 +3388,58 @@ has to apply to the measurement code with the same force it applies to the model
 code, because a diagnostic is just another consumer of a value some producer
 defined. `openloop_check` now takes `--perception-period` and the corpus stride
 must be passed explicitly.
+
+## 5e. Defect 22 — the recurrent state diverged past the training horizon
+
+The closed-loop telemetry for `synth10` showed 50-75% of ticks with **non-finite
+emitted actions**, while the same checkpoint scored gripper agreement 0.902 and
+pose correlation 0.69 on demonstration frames. Two candidates: the policy
+diverges on its own states, or mujoco blows up under an extreme command and
+returns NaN proprio which the policy echoes. Both sides were checked at every
+step, on four tasks:
+
+```
+task 0 alphabet_soup  -> POLICY action NaN at step 200 (proprio finite)
+task 1 cream_cheese   -> POLICY action NaN at step 198 (proprio finite)
+task 2 salad_dressing -> POLICY action NaN at step 192 (proprio finite)
+task 3 bbq_sauce      -> POLICY action NaN at step 204 (proprio finite)
+```
+
+The environment is innocent, and the failure is not state-dependent — it is
+**step-count dependent**, at ~200 env steps on every task. At perception period 2
+that is ~100 recurrent HRM steps.
+
+`_DampedCore` returns `(1 - alpha) * state + alpha * x`, where the candidate `x`
+grows through additive residual blocks and **nothing bounded the carried state**.
+Training episodes run T = 74-111 steps; deployment runs 200. The state was being
+asked to remain stable an order of magnitude beyond anything it had ever been
+optimized over, and it did not.
+
+Every open number resolves to this one:
+
+| observation | explanation |
+|---|---|
+| `NONFINITE 11b/63` every epoch, deterministic | 2 of 120 episodes are long (T=97, T=111) and NaN; one bad episode NaNs its whole batch of 8, so 2% of episodes cost 17% of batches |
+| 50-75% of closed-loop ticks non-finite | everything after ~step 200 of a 300-400 step episode |
+| task 0 clean for 200 steps in the first probe | the probe stopped at 200 — one step short |
+
+Fixed with a bound at 50.0, roughly 10x the largest magnitude observed in healthy
+operation (|state| absmax 4.7 over 74 steps; 4.1 over 400 steps after the fix).
+It cannot alter a working trajectory and only stops a diverging one from becoming
+NaN. **No retrain: the bound applies at inference.** Verified — tasks that died at
+step ~200 now run clean for 250.
+
+### What this does to the preceding results
+
+Every closed-loop number in this document was measured with episodes of 300-400
+steps, so **every one of them was scored on a policy that emitted NaN for the
+back half of each episode**. The zeros were real in the sense that nothing
+succeeded, but they were not measurements of the policy's behaviour — they were
+measurements of a diverged recurrent state.
+
+That is the fifth instrumentation null in this document, and the fourth root
+cause that had to be found before any policy number meant anything. The pattern
+that would have caught it earlier is the cheapest one available and was not
+applied for twenty-one defects: **check that the emitted action is finite before
+scoring the episode.** A NaN action does not raise; the environment accepts it,
+the episode completes, and the harness reports 0.000.
