@@ -3319,3 +3319,23 @@ The rule that would have caught both: **every training metric must be reported
 alongside its deployment-condition twin.** A teacher-forced validation number is
 not a policy number, and this document contains roughly two thousand lines
 written before anyone insisted on the distinction.
+
+### 5c-ii. `cleanbc` closed loop, and the corpus is not the NaN source
+
+The `cleanbc` snapshot's closed-loop result completes the picture: **0.000**,
+`tasks_completed 10`. A policy that closes its gripper on 0.0% of steps cannot
+score otherwise, so this is the expected consequence of the shortcut, not an
+independent failure.
+
+The full 500-episode grid corpus was then scanned end to end: **zero non-finite
+values across every float key, zero zero-variance frame embeddings (0/37,380),
+zero zero-variance grid cells.** The data is clean, so the `NONFINITE 11b/11skip`
+that `synth10` now reports on its epoch line comes from the model, not the
+corpus — roughly 17% of batches producing a non-finite loss, skipped by the
+gradient guard rather than poisoning the weights.
+
+That counter is itself new (5b-i). Before it, this run would have printed
+`loss nan` and looked identical to a diverged one; now it reads "11 batches
+skipped, 52 trained", which is a survivable inefficiency rather than an
+emergency. Root-causing the remaining 17% is deferred: it costs data, not
+correctness, and there is a result closer to hand.
