@@ -138,7 +138,8 @@ class JEPALoop:
         planner: Chrono-Query Planner module.
     """
 
-    def _rel_tokens(self, next_emb, percept, box_weight, text_tokens, last_action):
+    def _rel_tokens(self, next_emb, percept, box_weight, text_tokens, last_action,
+                    stale: float = 1.0):
         """Relational tokens from a Perception, or None on a v7 stack.
 
         Uses ``percept.proposals`` — the class-agnostic scene from the SAME
@@ -157,13 +158,20 @@ class JEPALoop:
             obj = next_emb.new_zeros(1, k, self.cfg.vis_dim)
             ctr = next_emb.new_zeros(1, k, 2)
             w = next_emb.new_zeros(1, k)
-            # box_weight is [1, 2] for the two roles; a proposal's own
-            # confidence is its weight, scaled by the SAME staleness factor the
-            # roles got so dream decay stays one shared path.
-            stale = float(box_weight.max()) / max(
-                float(max(percept.source.confidence, percept.target.confidence)), 1e-6
-            ) if box_weight is not None else 1.0
-            stale = min(max(stale, 0.0), 1.0)
+            # A proposal's own confidence is its weight, scaled by the SAME
+            # staleness factor the roles got so dream decay stays one shared
+            # path. ``stale`` is passed in by the caller, which knows it exactly
+            # (1.0 on a real tick, staleness_decay**k on a dream tick).
+            #
+            # It used to be RECOVERED here as box_weight.max() / max(source.conf,
+            # target.conf), which is the right ratio only while some role was
+            # detected. On a tick where BOTH roles miss, that is 0/1e-6 = 0, so
+            # every class-agnostic proposal was zeroed — while the trainer feeds
+            # the baked proposal weights, which are non-zero on exactly those
+            # ticks BECAUSE proposals are not role-conditioned. Recovering a
+            # known quantity by division reintroduced the train/deploy skew that
+            # the shared-path design exists to prevent.
+            stale = min(max(float(stale), 0.0), 1.0)
             for j, b in enumerate(props[:k]):
                 obj[0, j] = b.emb.to(obj.device)
                 ctr[0, j] = b.center.to(obj.device)
@@ -506,8 +514,13 @@ class JEPALoop:
                 pred_box_emb=next_box, geometry=geom,
                 proprio=proprio_tok, spatial=self._last_spatial,
                 wm_msg=wm["msg"], wm_latent=wm.get("latent"),
-                relational=self._rel_tokens(next_emb, self._last_percept,
-                                            box_weight, text_tokens, last_action),
+                relational=self._rel_tokens(
+                    next_emb, self._last_percept, box_weight, text_tokens,
+                    last_action,
+                    # Exactly the factor the role evidence was faded by: 1.0 on
+                    # a real tick, staleness_decay**k after k dream ticks.
+                    stale=(1.0 if is_real
+                           else self.cfg.staleness_decay ** self._dream_k)),
                 return_wp=True)
             raw_plan = raw_plan.squeeze(0)              # [plan_steps, num_servos]
             # v7.2: the metric EEF displacement the caller may actuate against
