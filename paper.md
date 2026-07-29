@@ -2378,3 +2378,98 @@ error. The methodological consequence for this paper: **any single-sided test is
 evidence about one side only**, and the tests that actually caught these are
 comparisons — bake output against deploy output, on the same input. Where such a
 comparison does not exist, the corresponding number should be read as unverified.
+
+## 4u. It is not the inputs, and it is not covariate shift: the deployment stack does not reproduce its own training metric
+
+4t and its correction chased train/deploy input divergences: grounding prompts
+(real, fixed, 0% -> 75.8% source detection) and proprio orientation (real, fixed,
+quaternion -> axis-angle). Neither moved the policy. Frame orientation was
+checked and ruled out — a live wrist frame matches the stored one as-is (mean
+abs error 48.98) far better than any flip (65.77-71.73), so the bake and the env
+agree on orientation.
+
+Guessing one input at a time does not terminate, so the planner was instrumented
+instead (`eval/planner_probe.py`): a forward hook captures every tensor the
+planner is ACTUALLY handed at deployment, compared against the corpus it trained
+on.
+
+| planner input | deploy mean / std | corpus mean / std |
+|---|---|---|
+| `current_emb` | 0.0000 / 1.0000 | 0.0000 / 1.0000 |
+| `proprio` | 0.3773 / 1.0626 | 0.3983 / 1.0355 |
+| `relational` | -0.0001 / 0.9990 | — |
+| `fused` | -0.0891 / 0.9900 | — |
+
+Per-dimension proprio agrees at the reset state; the two dimensions that drift
+(EEF `z` 0.048 vs corpus 0.205, gripper always open) are CONSEQUENCES of the
+policy's own descent, not causes. **The planner's deployment inputs are in
+distribution.**
+
+Two explanations survived that: a defect somewhere in the stack, or ordinary
+covariate shift (the policy is fine on demonstrated states and its own early
+errors take it off-distribution). They produce identical closed-loop telemetry,
+so closed-loop measurement cannot separate them. `eval/openloop_check.py` does,
+by teacher-forcing the real `MicroVLAPolicy`/`JEPALoop` with a demonstration's
+own frames and proprio — the policy never leaves the demonstrated distribution.
+
+| demo | steps | gripper agreement | demo closes | we close | pose corr |
+|---|---|---|---|---|---|
+| demo_0 | 148 | 0.459 | 58.1% | 4.1% | 0.456 |
+| demo_1 | 179 | 0.464 | 54.7% | 7.8% | 0.270 |
+| demo_2 | 136 | 0.485 | 62.5% | 11.0% | 0.362 |
+| **mean** | | **0.469** | **58.5%** | **7.6%** | 0.363 |
+
+**On the demonstrations' own frames the gripper closes on 7.6% of steps where the
+demonstration closes on 58.5%, and agreement is 0.469 — chance.** The same
+checkpoint's stage-B validation reports `grip_acc 0.934` and its training epochs
+0.94. The deployment stack therefore does not reproduce stage B's own metric on
+the data stage B measured it on, and **the closed-loop failure is a defect, not
+covariate shift.** This also retires the "compounding error" explanation without
+having to argue about it.
+
+### What it is not
+
+The checkpoint loads exactly. Comparing every saved tensor against the loaded
+module:
+
+```
+planner    saved 75 live 75 | not-in-live 0 | not-in-ckpt 0 | SHAPE-MISMATCH 0 | VALUE-DIFF 0
+fusion     saved 10 live 10 | ... VALUE-DIFF 0
+drift      saved 52 live 52 | ... VALUE-DIFF 0
+trm        saved 28 live 28 | ... VALUE-DIFF 0
+relational saved 38 live 38 | ... VALUE-DIFF 0
+```
+
+So it is not a silent `strict=False` partial load — the hypothesis that
+`load_state_dict` had left the grip head at init, which the established defect
+pattern made the obvious first guess.
+
+### Mechanism correction
+
+4t described the gripper as "saturated", implying a tanh driven to its bound.
+That is wrong about the mechanism. The planner emits the gripper as a HARD
+decision:
+
+```python
+grip_logit = self.grip_head(h).squeeze(-1)
+grip = torch.where(grip_logit > 0, ones, -ones)     # {-1, +1}
+```
+
+so a constant -1.0 means `grip_logit <= 0` on every step, not an activation
+pushed to its limit. The observation (one unique emitted value, std 0.000000)
+stands; the explanation does not. The distinction matters because a hard
+threshold means an arbitrarily small logit bias flips the entire behaviour — the
+head does not need to be badly wrong to be uniformly wrong.
+
+### Where this leaves the search
+
+Inputs match, weights match, and the failure reproduces on in-distribution data.
+What remains is the ASSEMBLY: the trainer and the loop each build the planner
+call themselves, from the same modules, and only their agreement was never
+tested. The trainer computes `wm = trm.forward_full(fused_t, delta_t, cur)` and
+passes `planner(next_emb, current_emb=cur, ...)`; the loop computes its own
+`fused`, `state_delta`, `geometry` and `relational` before an equivalent call.
+Every prior defect in this project sat in exactly such a gap, so the next step is
+the A/B this project keeps proving is the only thing that finds them: one corpus
+episode, driven through both paths with perception held identical, comparing
+planner inputs tensor by tensor.
