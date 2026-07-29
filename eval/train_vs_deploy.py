@@ -37,6 +37,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--episode", required=True, help="one baked .npz")
     p.add_argument("--device", default="cpu")
+    p.add_argument("--force-last-action", action="store_true",
+                   help="overwrite the loop's fusion action token with the DEMO's "
+                        "previous action each tick, i.e. teacher-force it exactly "
+                        "as stage B does. Attribution test: if the remaining "
+                        "divergences vanish under this, the whole gap is exposure "
+                        "bias in fusion's 8th token rather than an assembly defect.")
     return p.parse_args(argv)
 
 
@@ -163,6 +169,11 @@ def main(argv=None) -> None:
         loop._tick_index = 0 if hasattr(loop, "_tick_index") else None
         res = loop.tick(dummy, proprio=ep["proprio"][i])
         deploy_grip.append(float(res.plan[0, -1]))
+        if args.force_last_action:
+            # What stage B feeds: the DEMO's executed action at this step, not
+            # the policy's own. Set AFTER the tick so tick i+1 reads it.
+            loop._last_action = torch.as_tensor(
+                ep["pwm_targets"][i, 0], dtype=torch.float32, device=dev)
     h.remove()
 
     # ---- compare ------------------------------------------------------------
