@@ -3443,3 +3443,44 @@ that would have caught it earlier is the cheapest one available and was not
 applied for twenty-one defects: **check that the emitted action is finite before
 scoring the episode.** A NaN action does not raise; the environment accepts it,
 the episode completes, and the harness reports 0.000.
+
+## 5f. Where it stands, and the last hypothesis
+
+`synth10` completed (40 epochs, `val bc 0.1504`, `val grip 0.964`,
+`grip_acc 0.955`) and was evaluated with the divergence fixed and the perception
+rate matched to the corpus:
+
+| measurement | value | reference |
+|---|---|---|
+| pose corr, demo frames, self-fed | **0.589 - 0.693** | linear probe 0.415 (5b) |
+| gripper agreement, self-fed | **0.796** | 0.643 best prior arm |
+| gripper closing rate | 38.1% | demo 58.5% |
+| **closed-loop success** | **0.000** | — |
+
+The HRM state bound also removed the training NaN: `rec_mid` reports a finite
+`loss 2.0019` where every previous arm on this corpus printed
+`NONFINITE 11b/11skip`. Both symptoms had one cause.
+
+So the policy is now, by every open-loop measure, a working behaviour-cloning
+model — comfortably above the linear bar it could not reach this morning — and it
+still completes no episodes.
+
+That combination is diagnostic rather than discouraging. A policy that is
+accurate on demonstrated states and fails on its own is the textbook signature of
+**compounding error**: the demonstrations show only the expert's trajectory, so
+nothing in the objective teaches recovery, and in closed loop the arm is always
+slightly off it. Every earlier explanation is now excluded by measurement —
+grounding (75.8% detection), representation (grid beats GAP), objective
+(corrected), capacity (beats the linear probe), divergence (bounded), rate
+(matched), actuation (five configurations).
+
+`rec_mid` and `rec_high` test it directly by perturbing the observation during
+stage B, which places near-trajectory states in the training distribution with
+the expert's action still as the target. If recovery is what is missing, noise is
+the cheapest thing that supplies it; if these also return 0.000, the remaining
+candidates are data volume (500 episodes, one suite) and the P5 feature level.
+
+**Honest status against the goal.** Twenty-two defects found and fixed, every one
+verified by measurement. Open-loop behaviour went from below a linear probe to
+well above it. Closed-loop success is 0.000 and has never been otherwise. The
+gap between those two facts is the paper's real subject, and it is not yet closed.
