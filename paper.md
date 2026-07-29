@@ -2831,3 +2831,52 @@ That is consistent with 4w's conclusion and against the "needs more capacity"
 reading: the stack could already predict the gripper at 0.94 accuracy when handed
 the demonstrator's action, and what it lacked was an objective that did not let
 it lean on that.
+
+### 4x-b. Five more, from the unverified tail
+
+The sweep's 17 unverified lower-severity candidates were worked through by hand.
+Five were real, and two of them disabled a module outright.
+
+**The HRM never saw the end-effector.** `HRMBackbone.forward` accepts `eef` and
+builds `[eef, eef - anchor, validity]` through `eef_proj`, but `DriftAdapter`
+called `self.hrm(frame_emb, is_real=True)` with no `eef`, and
+`_eef_features(None, ...)` returns ZEROS. The entire metric branch contributed a
+constant, `eef_proj` received gradient in no code path, and the module whose
+stated job is "learned PID + drift + reasoning" was doing it **on vision alone**,
+in training and at deployment. Fixed on both sides, gated on the proprio validity
+flag.
+
+This one is worth dwelling on because it is not a train/deploy mismatch — both
+sides were wrong *identically*, so every parity test in the suite would pass. The
+defect is invisible to comparison and visible only to asking "is this parameter
+reachable at all?". A dead branch produces no error and no shape change; it just
+quietly makes the model smaller than its parameter count claims.
+
+**Three context-window conventions for one argument.** `rollout` (stage A) seeds
+`ctx = [latent]`, so the window ENDS with the latent being predicted from; the
+deployment loop appended AFTER the call, so its window held only PREVIOUS ticks;
+stage B passed no context at all. The planner's `next_emb` in stage B therefore
+came from a call shaped unlike anything deployment makes, and deployment fed the
+TRM a window one step staler than any it was trained on. Unified.
+
+**Scheduled sampling patched the wrong module.** `--action-token-sampling` fed
+the model's own action to FUSION only. The v8 `RelationalHead` carries its own
+action token and is the planner's dominant input, so the exposure bias of 4v
+survived intact in the module that REPLACED fusion — the fix and the defect were
+one function apart.
+
+**`has_objects` was reduced across the batch.** `.max()` meant a single v8
+episode in a mixed bucket sent EVERY episode down the baked path, and a v7
+episode's `obj_*` are zero-filled, so those samples fed the relational head
+nothing. Now per-sample.
+
+**Validation ran the relational head in `train()` mode**, so `modality_dropout`
+was active during the "clean" pass: best-checkpoint selection was scored with
+random evidence withheld, differently every epoch.
+
+**`--grip-weight` did not exist.** `split_planner_loss` takes it; the trainer
+never passed it, so the gripper BCE sat at 1.0 and was never swept — on a task
+where a policy that does not close scores exactly zero.
+
+Running total: **nineteen** defects. Six of them were introduced by fixes made
+earlier in this same document.
