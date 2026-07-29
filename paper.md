@@ -3114,3 +3114,38 @@ validation loss. The corpus itself is clean — 200 episodes scanned, zero
 non-finite values, zero degenerate embeddings — so nothing upstream would have
 flagged it either. Nineteen defects in, the pattern holds: **the failure mode of
 this system is not an error, it is a number.**
+
+### `fixed` — complete. Four actuation configs, all zero.
+
+| eval config | mean_success |
+|---|---|
+| plan-only, brake ON | 0.000 |
+| plan-only, no-brake | 0.000 |
+| plan-only, no-brake, chunk-exec | 0.000 |
+| waypoint, no-brake | 0.000 |
+| waypoint, no-brake, chunk-exec | 0.000 |
+
+Open loop (demo frames, policy's own action token): gripper agreement **0.643**,
+closes on **28.1%** of steps against the demo's 58.5%.
+
+So the gripper trend across the objective fixes is **7.6% -> 25.1% -> 28.1%**,
+and closed-loop success across five actuation configurations is 0.000 throughout.
+Two readings, and the evidence now separates them:
+
+* The gripper is no longer the binding constraint. It fires on more than a
+  quarter of steps, so episodes are no longer arithmetically incapable of
+  succeeding.
+* What binds now is **accuracy**. Pose correlation with the demonstrator is
+  0.27-0.46, and 4p measured the task's tolerance on magnitude ALONE at
+  [0.95, 1.05]. A policy that reaches in roughly the right direction a third of
+  the time does not complete a pick-and-place, and no actuation setting can
+  repair direction that poorly correlated — which is exactly what five
+  configurations returning the same 0.000 demonstrates.
+
+That relocates the problem for the third and last time in this document: not
+plumbing (nineteen defects, all fixed), not the objective (corrected, and it
+moved the open-loop numbers), but **the information the policy is given and the
+amount of it**. Both are now being addressed directly — a spatial channel that
+exists on every frame rather than the 53% that carry a detection, and action
+supervision at the control rate rather than the perception rate (2 Hz -> 10 Hz ->
+20 Hz, 7,680 -> 37,380 -> ~75,000 decision points).
