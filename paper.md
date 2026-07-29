@@ -2802,3 +2802,32 @@ lessons, both uncomfortable:
   very next defect landed in the relational path the harness passes `None` for.
   The correct claim is narrower — it covers `geometry`, `fused` and `state_delta`
   on a v7 stack, and nothing else.
+
+## 4y. First movement: the gripper starts closing
+
+`v8_var` (scheduled sampling on the action token + variance matching, on the 2 Hz
+corpus) is the first arm to move the metric that made success impossible.
+Open-loop, teacher-forced FRAMES but the policy's OWN action token — i.e. the
+condition 4u showed collapsing to 7.6%:
+
+| | `v8_act` | `v8_ss05` | **`v8_var`** | demo |
+|---|---|---|---|---|
+| gripper closes | 7.6% | — | **25.1%** | 58.5% |
+| agreement with demo | 0.469 | — | **0.644** | 1.000 |
+| best val bc | 0.2055 | 0.1512 | 0.1580 | — |
+
+A policy whose gripper never closes cannot score above zero on a pick task, so
+7.6% was a hard ceiling of exactly zero regardless of everything else. 25.1% is
+not yet 58.5%, and closed-loop is still 0.000, but it is the first time the
+binding constraint has moved.
+
+Note which intervention did it. Both terms attack the SAME defect from opposite
+ends: scheduled sampling removes the shortcut (the demonstrator's previous action
+predicts the current one, so the head never had to look at the scene), and
+variance matching penalizes the shrinkage that MSE rewards. Neither is a new
+input or a bigger model — both are corrections to a mis-specified objective.
+
+That is consistent with 4w's conclusion and against the "needs more capacity"
+reading: the stack could already predict the gripper at 0.94 accuracy when handed
+the demonstrator's action, and what it lacked was an objective that did not let
+it lean on that.
