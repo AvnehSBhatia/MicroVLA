@@ -70,8 +70,15 @@ def _percept_to(percept: Perception, device: torch.device) -> Perception:
         return BoxObs(emb=o.emb.to(device), center=o.center.to(device),
                       xyxy=o.xyxy.to(device), confidence=o.confidence)
 
+    # `proposals` MUST be carried. It is an optional field with an empty default
+    # (yolo_world.py), so omitting it here silently replaced the detector's
+    # class-agnostic scene with "nothing found" on every real tick -- while the
+    # trainer feeds the baked scene whenever has_objects is set. 52.7% of baked
+    # frames carry at least one proposal, so the relational head was reading
+    # zeros on most ticks it should have had evidence for.
     return Perception(frame_emb=percept.frame_emb.to(device),
-                      source=box(percept.source), target=box(percept.target))
+                      source=box(percept.source), target=box(percept.target),
+                      proposals=tuple(box(b) for b in getattr(percept, "proposals", ())))
 
 
 @dataclass
@@ -412,8 +419,13 @@ class JEPALoop:
                         ))
                     else:
                         eff_boxes.append(obs)  # genuine cold miss: fallback stands
+                # Carry the class-agnostic scene through: this object becomes
+                # self._last_percept, which is what _rel_tokens reads on BOTH
+                # real and dream ticks. Dropping it here zeroes the relational
+                # head's evidence for the whole episode.
                 percept = Perception(
-                    frame_emb=frame_emb, source=eff_boxes[0], target=eff_boxes[1]
+                    frame_emb=frame_emb, source=eff_boxes[0], target=eff_boxes[1],
+                    proposals=raw_percept.proposals,
                 )
 
                 # Evidence weight per role = detection confidence (fresh or

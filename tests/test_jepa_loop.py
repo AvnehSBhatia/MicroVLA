@@ -462,3 +462,62 @@ class TestMissHoldMatchesTraining:
         res = self._run(cfg)
         assert res[1].perception.source.confidence > 0.0
         assert res[2].perception.source.confidence < res[1].perception.source.confidence
+
+
+class TestProposalsSurviveTheLoop:
+    """The class-agnostic scene must reach the relational head at deployment.
+
+    ``Perception.proposals`` is an OPTIONAL field with an empty default, and the
+    loop rebuilds ``Perception`` twice per real tick — once in ``_percept_to``
+    for the device move, once for the miss-hold. Both rebuilds omitted it, so
+    the deployed RelationalHead read all-zero object evidence on 100% of ticks
+    while the trainer fed it the baked scene (52.7% of baked frames carry at
+    least one proposal).
+
+    An optional field with an empty default is silent when dropped: no error, no
+    shape change, just evidence quietly replaced by zeros.
+    """
+
+    def test_percept_to_carries_proposals(self):
+        import torch
+
+        from microvla.jepa.loop import _percept_to
+        from microvla.perception.yolo_world import BoxObs, Perception
+
+        b = lambda c: BoxObs(emb=torch.zeros(CFG.vis_dim), center=torch.zeros(2),
+                             xyxy=torch.zeros(4), confidence=c)
+        p = Perception(frame_emb=torch.zeros(CFG.vis_dim), source=b(0.9),
+                       target=b(0.8), proposals=(b(0.7), b(0.6)))
+        out = _percept_to(p, torch.device("cpu"))
+        assert len(out.proposals) == 2, "proposals dropped on the device move"
+        assert [x.confidence for x in out.proposals] == [0.7, 0.6]
+
+    def test_a_real_tick_hands_the_relational_head_nonzero_evidence(self):
+        """End-to-end: the mock detector returns proposals; they must arrive."""
+        import dataclasses
+
+        import numpy as np
+        import torch
+
+        from microvla.jepa.loop import JEPALoop
+        from microvla.relational import RelationalHead
+
+        cfg = dataclasses.replace(
+            CFG, planner_inputs=tuple(n for n in CFG.planner_inputs
+                                      if n not in ("fused", "geometry", "pred_box_emb",
+                                                   "spatial", "wm_msg", "wm_latent"))
+            + ("relational",))
+        loop = JEPALoop.build_mock(cfg)
+        loop.relational = RelationalHead(cfg).eval()
+        seen = {}
+        real_fwd = loop.relational.forward
+        loop.relational.forward = lambda ne, obj, ctr, w, tt, **kw: (
+            seen.update(w=w.detach().clone()), real_fwd(ne, obj, ctr, w, tt, **kw))[1]
+
+        loop.set_task("move can to ball")
+        loop.tick(_frame(0))
+        assert "w" in seen, "the relational head was never called on a real tick"
+        assert float(seen["w"].abs().sum()) > 0.0, (
+            "relational head received all-zero object weights on a real tick "
+            "where the detector reported proposals"
+        )
