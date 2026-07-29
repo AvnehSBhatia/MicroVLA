@@ -45,9 +45,9 @@ from microvla.aux_state.drift_encoder import AnchoredDriftEncoder
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.fusion.slot_fusion import SlotResonanceFusion
 from microvla.jepa.corrector import InnovationCorrector
+from microvla.perception.prompts import role_chains
 from microvla.perception.yolo_world import BoxObs, Perception
 from microvla.planner.chrono_planner import ChronoQueryPlanner
-from microvla.perception.command_parser import strip_article
 from microvla.trm.interface import TRMBase
 from microvla.trm.mock_trm import MockTRM
 from microvla.utils.embedding import standardize
@@ -56,23 +56,6 @@ if TYPE_CHECKING:  # pragma: no cover - typing only, no runtime import cost
     from microvla.perception.text_encoder import TaskEncoding
 
 logger = logging.getLogger(__name__)
-
-
-def _role_prompts(phrase: str) -> list[str]:
-    """Ordered detection prompts for one role: full phrase, then bare noun.
-
-    The full phrase carries any spatial disambiguator ("black bowl between the
-    plate and the ramekin"); the article/clause-stripped noun ("black bowl") is
-    the recall fallback. Deduplicated so a phrase with no clause (``"the can"``
-    -> ``"can"``) still yields both distinct prompts, while an already-bare
-    phrase collapses to one.
-    """
-    prompts: list[str] = []
-    for p in (phrase, strip_article(phrase)):
-        p = p.strip()
-        if p and p not in prompts:
-            prompts.append(p)
-    return prompts
 
 
 def _percept_to(percept: Perception, device: torch.device) -> Perception:
@@ -285,10 +268,18 @@ class JEPALoop:
         # article-stripped bare noun ("black bowl") as a recall fallback. The
         # text-token EMBEDDINGS still use the full phrases (harvested by the
         # task encoder); only the detection prompts are role-ordered here.
-        # source == target -> a single role; the target shares its box.
-        same = parsed.source == parsed.target
-        source_prompts = _role_prompts(parsed.source)
-        target_prompts = None if same else _role_prompts(parsed.target)
+        # source == target -> a single role; the target shares its box (handled
+        # inside role_chains, which returns a None target chain for that case).
+        #
+        # These are the SAME chains preprocess/common.py bakes with, from the
+        # same module, and that is load-bearing. This call site used to build
+        # [full phrase, bare noun] locally — precisely the prompts YOLO-World
+        # scores 0.000 on for LIBERO product names — so a policy trained on a
+        # corpus with 48% source detection was deployed against 0.0%. Measured
+        # on v8_act: 600 real ticks, source detected on 0.0% of them, and the
+        # resulting off-distribution inputs saturated the planner's gripper at
+        # -1.0 for all 9000 ticks. Do not re-derive prompts here.
+        source_prompts, target_prompts = role_chains(parsed.source, parsed.target)
         self.perception.set_role_prompts(source_prompts, target_prompts)
         self.drift.reset()
         self.corrector.reset()

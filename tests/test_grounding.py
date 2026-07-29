@@ -15,29 +15,49 @@ model); the region-text preference itself is validated in the real detector.
 from __future__ import annotations
 
 from microvla.config import DEFAULT_CONFIG
-from microvla.jepa.loop import JEPALoop, _role_prompts
+from microvla.jepa.loop import JEPALoop
+from microvla.perception.prompts import role_chains
 from microvla.perception.yolo_world import MockYoloWorldPerception
 
 
 class TestRolePrompts:
-    """``_role_prompts`` yields [full phrase, bare noun], deduped."""
+    """Deployment prompts come from the shared chain builder, not a local one.
 
-    def test_spatial_clause_keeps_full_then_noun(self):
-        prompts = _role_prompts("the black bowl between the plate and the ramekin")
-        assert prompts == [
-            "the black bowl between the plate and the ramekin",
-            "black bowl",
-        ]
+    This class used to pin ``JEPALoop._role_prompts``, which built
+    ``[full phrase, bare noun]`` — and those assertions passing is exactly what
+    hid the bug, because the BAKE path had meanwhile moved to concrete-category
+    chains and nothing compared the two. See ``tests/test_prompt_fallbacks.py``
+    for the parity tests and paper.md 4t for the measurement.
 
-    def test_article_only_still_two_distinct_prompts(self):
-        # "the can" -> full "the can", noun "can": distinct, both kept.
-        assert _role_prompts("the can") == ["the can", "can"]
+    Note what changed for libero_spatial: the clause-bearing phrase is no longer
+    a detection prompt, because ``strip_article`` reduces it to the noun phrase
+    on BOTH sides. That is a deliberate loss. The clause-first prompt was
+    motivated by disambiguation, but the measured grounding says it buys nothing
+    on the suites actually run (the full LIBERO phrases score 0.000) while chain
+    length actively suppresses confidence (8 prompts -> 0.253 vs 2 -> 0.505), so
+    re-adding it would cost recall on every task to help none. Which black bowl
+    gets grounded on libero_spatial is therefore still open.
+    """
 
-    def test_already_bare_noun_collapses_to_one(self):
-        assert _role_prompts("can") == ["can"]
+    def test_spatial_clause_reduces_to_the_detectable_noun_phrase(self):
+        src, _ = role_chains("the black bowl between the plate and the ramekin",
+                             "the plate")
+        assert src[0] == "black bowl"
 
-    def test_whitespace_is_stripped(self):
-        assert _role_prompts("  the red cup  ") == ["the red cup", "red cup"]
+    def test_chain_carries_concrete_category_fallbacks(self):
+        src, _ = role_chains("the alphabet soup", "the basket")
+        assert src[0] == "alphabet soup"
+        assert len(src) > 1, "no fallback tail — this is the blind-corpus bug"
+        assert "can" in src or "box" in src or "bottle" in src
+
+    def test_article_is_stripped_for_both_roles(self):
+        src, tgt = role_chains("the can", "the basket")
+        assert src[0] == "can"
+        assert tgt[0] == "basket"
+
+    def test_one_object_for_both_roles_yields_no_target_chain(self):
+        src, tgt = role_chains("bowl", "bowl")
+        assert tgt is None and src[0] == "bowl"
 
 
 class TestMockRolePrompts:
@@ -63,10 +83,11 @@ class TestLoopSetTaskGrounding:
             "pick up the black bowl between the plate and the ramekin "
             "and place it on the plate"
         )
-        # source role -> "black bowl ..." full phrase primary; target -> "the plate"
-        # (mock records the primary/full prompt per role).
-        assert loop.perception.active_classes[0].startswith("the black bowl between")
-        assert loop.perception.active_classes[-1] == "the plate"
+        # The mock records the primary (first) prompt per role, and the primary
+        # is now the detectable noun phrase rather than the clause-bearing one —
+        # same reduction the bake applies, which is the whole point.
+        assert loop.perception.active_classes[0] == "black bowl"
+        assert loop.perception.active_classes[-1] == "plate"
 
     def test_no_destination_single_role(self):
         loop = JEPALoop.build_mock(DEFAULT_CONFIG)

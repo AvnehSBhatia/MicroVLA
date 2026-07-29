@@ -42,6 +42,7 @@ import numpy as np
 
 from microvla.config import DEFAULT_CONFIG, MicroVLAConfig
 from microvla.perception.command_parser import strip_article
+from microvla.perception.prompts import role_chains, with_fallbacks
 
 logger = logging.getLogger(__name__)
 
@@ -204,104 +205,13 @@ class ActionNormalizer:
         return cls(np.asarray(d["q_low"]), np.asarray(d["q_high"]))
 
 
-#: Concrete visual categories appended to a role's prompt chain, keyed by what
-#: the phrase is ABOUT. A single tail cannot work: libero_object is groceries
-#: ("alphabet soup" -> box/can/bottle) while libero_spatial is tableware
-#: ("the black bowl between the plate and the ramekin" -> bowl/plate). The
-#: grocery-only tail is why libero_spatial baked 500 episodes and then failed
-#: the sighted gate — nothing in it could fire on a bowl.
-#:
-#: Abstract nouns are deliberately absent throughout: "product", "package",
-#: "item", "object" and "thing" all measure exactly 0.000 (paper.md 4n).
-#: SHORT on purpose. Every extra active class competes in NMS and depresses the
-#: winner's score: measured on libero_spatial, an 8-prompt chain scored source
-#: at conf 0.253 where a 2-prompt chain scored 0.505 on the same frames, and
-#: detection rate went 75% -> 88%. More fallbacks is not more recall.
-#:
-#: Entries are ordered by MEASURED firing rate on real wrist frames, not by how
-#: natural they read. "ceramic bowl" fires on 100% of libero_spatial frames at
-#: conf 0.950; "black bowl" — the phrase the task actually uses — fires on 25%
-#: at 0.235. Since a chain takes the first prompt that detects ANYTHING, a weak
-#: early entry blocks a strong later one.
-_TAIL_GROCERY: tuple[str, ...] = ("box", "can", "bottle")
-_TAIL_TABLEWARE: tuple[str, ...] = ("ceramic bowl", "bowl")
-_TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin")
-#: Target-role tails, kept DISJOINT from the source tails above — see
-#: _role_chains for why that matters.
-_TAIL_TARGET_TABLEWARE: tuple[str, ...] = ("white plate", "plate")
-
-#: Head nouns that select a tail. Matched against the LAST word of the phrase
-#: first, then anywhere in it, so "black bowl" and "wine bottle" both resolve.
-_TAIL_BY_NOUN: dict[str, tuple[str, ...]] = {}
-for _n in ("bowl", "plate", "cup", "mug", "dish", "tray", "pan", "pot",
-           "ramekin", "saucer"):
-    _TAIL_BY_NOUN[_n] = _TAIL_TABLEWARE
-for _n in ("basket", "bin", "caddy", "crate"):
-    _TAIL_BY_NOUN[_n] = _TAIL_RECEPTACLE
-for _n in ("soup", "sauce", "cheese", "butter", "juice", "milk", "pudding",
-           "ketchup", "dressing", "can", "bottle", "box", "carton", "cream"):
-    _TAIL_BY_NOUN[_n] = _TAIL_GROCERY
-
-#: Used when the phrase matches nothing above. Both families, tableware first —
-#: a wrongly-fired grocery box on a tableware scene is worse than a miss,
-#: because set_role_prompts takes the FIRST prompt that detected anything.
-_TAIL_DEFAULT: tuple[str, ...] = _TAIL_TABLEWARE + _TAIL_GROCERY
-
-
-def _role_chains(src: str, tgt: str) -> tuple[list[str], list[str] | None]:
-    """Prompt chains for the two roles, guaranteed DISJOINT.
-
-    Overlapping chains silently collapse the two roles onto one object. Measured
-    on libero_spatial, where source "black bowl" and target "plate" both expand
-    to tails containing bowl/plate/cup: 70% of frames returned the SAME BOX for
-    both roles. The corpus then reports high target detection that is really an
-    echo of the source, and the planner sees the thing it must move sitting
-    exactly where it must move it to.
-
-    Disjointness is enforced by dropping shared prompts from the TARGET chain:
-    the source object is what grounding actually needs, and a target that
-    resolves to a generic backup is less harmful than a source that resolves to
-    the target's box.
-    """
-    if src == tgt:
-        return _with_fallbacks(src), None
-    s = _with_fallbacks(src)
-    t_chain = _with_fallbacks(tgt)
-    # Tableware targets get their own tail so "plate" does not fall back onto
-    # the same bowl prompts the source is using.
-    if _TAIL_BY_NOUN.get(tgt.split()[-1] if tgt.split() else "") is _TAIL_TABLEWARE:
-        t_chain = [tgt] + [c for c in _TAIL_TARGET_TABLEWARE if c != tgt]
-    t_chain = [c for c in dict.fromkeys(t_chain) if c not in s]
-    if not t_chain:
-        # Every target prompt collided with the source chain. Keep the exact
-        # target phrase and surrender it from the source rather than return an
-        # empty chain, which would silently disable the target role entirely.
-        t_chain = [tgt]
-        s = [c for c in s if c != tgt] or [src]
-    return s, t_chain
-
-
-def _with_fallbacks(phrase: str) -> list[str]:
-    """Prompt chain for one role: the exact phrase, then concrete categories.
-
-    The head noun goes in before the generic tail — "alphabet soup" -> "soup" —
-    because a multi-word product name sometimes grounds on its noun alone when
-    the full phrase does not.
-    """
-    chain = [phrase]
-    parts = phrase.lower().split()
-    if len(parts) > 1:
-        chain.append(parts[-1])
-    tail = None
-    if parts:
-        tail = _TAIL_BY_NOUN.get(parts[-1])      # head noun wins
-    if tail is None:
-        for w in parts:                          # then any word in the phrase
-            if w in _TAIL_BY_NOUN:
-                tail = _TAIL_BY_NOUN[w]
-                break
-    chain += [c for c in (tail or _TAIL_DEFAULT) if c not in chain]
-    return chain
+# The prompt chains live in microvla/perception/prompts.py so the BAKE path and
+# the DEPLOYMENT path (microvla/jepa/loop.py) ground roles identically. They used
+# to live here, which meant the 0%-detection fix reached the corpus but not the
+# robot: every closed-loop eval ran a sighted-trained policy blind. See that
+# module's docstring for the measurements.
+_with_fallbacks = with_fallbacks
+_role_chains = role_chains
 
 
 class EpisodeBuilder:

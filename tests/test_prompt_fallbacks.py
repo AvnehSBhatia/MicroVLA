@@ -133,3 +133,62 @@ def test_every_suite_family_is_covered():
         ("plate", "plate"),              # libero_goal targets
     ):
         assert must_contain in _with_fallbacks(phrase)
+
+
+class TestDeploymentUsesTheSameChains:
+    """The bake path and the robot must ground roles identically.
+
+    The chains originally lived in ``preprocess/common.py``, so every test in
+    this file passed while the DEPLOYMENT path — ``JEPALoop.set_task`` — built
+    its own ``[full phrase, bare noun]`` prompts, which are exactly the ones
+    YOLO-World scores 0.000 on. A policy trained on a corpus with 48% source
+    detection was therefore evaluated against 0.0%: on the v8_act closed-loop
+    run, source was detected on 0.0% of 600 real ticks and target on 20% at mean
+    confidence 0.007. The off-distribution inputs saturated the planner (emitted
+    gripper pinned at -1.0 on 9000/9000 ticks, against a corpus that closes on
+    52.3% of frames), which is a guaranteed 0.000 on any pick-and-place task.
+
+    Nothing in the old test suite could see that, because both sides were only
+    ever tested against themselves. These tests compare them.
+    """
+
+    TASKS = [
+        ("alphabet soup", "basket"),
+        ("black bowl between the plate and the ramekin", "plate"),
+        ("cream cheese", "basket"),
+        ("bowl", "bowl"),
+    ]
+
+    def test_loop_and_bake_agree_on_every_libero_task_shape(self):
+        from microvla.perception.prompts import role_chains
+
+        for src, tgt in self.TASKS:
+            assert role_chains(src, tgt) == _role_chains(src, tgt), (
+                f"deploy and bake disagree on ({src!r}, {tgt!r})"
+            )
+
+    def test_set_task_installs_the_chain_not_the_bare_phrase(self):
+        """End-to-end through JEPALoop: what actually reaches the detector."""
+        from microvla.jepa.loop import JEPALoop
+
+        seen = {}
+
+        class Spy:
+            def set_role_prompts(self, source, target=None):
+                seen["source"], seen["target"] = list(source), target
+            def set_classes(self, names):
+                pass
+
+        loop = JEPALoop.build_mock()
+        loop.perception = Spy()
+        loop.set_task("pick up the alphabet soup and place it in the basket")
+
+        expect_src, expect_tgt = _role_chains("alphabet soup", "basket")
+        assert seen["source"] == expect_src, (
+            f"deployment installed {seen['source']} — the bake used {expect_src}"
+        )
+        assert list(seen["target"]) == expect_tgt
+        assert len(seen["source"]) > 1, (
+            "only the bare phrase reached the detector; YOLO-World scores 0.000 "
+            "on LIBERO product names, so this deploys the policy blind."
+        )
