@@ -3205,3 +3205,31 @@ behaviour cloning — so "over-regularized" becomes a testable claim rather than
 story. If pure BC clears the linear bar, the fix is the training recipe. If it
 does not, the P5 features are the wall and the next move is a finer level of the
 frozen backbone.
+
+### 5b-i. The NaN was the accumulator, not the model
+
+`cleanbc` reported `loss nan` from its first epoch. Before restarting anything,
+the exact stage-B forward was reproduced offline on the dense corpus with the
+trained stage-A weights, in `train()` mode: `P`, `G`, `Y` all finite,
+`step_weight` finite (0.638-1.914), loss **1.96**. Every intermediate was
+checked at t = 0, 5, 40 and 73 — fused, state_delta, TRM context, all four world
+model heads, TQSA's three outputs, relational tokens, plan and grip logits — and
+all were finite with sane magnitudes.
+
+The model was never diverging. `run += float(loss)` folded one non-finite batch
+into the running mean, and a running mean containing NaN stays NaN forever, so
+every subsequent epoch line read `nan` while training proceeded normally. The
+same epoch line proves it: `grip_acc 0.889 | val bc 0.2362 grip 0.952`, all
+finite, all computed on separate accumulators.
+
+**`val grip 0.952` is the best gripper number this project has produced**, and it
+arrived in epoch 1 of the first arm that trains with the spatial channel live.
+
+Non-finite losses are now counted rather than summed, and the epoch line reports
+`NONFINITE Nb/Mskip`, so "a few bad batches" and "the run is gone" stop looking
+identical. Note what this cost: the earlier dense-corpus run was killed on the
+strength of its `nan` display, and that decision now looks premature — its VAL
+was also nan, which is a genuinely different signal, but the train-loss reading
+that first raised the alarm was an artifact.
+
+Twenty defects. The instrument, again.
