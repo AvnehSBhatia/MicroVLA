@@ -543,7 +543,13 @@ class JEPALoop:
 
                 out_perception = None
 
-            # TRM context window: the latents that drove the previous ticks.
+            # TRM context window. The CURRENT latent is appended BEFORE the
+            # call so the window ends with it, matching the trainer's rollout,
+            # which seeds `ctx = [latent]` and therefore always includes the
+            # latent it is predicting from. Deployment used to pass only the
+            # PREVIOUS ticks, so the TRM saw a window one step staler than any
+            # it was trained on, on every tick of every episode.
+            self._latent_ctx.append(latent)
             context = (
                 torch.stack(list(self._latent_ctx), dim=0).unsqueeze(0)  # [1, K, 512]
                 if self._latent_ctx
@@ -555,7 +561,7 @@ class JEPALoop:
             next_emb, next_box = wm["next_emb"], wm["next_box"]
             next_emb_unbatched = next_emb.squeeze(0)  # [512]
             self._pending_pred = next_emb_unbatched
-            self._latent_ctx.append(latent)
+# (context already appended above, before the TRM call)
 
             raw_plan, _grip, wp = self.planner(
                 next_emb, current_emb=latent.unsqueeze(0),

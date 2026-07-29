@@ -500,6 +500,21 @@ def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg,
                       last_action=last_action)
 
 
+def _trm_context(batch, t, cur, cfg):
+    """``[B, K, vis_dim]`` context window ENDING at the current latent.
+
+    Matches both other paths: ``rollout`` seeds ``ctx = [latent]`` so the window
+    always ends with the latent being predicted from, and the deployment loop
+    appends the current latent before calling the TRM. Stage B passed NO context
+    at all, so the planner's ``next_emb`` was produced by a call shaped unlike
+    anything deployment makes -- a third convention for the same argument.
+    """
+    k = max(1, int(getattr(cfg, "context_window", 1)))
+    lo = max(0, t - k + 1)
+    hist = batch["frame_embs"][:, lo:t]                 # [B, <k-1, D]
+    return torch.cat([hist, cur.unsqueeze(1)], dim=1)   # ends with `cur`
+
+
 def _eef_of(batch, t, cfg):
     """``[B, waypoint_dim]`` measured EEF at step t, or None when invalid.
 
@@ -980,7 +995,8 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
         preds, grips, wps = [], [], []
         for t in range(T):
             cur = batch["frame_embs"][:, t]
-            wm = trm.forward_full(fused_all[t], delta_all[t], cur)
+            wm = trm.forward_full(fused_all[t], delta_all[t], cur,
+                                  context=_trm_context(batch, t, cur, cfg))
             sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
             geom = torch.cat([sc, tc, bw], dim=-1)
             spatial = _batch_spatial(batch, t, tqsa, backbone, device)
@@ -1191,7 +1207,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # forward_full OUTSIDE no_grad: msg_head (and, under
                 # --unfreeze-trm, the core) needs planner-loss gradient; frozen
                 # params accumulate none regardless.
-                wm = trm.forward_full(fused_t, delta_t, cur)
+                wm = trm.forward_full(fused_t, delta_t, cur,
+                                      context=_trm_context(batch, t, cur, cfg))
                 next_emb, next_box = wm["next_emb"], wm["next_box"]
                 geom = torch.cat([sc, tc, bw], dim=-1)              # [B, 6]
                 # v7 TQSA: dream steps use t-1 frames (held-real evidence, same
