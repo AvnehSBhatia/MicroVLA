@@ -633,3 +633,34 @@ class TestChunkExecutionSchedule:
         for _ in range(10):
             p.act(frame, proprio=np.concatenate([np.zeros(9), [1.0]]))
         assert calls["n"] == 10, "the per-tick schedule must still step every call"
+
+
+class TestNonFiniteActionIsNotSilent:
+    """A NaN action must not be scored as an ordinary failure.
+
+    paper.md 5e: the HRM's recurrent state diverged past its training horizon and
+    the policy emitted NaN from roughly env step 200 onward. Nothing raised —
+    the env accepted it, the episode ran to max_steps, and the harness reported
+    mean_success 0.000, which reads exactly like a policy that never succeeds.
+    Every closed-loop number in the project was scored that way.
+    """
+
+    def test_step_loop_guards_and_counts_non_finite_actions(self):
+        """Pinned by source inspection: needs a full LIBERO env to run live."""
+        import pathlib
+        import re
+
+        src = pathlib.Path("eval/libero_eval.py").read_text()
+        # The guard must sit between policy.act and env.step, not after.
+        body = src[src.index("action = policy.act(frame, proprio="):]
+        guard = body.index("np.isfinite(action)")
+        step = body.index("env.step(action)")
+        assert guard < step, (
+            "the finite check must run BEFORE env.step, or the environment has "
+            "already consumed the NaN"
+        )
+        assert "nonfinite_steps += 1" in body[:step]
+        assert re.search(r"nan_to_num", body[:step]), (
+            "a non-finite action should be neutralized, not passed through"
+        )
+        assert "NON-FINITE ACTIONS" in src, "the episode must report it loudly"

@@ -269,10 +269,21 @@ def _run_real_trial(
 
         telemetry: list[dict] = []
         success = False
+        nonfinite_steps = 0
         for step in range(max_steps):
             frame = obs[camera]
             # v6: arm state every step (None on envs that don't expose it).
             action = policy.act(frame, proprio=proprio_from_obs(obs))
+            # A NON-FINITE ACTION DOES NOT RAISE. The env accepts it, the
+            # episode runs to max_steps, and the harness reports 0.000 -- which
+            # is indistinguishable from a policy that simply never succeeds.
+            # paper.md 5e: the HRM's recurrent state diverged past its training
+            # horizon and every closed-loop number in this project was scored on
+            # a policy emitting NaN for the back half of each episode. Counting
+            # it is nearly free and turns a silent null into a stated one.
+            if not np.isfinite(action).all():
+                nonfinite_steps += 1
+                action = np.nan_to_num(action, nan=0.0, posinf=0.0, neginf=0.0)
             obs, _reward, done, info = env.step(action)
             step_telemetry = policy.telemetry[-1] if policy.telemetry else {}
             telemetry.append({"step": step, **step_telemetry})
@@ -281,6 +292,13 @@ def _run_real_trial(
                 success = bool(env.check_success())
             if done:
                 break
+        if nonfinite_steps:
+            # Loud on purpose. A run that emits NaN for a third of its steps has
+            # not been evaluated, whatever number the aggregate reports.
+            logger.warning(
+                "NON-FINITE ACTIONS on %d/%d steps of this episode (zeroed before "
+                "env.step). The reported success rate does NOT measure this "
+                "policy -- see paper.md 5e.", nonfinite_steps, max_steps)
         return success, telemetry
     finally:
         if hasattr(env, "close"):
