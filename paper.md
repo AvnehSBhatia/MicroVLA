@@ -3484,3 +3484,61 @@ candidates are data volume (500 episodes, one suite) and the P5 feature level.
 verified by measurement. Open-loop behaviour went from below a linear probe to
 well above it. Closed-loop success is 0.000 and has never been otherwise. The
 gap between those two facts is the paper's real subject, and it is not yet closed.
+
+## 5g. The third load-bearing term: magnitude
+
+`rec_mid` (clean recipe + scheduled sampling + state-recovery noise) is the best
+open-loop policy this project has produced:
+
+| measure | rec_mid | reference |
+|---|---|---|
+| gripper agreement, self-fed | **0.931** | 0.796 (synth10), 0.643 (fixed) |
+| gripper closing rate | **63.9%** | demo 58.5% |
+| pose corr | 0.59-0.69 | linear probe 0.415 |
+| **closed-loop success** | **0.000** | — |
+
+Correlation and agreement are both scale-blind, so they were hiding the thing
+that matters. Measuring the emitted MAGNITUDE against the demonstrator on the
+same frames:
+
+| dim | x | y | z | roll | pitch | yaw |
+|---|---|---|---|---|---|---|
+| emitted std | 0.184 | 0.418 | 0.322 | 0.0061 | 0.0183 | 0.0090 |
+| demo std | 0.242 | 0.473 | 0.512 | 0.0184 | 0.0519 | 0.0523 |
+| **std_ratio** | 0.758 | 0.883 | **0.628** | **0.332** | **0.352** | **0.171** |
+
+**Median std_ratio 0.490.** The policy emits half the demonstrator's motion, and
+4p measured the passing band at **[0.95, 1.05]** — ground truth at 1.00 solves
+5/5, at 0.80 solves 0/4. A policy at 0.49 cannot complete a reach-and-grasp no
+matter how well it predicts direction, which is exactly what "gripper agreement
+0.931, success 0.000" looks like from outside.
+
+This is MSE regression to the conditional mean — the failure 4p predicted and
+`--variance-weight` exists to penalize. **It was removed in the clean recipe as
+dead weight.**
+
+### The ablation, complete
+
+Six auxiliary terms were removed together in 5c because their composition
+prevented the model from fitting. Restoring them one at a time, guided by which
+deployment metric collapsed:
+
+| term | verdict | evidence |
+|---|---|---|
+| scheduled sampling | **load-bearing** | without it the gripper closes 0.0% self-fed (5c) |
+| variance matching | **load-bearing** | without it std_ratio 0.490 against a [0.95, 1.05] band |
+| waypoint loss | dead weight | — |
+| actuation loss | dead weight | and mis-specified three ways (4x) |
+| smoothness | dead weight | — |
+| world-model auxiliary | dead weight | — |
+
+Two of six were essential and four were not, and neither essential one is
+identifiable from validation loss: both are invisible to a teacher-forced,
+scale-blind metric. Removing all six at once is what made them findable, because
+each broke a *different* deployment measurement — the gripper rate and the
+magnitude ratio — while `val bc` improved throughout.
+
+`var_on` / `var_hi` retrain with variance matching restored. In parallel,
+`--action-gain` rescales the emitted pose at eval time, which tests the magnitude
+hypothesis in minutes rather than an hour: if 0.49 is the whole story, a gain
+near 2.0 should move success off zero without touching a weight.
