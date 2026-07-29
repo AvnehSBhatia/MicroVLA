@@ -2638,3 +2638,74 @@ token (which needs no policy) rather than sampling.
 Recording this now, before the result, because the honest reading of a partial
 improvement and the honest reading of a failure are different, and deciding
 which after seeing the number is how 4t's causal claim got made.
+
+## 4w. The world model's dt, and the end of the mechanical explanations
+
+### Defect 9: one TRM step is 10 env steps, and the loop applied it every step
+
+The TRM is trained on the baked corpus, whose stride is the source control rate
+divided by `real_frame_hz` — LIBERO: 20 Hz / 2 Hz = **10 env steps, 0.5 s**. So
+one TRM step means "half a second later". Measured, 40 episodes, one step:
+
+| one TRM step, cosine to | |
+|---|---|
+| the next 2 Hz sample (t+1) — what it was trained to predict | **0.9922** |
+| persistence (t vs t+1) | 0.9910 |
+| the sample after (t+2) | 0.9874 |
+
+The deployment loop steps it **once per env step** and dreams 14 times between
+real frames, so it extrapolates ~7 s of predicted time per 0.7 s elapsed — a 10x
+temporal overshoot, compounded 14 times. `perception_period` is also 15 ticks
+where the corpus stride is 10. Same defect family as the other eight: two sides
+disagreeing about what a value means, here Δt.
+
+`--chunk-exec` fixes it without retraining: advance the loop once per sample
+interval and execute the plan's rows in between, which is exactly what the bake
+defines a chunk to be ("the next `plan_steps` NATIVE-rate actions"). The waypoint
+command is still recomputed every step against fresh proprio, so position stays
+closed-loop while the latent advances at its trained rate.
+
+### It changed nothing
+
+| arm | per-tick (default) | chunk-exec, replan=10 | chunk-exec, replan=5 |
+|---|---|---|---|
+| `v8_ss05` | 0.000 | **0.000** | **0.000** |
+| `v8_act` | 0.000 | **0.000** | — |
+
+10 tasks x 3 trials each, `tasks_completed 10` throughout. The temporal
+mismatch was real and is fixed; it was not what stood between this policy and a
+completed task.
+
+### What that means, stated plainly
+
+Five mechanical defects have now been found, fixed, and individually verified —
+prompts (0% -> 75.8% detection), proprio representation, miss-hold, staleness,
+and Δt — plus scheduled sampling for the exposure bias of 4v, which improved
+every open-loop metric it touched (val bc 0.2055 -> 0.1512, val grip 0.934 ->
+0.949). **Closed-loop success is 0.000 after every one of them.**
+
+The honest conclusion is that the mechanical explanations are exhausted. This is
+no longer a stack with a bug in it; it is a policy that is not good enough, and
+the remaining gap is capability rather than plumbing. Two measurements say so
+directly:
+
+* On the demonstrations' OWN frames, teacher-forced, the gripper closes on 7.6%
+  of steps where the demo closes on 58.5% (4u). Nothing about deployment is
+  implicated in that number.
+* Pose correlation with the demonstrator is 0.27-0.46 open-loop, against a task
+  whose measured tolerance on magnitude alone is ~[0.95, 1.05] (4p).
+
+Two structural facts bound what BC can do here. The corpus is **500 episodes x
+15 sampled frames = 7,680 decision points**, roughly an order of magnitude below
+what LIBERO BC baselines train on, because the 2 Hz subsample discards 14 of
+every 15 frames — a rate chosen for the PERCEPTION budget and then inherited, unexamined,
+by the action supervision. And the objective is action MSE while the metric is
+task completion, which 4p shows are not merely loosely coupled but opposed:
+MSE-optimal regression shrinks magnitude, and shrinkage is precisely what the
+task does not tolerate.
+
+The next experiments therefore target capability, not correctness: task-aligned
+objectives (a progress critic the planner descends through the world model, an
+imagined rollout, and explicit variance matching — all differentiable, no
+environment in the loop) and a re-bake that supervises actions at the control
+rate rather than the perception rate.
