@@ -56,6 +56,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--n-demos", type=int, default=3)
     p.add_argument("--max-steps", type=int, default=300)
     p.add_argument("--task", default=None, help="language string; defaults to the file stem")
+    p.add_argument("--perception-period", type=int, default=15,
+                   help="ticks between REAL perceptions; must match the corpus "
+                        "stride (source control rate / real_frame_hz). A 10 Hz "
+                        "corpus from a 20 Hz env is 2, NOT the 30/2=15 default.")
+    p.add_argument("--chunk-exec", action="store_true")
+    p.add_argument("--no-brake", action="store_true")
     p.add_argument("--device", default="cuda:0")
     return p.parse_args(argv)
 
@@ -78,10 +84,18 @@ def main(argv=None) -> None:
 
     norm = args.norm_stats or os.path.join(args.corpus, "norm_stats.json")
     wp = args.waypoint_stats or os.path.join(args.corpus, "waypoint_stats.json")
+    # perception_period MUST match the corpus stride. The default is 15 (the Pi
+    # loop's 30 Hz / 2 Hz), but a 10 Hz corpus has a stride of 2 -- measuring a
+    # policy at a real-perception rate it never trained under makes the "self-fed"
+    # number pessimistic for reasons that have nothing to do with the policy.
+    # This is the deployment-condition twin of paper.md 5c; an instrument for
+    # catching mismeasurement has no business being mismeasured itself.
     policy = MicroVLAPolicy(
         checkpoint=args.checkpoint, norm_stats=norm,
         waypoint_stats=wp if os.path.exists(wp) else None,
         device=args.device, heads_device=args.device,
+        perception_period=args.perception_period,
+        chunk_exec=args.chunk_exec, no_brake=args.no_brake,
     )
 
     print(f"task: {task!r}\n")
