@@ -179,6 +179,12 @@ class HRMState:
     gains: torch.Tensor
 
 
+#: Absolute bound on a recurrent HRM state. Chosen ~10x the largest magnitude
+#: observed in healthy operation (|state| absmax 4.7 over a 74-step episode), so
+#: it is a divergence rail rather than a regularizer.
+_STATE_LIMIT: float = 50.0
+
+
 class _DampedCore(nn.Module):
     """Pre-LN MLP stack + damped gated update — the cell both timescales share.
 
@@ -230,7 +236,21 @@ class _DampedCore(nn.Module):
         for block in self.blocks:
             x = x + block(x)
         alpha = torch.sigmoid(self.rate(drive))
-        return (1.0 - alpha) * state + alpha * x
+        out = (1.0 - alpha) * state + alpha * x
+        # SAFETY RAIL on the recurrent state. The candidate `x` grows through
+        # additive residual blocks and nothing bounds the carried state, so over
+        # a long episode it can run away to inf and then NaN. Measured: episodes
+        # of T=97 and T=111 produce a non-finite loss while the T=74 majority do
+        # not, and one bad episode NaNs its whole batch -- 2% of episodes cost
+        # 17% of batches. Deployment is worse: 400 env steps at perception
+        # period 2 is 200 recurrent steps, longer than almost any training
+        # episode, and closed-loop telemetry showed 50-75% of ticks non-finite.
+        #
+        # The bound is far outside normal operation (measured |state| absmax
+        # ~4.7 over 74 steps), so it never binds on healthy dynamics and cannot
+        # change a working trajectory -- it only stops a diverging one from
+        # becoming NaN and destroying the episode.
+        return out.clamp(-_STATE_LIMIT, _STATE_LIMIT)
 
 
 class HRMBackbone(nn.Module):
