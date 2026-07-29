@@ -2589,3 +2589,32 @@ defects were two sides disagreeing about a value; this one is the two sides
 agreeing about the value's *meaning* while differing in its *provenance*, which
 no parity test on a single tick can catch. The A/B found it only because it ran
 a SEQUENCE and let the divergence compound.
+
+### 4v-b. The regression barrier, and what it cost to not have one
+
+Defects 6 and 7 are now pinned by `tests/test_train_deploy_parity.py`, which runs
+the trainer's per-step assembly and the loop's over one synthetic episode —
+including a tick where BOTH roles miss, the exact condition both defects needed —
+and asserts `geometry`, `fused` and `state_delta` agree. CPU, mocks, in the
+normal suite (425 tests, 15 s).
+
+It includes an inverted test: re-introducing defect 6 (`miss_hold=True`) must
+BREAK parity. Without that, a refactor could quietly stop exercising the loop and
+the parity assertions would keep passing while measuring nothing — which is the
+exact failure mode of the four instrumentation nulls in 4t, restated as a test.
+
+The accounting is worth stating plainly, because it is the paper's methodological
+claim in concrete form. Before this file existed the project had 419 passing
+tests, ~2200 lines of paper, and **two** test suites that separately certified
+the two sides of the divergence. What that bought: a blind corpus (4n), a void
+30-trial batch (4s), three false root causes in 4t/4u, and roughly two days of
+GPU time spent measuring crashes and instrument artefacts. The test that would
+have caught all of it is 180 lines and runs in half a second, and it is a
+COMPARISON — neither side asserted anything new about itself.
+
+Generalization, stated as a rule this project now follows: *wherever a value is
+produced on one side of a train/deploy pair and consumed on the other, the test
+must run both sides and diff. An assertion about either side alone is evidence
+about that side alone.* Single-sided tests are not worthless — they caught real
+bugs here — but they are structurally incapable of seeing the class of defect
+that has caused every headline failure in this project.
