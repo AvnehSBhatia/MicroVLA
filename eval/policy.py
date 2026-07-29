@@ -215,6 +215,8 @@ class MicroVLAPolicy:
         norm_stats: str,
         cfg: Optional[MicroVLAConfig] = None,
         perception_period: int = 15,
+        chunk_exec: bool = False,
+        replan_every: int = 0,
         trm: Optional[TRMBase] = None,
         device: str = "cpu",
         perception=None,
@@ -271,6 +273,15 @@ class MicroVLAPolicy:
                 given step) the plan drives all seven dims as before.
         """
         self.perception_period = max(1, int(perception_period))
+        # Chunk execution advances the world model once per SAMPLE interval and
+        # executes the plan's rows in between (paper.md 4w). replan_every
+        # defaults to cfg.waypoint_row_stride, which is defined as the source
+        # env's control rate / real_frame_hz -- exactly the number of env steps
+        # one TRM step was trained to span.
+        self.chunk_exec = bool(chunk_exec)
+        self._replan_every_arg = int(replan_every)
+        self._chunk = None
+        self._chunk_pos = 0
         self.zero_center_actions = bool(zero_center_actions)
         # Multiplies the emitted POSE columns (gripper exempt — it is a hard
         # +/-1 decision, and scaling it would only move it toward the threshold).
@@ -302,6 +313,11 @@ class MicroVLAPolicy:
         if cfg is None:
             cfg = MicroVLAConfig(**state["cfg"]) if state is not None else DEFAULT_CONFIG
         self.cfg = cfg
+        # Resolved here because it reads cfg: one TRM step was trained to span
+        # cfg.waypoint_row_stride env steps (the source control rate divided by
+        # real_frame_hz), which is the correct re-planning interval.
+        self.replan_every = (self._replan_every_arg if self._replan_every_arg > 0
+                             else max(1, int(getattr(cfg, "waypoint_row_stride", 1))))
 
         from microvla.perception.spatial_adapter import TextQueriedSpatialAdapter
 
@@ -432,10 +448,57 @@ class MicroVLAPolicy:
         """
         self.loop.set_task(instruction)
         self._tick_index = 0
+        self._chunk = None            # cached plan/waypoints for chunk execution
+        self._chunk_pos = 0
         self.telemetry = []
         self.trust_trace = []
         if self.actuator is not None:
             self.actuator.reset()
+
+    def _emit(self, result, row: int, proprio, fresh: bool) -> np.ndarray:
+        """Turns plan ``row`` of ``result`` into a raw action for this step.
+
+        Factored out so chunk execution and the per-tick schedule share ONE
+        actuation path. Two sides of a pair computing the same quantity
+        separately is the defect shape that produced paper.md 4t-4v; there is no
+        reason to reproduce it here.
+        """
+        action = self.normalizer.inverse(
+            result.plan[row].detach().cpu().numpy(),
+            zero_center=self.zero_center_actions)
+        if self.action_gain != 1.0:
+            action = action.copy()
+            action[:-1] = action[:-1] * self.action_gain
+        wp_cmd = None
+        if (self.actuator is not None and result.waypoints is not None
+                and proprio is not None
+                and float(np.asarray(proprio).reshape(-1)[-1]) > 0.5):
+            wp_cmd = self.actuator.command(
+                result.waypoints.detach().cpu().numpy(),
+                np.asarray(proprio, dtype=np.float64).reshape(-1)[:3],
+                is_real=bool(fresh))
+            if (self.waypoint_brake and self.cfg.action_space == "delta"
+                    and self.cfg.brake_trust > 0.0):
+                wp_cmd = wp_cmd * min(1.0, float(result.trust) / self.cfg.brake_trust)
+            action[: wp_cmd.shape[0]] = wp_cmd
+        self.telemetry.append({
+            "tick_index": self._tick_index,
+            "is_real": bool(fresh),
+            "chunk_row": int(row),
+            "trust": float(result.trust),
+            "plan_norm": float(result.plan.norm().item()),
+            "waypoint_cmd": None if wp_cmd is None else [float(v) for v in wp_cmd],
+            "action": [float(v) for v in action],
+            "eef": (None if proprio is None
+                    else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
+            **({} if result.perception is None else {
+                "src_conf": float(result.perception.source.confidence),
+                "tgt_conf": float(result.perception.target.confidence),
+            }),
+        })
+        self.trust_trace.append(float(result.trust))
+        self._tick_index += 1
+        return action.astype(np.float32)
 
     def act(self, frame_rgb: np.ndarray, proprio: np.ndarray | None = None) -> np.ndarray:
         """Advances one env step; returns a denormalized raw action.
@@ -459,6 +522,32 @@ class MicroVLAPolicy:
             ``[cfg.num_servos]`` float32 raw action
             (``ActionNormalizer.inverse`` of the planner's row-0 output).
         """
+        # ---- chunk execution: advance the world model at its TRAINED dt -----
+        # One TRM step is trained to predict the next SAMPLED frame, which is
+        # cfg.waypoint_row_stride env steps ahead (LIBERO: 20 Hz / real_frame_hz
+        # 2 = 10 steps = 0.5 s). The default schedule steps it once per env step
+        # and dreams 14 times between real frames, so it extrapolates ~7 s of
+        # predicted time per 0.7 s elapsed -- a 10x temporal overshoot,
+        # compounded 14 times (paper.md 4w).
+        #
+        # With chunk execution the loop advances ONCE per sample interval and
+        # the plan's rows -- which the bake defines as "the next plan_steps
+        # NATIVE-rate actions" -- are executed in between, which is what an
+        # action chunk is for. The waypoint command is still recomputed every
+        # step against fresh proprio, so this stays closed-loop in position even
+        # though the latent advances at the sample rate.
+        if self.chunk_exec:
+            if self._chunk is None or self._chunk_pos >= self.replan_every:
+                frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1])
+                self._chunk = self.loop.tick(frame_bgr, proprio=proprio)
+                self._chunk_pos = 0
+            result = self._chunk
+            # Rows past the chunk repeat the last one, matching the bake, which
+            # pads a short chunk by repeating its final action.
+            row = min(self._chunk_pos, result.plan.shape[0] - 1)
+            self._chunk_pos += 1
+            return self._emit(result, row, proprio, fresh=(row == 0))
+
         is_real = self._tick_index % self.perception_period == 0
         frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1]) if is_real else None
         result = self.loop.tick(frame_bgr, proprio=proprio)

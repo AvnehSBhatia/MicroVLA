@@ -426,6 +426,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             waypoint_stats=getattr(args, "waypoint_stats", None),
             waypoint_brake=not getattr(args, "waypoint_no_brake", False),
             heads_device=getattr(args, "heads_device", None),
+            chunk_exec=getattr(args, "chunk_exec", False),
+            replan_every=getattr(args, "replan_every", 0),
         )
 
     return factory
@@ -444,6 +446,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
     p.add_argument("--norm-stats", default=None,
                     help="norm_stats.json path; defaults to eval/identity_norm_stats.json")
+    p.add_argument("--chunk-exec", action="store_true",
+                   help="advance the world model once per SAMPLE interval and "
+                        "execute the plan's rows in between, instead of stepping "
+                        "the TRM every env step. One TRM step is trained to "
+                        "predict the next SAMPLED frame (LIBERO: 10 env steps / "
+                        "0.5 s), so the default schedule extrapolates ~7 s of "
+                        "predicted time per 0.7 s elapsed. See paper.md 4w.")
+    p.add_argument("--replan-every", type=int, default=0,
+                   help="env steps between re-plans under --chunk-exec; 0 uses "
+                        "cfg.waypoint_row_stride, the trained sample stride.")
     p.add_argument("--action-gain", type=float, default=1.0,
                    help="scale the emitted POSE action by this factor (gripper "
                         "exempt). LIBERO's measured passing band for magnitude is "

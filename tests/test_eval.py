@@ -566,3 +566,65 @@ class TestSigtermShield:
                    if "def main(" in p.read_text()
                    and "ignore_sigterm()" not in p.read_text()]
         assert not missing, f"CLIs without the SIGTERM shield: {missing}"
+
+
+class TestChunkExecutionSchedule:
+    """The world model must advance at the dt it was trained for.
+
+    One TRM step predicts the next SAMPLED frame — ``cfg.waypoint_row_stride``
+    env steps ahead (LIBERO: 20 Hz / real_frame_hz 2 = 10 steps = 0.5 s). The
+    default schedule steps it once per env step and dreams 14 times between real
+    frames, extrapolating ~7 s of predicted time per 0.7 s elapsed. Chunk
+    execution advances it once per sample interval and executes the plan's rows
+    in between, which is what the bake defines a chunk to be. See paper.md 4w.
+    """
+
+    def _policy(self, tmp_path, **kw):
+        from eval.policy import MicroVLAPolicy
+        from microvla.perception.text_encoder import MockTaskEncoder
+        from microvla.perception.yolo_world import MockYoloWorldPerception
+
+        return MicroVLAPolicy(
+            checkpoint=None,
+            norm_stats=str(_write_norm_stats(tmp_path / "norm_stats.json")),
+            perception=MockYoloWorldPerception(),
+            task_encoder=MockTaskEncoder(), **kw)
+
+    def test_replan_interval_defaults_to_the_trained_sample_stride(self, tmp_path):
+        p = self._policy(tmp_path, chunk_exec=True)
+        assert p.replan_every == max(1, p.cfg.waypoint_row_stride)
+
+    def test_the_loop_advances_once_per_interval_not_once_per_step(self, tmp_path):
+        import numpy as np
+
+        p = self._policy(tmp_path, chunk_exec=True, replan_every=5)
+        calls = {"n": 0}
+        real_tick = p.loop.tick
+
+        def counting(frame, **kw):
+            calls["n"] += 1
+            return real_tick(frame, **kw)
+
+        p.loop.tick = counting
+        p.reset("move can to ball")
+        frame = np.zeros((32, 32, 3), dtype=np.uint8)
+        for _ in range(10):
+            p.act(frame, proprio=np.concatenate([np.zeros(9), [1.0]]))
+        assert calls["n"] == 2, (
+            f"advanced the world model {calls['n']} times over 10 env steps; "
+            f"with replan_every=5 it must advance twice."
+        )
+
+    def test_default_schedule_is_unchanged(self, tmp_path):
+        import numpy as np
+
+        p = self._policy(tmp_path)
+        calls = {"n": 0}
+        real_tick = p.loop.tick
+        p.loop.tick = lambda f, **kw: (calls.__setitem__("n", calls["n"] + 1),
+                                       real_tick(f, **kw))[1]
+        p.reset("move can to ball")
+        frame = np.zeros((32, 32, 3), dtype=np.uint8)
+        for _ in range(10):
+            p.act(frame, proprio=np.concatenate([np.zeros(9), [1.0]]))
+        assert calls["n"] == 10, "the per-tick schedule must still step every call"
