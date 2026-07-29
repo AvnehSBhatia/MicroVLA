@@ -288,3 +288,51 @@ class TestWorldModelLatent:
         with torch.no_grad():   # .get() yields None; the planner ignores it
             plan = planner(out["next_emb"], wm_latent=out.get("latent"))
         assert plan.shape == (2, cfg.plan_steps, cfg.num_servos)
+
+
+class TestProprioRepresentationParity:
+    """Orientation must be the SAME QUANTITY in the corpus and at deployment.
+
+    ``_ORI_KEYS`` used to be ``("ee_ori", "robot0_eef_quat")`` — LIBERO's baked
+    key first, the live robosuite key as a fallback. Those are different
+    representations: ``ee_ori`` is an axis-angle rotation vector (3) and
+    ``robot0_eef_quat`` is a quaternion (4, xyzw). Whichever turned up was packed
+    into the same four slots, so a policy trained on demos was handed a
+    different orientation feature at deployment, on every tick.
+
+    Measured: corpus per-frame mean ``[3.108, -0.104, -0.088, 0.0]`` (4th slot
+    zero on 100% of frames) against a live env's ``[1.0, 0.0, -0.028, -0.0]``.
+    """
+
+    def test_env_quaternion_converts_to_the_baked_axis_angle(self):
+        import numpy as np
+
+        from microvla.utils.proprio import proprio_from_obs
+
+        # The reset pose measured on libero_object task 0, xyzw.
+        obs = {"robot0_eef_pos": np.array([-0.148, 0.0, 0.261]),
+               "robot0_eef_quat": np.array([1.0, 0.0, -0.028, -0.0]),
+               "robot0_gripper_qpos": np.array([0.0208, -0.0208])}
+        v = proprio_from_obs(obs)
+        # Corpus mean orientation is [3.108, -0.104, -0.088]; this pose should
+        # land next to it rather than at the raw quaternion's [1.0, 0.0, ...].
+        assert abs(v[3] - np.pi) < 0.05, f"dim 3 = {v[3]}, expected ~pi"
+        assert abs(v[6]) < 1e-6, "4th orientation slot must stay zero as baked"
+
+    def test_baked_axis_angle_is_passed_through_untouched(self):
+        import numpy as np
+
+        from microvla.utils.proprio import proprio_from_obs
+
+        obs = {"ee_pos": np.array([0.1, 0.2, 0.3]),
+               "ee_ori": np.array([3.108, -0.104, -0.088])}
+        v = proprio_from_obs(obs)
+        assert np.allclose(v[3:6], [3.108, -0.104, -0.088], atol=1e-5)
+        assert v[6] == 0.0
+
+    def test_identity_rotation_does_not_divide_by_zero(self):
+        import numpy as np
+
+        from microvla.utils.proprio import quat2axisangle
+
+        assert np.allclose(quat2axisangle(np.array([0.0, 0.0, 0.0, 1.0])), 0.0)
