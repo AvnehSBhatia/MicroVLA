@@ -98,8 +98,19 @@ class DriftAdapter(nn.Module):
         self.hrm.reset()
         self.last_gains = None
 
-    def forward(self, frame_emb: torch.Tensor) -> torch.Tensor:
-        out = self.hrm(frame_emb, is_real=True)
+    def forward(self, frame_emb: torch.Tensor,
+                eef: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Args: frame_emb ``[B, vis_dim]``; eef ``[B, waypoint_dim]`` or None.
+
+        ``eef`` reaches ``HRMBackbone.eef_proj``, which builds
+        ``[eef, eef - anchor, validity]``. It was never passed: this adapter
+        called ``self.hrm(frame_emb, is_real=True)`` with no eef, and
+        ``_eef_features(None, ...)`` returns ZEROS, so the whole metric branch
+        of the HRM contributed a constant and ``eef_proj`` received no gradient
+        in any code path. The HRM is the module meant to act as a learned PID
+        over end-effector error; without eef it was doing that on vision alone.
+        """
+        out = self.hrm(frame_emb, is_real=True, eef=eef)
         self.last_gains = out.gains
         return out.state
 

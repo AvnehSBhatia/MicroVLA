@@ -206,3 +206,51 @@ class TestTheParityCheckHasTeeth:
         )
         w = b[MISS_AT]["geometry"].reshape(-1)[-2:]
         assert torch.count_nonzero(w) > 0, "the held box should carry decayed weight"
+
+
+class TestHRMReceivesEndEffector:
+    """The HRM's metric branch must be fed on BOTH sides.
+
+    ``HRMBackbone.forward`` accepts ``eef`` and builds
+    ``[eef, eef - anchor, validity]`` through ``eef_proj``, but ``DriftAdapter``
+    called ``self.hrm(frame_emb, is_real=True)`` with no eef, and
+    ``_eef_features(None, ...)`` returns ZEROS. So the whole metric branch
+    contributed a constant, ``eef_proj`` received gradient in no code path, and
+    the module designed to act as a learned controller over end-effector error
+    was running on vision alone — in training AND at deployment.
+    """
+
+    def test_drift_adapter_forwards_eef_to_the_hrm(self):
+        import dataclasses
+
+        from microvla.v8 import DriftAdapter
+
+        d = DriftAdapter(CFG)
+        emb = torch.randn(2, CFG.vis_dim)
+        emb2 = torch.randn(2, CFG.vis_dim)
+        eef = torch.randn(2, CFG.waypoint_dim)
+        # The first forward after reset() is the ANCHOR tick and returns an
+        # exactly-zero code by contract, so the comparison must step past it.
+        d.reset(); d(emb); a = d(emb2)                       # metric branch fed nothing
+        d.reset(); d(emb, eef=torch.zeros_like(eef)); b = d(emb2, eef=eef)
+        assert not torch.allclose(a, b, atol=1e-6), (
+            "passing eef changed nothing — the metric branch is still inert"
+        )
+
+    def test_eef_proj_receives_gradient(self):
+        from microvla.v8 import DriftAdapter
+
+        d = DriftAdapter(CFG)
+        with torch.enable_grad():          # independent of ambient grad mode
+            d.reset()
+            d(torch.randn(2, CFG.vis_dim), eef=torch.zeros(2, CFG.waypoint_dim))
+            # A large EEF displacement: the metric branch is one addend among
+            # several into a GRU drive, so its gradient is small in absolute
+            # terms and a tiny probe can round to zero in float32.
+            out = d(torch.randn(2, CFG.vis_dim),
+                    eef=torch.full((2, CFG.waypoint_dim), 10.0))
+            out.abs().sum().backward()
+        g = d.hrm.eef_proj.weight.grad
+        assert g is not None and float(g.abs().sum()) > 0.0, (
+            "eef_proj got no gradient; the HRM's control branch cannot learn"
+        )

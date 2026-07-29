@@ -500,6 +500,36 @@ def _relational(relational, next_emb, batch, t, box_idx, box_fade, cfg,
                       last_action=last_action)
 
 
+def _eef_of(batch, t, cfg):
+    """``[B, waypoint_dim]`` measured EEF at step t, or None when invalid.
+
+    The HRM's metric branch (eef_proj) was fed nothing because DriftAdapter
+    never forwarded an eef; ``_eef_features(None, ...)`` returns zeros, so the
+    module built to act as a learned PID over end-effector error was running on
+    vision alone. proprio[..., -1] is the per-episode validity flag; a batch
+    with any invalid sample passes None rather than a silent zero pose, since
+    the HRM anchors on the FIRST eef it sees and a fake one would poison it.
+    """
+    pro = batch.get("proprio")
+    if pro is None or pro.shape[-1] < cfg.waypoint_dim + 1:
+        return None
+    if float(pro[:, t, -1].min()) < 0.5:
+        return None
+    return pro[:, t, : cfg.waypoint_dim]
+def _accepts_eef(module) -> bool:
+    """True when this drift module's forward takes an ``eef`` argument.
+
+    real_paths is shared by the v7 AnchoredDriftEncoder (frame_emb only) and the
+    v8 DriftAdapter, so the call is feature-detected rather than assumed.
+    """
+    import inspect
+
+    try:
+        return "eef" in inspect.signature(module.forward).parameters
+    except (TypeError, ValueError):  # pragma: no cover - exotic callables
+        return False
+
+
 def real_paths_v8(batch, evidence, hrm, cfg, ablate):
     """v8 counterpart of :func:`real_paths`: evidence port + HRM state per step.
 
@@ -521,7 +551,8 @@ def real_paths_v8(batch, evidence, hrm, cfg, ablate):
         obj, ctr, w = _obj_tokens(batch, t, 1.0, cfg, ablate)
         ev_all.append(evidence(obj, ctr, w, batch["frame_embs"][:, t], text,
                                last_action=last_action))
-        state_all.append(hrm(batch["frame_embs"][:, t], is_real=True).state)
+        state_all.append(hrm(batch["frame_embs"][:, t], is_real=True,
+                             eef=_eef_of(batch, t, cfg)).state)
     return ev_all, state_all
 
 
@@ -541,7 +572,10 @@ def real_paths(batch, fusion, drift, cfg, ablate):
         sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, ablate)
         fused_all.append(fusion(text, batch["frame_embs"][:, t], sbe, tbe, sc, tc,
                                 box_weight=bw, last_action=last_action))
-        delta_all.append(drift(batch["frame_embs"][:, t]))
+        _e = _eef_of(batch, t, cfg)
+        delta_all.append(drift(batch["frame_embs"][:, t], eef=_e)
+                         if _e is not None and _accepts_eef(drift)
+                         else drift(batch["frame_embs"][:, t]))
     return fused_all, delta_all
 
 

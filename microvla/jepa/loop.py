@@ -58,6 +58,17 @@ if TYPE_CHECKING:  # pragma: no cover - typing only, no runtime import cost
 logger = logging.getLogger(__name__)
 
 
+
+def _drift_accepts_eef(module) -> bool:
+    """True when the drift module's forward takes an ``eef`` argument."""
+    import inspect
+
+    try:
+        return "eef" in inspect.signature(module.forward).parameters
+    except (TypeError, ValueError):  # pragma: no cover - exotic callables
+        return False
+
+
 def _percept_to(percept: Perception, device: torch.device) -> Perception:
     """Returns ``percept`` with every tensor on ``device`` (identity if already).
 
@@ -466,8 +477,22 @@ class JEPALoop:
                     last_action=last_action,
                 )  # [1, 32, 5]
 
-                # Drift steps on measured evidence only.
-                state_delta = self.drift(frame_emb.unsqueeze(0))  # [1, 256]
+                # Drift steps on measured evidence only. EEF is forwarded when
+                # the module accepts it and live proprio is valid: the HRM's
+                # metric branch (eef_proj) is what makes it a learned controller
+                # over end-effector error rather than a vision-only summary, and
+                # it was fed nothing on both sides until now. Feature-detected
+                # because the v7 AnchoredDriftEncoder takes frame_emb alone.
+                _eef = None
+                if (proprio is not None
+                        and float(torch.as_tensor(proprio).reshape(-1)[-1]) > 0.5):
+                    _eef = torch.as_tensor(
+                        proprio, dtype=torch.float32, device=dev
+                    ).reshape(1, -1)[:, : self.cfg.waypoint_dim]
+                if _eef is not None and _drift_accepts_eef(self.drift):
+                    state_delta = self.drift(frame_emb.unsqueeze(0), eef=_eef)
+                else:
+                    state_delta = self.drift(frame_emb.unsqueeze(0))  # [1, 256]
                 self._last_state_delta = state_delta
 
                 latent = frame_emb
