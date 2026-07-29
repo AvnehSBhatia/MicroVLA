@@ -95,6 +95,17 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(current latent = TRM prediction, held/faded boxes) the "
                         "planner actually runs in 14/15 ticks at deployment. "
                         "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--action-token-sampling", type=float, default=0.0,
+                   help="stage B: probability of feeding FUSION'S ACTION TOKEN the "
+                        "model's OWN previous plan row 0 instead of the "
+                        "demonstration's (scheduled sampling). Fusion's 8th token is "
+                        "'the previously executed action', and training fed it the "
+                        "demo's while deployment can only feed the policy's own; "
+                        "paper.md 4v attributes essentially the whole closed-loop "
+                        "failure to that one asymmetry (teacher-forcing the token at "
+                        "eval takes the gripper from 13% to 47% of steps closed and "
+                        "makes the deployed stack reproduce the trainer bit-for-bit). "
+                        "0 = old teacher-forced behavior; 0.5 recommended.")
     p.add_argument("--planner-input-dropout", type=float, default=0.15,
                    help="stage B: per-step probability of WITHHOLDING the planner's "
                         "dominant inputs (fused; independently current_emb) so the "
@@ -988,12 +999,34 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             fused_all = [f.detach() for f in fused_all]
             delta_all = [d.detach() for d in delta_all]
             preds, grips, wps = [], [], []
+            prev_action = None      # the policy's own last plan row 0, for
+            # --action-token-sampling; None on t=0, where there is no previous
+            # action and the trainer's zeros_act convention already matches the
+            # loop's reset state.
             for t in range(T):
                 # Dream-consistent stage B (v5): with prob --dream-frac, train
                 # this step in the DREAM regime the planner actually runs in at
                 # 30 Hz — current latent = the (standardized) TRM prediction
                 # from t-1, boxes held from t-1 at mid-dream fade, drift held.
                 dream = t > 0 and rng.random() < args.dream_frac
+                # Scheduled sampling on FUSION'S ACTION TOKEN (v8.1). Fusion's
+                # 8th token is "the previously executed action". Training fed it
+                # the DEMONSTRATION's previous action at every step while
+                # deployment can only feed the POLICY's own, and paper.md 4v
+                # attributes essentially the whole closed-loop failure to that
+                # one asymmetry: with the token teacher-forced, the deployed
+                # stack reproduces the trainer bit-for-bit (fused rel-diff
+                # 0.3384 -> 0.0000) and the gripper closes on 47% of steps
+                # instead of 13%. Self-feeding closes a loop training never
+                # exercised, so a wrong action corrupts the token, which worsens
+                # the next action, until the policy sits at a fixed point.
+                #
+                # With probability p, substitute the model's OWN previous plan
+                # row 0 so the token is trained the way it is deployed. Free
+                # here: stage B runs fusion under no_grad (it is frozen), so
+                # this costs one extra frozen forward on sampled steps.
+                self_feed = (prev_action is not None
+                             and rng.random() < args.action_token_sampling)
                 with torch.no_grad():
                     if dream:
                         prev = batch["frame_embs"][:, t - 1]
@@ -1001,15 +1034,22 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                         box_idx, box_fade = t - 1, period_fade
                         sbe, tbe, sc, tc, bw = _boxes(batch, box_idx, box_fade, cfg,
                                                       args.ablate_grounding)
+                        act = (prev_action if self_feed
+                               else batch["pwm_targets"][:, t - 1, 0])
                         fused_t = fusion(batch["text_tokens"], cur, sbe, tbe, sc, tc,
-                                         box_weight=bw,
-                                         last_action=batch["pwm_targets"][:, t - 1, 0])
+                                         box_weight=bw, last_action=act)
                         delta_t = delta_all[t - 1]
                     else:
                         cur = batch["frame_embs"][:, t]
                         box_idx, box_fade = t, 1.0
                         sbe, tbe, sc, tc, bw = _boxes(batch, t, 1.0, cfg, args.ablate_grounding)
                         fused_t, delta_t = fused_all[t], delta_all[t]
+                        if self_feed:
+                            # fused_all[t] was built with the demo's action; redo
+                            # this one step with the policy's.
+                            fused_t = fusion(batch["text_tokens"], cur, sbe, tbe,
+                                             sc, tc, box_weight=bw,
+                                             last_action=prev_action)
                 # forward_full OUTSIDE no_grad: msg_head (and, under
                 # --unfreeze-trm, the core) needs planner-loss gradient; frozen
                 # params accumulate none regardless.
@@ -1052,6 +1092,8 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                          wm_latent=wm.get("latent"), relational=rel,
                                          fade=fade, return_wp=True)
                 preds.append(plan); grips.append(grip)
+                # What the loop will have in hand next tick.
+                prev_action = plan[:, 0].detach()
                 if wp is not None:
                     wps.append(wp)
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]

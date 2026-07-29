@@ -237,3 +237,47 @@ def test_every_v8_module_the_policy_builds_lands_on_one_device():
     moved = set(re.findall(r"^\s*(\w+)\.to\(heads_device\)", src, re.M))
     for name in ("fusion", "drift", "trm", "planner", "relational"):
         assert name in moved, f"{name} is never moved to heads_device in policy.py"
+
+
+class TestActionTokenScheduledSampling:
+    """Stage B must be able to train fusion's action token the way it deploys.
+
+    Fusion's 8th token is the previously executed action. Stage B fed it the
+    DEMONSTRATION's action at every step while the deployed loop can only feed
+    the policy's own, and paper.md 4v attributes essentially the whole
+    closed-loop failure to that asymmetry: teacher-forcing the token at eval
+    takes the gripper from 13% to 47% of steps closed and makes the deployed
+    stack reproduce the trainer bit-for-bit (`fused` rel-diff 0.3384 -> 0.0000).
+
+    These pin the switch and its default, not the learning outcome.
+    """
+
+    def test_flag_exists_and_defaults_to_the_old_behaviour(self):
+        from train.train_batched import parse_args
+
+        a = parse_args(["--data", "x"])
+        assert a.action_token_sampling == 0.0, (
+            "changing the default silently changes every existing arm's protocol"
+        )
+        b = parse_args(["--data", "x", "--action-token-sampling", "0.5"])
+        assert b.action_token_sampling == 0.5
+
+    def test_self_fed_token_changes_the_fused_matrix(self, cfg, batch):
+        """The substitution must actually reach fusion, or sampling is inert."""
+        import torch
+
+        f = FusionAdapter(cfg)
+        args_ = dict(text_tokens=batch["text_tokens"], frame_emb=batch["frame_embs"][:, 1],
+                     sbe=batch["source_box_embs"][:, 1], tbe=batch["target_box_embs"][:, 1],
+                     sc=batch["source_centers"][:, 1], tc=batch["target_centers"][:, 1],
+                     bw=batch["box_weights"][:, 1])
+        demo_act = batch["pwm_targets"][:, 0, 0]
+        own_act = torch.zeros_like(demo_act)
+        a = f(args_["text_tokens"], args_["frame_emb"], args_["sbe"], args_["tbe"],
+              args_["sc"], args_["tc"], box_weight=args_["bw"], last_action=demo_act)
+        b = f(args_["text_tokens"], args_["frame_emb"], args_["sbe"], args_["tbe"],
+              args_["sc"], args_["tc"], box_weight=args_["bw"], last_action=own_act)
+        assert (a - b).abs().mean() > 1e-6, (
+            "the action token does not affect fusion's output, so scheduled "
+            "sampling on it would be a no-op"
+        )
