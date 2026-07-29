@@ -28,6 +28,8 @@ import argparse
 
 import numpy as np
 
+from microvla.utils.signals import ignore_sigterm
+
 
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
@@ -40,6 +42,7 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 def main(argv=None) -> None:
     args = parse_args(argv)
+    ignore_sigterm()
 
     import torch
 

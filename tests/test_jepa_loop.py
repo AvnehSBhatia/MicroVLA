@@ -307,12 +307,17 @@ class TestV3Behaviors:
 
 
 class TestRealTickMissHold:
-    """v5: a real tick whose detection MISSES holds the last-known box.
+    """v5 miss-hold, now OPT-IN (``cfg.miss_hold``) rather than the default.
 
-    The wrist camera loses the object exactly at approach/grasp; before v5 a
-    real-tick miss reset geometry to the (0.5, 0.5)/weight-0 fallback at the
-    moment it mattered most. Now the last-known box is held per role at
-    ``cfg.miss_decay ** age`` weight until the detector reacquires.
+    The wrist camera loses the object exactly at approach/grasp, so holding the
+    last-known box at ``cfg.miss_decay ** age`` is an appealing deployment
+    behaviour. It is off by default because the CORPUS does not do it: a miss is
+    baked as weight 0 at the (0.5, 0.5) fallback, so holding makes deployment
+    feed the policy evidence it was never trained to read. See paper.md 4v and
+    ``TestMissHoldMatchesTraining`` below.
+
+    Turning it back on is a corpus decision, not a loop decision: the bake would
+    have to hold too.
     """
 
     class _BlinkingPerception:
@@ -346,7 +351,9 @@ class TestRealTickMissHold:
             return Perception(frame_emb=p.frame_emb, source=fallback, target=fallback)
 
     def test_miss_holds_last_known_box_with_decayed_weight(self):
-        loop = JEPALoop.build_mock(CFG)
+        import dataclasses
+
+        loop = JEPALoop.build_mock(dataclasses.replace(CFG, miss_hold=True))
         loop.perception = self._BlinkingPerception(CFG)
         loop.set_task("move can to ball")
 
@@ -375,3 +382,83 @@ class TestRealTickMissHold:
         first = loop.tick(_frame(0))
         # No last-known box exists: the fallback stands, weight 0.
         assert first.perception.source.confidence == 0.0
+
+
+class TestMissHoldMatchesTraining:
+    """A missed detection on a REAL tick must pass zero evidence, as baked.
+
+    The loop used to hold a role's last-known box at ``miss_decay ** age`` when
+    the detector missed on a real tick. The bake does not: ``preprocess`` writes
+    weight 0 at the (0.5, 0.5) fallback for a miss and
+    ``train_batched._boxes`` feeds exactly that, so the policy learned that
+    weight 0 means "no evidence" while deployment handed it a confident stale
+    box on the same ticks.
+
+    Measured by A/B-ing one corpus episode through both paths with perception
+    held identical (``eval/train_vs_deploy.py``): on ticks the corpus zeroed, the
+    loop emitted weights 0.156 / 0.109 / 0.077 and held the previous centers,
+    which moved ``fused``, ``geometry``, ``relational`` and ``wm_msg`` off
+    distribution while ``current_emb``, ``proprio`` and ``state_delta`` matched
+    exactly. See paper.md 4v.
+    """
+
+    def _percept(self, cfg, conf):
+        import torch
+
+        from microvla.perception.yolo_world import BoxObs, Perception
+
+        box = lambda c, ctr: BoxObs(emb=torch.zeros(cfg.vis_dim),
+                                    center=torch.tensor(ctr), xyxy=torch.zeros(4),
+                                    confidence=c)
+        ctr = (0.8, 0.9) if conf > 0 else (0.5, 0.5)
+        return Perception(frame_emb=torch.zeros(cfg.vis_dim),
+                          source=box(conf, ctr), target=box(conf, ctr))
+
+    def _run(self, cfg):
+        import numpy as np
+
+        from microvla.jepa.loop import JEPALoop
+
+        loop = JEPALoop.build_mock(cfg)
+        seq = [0.9, 0.0, 0.0]        # a hit, then two misses
+        outer = self
+
+        class P:
+            def __init__(self):
+                self.i = 0
+
+            def set_role_prompts(self, source, target=None):
+                pass
+
+            def set_classes(self, names):
+                pass
+
+            def perceive(self, _f):
+                c = seq[min(self.i, len(seq) - 1)]
+                self.i += 1
+                return outer._percept(cfg, c)
+
+        loop.set_task("move can to ball")
+        loop.perception = P()
+        frame = np.zeros((32, 32, 3), dtype=np.uint8)
+        return [loop.tick(frame) for _ in range(len(seq))]
+
+    def test_miss_passes_zero_weight_by_default(self):
+        from microvla.config import DEFAULT_CONFIG
+
+        res = self._run(DEFAULT_CONFIG)
+        for r in res[1:]:
+            assert r.perception.source.confidence == 0.0, (
+                "a missed detection carried non-zero weight; the corpus bakes "
+                "0 for a miss, so this trains one thing and deploys another."
+            )
+
+    def test_miss_hold_still_available_when_explicitly_enabled(self):
+        import dataclasses
+
+        from microvla.config import DEFAULT_CONFIG
+
+        cfg = dataclasses.replace(DEFAULT_CONFIG, miss_hold=True)
+        res = self._run(cfg)
+        assert res[1].perception.source.confidence > 0.0
+        assert res[2].perception.source.confidence < res[1].perception.source.confidence

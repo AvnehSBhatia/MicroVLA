@@ -77,9 +77,17 @@ class MicroVLAConfig:
     # EEF deltas) -> low corrector trust BRAKES the plan toward zero. "absolute":
     # commands are absolute targets (the Pi's PWM rig; zero = servo mid-range)
     # -> low trust HOLD-blends toward the previous plan, never toward zero.
-    miss_decay: float = 0.7  # per missed REAL frame: weight decay on the held
-    # last-known box when the detector misses on a real tick (objects don't
-    # teleport because the detector blinked at the grasp moment).
+    miss_hold: bool = False  # hold a role's last-known box when the detector
+    # MISSES on a real tick, instead of passing the weight-0 fallback. OFF by
+    # default because the corpus bakes a miss as ZERO evidence and the trainer
+    # feeds exactly that, so holding is a deployment-only behaviour the policy
+    # was never trained to read: it turns "I see nothing" into a confident stale
+    # box (measured weights 0.156/0.109/0.077 on ticks the corpus zeroed).
+    # Measured cost of leaving it on: paper.md 4v. Enabling it again requires
+    # baking held evidence into the corpus too, so both sides agree.
+    miss_decay: float = 0.7  # per missed REAL frame, when miss_hold is on:
+    # weight decay on the held last-known box (objects don't teleport because
+    # the detector blinked at the grasp moment).
     brake_trust: float = 0.5  # delta-mode brake threshold: trust >= this ->
     # FULL-magnitude actions (scale 1); below it, linear attenuation to a stop
     # at trust 0. A flat tau*raw would shrink every action by typical tau~0.6

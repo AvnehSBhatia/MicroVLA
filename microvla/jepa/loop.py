@@ -363,13 +363,24 @@ class JEPALoop:
                 # keeps its last-known box at miss_decay**age weight instead of
                 # resetting to the (0.5, 0.5)/weight-0 fallback. A hit refreshes
                 # the held box and resets the age.
+                #
+                # OFF by default (cfg.miss_hold), because the TRAINER does not do
+                # this: preprocess bakes a miss as weight 0 at the (0.5, 0.5)
+                # fallback and train_batched._boxes feeds exactly that, so the
+                # policy learned "weight 0 == no evidence" and deployment was
+                # handing it a stale box at weight 0.156/0.109/0.077 on the very
+                # ticks the corpus zeroed. A/B'd tick-by-tick in
+                # eval/train_vs_deploy.py; measurements in paper.md 4v. This was
+                # a deployment-only feature added without a matching change to
+                # the bake, i.e. the same defect shape as every other one found
+                # in this stack.
                 eff_boxes: list[BoxObs] = []
                 for i, obs in enumerate((raw_percept.source, raw_percept.target)):
                     if obs.confidence > 0.0:
                         self._held_boxes[i] = obs
                         self._miss_age[i] = 0
                         eff_boxes.append(obs)
-                    elif self._held_boxes[i] is not None:
+                    elif self.cfg.miss_hold and self._held_boxes[i] is not None:
                         self._miss_age[i] += 1
                         held_box = self._held_boxes[i]
                         eff_boxes.append(BoxObs(
