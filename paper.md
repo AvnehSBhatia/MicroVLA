@@ -3149,3 +3149,59 @@ amount of it**. Both are now being addressed directly — a spatial channel that
 exists on every frame rather than the 53% that carry a detection, and action
 supervision at the control rate rather than the perception rate (2 Hz -> 10 Hz ->
 20 Hz, 7,680 -> 37,380 -> ~75,000 decision points).
+
+## 5b. THE MEASUREMENT THAT REFRAMES EVERYTHING: the policy does not beat a linear probe
+
+Nineteen defects, a corrected objective, five actuation configurations — all
+0.000. Before spending more on the stack, we asked the prior question nobody had:
+**given the representations the frozen backbone produces, how much of the
+demonstrator's action is linearly recoverable?**
+
+Ridge regression from baked features to the executed action, split **by
+episode** (a frame-level split leaks almost the whole test set: consecutive
+frames are cosine 0.99 apart), 200 train / 50 test episodes, features randomly
+projected to 1024 dims:
+
+| features | pose R² | pose corr | gripper corr |
+|---|---|---|---|
+| proprio only (10 numbers) | **0.170** | **0.415** | **0.787** |
+| frame_emb (GAP, 512) | 0.075 | 0.425 | 0.800 |
+| frame_emb + proprio | 0.079 | 0.450 | 0.843 |
+| spatial_grid (16x512) | 0.076 | **0.465** | 0.828 |
+| spatial_grid + proprio | 0.085 | 0.445 | 0.808 |
+| **trained 7M policy** | — | **0.27–0.46** | **0.64** (agreement) |
+
+**A linear map on ten proprioception numbers matches or beats the trained
+seven-million-parameter policy on every axis measured.** Gripper: 0.787 linear
+against 0.64 for the policy. Pose correlation: 0.415 linear against 0.27–0.46.
+
+That is not a data problem and not a features problem. A model that cannot beat
+ridge regression on its own inputs is **underfitting**, and it reframes every
+result above: the whole stack has been operating at roughly linear-probe
+capability the entire time, which is exactly consistent with 0.000 across every
+actuation configuration, corpus size, and objective correction we tried.
+
+Two things it also establishes, both useful:
+
+* **The spatial grid carries real information.** 0.465 pose correlation from the
+  grid alone against 0.425 from the GAP embedding it replaces — the architecture
+  change of 4z is justified by measurement rather than by argument.
+* **Pose R² is low everywhere (0.08–0.17).** Linear models recover little of the
+  action's variance from these features. That does not bound a nonlinear model,
+  but it does say the P5 (stride-32) feature level may be too coarse for fine
+  manipulation, which is the next thing to test if capacity turns out not to be
+  the answer.
+
+### The immediate consequence
+
+Stage B trains with 15% planner-input dropout, 30% modality dropout, 25% dream
+steps, and **six** auxiliary losses stacked on the BC term (waypoint, actuation,
+variance, smoothness, world-model rollout, gripper BCE). Each was added to fix a
+measured problem and each was individually justified. Together they may simply be
+preventing the model from fitting.
+
+The `cleanbc` arm removes all of it — no dreams, no dropout, no auxiliaries, pure
+behaviour cloning — so "over-regularized" becomes a testable claim rather than a
+story. If pure BC clears the linear bar, the fix is the training recipe. If it
+does not, the P5 features are the wall and the next move is a finer level of the
+frozen backbone.
