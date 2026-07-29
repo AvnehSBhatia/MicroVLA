@@ -302,3 +302,56 @@ class TestSpatialGridParity:
         # cell (r, c) of the grid must land at map position [:, :, r, c]
         r, c = 2, 3
         assert torch.allclose(got[:, :, r, c], grid[:, 0, r * g + c, :])
+
+
+class TestWorldModelDelta:
+    """The TRM's residual reaches the planner as its own group.
+
+    ``next_emb = current_emb + delta`` and consecutive frame embeddings are
+    cosine 0.9922 apart (paper.md 4w), so ``next_emb`` is ~99% a copy of its own
+    input: a downstream module reading it has to recover the prediction by
+    subtracting two nearly equal vectors. Exposing ``delta`` makes the predicted
+    CHANGE first-class, which is the quantity a controller acts on.
+    """
+
+    def test_trm_exposes_the_residual_and_it_reconstructs_next_emb(self):
+        from microvla.trm.mock_trm import MockTRM
+
+        trm = MockTRM(CFG)
+        if not hasattr(trm, "forward_full"):
+            import pytest
+            pytest.skip("mock TRM has no forward_full")
+        out = trm.forward_full(torch.randn(2, CFG.fused_rows, CFG.fused_cols),
+                               torch.randn(2, CFG.state_dim),
+                               torch.randn(2, CFG.vis_dim))
+        if "delta" not in out:
+            import pytest
+            pytest.skip("this TRM implementation does not expose a residual")
+        assert out["delta"].shape == out["next_emb"].shape
+
+    def test_planner_group_is_standardized_so_a_tiny_delta_is_not_inert(self):
+        """The delta's DIRECTION is the signal; its magnitude is ~1% of next_emb."""
+        import dataclasses
+
+        from microvla.planner.chrono_planner import ChronoQueryPlanner
+
+        cfg = dataclasses.replace(CFG, planner_inputs=CFG.planner_inputs
+                                  if "wm_delta" in CFG.planner_inputs
+                                  else CFG.planner_inputs + ("wm_delta",))
+        p = ChronoQueryPlanner(cfg).eval()
+        ne = torch.randn(2, cfg.vis_dim)
+        d = torch.randn(2, cfg.vis_dim)
+        g = lambda o: o[0] if isinstance(o, tuple) else o
+        with torch.no_grad():
+            unit = g(p(ne, wm_delta=d))
+            # A REALISTIC residual: cosine 0.9922 between consecutive embeddings
+            # puts them ~7 degrees apart, so |delta| is roughly 0.12 of |emb|.
+            # Standardization is scale-invariant while std >> eps, which covers
+            # this range comfortably; it is not, and need not be, invariant at
+            # 1e-4 where the epsilon dominates.
+            small = g(p(ne, wm_delta=d * 0.12))
+        assert torch.allclose(unit, small, atol=1e-4), (
+            "a realistically-scaled delta gave a different plan — the group is "
+            "not standardized, so the true residual would arrive as near-zero "
+            "tokens and the input would be inert"
+        )

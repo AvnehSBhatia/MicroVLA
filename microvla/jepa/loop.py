@@ -582,6 +582,7 @@ class JEPALoop:
                 pred_box_emb=next_box, geometry=geom,
                 proprio=proprio_tok, spatial=self._last_spatial,
                 wm_msg=wm["msg"], wm_latent=wm.get("latent"),
+                wm_delta=wm.get("delta"),
                 relational=self._rel_tokens(
                     next_emb, self._last_percept, box_weight, text_tokens,
                     last_action,

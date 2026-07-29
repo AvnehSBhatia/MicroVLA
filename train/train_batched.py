@@ -752,6 +752,7 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
         prev_H = H
         fusion.train(); drift.train(); trm.train()
         run, nb, t0 = 0.0, 0, time.time()
+        n_skipped = 0
         last_beat = t0
         for T, batch in iter_batches(train_b, H, args.batch_size, rng, need=1):
             fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
@@ -772,8 +773,18 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
                                       ckpt_rollout=args.ckpt_rollout)
             loss = loss / len(ts)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
-            opt.step()
+            # clip_grad_norm_ RETURNS the pre-clip norm and does not sanitize:
+            # clipping a NaN norm leaves NaN, so a single bad batch writes NaN
+            # into the weights and every forward after it is NaN. Observed on
+            # the dense corpus: stage A ran clean to epoch 7 at H=4 and then
+            # reported `train nan | val nan` for the rest of the run, having
+            # early-stopped on a number that no longer meant anything. Skipping
+            # the step costs one batch; taking it costs the run.
+            gn = torch.nn.utils.clip_grad_norm_(params, args.grad_clip)
+            if torch.isfinite(gn):
+                opt.step()
+            else:
+                n_skipped += 1
             run += float(loss.detach()); nb += 1
             if time.time() - last_beat >= _HEARTBEAT_SEC:
                 last_beat = time.time()
@@ -802,7 +813,8 @@ def stage_a(args, cfg, train_b, val_b, fusion, drift, trm, device):
                 f"/reserved {torch.cuda.max_memory_reserved(device)/1024**3:.1f}GB"
                 f" free {torch.cuda.mem_get_info(device)[0]/1024**3:.0f}GB"
                 if device.type == "cuda" else "")
-        print(f"[stage A] epoch {epoch} | H={H} | lr {lr_now:.1e} | train {run/max(nb,1):.4f} "
+        print(f"{f'[skip {n_skipped} nonfinite] ' if n_skipped else ''}"
+              f"[stage A] epoch {epoch} | H={H} | lr {lr_now:.1e} | train {run/max(nb,1):.4f} "
               f"| val {val:.4f} vs persistence {pers:.4f} ({verdict}){tag} "
               f"| {time.time()-t0:.0f}s{peak}", flush=True)
         if device.type == "cuda":
@@ -1026,7 +1038,7 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
                                      fused=fused_all[t], pred_box_emb=wm["next_box"],
                                      geometry=geom, proprio=batch["proprio"][:, t],
                                      spatial=spatial, wm_msg=wm["msg"],
-                                         wm_latent=wm.get("latent"), relational=rel,
+                                         wm_latent=wm.get("latent"), wm_delta=wm.get("delta"), relational=rel,
                                          return_wp=True)
             preds.append(plan); grips.append(grip)
             if wp is not None:
@@ -1161,7 +1173,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         planner.train(); fusion.eval(); drift.eval(); trm.eval()
         if tqsa is not None:
             tqsa.train()
-        run = 0.0; grip_acc = 0.0; nb = 0; t0 = last_beat = time.time()
+        run = 0.0; grip_acc = 0.0; nb = 0; n_skipped = 0; t0 = last_beat = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
             # NOT under no_grad: every parameter in fusion/drift is frozen
             # except the HRM's gain head, and that head needs a graph or it gets
@@ -1266,7 +1278,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                          fused=fused_t, pred_box_emb=next_box,
                                          geometry=geom, proprio=batch["proprio"][:, t],
                                          spatial=spatial, wm_msg=wm["msg"],
-                                         wm_latent=wm.get("latent"), relational=rel,
+                                         wm_latent=wm.get("latent"), wm_delta=wm.get("delta"), relational=rel,
                                          fade=fade, return_wp=True)
                 preds.append(plan); grips.append(grip)
                 # What the loop will have in hand next tick.
@@ -1436,7 +1448,15 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     critic(lat) - tgt.reshape(-1)).pow(2).mean()
                 if value_terms:
                     loss = loss + torch.stack(value_terms).sum() / len(value_terms)
-            opt.zero_grad(); loss.backward(); opt.step()
+            # Stage B had NO gradient clipping at all, and the same NaN-poisons-
+            # the-weights failure applies here.
+            opt.zero_grad(); loss.backward()
+            gn = torch.nn.utils.clip_grad_norm_(
+                [p for grp in opt.param_groups for p in grp["params"]], args.grad_clip)
+            if torch.isfinite(gn):
+                opt.step()
+            else:
+                n_skipped += 1
             with torch.no_grad():
                 run += float(loss)
                 # gripper decision accuracy vs the demo (are we learning to close?)

@@ -53,6 +53,7 @@ import math
 import torch
 import torch.nn as nn
 
+from microvla.utils.embedding import standardize
 from microvla.config import MicroVLAConfig
 
 #: The predicted next-frame embedding is chunked into this many memory tokens.
@@ -143,7 +144,7 @@ class ChronoQueryPlanner(nn.Module):
     INPUT_NAMES: tuple[str, ...] = (
         "next_emb", "current_emb", "fused", "state_delta", "pred_box_emb",
         "geometry", "proprio", "spatial", "wm_msg", "wm_latent",
-        "relational",
+        "relational", "wm_delta",
     )
 
     def __init__(self, cfg: MicroVLAConfig) -> None:
@@ -172,6 +173,13 @@ class ChronoQueryPlanner(nn.Module):
         # Memory path: chunk of next_emb -> d_plan token.
         self.mem_proj = (nn.Linear(self.mem_token_dim, cfg.d_plan)
                          if "next_emb" in self.inputs else None)
+        # The TRM's residual, as its own memory group. Standardized before
+        # projection because the delta's SCALE is tiny next to the latent it is
+        # added to (embeddings are cosine 0.9922 apart), so an unnormalized
+        # delta arrives as near-zero tokens and the group is inert; the
+        # DIRECTION is the signal.
+        self.wm_delta_proj = (nn.Linear(self.mem_token_dim, cfg.d_plan)
+                              if "wm_delta" in self.inputs else None)
 
         # --- Rich conditioning (v2): the planner used to see ONLY the predicted
         # next_emb, a severe bottleneck for action prediction. It now ALSO
@@ -255,7 +263,7 @@ class ChronoQueryPlanner(nn.Module):
         # prefix-copies a grown leading dim.
         # 13 rows: index 12 is v8's relational group. Grown by appending only —
         # _load_relaxed prefix-copies, so a v7 checkpoint still loads its 12.
-        self.type_emb = nn.Parameter(torch.randn(13, cfg.d_plan) * cfg.d_plan**-0.5)
+        self.type_emb = nn.Parameter(torch.randn(14, cfg.d_plan) * cfg.d_plan**-0.5)
 
         # Learned per-timestep query tokens plus a fixed (buffer, non-trainable)
         # sinusoidal monotonic time encoding over the step index.
@@ -311,6 +319,7 @@ class ChronoQueryPlanner(nn.Module):
                 wm_msg: torch.Tensor | None = None,
                 wm_latent: torch.Tensor | None = None,
                 relational: torch.Tensor | None = None,
+                wm_delta: torch.Tensor | None = None,
                 fade: dict | None = None,
                 return_aux: bool = False,
                 return_wp: bool = False):
@@ -399,6 +408,13 @@ class ChronoQueryPlanner(nn.Module):
                 _fade("next_emb",
                       self.mem_proj(next_emb.reshape(batch, self.n_mem_tokens, self.mem_token_dim)))
                 + self.type_emb[0])   # [B, 8, d_plan]
+        if wm_delta is not None and self.wm_delta_proj is not None:
+            d = standardize(wm_delta)
+            mem_parts.append(
+                _fade("wm_delta",
+                      self.wm_delta_proj(d.reshape(batch, self.n_mem_tokens,
+                                                   self.mem_token_dim)))
+                + self.type_emb[13])
         if current_emb is not None and self.cur_proj is not None:
             mem_parts.append(
                 _fade("current_emb",

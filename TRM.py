@@ -232,8 +232,16 @@ class RecursiveTRM(TRMBase):
         x = self.observe(fused, state_delta, current_emb, context)
         y, z = self.deep_refine(x, y, z)
         pooled = self._pool(y)
+        delta = self.head(pooled)
         return {
-            "next_emb": current_emb + self.head(pooled),
+            # The RESIDUAL itself, exposed. next_emb is current_emb + delta, and
+            # consecutive frame embeddings are cosine 0.9922 apart, so next_emb
+            # is ~99% a copy of its own input: any downstream module reading it
+            # must recover the informative part by subtracting two nearly equal
+            # vectors. Handing over the delta directly makes the prediction
+            # first-class instead of a small perturbation on a large constant.
+            "delta": delta,
+            "next_emb": current_emb + delta,
             "next_box": self.box_head(pooled),
             "msg": self.msg_head(pooled),
             "latent": pooled,

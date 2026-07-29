@@ -139,6 +139,13 @@ class MicroVLAConfig:
         "next_emb", "current_emb", "fused", "state_delta",
         "pred_box_emb", "geometry", "proprio", "spatial", "wm_msg",
         "wm_latent",
+        # The TRM's RESIDUAL as its own group. next_emb is current_emb + delta
+        # and consecutive embeddings are cosine 0.9922 apart, so next_emb is
+        # ~99% a copy of its own input and any module reading it must recover
+        # the prediction by subtracting two nearly equal vectors. Standardized
+        # at the projection, because the delta's direction is the signal and
+        # its magnitude is tiny next to the latent it rides on.
+        "wm_delta",
     )
     # --- v7.2 WAYPOINT-ABSOLUTE actuation (opt-in; the std_ratio lever) ---
     # Regressing normalized ACTIONS with MSE collapses to the timid conditional
