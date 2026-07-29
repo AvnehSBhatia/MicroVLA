@@ -38,6 +38,7 @@ from typing import Iterator
 
 import numpy as np
 
+from microvla.config import DEFAULT_CONFIG
 from preprocess.common import SourceEpisode, run_conversion
 from preprocess.teacher import build_teacher
 from microvla.utils.signals import ignore_sigterm
@@ -202,6 +203,16 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--rotate-180", dest="rotate", action="store_true",
                         help="force the 180° flip (implied by --camera agentview_rgb).")
     parser.set_defaults(rotate=None)
+    parser.add_argument("--frame-hz", type=float, default=None,
+                        help="OVERRIDE cfg.real_frame_hz for this bake, i.e. the "
+                             "sampling rate. The default 2 Hz keeps 1 frame in 10 "
+                             "of a 20 Hz LIBERO demo, so a 150-step demo becomes 15 "
+                             "supervised decision points and the corpus holds ~7.7k "
+                             "for 500 episodes -- an order of magnitude below what "
+                             "LIBERO BC baselines train on. That rate was chosen for "
+                             "the PERCEPTION budget and then inherited, unexamined, "
+                             "by the ACTION supervision. Pass 20 to supervise every "
+                             "control step (paper.md 4w).")
     parser.add_argument("--limit", type=int, default=None, help="max episodes")
     parser.add_argument("--dry-run", action="store_true", help="mock perception (no weights)")
     parser.add_argument("--device", default="cpu")
@@ -239,11 +250,19 @@ def main(argv: list[str] | None = None) -> None:
     teacher = build_teacher(args.teacher, args.teacher_checkpoint, args.teacher_repo,
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)
+    cfg = DEFAULT_CONFIG
+    if args.frame_hz is not None:
+        import dataclasses
+        cfg = dataclasses.replace(cfg, real_frame_hz=float(args.frame_hz))
+        logger.info("sampling at %.1f Hz (stride %d on a 20 Hz demo) -- %.0fx the "
+                    "default supervision density", args.frame_hz,
+                    max(1, round(20.0 / args.frame_hz)), args.frame_hz / 2.0)
     run_conversion(
         lambda: iter_libero_episodes(args.root, camera=args.camera,
                                      detect_camera=args.detect_camera,
                                      rotate_180=args.rotate),
         args.out,
+        cfg=cfg,
         mock=args.dry_run,
         device=args.device,
         limit=args.limit,
