@@ -2473,3 +2473,119 @@ Every prior defect in this project sat in exactly such a gap, so the next step i
 the A/B this project keeps proving is the only thing that finds them: one corpus
 episode, driven through both paths with perception held identical, comparing
 planner inputs tensor by tensor.
+
+## 4v. Root cause, fully attributed: two contract violations and one exposure bias
+
+4u left one suspect — the planner CALL ASSEMBLY, since inputs and weights were
+both verified clean and the failure reproduced on in-distribution data.
+`eval/train_vs_deploy.py` drives one baked episode through the trainer path and
+the deployment path with perception held identical (a replay perception returns
+the corpus's own embeddings and boxes, so the detector is not a variable) and
+diffs the planner's inputs tensor by tensor.
+
+### The first diff
+
+| planner input | rel. diff (train vs deploy) |
+|---|---|
+| `current_emb` | 0.0000 |
+| `proprio` | 0.0000 |
+| `state_delta` | 0.0000 |
+| `pred_box_emb` | 0.0328 |
+| `wm_latent` | 0.0477 |
+| `geometry` | **0.2111** |
+| `wm_msg` | **0.2915** |
+| `fused` | **0.3444** |
+| `relational` | **0.7455** |
+
+and, on the same episode, the trainer path puts the grip logit above zero on
+**47%** of steps (corpus closes on 53%) while the deployed path closes on **13%**.
+Everything downstream of box evidence diverged; everything else was bit-exact.
+
+### Defect 6: a real-tick detection MISS held stale evidence
+
+Printing `geometry` per tick localized it immediately — the paths agree at
+t0-t2 and split at t3, exactly where the corpus records a miss:
+
+```
+  t3 train  [0.5,   0.5,   0.5,   0.5,   0.0,    0.0   ]   <- zero evidence
+     deploy [0.441, 0.795, 0.441, 0.795, 0.1561, 0.1561]   <- t2's box, decayed
+  t4 deploy weight 0.1093     t5 deploy weight 0.0765
+```
+
+The loop's v5 "miss-hold" keeps a role's last-known box at `miss_decay ** age`
+when the detector misses on a REAL tick. The bake does not: `preprocess` writes
+weight 0 at the (0.5, 0.5) fallback, and `train_batched._boxes` feeds exactly
+that. So the policy learned "weight 0 == no evidence" while deployment handed it
+a confident stale box on precisely those ticks — turning "I see nothing" into
+"the object is there, where it used to be". CLAUDE.md's evidence-fade rule
+already states the contract ("missed detections pass 0"); the loop was the side
+violating it. Now opt-in via `cfg.miss_hold`, default off, because re-enabling it
+is a corpus decision — the bake would have to hold too. `geometry` went to
+**0.0000**.
+
+### Defect 7: staleness recovered by division collapsed on a double miss
+
+`_rel_tokens` recomputed the staleness factor as
+`box_weight.max() / max(source.conf, target.conf)` — the right ratio only while
+some role was detected. On a tick where BOTH roles miss it is `0 / 1e-6 = 0`, so
+every class-agnostic proposal was zeroed, while the trainer feeds the baked
+proposal weights, which are non-zero on exactly those ticks *because proposals
+are not role-conditioned*. The loop already knows the factor exactly (1.0 real,
+`staleness_decay ** k` dream); it now passes it instead of recovering it.
+
+A related conflation in the same function: `getattr(percept, "proposals", ())`
+followed by `if props` treated an EMPTY proposal list as "this perception has no
+proposals" and fell back to the two role slots. With 0.68 proposals per frame
+(4r) that fallback fired on the majority of frames.
+
+### The dominant cause: exposure bias in fusion's action token
+
+Neither defect moved `fused` or `relational`. The attribution test settles it —
+force the loop's fusion action token to the DEMO's previous action, i.e.
+teacher-force exactly as stage B does:
+
+| planner input | self-fed | teacher-forced |
+|---|---|---|
+| `fused` | 0.3384 | **0.0000** |
+| `relational` | 0.7461 | **0.0161** |
+| `wm_msg` | 0.2915 | **0.0114** |
+| `wm_latent` | 0.0477 | 0.0069 |
+| `pred_box_emb` | 0.0328 | 0.0026 |
+| **gripper closes** | **13%** | **47%** (trainer: 47%) |
+
+**With the action token teacher-forced, the deployment path reproduces the
+trainer bit-for-bit and the gripper statistic matches exactly.** The entire
+residual failure is that fusion's 8th token — the previously executed action —
+is the DEMONSTRATION's action during training and the POLICY's own action at
+deployment.
+
+That token closes a feedback loop the training protocol never exercises: a wrong
+action corrupts the token, the corrupted token worsens the next action, and the
+system converges to a fixed point. A constant emitted gripper is what that fixed
+point looks like from outside, which is why the collapse looked like saturation
+in 4t. It also explains the whole measurement chain at once:
+
+| condition | action token | gripper closes |
+|---|---|---|
+| stage-B validation | demo's (teacher-forced) | 93.4% accuracy |
+| A/B, forced | demo's | 47% |
+| A/B, self-fed | own | 13% |
+| open-loop on demo frames (4u) | own | 7.6% |
+| closed loop (4t) | own | 0.0% |
+
+The four rows below the first differ only in how far the self-feeding compounds.
+No input was ever out of distribution; the policy put itself there.
+
+### Status
+
+Defects 6 and 7 are fixed and verified by the A/B returning `geometry` to
+0.0000. The exposure bias is a TRAINING-PROTOCOL defect, not a deployment bug:
+it cannot be fixed in the loop, because the loop has nothing else to feed. The
+fix is to train the action token the way it is deployed — scheduled sampling on
+fusion's 8th token — which requires a retrain and is the next experiment.
+
+Note what the pattern predicted correctly and what it did not. Six of the seven
+defects were two sides disagreeing about a value; this one is the two sides
+agreeing about the value's *meaning* while differing in its *provenance*, which
+no parity test on a single tick can catch. The A/B found it only because it ran
+a SEQUENCE and let the divergence compound.
