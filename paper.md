@@ -3339,3 +3339,52 @@ That counter is itself new (5b-i). Before it, this run would have printed
 skipped, 52 trained", which is a survivable inefficiency rather than an
 emergency. Root-causing the remaining 17% is deferred: it costs data, not
 correctness, and there is a result closer to hand.
+
+## 5d. The deployment-condition twin was itself measured at the wrong rate
+
+5c concluded that `cleanbc` bought its record validation with the action-token
+shortcut, on the evidence that it closed the gripper on **0.0%** of steps
+self-fed with pose correlation approximately zero. That evidence was produced by
+`eval/openloop_check.py`, which builds the policy with the DEFAULT
+`perception_period=15` — the Pi loop's 30 Hz / 2 Hz. The grid corpus has a stride
+of **2**. Every self-fed number was measured with real perception firing 7.5x
+less often than anything the policy trained under.
+
+Re-measured at the matching rate, the same `synth10` checkpoint at epoch ~3:
+
+| metric | period 15 (wrong) | period 2 (correct) |
+|---|---|---|
+| gripper agreement | 0.436 | **0.902** |
+| we close on | **0.0%** of steps | **60.4%** (demo: 56.4%) |
+| pose corr, demo_0 / demo_1 | -0.085 / 0.043 | **0.703 / 0.672** |
+
+**The policy is working.** Pose correlation ~0.69 against the linear probe's
+0.415 (5b) — it is now decisively beating the bar that, four hours ago, it could
+not reach. Gripper agreement 0.902 against 0.643 for the best previous arm, and a
+closing RATE of 60.4% against the demonstrator's 56.4%.
+
+### What this costs in retractions
+
+* **5c's correction is suspended.** Its claim — that removing
+  `--action-token-sampling` re-opened the exposure bias — rested on a 0.0%
+  measured at the wrong rate. `cleanbc` is being re-measured at period 2 before
+  anything is concluded about it. The underlying question (is scheduled sampling
+  load-bearing?) is now open again rather than answered.
+* **Earlier self-fed numbers are rate-mismatched too.** 4u's 7.6%, 4y's 25.1%,
+  and `fixed`'s 28.1% were all taken at period 15 against a 2 Hz corpus whose
+  stride is 10 — a 1.5x mismatch rather than 7.5x, so less damaging, but not
+  clean. They should be read as lower bounds.
+
+### Defect 21, and where it landed
+
+This is the twenty-first defect, it is the same shape as the twenty before it — a
+rate disagreeing across a boundary — and it was in **the instrument built to
+catch that exact class of error**. The tool whose entire purpose is "a
+teacher-forced number is not a policy number" was itself reporting a policy
+number taken under conditions the policy never saw.
+
+There is no irony to extract from this, only a procedure: the parity discipline
+has to apply to the measurement code with the same force it applies to the model
+code, because a diagnostic is just another consumer of a value some producer
+defined. `openloop_check` now takes `--perception-period` and the corpus stride
+must be passed explicitly.
