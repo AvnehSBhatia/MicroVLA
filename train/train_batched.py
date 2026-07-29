@@ -111,6 +111,18 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "--proprio-noise on the visual channel; the embedding is "
                         "unit-variance per vector, so 0.05-0.15 is a real but "
                         "recoverable perturbation.")
+    p.add_argument("--recovery-noise", type=float, default=0.0,
+                   help="stage B: metres of Gaussian perturbation applied to the "
+                        "EEF position in proprio, WITH the action target corrected "
+                        "to steer back to the demonstrator's next position. "
+                        "--proprio-noise teaches the policy to IGNORE a "
+                        "perturbation (the target is unchanged); this teaches it "
+                        "to CORRECT one, which is what closed loop needs. "
+                        "Measured motivation: the closed-loop EEF leaves the "
+                        "demonstrated path by 5.3 cm at step 20 and 28.7 cm at "
+                        "step 80, so the policy spends most of every episode in "
+                        "states no demonstration visits (paper.md 5h). "
+                        "0.01-0.03 m is a reasonable range.")
     p.add_argument("--grip-weight", type=float, default=1.0,
                    help="weight on the gripper BCE. The gripper is the binding "
                         "constraint on a pick task -- a policy that never closes "
@@ -536,6 +548,42 @@ def _trm_context(batch, t, cur, cfg):
     hist = batch["frame_embs"][:, lo:t]                 # [B, <k-1, D]
     return torch.cat([hist, cur.unsqueeze(1)], dim=1)   # ends with `cur`
 
+
+
+
+#: Metres of EEF motion per unit RAW action per control step, filled from the
+#: corpus's waypoint_stats.json in stage B. The same constant the deployed
+#: actuator divides by, so a recovery target computed here is executable.
+_RECOVERY_GAIN = torch.tensor([0.0109, 0.0131, 0.0118])
+
+
+def _recovery_batch(batch, t, args, cfg, act_scale):
+    """Perturbed proprio + the action target that CANCELS the perturbation.
+
+    Behaviour cloning only ever shows the expert's own states, so a policy that
+    drifts has no gradient telling it how to come back -- and it always drifts:
+    the measured closed-loop EEF is 5.3 cm off the demonstrated path by step 20
+    (paper.md 5h). Plain observation noise does not fix this, because the target
+    stays the expert's action and the lesson learned is "this perturbation does
+    not matter".
+
+    Here the target moves too. Displacing the measured EEF by delta means the
+    same next waypoint now requires delta LESS motion, so in raw action units the
+    correction is -delta / gain, and in the normalized units the loss uses,
+    -delta / (gain * q_high). Returns ``(proprio, delta_target)`` where
+    ``delta_target`` is ``[B, waypoint_dim]`` to ADD to the pose target.
+    """
+    pro = batch["proprio"][:, t]
+    eps = args.recovery_noise
+    if eps <= 0:
+        return pro, None
+    d = cfg.waypoint_dim
+    delta = eps * torch.randn(pro.shape[0], d, device=pro.device, dtype=pro.dtype)
+    pro = pro.clone()
+    pro[:, :d] = pro[:, :d] + delta
+    gain = _RECOVERY_GAIN.to(pro.device)
+    scale = act_scale[:d].to(pro.device) if act_scale is not None else torch.ones(d, device=pro.device)
+    return pro, -(delta / gain.clamp_min(1e-6)) / scale.clamp_min(1e-6)
 
 
 def _noisy_proprio(batch, t, args):
@@ -1166,6 +1214,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             fitted_gain = torch.as_tensor(
                 json.loads(_ws.read_text())["gain"], dtype=torch.float32,
                 device=device).clamp_min(1e-6)
+            globals()["_RECOVERY_GAIN"] = fitted_gain.detach().cpu()
             print(f"[stage B] actuation loss uses the FITTED gain "
                   f"{[round(float(v), 5) for v in fitted_gain[:3]]} (from {_ws}) "
                   f"-- the same one eval/policy.py deploys", flush=True)
@@ -1225,6 +1274,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             delta_all = [d.detach() for d in delta_all]
             preds, grips, wps = [], [], []
             value_terms = []          # critic + dreamer actor terms, per step
+            recov_deltas = []         # per-step recovery corrections, or None
             prev_action = None      # the policy's own last plan row 0, for
             # --action-token-sampling; None on t=0, where there is no previous
             # action and the trainer's zeros_act convention already matches the
@@ -1320,6 +1370,14 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 # step had no full-input sample anywhere in its gradient. Fading
                 # also keeps the token count, which deletion did not.
                 fade = _fade_weights(args._drop_rates, cur.shape[0], cur.device)
+                # Recovery augmentation supersedes plain proprio noise when on:
+                # it perturbs the SAME way but also corrects the target.
+                if args.recovery_noise > 0:
+                    _step_proprio, _recov_delta = _recovery_batch(
+                        batch, t, args, cfg, act_scale)
+                else:
+                    _step_proprio, _recov_delta = _noisy_proprio(batch, t, args), None
+                recov_deltas.append(_recov_delta)
                 rel = _relational(relational, next_emb, batch, t,
                                   box_idx, box_fade, cfg,
                                   last_action=prev_action if self_feed else None)
@@ -1381,6 +1439,19 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 var_term = args.variance_weight * (
                     pe.std(dim=0) - pd.std(dim=0)).pow(2).mean()
             target = batch["pwm_targets"]               # [B, T, 5, 7]
+            # Recovery targets: the perturbation applied to the measured EEF is
+            # cancelled in the ACTION the policy is asked for, so the gradient
+            # teaches "steer back", not "ignore it". Broadcast across plan rows,
+            # translation dims only -- orientation and the gripper are unchanged
+            # by a positional displacement.
+            if any(d is not None for d in recov_deltas):
+                dcorr = torch.stack([d if d is not None
+                                     else torch.zeros_like(recov_deltas[0])
+                                     for d in recov_deltas], dim=1)   # [B,T,3]
+                target = target.clone()
+                target[..., : cfg.waypoint_dim] = (
+                    target[..., : cfg.waypoint_dim]
+                    + dcorr.unsqueeze(2)).clamp(-1.0, 1.0)
             P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
             Y = target.reshape(-1, *target.shape[2:])
             # Pre-grasp emphasis: [B, T] mean-1 per episode, all-ones for

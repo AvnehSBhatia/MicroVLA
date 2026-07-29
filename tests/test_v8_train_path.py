@@ -445,3 +445,49 @@ class TestTaskAlignedLosses:
         b = {"proprio": torch.randn(B, T, 10)}
         out = _noisy_proprio(b, 1, argparse.Namespace(proprio_noise=0.0))
         assert torch.equal(out, b["proprio"][:, 1])
+
+    def test_recovery_target_cancels_the_perturbation(self, cfg):
+        """A displaced EEF must be asked for LESS motion, in normalized units.
+
+        Plain observation noise leaves the expert's action as the target, which
+        teaches the policy to IGNORE a perturbation. Closed loop needs the
+        opposite: the measured EEF is 5.3 cm off the demonstrated path by step 20
+        (paper.md 5h), and the policy has to steer back. Displacing by delta
+        means the same waypoint needs delta less motion, i.e. -delta/(gain*scale).
+        """
+        import argparse
+
+        import torch
+
+        import train.train_batched as tb
+
+        cfgd = cfg
+        B_, T_ = 3, 4
+        batch = {"proprio": torch.zeros(B_, T_, 10)}
+        gain = torch.tensor([0.01, 0.02, 0.04])
+        scale = torch.tensor([0.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0])
+        old = tb._RECOVERY_GAIN
+        tb._RECOVERY_GAIN = gain
+        try:
+            torch.manual_seed(0)
+            pro, dtgt = tb._recovery_batch(
+                batch, 1, argparse.Namespace(recovery_noise=0.02), cfgd, scale)
+            delta = pro[:, : cfgd.waypoint_dim]          # proprio started at zero
+            expected = -(delta / gain) / scale[: cfgd.waypoint_dim]
+            assert torch.allclose(dtgt, expected, atol=1e-5)
+            # Sign is the whole point: displaced +x must reduce the +x command.
+            assert torch.all(torch.sign(dtgt) == -torch.sign(delta))
+        finally:
+            tb._RECOVERY_GAIN = old
+
+    def test_recovery_noise_off_by_default_returns_untouched_proprio(self, cfg):
+        import argparse
+
+        import torch
+
+        import train.train_batched as tb
+
+        batch = {"proprio": torch.randn(2, 3, 10)}
+        pro, d = tb._recovery_batch(batch, 1, argparse.Namespace(recovery_noise=0.0),
+                                    cfg, None)
+        assert d is None and torch.equal(pro, batch["proprio"][:, 1])
