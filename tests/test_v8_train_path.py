@@ -281,3 +281,108 @@ class TestActionTokenScheduledSampling:
             "the action token does not affect fusion's output, so scheduled "
             "sampling on it would be a no-op"
         )
+
+
+class TestTaskAlignedLosses:
+    """Progress critic, imagined rollout, and variance matching.
+
+    BC minimizes action MSE while the metric is task completion, and on this
+    benchmark they actively disagree: paper.md 4p measured LIBERO's passing band
+    at ~[0.95, 1.05] of demo magnitude while MSE-optimal regression shrinks
+    toward the conditional mean (every arm: std_ratio 0.26-0.42). These three
+    terms attack that directly. The environment is not differentiable, so the
+    critic is the differentiable surrogate and fusion's action token is the path
+    from the emitted plan into the world model.
+    """
+
+    def test_critic_maps_a_latent_to_a_bounded_progress(self, cfg):
+        import torch
+
+        from microvla.critic import ProgressCritic, progress_targets
+
+        c = ProgressCritic(cfg)
+        v = c(torch.randn(4, cfg.vis_dim))
+        assert v.shape == (4,)
+        assert bool(((v >= 0) & (v <= 1)).all())
+        tg = progress_targets(5, 2, torch.device("cpu"))
+        assert tg.shape == (2, 5)
+        assert torch.allclose(tg[0, -1], torch.tensor(1.0))
+        assert bool((tg[0].diff() > 0).all()), "progress must increase with time"
+
+    def test_frozen_value_passes_gradient_to_the_latent_not_the_critic(self, cfg):
+        """If the actor term could train the critic, the value would collapse."""
+        import torch
+
+        from microvla.critic import ProgressCritic, frozen_value
+
+        c = ProgressCritic(cfg)
+        lat = torch.randn(3, cfg.vis_dim, requires_grad=True)
+        frozen_value(c, lat).mean().backward()
+        assert lat.grad is not None and lat.grad.abs().sum() > 0, (
+            "no gradient reached the latent — the actor term would be inert"
+        )
+        for n, p in c.named_parameters():
+            assert p.grad is None or p.grad.abs().sum() == 0, (
+                f"actor term leaked gradient into critic weight {n}; the critic "
+                f"could then satisfy it by predicting 1.0 everywhere"
+            )
+
+    def test_progress_weight_without_critic_weight_is_refused(self):
+        from train.train_batched import parse_args
+
+        a = parse_args(["--data", "x", "--progress-weight", "1.0"])
+        assert a.critic_weight == 0.0 and a.progress_weight == 1.0, (
+            "the guard belongs in stage_b, but the flags must parse so it can "
+            "raise a clear error rather than train a no-op"
+        )
+
+    def test_defaults_leave_every_task_aligned_term_off(self):
+        from train.train_batched import parse_args
+
+        a = parse_args(["--data", "x"])
+        assert (a.critic_weight, a.progress_weight, a.dream_weight,
+                a.variance_weight) == (0.0, 0.0, 0.0, 0.0)
+        assert a.dream_horizon == 1
+
+    def test_the_value_term_reaches_the_planner_through_the_world_model(self, cfg, batch):
+        """The whole design rests on this path existing; assert it, don't assume.
+
+        plan -> fusion(last_action=plan[:,0]) -> TRM -> latent -> critic. If any
+        link is detached the term still computes a plausible loss and trains
+        nothing — the exact "wired but inert" failure that made the relational
+        head's first result meaningless.
+        """
+        import torch
+
+        from microvla.critic import ProgressCritic, frozen_value
+        from microvla.trm.mock_trm import MockTRM
+        from microvla.v8 import DriftAdapter, FusionAdapter
+
+        fusion, drift = FusionAdapter(cfg), DriftAdapter(cfg)
+        trm, critic = MockTRM(cfg), ProgressCritic(cfg)
+        planner = ChronoQueryPlanner(cfg)
+        for m in (fusion, drift):
+            for p in m.parameters():
+                p.requires_grad_(False)
+
+        drift.reset()
+        cur = batch["frame_embs"][:, 0]
+        delta = drift(cur)
+        plan = planner(cur, current_emb=cur, state_delta=delta,
+                       proprio=batch["proprio"][:, 0])
+        plan = plan[0] if isinstance(plan, tuple) else plan
+
+        fused = fusion(batch["text_tokens"], cur,
+                       batch["source_box_embs"][:, 0], batch["target_box_embs"][:, 0],
+                       batch["source_centers"][:, 0], batch["target_centers"][:, 0],
+                       box_weight=batch["box_weights"][:, 0],
+                       last_action=plan[:, 0])
+        value = frozen_value(critic, trm(fused, delta, cur)).mean()
+        (-value).backward()
+
+        got = [n for n, p in planner.named_parameters()
+               if p.grad is not None and p.grad.abs().sum() > 0]
+        assert got, (
+            "no gradient reached the planner from the critic value — the "
+            "task-aligned term is inert and would train nothing"
+        )

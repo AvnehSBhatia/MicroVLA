@@ -52,6 +52,7 @@ from microvla.relational import RelationalHead
 from microvla.v8 import (DriftAdapter, FusionAdapter, objects_from_batch,
                          pack_objects)
 from microvla.planner.chrono_planner import ChronoQueryPlanner
+from microvla.critic import ProgressCritic, frozen_value, progress_targets
 from microvla.utils.embedding import standardize
 from microvla.utils.phase import pre_grasp_weights
 from microvla.utils.signals import ignore_sigterm
@@ -95,6 +96,36 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(current latent = TRM prediction, held/faded boxes) the "
                         "planner actually runs in 14/15 ticks at deployment. "
                         "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--variance-weight", type=float, default=0.0,
+                   help="stage B: weight on matching the per-dim STD of the "
+                        "predicted pose to the demo's. MSE regression to the "
+                        "conditional mean is why every arm emits std_ratio "
+                        "0.26-0.42 against a task whose passing band is ~[0.95, "
+                        "1.05] (paper.md 4p); MSE alone rewards shrinking exactly "
+                        "this quantity. 0.1 is a reasonable start.")
+    p.add_argument("--critic-weight", type=float, default=0.0,
+                   help="stage B: weight on fitting the ProgressCritic (a "
+                        "TRAINING-ONLY head, outside the deployed 9M budget) to "
+                        "position-within-episode. Must be > 0 for "
+                        "--progress-weight or --dream-weight to do anything.")
+    p.add_argument("--progress-weight", type=float, default=0.0,
+                   help="stage B: weight on maximizing the critic's value of the "
+                        "IMAGINED next latent reached by the planner's own "
+                        "action. Task-aligned and fully differentiable -- fusion's "
+                        "action token carries the plan into the world model, so no "
+                        "environment is needed. This is the term that asks for "
+                        "actions which ADVANCE the task rather than ones that "
+                        "merely resemble the demonstrator's.")
+    p.add_argument("--dream-weight", type=float, default=0.0,
+                   help="stage B: weight on the imagined rollout BEYOND one step "
+                        "(Dreamer-style). Keep it small: it compounds world-model "
+                        "error, and 4w measures the 1-step margin over persistence "
+                        "at only +1.7%% MSE, so a policy can exploit the model "
+                        "faster than it can learn from it. 0.01-0.05.")
+    p.add_argument("--dream-horizon", type=int, default=1,
+                   help="imagined steps per timestep; 1 = critic term only.")
+    p.add_argument("--dream-gamma", type=float, default=0.9,
+                   help="discount applied down the imagined rollout.")
     p.add_argument("--action-token-sampling", type=float, default=0.0,
                    help="stage B: probability of feeding FUSION'S ACTION TOKEN the "
                         "model's OWN previous plan row 0 instead of the "
@@ -961,6 +992,25 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         # like "the relational head does not help".
         params += list(relational.parameters())
     params += gain_params
+    # TRAINING-ONLY head: shapes the planner during stage B and is then
+    # discarded. Deliberately NOT added to the deployed stack and not counted
+    # against cfg.trainable_param_budget, which governs what ships.
+    critic = None
+    if args.critic_weight > 0:
+        critic = ProgressCritic(cfg).to(device)
+        critic.train()
+        params += list(critic.parameters())
+        print(f"[stage B] progress critic ON: critic_w {args.critic_weight} "
+              f"progress_w {args.progress_weight} dream_w {args.dream_weight} "
+              f"H {args.dream_horizon} | variance_w {args.variance_weight}",
+              flush=True)
+    elif args.progress_weight > 0 or args.dream_weight > 0:
+        # Silently doing nothing is the failure mode this project keeps paying
+        # for; refuse instead.
+        raise SystemExit(
+            "--progress-weight/--dream-weight require --critic-weight > 0, "
+            "otherwise the critic is never fit and the actor term maximizes an "
+            "untrained network.")
     groups = [{"params": params, "lr": args.lr}]
     trm_trainable = [p for p in trm.parameters() if p.requires_grad]
     if trm_trainable:
@@ -999,6 +1049,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             fused_all = [f.detach() for f in fused_all]
             delta_all = [d.detach() for d in delta_all]
             preds, grips, wps = [], [], []
+            value_terms = []          # critic + dreamer actor terms, per step
             prev_action = None      # the policy's own last plan row 0, for
             # --action-token-sampling; None on t=0, where there is no previous
             # action and the trainer's zeros_act convention already matches the
@@ -1096,8 +1147,52 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 prev_action = plan[:, 0].detach()
                 if wp is not None:
                     wps.append(wp)
+                # ---- task-aligned terms (critic / dreamer) ------------------
+                # Fusion's 8th token is the previously executed action, so
+                #   plan -> fusion(last_action=plan[:,0]) -> TRM -> latent -> V
+                # is differentiable w.r.t. the EMITTED action with no env in the
+                # loop. Maximizing V of the imagined next latent asks for actions
+                # that ADVANCE THE TASK rather than actions that merely resemble
+                # the demonstrator's -- which is the gap paper.md 4p measures
+                # (MSE shrinks magnitude; the task tolerates ~5%).
+                if critic is not None and (args.progress_weight > 0
+                                           or args.dream_weight > 0):
+                    lat_i, act_i = cur, plan[:, 0]
+                    disc = 1.0
+                    for h in range(max(1, args.dream_horizon)):
+                        # Evidence is HELD across imagined steps and faded, the
+                        # same shared path a dream tick uses -- no new semantics.
+                        f_h = fusion(batch["text_tokens"], lat_i, sbe, tbe, sc, tc,
+                                     box_weight=bw * (cfg.staleness_decay ** h),
+                                     last_action=act_i)
+                        lat_i = standardize(trm(f_h, delta_t, lat_i))
+                        v = frozen_value(critic, lat_i)
+                        # h == 0 is the one-step CRITIC term; h > 0 is the
+                        # imagined DREAMER rollout, weighted separately because
+                        # it compounds world-model error (4w measures the 1-step
+                        # margin over persistence at only +1.7% MSE).
+                        w_h = args.progress_weight if h == 0 else args.dream_weight * disc
+                        value_terms.append(-w_h * v.mean())
+                        if h + 1 < max(1, args.dream_horizon):
+                            act_i = planner(lat_i, current_emb=lat_i,
+                                            state_delta=delta_t, fused=f_h,
+                                            geometry=geom,
+                                            proprio=batch["proprio"][:, t])[:, 0]
+                            disc *= args.dream_gamma
             preds = torch.stack(preds, dim=1)          # [B, T, 5, 7]
             grips = torch.stack(grips, dim=1)          # [B, T, 5]
+            # ---- (1) anti-shrinkage: match the DISPERSION, not just the mean.
+            # MSE regression to the conditional mean is why every arm emits
+            # std_ratio 0.26-0.42 against a task that passes only near 1.0
+            # (paper.md 4p). Penalizing the per-dim std gap attacks that term of
+            # the error directly, where MSE alone rewards shrinking it.
+            var_term = None
+            if args.variance_weight > 0:
+                pe = preds[..., : cfg.num_servos - 1].reshape(-1, cfg.num_servos - 1)
+                pd = batch["pwm_targets"][..., : cfg.num_servos - 1].reshape(
+                    -1, cfg.num_servos - 1)
+                var_term = args.variance_weight * (
+                    pe.std(dim=0) - pd.std(dim=0)).pow(2).mean()
             target = batch["pwm_targets"]               # [B, T, 5, 7]
             P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
             Y = target.reshape(-1, *target.shape[2:])
@@ -1169,6 +1264,19 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     batch, t_aux, fused_all[t_aux], delta_all[t_aux], fusion, trm, cfg,
                     3, args.gamma, args.ablate_grounding,
                     ckpt_rollout=args.ckpt_rollout)
+            if var_term is not None:
+                loss = loss + var_term
+            # ---- (2)+(3) task-aligned terms ---------------------------------
+            # The critic is fit on REAL latents against position-in-episode; the
+            # actor terms above already hold its weights fixed (frozen_value),
+            # so these two objectives do not fight each other.
+            if critic is not None:
+                tgt = progress_targets(T, batch["frame_embs"].shape[0], cur.device)
+                lat = batch["frame_embs"].reshape(-1, cfg.vis_dim).detach()
+                loss = loss + args.critic_weight * (
+                    critic(lat) - tgt.reshape(-1)).pow(2).mean()
+                if value_terms:
+                    loss = loss + torch.stack(value_terms).sum() / len(value_terms)
             opt.zero_grad(); loss.backward(); opt.step()
             with torch.no_grad():
                 run += float(loss)
