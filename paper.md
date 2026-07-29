@@ -2618,3 +2618,23 @@ must run both sides and diff. An assertion about either side alone is evidence
 about that side alone.* Single-sided tests are not worthless — they caught real
 bugs here — but they are structurally incapable of seeing the class of defect
 that has caused every headline failure in this project.
+
+### 4v-c. A limitation of the scheduled-sampling fix, stated before its result
+
+`--action-token-sampling` is applied in stage B only, and that is a partial fix
+by construction. Stage A trains the world model with `real_paths`, which feeds
+fusion `batch["pwm_targets"][:, t-1, 0]` — the demonstration's action — at every
+timestep, and it has no alternative: there is no policy yet, so there is no "own
+action" to substitute. The TRM's notion of what a fused matrix looks like is
+therefore built entirely from teacher-forced action tokens, and at deployment it
+receives fused matrices built from the policy's own.
+
+So stage B can teach the PLANNER to read a self-fed fused matrix, but the world
+model underneath it is still trained on a distribution it will never see. If the
+retrain moves the closed-loop number only partway, that asymmetry is the first
+place to look, and the natural remedy is noise or dropout on stage A's action
+token (which needs no policy) rather than sampling.
+
+Recording this now, before the result, because the honest reading of a partial
+improvement and the honest reading of a failure are different, and deciding
+which after seeing the number is how 4t's causal claim got made.
