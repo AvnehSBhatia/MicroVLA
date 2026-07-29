@@ -217,6 +217,7 @@ class MicroVLAPolicy:
         perception_period: int = 15,
         chunk_exec: bool = False,
         replan_every: int = 0,
+        no_brake: bool = False,
         trm: Optional[TRMBase] = None,
         device: str = "cpu",
         perception=None,
@@ -312,6 +313,20 @@ class MicroVLAPolicy:
 
         if cfg is None:
             cfg = MicroVLAConfig(**state["cfg"]) if state is not None else DEFAULT_CONFIG
+        if no_brake:
+            # brake_trust = 0 disables the delta-mode brake everywhere (the loop
+            # and the waypoint path both guard on `brake_trust > 0`).
+            #
+            # Why this switch exists: the brake scales the plan by
+            # min(1, tau / brake_trust), and deployment telemetry measured trust
+            # mean 0.568 with a minimum of 0.216 against brake_trust 0.5 -- a
+            # scale as low as 0.43. paper.md 4p measured the task's tolerance on
+            # action magnitude at ~[0.95, 1.05]. So every step with trust < 0.475
+            # is braked OUTSIDE the band the task can pass, by construction. The
+            # brake was designed to stop drift compounding and is measured to
+            # cost more than it saves here.
+            import dataclasses as _dc
+            cfg = _dc.replace(cfg, brake_trust=0.0)
         self.cfg = cfg
         # Resolved here because it reads cfg: one TRM step was trained to span
         # cfg.waypoint_row_stride env steps (the source control rate divided by

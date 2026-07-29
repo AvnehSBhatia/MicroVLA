@@ -428,6 +428,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             heads_device=getattr(args, "heads_device", None),
             chunk_exec=getattr(args, "chunk_exec", False),
             replan_every=getattr(args, "replan_every", 0),
+            no_brake=getattr(args, "no_brake", False),
         )
 
     return factory
@@ -446,6 +447,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
     p.add_argument("--norm-stats", default=None,
                     help="norm_stats.json path; defaults to eval/identity_norm_stats.json")
+    p.add_argument("--no-brake", action="store_true",
+                   help="disable the delta-mode trust brake (sets cfg.brake_trust=0). "
+                        "The brake scales the plan by min(1, tau/brake_trust) and "
+                        "measured trust runs as low as 0.216 against brake_trust 0.5, "
+                        "i.e. a 0.43x scale -- while paper.md 4p measured the task's "
+                        "magnitude tolerance at ~[0.95, 1.05]. Any braked step is "
+                        "outside the passing band by construction.")
     p.add_argument("--chunk-exec", action="store_true",
                    help="advance the world model once per SAMPLE interval and "
                         "execute the plan's rows in between, instead of stepping "
