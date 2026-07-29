@@ -97,6 +97,13 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(current latent = TRM prediction, held/faded boxes) the "
                         "planner actually runs in 14/15 ticks at deployment. "
                         "0 = old real-only behavior; 0.25 recommended.")
+    p.add_argument("--grip-weight", type=float, default=1.0,
+                   help="weight on the gripper BCE. The gripper is the binding "
+                        "constraint on a pick task -- a policy that never closes "
+                        "scores exactly 0 no matter how good its reaching is -- "
+                        "and self-fed evaluation shows the head UNDER-firing "
+                        "(closes on 25.1%% of steps against the demo's 58.5%%, "
+                        "paper.md 4y). It was hard-coded at 1.0 and never swept.")
     p.add_argument("--variance-weight", type=float, default=0.0,
                    help="stage B: weight on matching the per-dim STD of the "
                         "predicted pose to the demo's. MSE regression to the "
@@ -1249,6 +1256,7 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             step_w = _pre_grasp(batch, args.pre_grasp_weight)
             loss = split_planner_loss(P, G, Y, smooth_weight=args.smooth_weight,
                                       row0_weight=args.row0_weight,
+                                      grip_weight=args.grip_weight,
                                       step_weight=None if step_w is None
                                       else step_w.reshape(-1))
             if wps:
