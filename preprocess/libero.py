@@ -89,6 +89,7 @@ def _demo_sort_key(name: str) -> int:
 def iter_libero_episodes(
     root: str | Path,
     camera: str = "agentview_rgb",
+    detect_camera: str | None = None,
     rotate_180: bool = True,
 ) -> Iterator[SourceEpisode]:
     """Streams every demo of every LIBERO hdf5 under ``root``.
@@ -117,6 +118,14 @@ def iter_libero_episodes(
             for demo in sorted(f["data"].keys(), key=_demo_sort_key):
                 grp = f["data"][demo]
                 frames = np.asarray(grp["obs"][camera])  # [T, H, W, 3] RGB
+                det_frames = None
+                if detect_camera and detect_camera != camera:
+                    det_frames = np.asarray(grp["obs"][detect_camera])
+                    if detect_camera == "agentview_rgb":
+                        # robosuite renders agentview upside down; the detector
+                        # is not rotation-invariant, so this must be corrected
+                        # here even though the EMBEDDING view is not rotated.
+                        det_frames = det_frames[:, ::-1, ::-1]
                 if rotate_180:
                     frames = frames[:, ::-1, ::-1]
                 actions = np.asarray(grp["actions"], dtype=np.float32)  # [T, 7]
@@ -155,6 +164,7 @@ def iter_libero_episodes(
                     episode_id=f"{h5path.stem}__{demo}",
                     proprio_raw=proprio_raw,
                     eef_pos_raw=eef_pos_raw,
+                    detect_frames=None if det_frames is None else list(det_frames[:T]),
                 )
 
 
@@ -169,6 +179,16 @@ def main(argv: list[str] | None = None) -> None:
     # feature the policy learned was from a viewpoint it never sees at
     # deployment. The npz key is called `wrist_frames` regardless of this
     # flag, which is what made the mismatch invisible.
+    parser.add_argument("--detect-camera", default=None,
+                        choices=["eye_in_hand_rgb", "agentview_rgb"],
+                        help="run OBJECT DETECTION on this view instead of --camera. "
+                             "The wrist view supplies 0.68 proposals/frame with 47%% "
+                             "of frames empty (paper.md 4r); the third-person view of "
+                             "the same scenes yields 3.40. --camera still drives the "
+                             "frame embedding the world model predicts, so the "
+                             "train/eval ego-view coupling 4f requires is unchanged — "
+                             "only the detector's pixels move. agentview is "
+                             "de-rotated automatically.")
     parser.add_argument("--camera", required=True,
                         choices=["eye_in_hand_rgb", "agentview_rgb"],
                         help="LIBERO obs key to bake. Use eye_in_hand_rgb to match "
@@ -220,7 +240,9 @@ def main(argv: list[str] | None = None) -> None:
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)
     run_conversion(
-        lambda: iter_libero_episodes(args.root, camera=args.camera, rotate_180=args.rotate),
+        lambda: iter_libero_episodes(args.root, camera=args.camera,
+                                     detect_camera=args.detect_camera,
+                                     rotate_180=args.rotate),
         args.out,
         mock=args.dry_run,
         device=args.device,

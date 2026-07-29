@@ -70,6 +70,13 @@ class SourceEpisode:
     #   eef_pos_raw [T_raw, 3]   — absolute EEF xyz per native step
     proprio_raw: np.ndarray | None = None
     eef_pos_raw: np.ndarray | None = None
+    #: v8 optional SECOND view, used for OBJECT DETECTION only. The wrist camera
+    #: supplies 0.68 proposals/frame with 47% of frames empty (paper.md 4r),
+    #: which caps what any object-reasoning module can learn; the third-person
+    #: view of the same scenes yields 3.40. `frames` still drives the frame
+    #: embedding the world model predicts, so the ego-view coupling 4f requires
+    #: is unchanged — only the detector moves.
+    detect_frames: list | None = None
 
 
 def subsample_indices(n_frames: int, source_hz: float, target_hz: float) -> list[int]:
@@ -390,10 +397,17 @@ class EpisodeBuilder:
         frame_embs, s_embs, t_embs, s_ctrs, t_ctrs, weights = [], [], [], [], [], []
         o_embs, o_ctrs, o_wts = [], [], []
         k = self.cfg.max_objects
+        det = episode.detect_frames if episode.detect_frames is not None else episode.frames
         for i in indices:
             frame_rgb = np.ascontiguousarray(episode.frames[i])
             frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1])  # detector convention
-            p = self.perception.perceive(frame_bgr)
+            # Detection may run on a DIFFERENT view than the frame embedding.
+            # Both are the same scene at the same instant, so boxes and centers
+            # describe the world the ego frame is looking at; only the pixels
+            # the detector sees change.
+            det_bgr = (frame_bgr if episode.detect_frames is None
+                       else np.ascontiguousarray(np.asarray(det[i])[..., ::-1]))
+            p = self.perception.perceive(det_bgr)
             frame_embs.append(p.frame_emb.numpy())
             s_embs.append(p.source.emb.numpy())
             t_embs.append(p.target.emb.numpy())
