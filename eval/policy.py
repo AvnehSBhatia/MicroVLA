@@ -366,6 +366,13 @@ class MicroVLAPolicy:
         drift.to(heads_device).eval()
         trm.to(heads_device).eval()
         planner.to(heads_device).eval()
+        if relational is not None:
+            # Missing this made EVERY v8 closed-loop run fail at the first tick
+            # with "mat1 is on cuda:0, different from other tensors on cpu", and
+            # the harness reported it as tasks_completed 0 / mean_success 0.000
+            # — indistinguishable in the summary from a policy that simply never
+            # succeeds.
+            relational.to(heads_device).eval()
         if tqsa is not None:
             tqsa.to(heads_device).eval()
 

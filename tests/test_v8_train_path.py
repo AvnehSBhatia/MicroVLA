@@ -218,3 +218,22 @@ def test_v8_fits_the_joint_budget(cfg):
     assert total < cfg.trainable_param_budget, (
         f"v8 stack {total:,d} >= budget {cfg.trainable_param_budget:,d}"
     )
+
+
+def test_every_v8_module_the_policy_builds_lands_on_one_device():
+    """A module left on CPU fails at the first tick and reports as 0.000.
+
+    eval/policy.py moves fusion, drift, trm and planner explicitly; relational
+    was added later and missed, so every v8 closed-loop run died with
+    "mat1 is on cuda:0, different from other tensors on cpu" and the harness
+    summarised it as tasks_completed 0 — identical in the output to a policy
+    that merely never succeeds. Pinned by source inspection because the failure
+    only reproduces on a machine with a GPU.
+    """
+    import pathlib
+    import re
+
+    src = pathlib.Path("eval/policy.py").read_text()
+    moved = set(re.findall(r"^\s*(\w+)\.to\(heads_device\)", src, re.M))
+    for name in ("fusion", "drift", "trm", "planner", "relational"):
+        assert name in moved, f"{name} is never moved to heads_device in policy.py"
