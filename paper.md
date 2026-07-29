@@ -2709,3 +2709,96 @@ objectives (a progress critic the planner descends through the world model, an
 imagined rollout, and explicit variance matching — all differentiable, no
 environment in the loop) and a re-bake that supervises actions at the control
 rate rather than the perception rate.
+
+## 4x. Exhaustive defect sweep — ten confirmed, and a retraction of 4s
+
+Nine defects had been found one at a time, each by chasing a specific symptom.
+That does not terminate and gives no coverage guarantee, so the codebase was
+swept systematically: six independent lenses (train/deploy parity; timescales and
+units; shapes and indexing; gradient flow and freezing; checkpoint and config
+plumbing; eval-harness correctness), each reading the source with no knowledge of
+the others' findings, followed by an adversarial verifier per candidate
+instructed to REFUTE by default and to confirm only on a traced path from real
+inputs to wrong behaviour.
+
+**27 candidates; the 10 highest-severity were verified and all 10 survived; 17
+lower-severity were not verified and are recorded as unverified.**
+
+Four of the ten were introduced BY THE FIXES EARLIER IN THIS SAME DOCUMENT.
+
+### The four that invalidate earlier results
+
+**1. `Perception.proposals` was dropped on every real tick.** The loop rebuilds
+`Perception` twice per tick — once for the device move (`_percept_to`), once for
+the miss-hold, whose result becomes `self._last_percept` — and neither carried
+the optional `proposals` field, which defaults to `()`. So `_rel_tokens` always
+saw an empty tuple.
+
+This made 4v's own fix actively harmful. That commit changed `if props:` to
+`if props is not None:` on the premise that a perception supplying `proposals` is
+a v8 detector; the premise is defeated one function above, where they had already
+been stripped. Instead of falling back to the source/target role slots at their
+real confidences, the deployed `RelationalHead` received **all-zero object
+evidence on 100% of ticks**, while the trainer feeds the baked scene on the 52.7%
+of frames that carry a proposal. An optional field with an empty default is
+silent when dropped: no error, no shape change, evidence quietly replaced by
+zeros.
+
+`tests/test_train_deploy_parity.py` could not catch it — it constructs `JEPALoop`
+with seven positional arguments, so `relational=None` and the path is never
+exercised. The parity harness written specifically to catch this defect family
+had a hole in exactly the place the next one appeared.
+
+**2-4. The actuation loss was mis-specified in three independent ways.**
+
+| | defect |
+|---|---|
+| units | `cmd` is in RAW action units; `Y` holds NORMALIZED targets. The bake is `fit_symmetric`, so normalized = raw / `q_high` — the objective asked for **+6.7% on x/z and +9.5% on y** over the demonstrator, on a task whose measured tolerance is [0.95, 1.05]. |
+| row | `row` indexes the WAYPOINT grid (rows `waypoint_row_stride` = 10 control steps apart) while `Y` is the native-rate action chunk. The command to execute NOW was regressed onto the demo action 30 control steps in the future. |
+| gain | the loss divides by the HRM's LEARNED gain; `eval/policy.py` divides by the FITTED gain from `waypoint_stats.json` and never reads the learned one. |
+
+The gain defect is the consequential one. `g` is three numbers shared across the
+batch, so the cheapest descent direction for a global magnitude error is to move
+`g` rather than the displacement head — and `g` is not in the deployed path.
+
+**Therefore 4s's headline is retracted.** `wp_std_ratio` 0.121 -> 1.097 was
+reported as evidence that the actuation loss taught the head to emit
+correctly-scaled commands. It is at least as consistent with the loss moving
+three gain numbers to absorb a magnitude error the head never learned to fix,
+against a target that was itself biased by 6.7-9.5% and taken at the wrong
+timestep. That reading also explains what was otherwise puzzling: the metric
+moved into the passing band and closed-loop success did not move at all. All
+three are fixed; the quantity must be re-measured before it means anything.
+
+### Two more that change how existing numbers should be read
+
+**`--chunk-exec` over-commanded.** `replan_every` defaulted to
+`waypoint_row_stride` (10) while a chunk holds `plan_steps` = 5 rows, so chunk
+positions 0..9 mapped to rows 0,1,2,3,4,**4,4,4,4,4** — row 4 executed on 60% of
+env steps. In a delta action space that is not "hold position", it re-commands
+the same motion six more times. **The chunk-exec results in 4w were measured
+under this defect** and are withdrawn.
+
+**Every `--mock-env` success number is 1.000.** `MockLiberoEnv`'s success
+threshold is crossed by an UNTRAINED policy in 3-5 steps, so `ours`, `persistence`
+and `linear` all score 1.000 at every `perception_period`. CLAUDE.md mandates the
+mock path and `eval/sweep.py` defaults to it, so any E4 "kill bar" comparison
+computed there was degenerate — a fifth instance of a number that looked like a
+result and measured nothing.
+
+### What the sweep says about the method
+
+The nine earlier defects were found by symptom-chasing; this sweep found ten more
+in a single pass, four of them created by the previous round of fixes. Two
+lessons, both uncomfortable:
+
+* **Fixes are defect sources at the same rate as features.** Four of ten came
+  from this session's own repairs, including one that made behaviour strictly
+  worse than before the fix. A change made under time pressure to a system
+  nobody fully holds in their head is not obviously net-positive, and nothing in
+  the workflow was checking.
+* **A regression barrier only covers what it exercises.** 4v-b claimed the
+  parity test made this defect class impossible to reintroduce. It did not: the
+  very next defect landed in the relational path the harness passes `None` for.
+  The correct claim is narrower — it covers `geometry`, `fused` and `state_delta`
+  on a v7 stack, and nothing else.
