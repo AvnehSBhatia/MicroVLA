@@ -1015,6 +1015,19 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
               "would compare raw-unit commands against normalized targets, so it "
               "is DISABLED for this run.", flush=True)
         args.actuation_weight = 0.0
+    # The gain the DEPLOYED actuator uses, so the actuation loss optimizes the
+    # quantity that actually runs.
+    fitted_gain = None
+    for _d in (args.data_dir if isinstance(args.data_dir, (list, tuple)) else [args.data_dir]):
+        _ws = Path(_d) / "waypoint_stats.json"
+        if _ws.exists():
+            fitted_gain = torch.as_tensor(
+                json.loads(_ws.read_text())["gain"], dtype=torch.float32,
+                device=device).clamp_min(1e-6)
+            print(f"[stage B] actuation loss uses the FITTED gain "
+                  f"{[round(float(v), 5) for v in fitted_gain[:3]]} (from {_ws}) "
+                  f"-- the same one eval/policy.py deploys", flush=True)
+            break
     critic = None
     if args.critic_weight > 0:
         critic = ProgressCritic(cfg).to(device)
@@ -1261,7 +1274,23 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                     # actuator services ROW `waypoint_horizon - 1` (the last
                     # SUPERVISED row — waypoint_targets masks the final one), so
                     # both sides are taken at that row and flattened the same way.
-                    g = drift.last_gains.clamp_min(1e-6)             # [B, 3], grad
+                    # Use the SAME gain deployment divides by. eval/policy.py
+                    # builds WaypointActuator from waypoint_stats.json's FITTED
+                    # gain and never reads the HRM's learned one, so optimizing
+                    # against the learned gain optimizes a number that is not in
+                    # the deployed path.
+                    #
+                    # It also let the term cheat: `g` is 3 numbers shared across
+                    # the batch, so the cheapest descent direction for a global
+                    # magnitude error is to move `g` rather than the displacement
+                    # head -- which is what the head is supposed to learn. That
+                    # makes the earlier wp_std_ratio 0.121 -> 1.097 result a
+                    # measurement of the gain moving, not the head improving,
+                    # and explains why it did not transfer to closed loop.
+                    if fitted_gain is not None:
+                        g = fitted_gain.view(1, -1)                  # [1, 3], constant
+                    else:
+                        g = drift.last_gains.clamp_min(1e-6).detach()  # [B, 3], no grad
                     steps = max(1, cfg.waypoint_horizon * cfg.waypoint_row_stride)
                     disp = torch.stack(wps, dim=1)                   # [B,T,rows,3]
                     row = max(0, min(cfg.waypoint_horizon, disp.shape[2]) - 1)
