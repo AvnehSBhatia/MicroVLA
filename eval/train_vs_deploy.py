@@ -144,6 +144,14 @@ def main(argv=None) -> None:
     h = planner.register_forward_pre_hook(hook, with_kwargs=True)
     loop.set_task("pick up the alphabet soup and place it in the basket")
     loop.perception = Replay()          # set_task may have reset it
+    # Hold TEXT identical too. The loop re-encodes the task with CLIP while the
+    # trainer uses the tokens baked into the episode; that is a real deployment
+    # difference but it is not the one under test here, and leaving it in would
+    # dirty every text-consuming group (fused, relational). Override with the
+    # baked tokens so the only remaining variable is the assembly itself.
+    tt = t("text_tokens")
+    loop._task.command_emb, loop._task.source_emb, loop._task.target_emb = (
+        tt[0], tt[1], tt[2])
     deploy_grip = []
     dummy = np.zeros((128, 128, 3), dtype=np.uint8)
     for i in range(T):
@@ -175,6 +183,15 @@ def main(argv=None) -> None:
         flag = "  <== DIVERGES" if d > 0.05 else ""
         print(f"{k:14s} {A.mean():10.4f}/{A.std():<10.4f} "
               f"{B.mean():10.4f}/{B.std():<10.4f} {d:10.4f}{flag}")
+
+    # Raw values for the first ticks: an aggregate rel-diff says THAT a group
+    # differs, not HOW, and geometry is small enough to just read.
+    print("\ngeometry, first 3 ticks (src_center, tgt_center, box_weights)")
+    for i in range(min(3, n)):
+        a = train_in[i].get("geometry"); b = hooked[i].get("geometry")
+        if a is not None and b is not None:
+            print(f"  t{i} train  {np.round(a.reshape(-1).float().numpy(), 4).tolist()}")
+            print(f"     deploy {np.round(b.reshape(-1).float().numpy(), 4).tolist()}")
 
     print(f"\ngrip: trainer logit mean {np.mean(train_grip):+.4f} "
           f"(>0 on {100*np.mean(np.array(train_grip) > 0):.0f}% of steps)")
