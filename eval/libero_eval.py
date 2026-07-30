@@ -447,6 +447,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             chunk_exec=getattr(args, "chunk_exec", False),
             replan_every=getattr(args, "replan_every", 0),
             no_brake=getattr(args, "no_brake", False),
+            ibvs_gain=getattr(args, "ibvs_gain", 0.0),
+            ibvs_conf_floor=getattr(args, "ibvs_conf_floor", 0.1),
         )
 
     return factory
@@ -489,6 +491,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "magnitude (paper.md 4p), so this tests whether the "
                         "DIRECTION is right and only the SCALE is wrong. A "
                         "diagnostic, not a fix.")
+    p.add_argument("--ibvs-gain", type=float, default=0.0,
+                   help="add a proportional residual that drives the detected "
+                        "source center toward the wrist-frame grasp point. "
+                        "Zero training. If this moves closed-loop success, "
+                        "frozen features are NOT the ceiling — the BC "
+                        "objective is (paper.md 5k). Try 0.05-0.2.")
+    p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
+                   help="ignore source detections below this confidence when "
+                        "applying --ibvs-gain.")
     p.add_argument("--waypoint-no-brake", action="store_true",
                     help="do NOT scale the waypoint translation command by the corrector's "
                          "trust. The delta-mode brake exists because a held DELTA is a "

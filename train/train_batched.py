@@ -53,7 +53,9 @@ from microvla.relational import RelationalHead
 from microvla.v8 import (DriftAdapter, FusionAdapter, objects_from_batch,
                          pack_objects)
 from microvla.planner.chrono_planner import ChronoQueryPlanner
-from microvla.critic import ProgressCritic, frozen_value, progress_targets
+from microvla.critic import (
+    ProgressCritic, frozen_value, progress_targets, progress_targets_eef,
+)
 from microvla.utils.embedding import standardize
 from microvla.utils.phase import pre_grasp_weights
 from microvla.utils.signals import ignore_sigterm
@@ -1412,9 +1414,16 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 rel = _relational(relational, next_emb, batch, t,
                                   box_idx, box_fade, cfg,
                                   last_action=prev_action if self_feed else None)
+                # CRITICAL: the planner must see the SAME proprio the recovery
+                # target was derived from. Computing `_step_proprio` and then
+                # calling `_noisy_proprio` again (a fresh draw, and with
+                # --recovery-noise the UNPERTURBED vector) trains "emit the
+                # correction for a displacement you cannot observe" — which is
+                # exactly the divergence-worsening signature of dag_lo/dag_hi
+                # (paper.md 5i) even after the target-clamp guard. Defect 24.
                 plan, grip, wp = planner(next_emb, current_emb=cur, state_delta=delta_t,
                                          fused=fused_t, pred_box_emb=next_box,
-                                         geometry=geom, proprio=_noisy_proprio(batch, t, args),
+                                         geometry=geom, proprio=_step_proprio,
                                          spatial=spatial, wm_msg=wm["msg"],
                                          wm_latent=wm.get("latent"), wm_delta=wm.get("delta"), relational=rel,
                                          fade=fade, return_wp=True)
@@ -1480,9 +1489,21 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                      else torch.zeros_like(recov_deltas[0])
                                      for d in recov_deltas], dim=1)   # [B,T,3]
                 target = target.clone()
-                target[..., : cfg.waypoint_dim] = (
-                    target[..., : cfg.waypoint_dim]
-                    + dcorr.unsqueeze(2)).clamp(-1.0, 1.0)
+                # Do NOT clamp the sum. Demo action + correction can still leave
+                # [-1, 1] even when |corr| <= 0.5 (e.g. 0.7 + 0.5). Clamping
+                # that sum is the same silent-discard family as defect 23: the
+                # observation still carries the full displacement, the label
+                # loses the excess, and the policy is again taught saturation.
+                # Scale the correction per (batch, t, dim) so the sum fits.
+                pose = target[..., : cfg.waypoint_dim]               # [B,T,rows,3]
+                room = (1.0 - pose.abs()).clamp_min(0.0)
+                # Broadcast dcorr across plan rows; shrink where it would saturate.
+                raw = dcorr.unsqueeze(2)                             # [B,T,1,3]
+                scale = torch.where(
+                    raw.abs() > room,
+                    room / raw.abs().clamp_min(1e-6),
+                    torch.ones_like(raw))
+                target[..., : cfg.waypoint_dim] = pose + raw * scale
             P = preds.reshape(-1, *preds.shape[2:]); G = grips.reshape(-1, grips.shape[-1])
             Y = target.reshape(-1, *target.shape[2:])
             # Pre-grasp emphasis: [B, T] mean-1 per episode, all-ones for
@@ -1593,7 +1614,14 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             # actor terms above already hold its weights fixed (frozen_value),
             # so these two objectives do not fight each other.
             if critic is not None:
-                tgt = progress_targets(T, batch["frame_embs"].shape[0], cur.device)
+                # EEF-travel progress when proprio is valid; pure time otherwise.
+                # Time-index targets teach the critic a phase signal and the
+                # actor term then reinforces the planner's phase shortcut
+                # (paper.md 4h / 5k).
+                if "proprio" in batch:
+                    tgt = progress_targets_eef(batch["proprio"])
+                else:
+                    tgt = progress_targets(T, batch["frame_embs"].shape[0], cur.device)
                 lat = batch["frame_embs"].reshape(-1, cfg.vis_dim).detach()
                 loss = loss + args.critic_weight * (
                     critic(lat) - tgt.reshape(-1)).pow(2).mean()

@@ -227,6 +227,9 @@ class MicroVLAPolicy:
         waypoint_stats: Optional[str] = None,
         heads_device: Optional[str] = None,
         waypoint_brake: bool = True,
+        ibvs_gain: float = 0.0,
+        ibvs_target_uv: tuple[float, float] = (0.5, 0.55),
+        ibvs_conf_floor: float = 0.1,
     ) -> None:
         """Builds the policy.
 
@@ -296,6 +299,13 @@ class MicroVLAPolicy:
         # and only the SCALE is wrong; it is a diagnostic, not a fix. The fix is
         # a magnitude term in the stage-B objective.
         self.action_gain = float(action_gain)
+        # Zero-training visual-servo residual (paper.md 5k). ``0`` disables.
+        # Falsifies the "frozen encoder is the ceiling" claim: if a P-controller
+        # on the detected source center moves success, the features carry the
+        # signal and the learned objective is the bottleneck.
+        self.ibvs_gain = float(ibvs_gain)
+        self.ibvs_target_uv = (float(ibvs_target_uv[0]), float(ibvs_target_uv[1]))
+        self.ibvs_conf_floor = float(ibvs_conf_floor)
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -503,6 +513,21 @@ class MicroVLAPolicy:
                     and self.cfg.brake_trust > 0.0):
                 wp_cmd = wp_cmd * min(1.0, float(result.trust) / self.cfg.brake_trust)
             action[: wp_cmd.shape[0]] = wp_cmd
+        ibvs_cmd = None
+        if (self.ibvs_gain > 0.0 and result.perception is not None
+                and float(result.perception.source.confidence) >= self.ibvs_conf_floor):
+            from microvla.utils.ibvs import ibvs_residual
+            ibvs_cmd = ibvs_residual(
+                result.perception.source.center,
+                float(result.perception.source.confidence),
+                gain=self.ibvs_gain,
+                target_uv=self.ibvs_target_uv,
+                conf_floor=self.ibvs_conf_floor,
+                action_dim=int(action.shape[0]),
+            )
+            if ibvs_cmd is not None:
+                action = action.copy()
+                action[:3] = action[:3] + ibvs_cmd[:3]
         self.telemetry.append({
             "tick_index": self._tick_index,
             "is_real": bool(fresh),
@@ -510,12 +535,14 @@ class MicroVLAPolicy:
             "trust": float(result.trust),
             "plan_norm": float(result.plan.norm().item()),
             "waypoint_cmd": None if wp_cmd is None else [float(v) for v in wp_cmd],
+            "ibvs_cmd": None if ibvs_cmd is None else [float(v) for v in ibvs_cmd[:3]],
             "action": [float(v) for v in action],
             "eef": (None if proprio is None
                     else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
             **({} if result.perception is None else {
                 "src_conf": float(result.perception.source.confidence),
                 "tgt_conf": float(result.perception.target.confidence),
+                "src_center": [float(v) for v in result.perception.source.center],
             }),
         })
         self.trust_trace.append(float(result.trust))
@@ -573,67 +600,6 @@ class MicroVLAPolicy:
         is_real = self._tick_index % self.perception_period == 0
         frame_bgr = np.ascontiguousarray(frame_rgb[..., ::-1]) if is_real else None
         result = self.loop.tick(frame_bgr, proprio=proprio)
-
-        plan = result.plan  # [plan_steps, num_servos], already trust-blended
-        action = self.normalizer.inverse(
-            plan[0].detach().cpu().numpy(), zero_center=self.zero_center_actions
-        )
-        if self.action_gain != 1.0:
-            action = action.copy()
-            action[:-1] = action[:-1] * self.action_gain
-
-        # v7.2: replace the regressed TRANSLATION with a proportional move
-        # toward the predicted end-effector position, measured against THIS
-        # tick's proprio. Needs both the head and live proprio; falls back to
-        # the plan silently for either (a step without proprio is normal on
-        # envs that do not expose it).
-        wp_cmd = None
-        if (self.actuator is not None and result.waypoints is not None
-                and proprio is not None and float(np.asarray(proprio).reshape(-1)[-1]) > 0.5):
-            wp_cmd = self.actuator.command(
-                result.waypoints.detach().cpu().numpy(),
-                np.asarray(proprio, dtype=np.float64).reshape(-1)[:3],
-                is_real=bool(result.is_real),
-            )
-            # The delta-mode brake exists because a HELD DELTA is a continued
-            # motion, so low trust must attenuate or drift compounds. A waypoint
-            # command is a positional ERROR, which is self-limiting: shrinking it
-            # does not stop the arm pursuing a wrong target, it only slows
-            # convergence toward a right one. Applied here for symmetry, and
-            # ablatable because that symmetry is an assumption, not a result
-            # (measured: 26.7% of steps braked, trust as low as 0.176).
-            if (self.waypoint_brake and self.cfg.action_space == "delta"
-                    and self.cfg.brake_trust > 0.0):
-                wp_cmd = wp_cmd * min(1.0, float(result.trust) / self.cfg.brake_trust)
-            action[: wp_cmd.shape[0]] = wp_cmd
-
-        self.telemetry.append({
-            "tick_index": self._tick_index,
-            "is_real": bool(result.is_real),
-            "trust": float(result.trust),
-            "plan_norm": float(plan.norm().item()),
-            "waypoint_cmd": None if wp_cmd is None else [float(v) for v in wp_cmd],
-            # The EMITTED action, in raw env units — what the arm was actually
-            # told to do. Its absence made "does the gripper ever close?"
-            # unanswerable without re-running with a video, and a missed grasp
-            # puts every subsequent step off-distribution.
-            "action": [float(v) for v in action],
-            # EEF position, so a trajectory can be reconstructed from telemetry
-            # alone (did it descend to the object, or go straight up?).
-            "eef": (None if proprio is None
-                    else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
-            # Grounding, on real ticks only. Separates "the detector never finds
-            # the source object" from "the detector finds it and the planner
-            # ignores it" — indistinguishable from behaviour alone, and they
-            # need opposite fixes. confidence 0 is the miss/fallback sentinel.
-            **({} if result.perception is None else {
-                "src_conf": float(result.perception.source.confidence),
-                "tgt_conf": float(result.perception.target.confidence),
-                "src_center": [float(v) for v in result.perception.source.center],
-                "tgt_center": [float(v) for v in result.perception.target.center],
-            }),
-        })
-        self.trust_trace.append(float(result.trust))
-        self._tick_index += 1
-
-        return action.astype(np.float32)
+        # One actuation path. The previous copy here drifted from `_emit`
+        # (IBVS, telemetry keys) — same defect shape as paper.md 4t-4v.
+        return self._emit(result, 0, proprio, fresh=bool(result.is_real))

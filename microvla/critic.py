@@ -17,9 +17,15 @@ directly. This is the standard substitution: learn a differentiable surrogate fo
 "how far along the task is this state", then let the planner descend it.
 
 ``ProgressCritic`` maps a canonical (standardized) frame latent to progress in
-[0, 1], supervised by position within the demonstration — a dense target rather
-than a terminal binary one, which matters because every episode in the corpus
-succeeds and a success classifier would therefore be degenerate.
+[0, 1], supervised by a dense target rather than a terminal binary one — every
+episode in the corpus succeeds, so a success classifier would be degenerate.
+
+**Target choice matters.** Supervising against ``(t+1)/T`` (pure time) teaches
+the critic to score "later-looking" frames higher. The actor term then asks for
+actions that make the world model predict later-looking latents — which
+reinforces the same PHASE shortcut the planner already over-uses (paper.md 4h).
+Prefer ``progress_targets_eef`` when proprio is valid: fraction of EEF travel
+toward the episode's final pose, which is task geometry rather than wall-clock.
 
 The planner consumes it through the world model. Fusion's 8th token is the
 previously executed action, so
@@ -75,13 +81,45 @@ class ProgressCritic(nn.Module):
 def progress_targets(T: int, B: int, device, dtype=torch.float32) -> torch.Tensor:
     """``[B, T]`` fraction-of-episode-complete targets, ``(t + 1) / T``.
 
-    Dense by construction. Every demonstration in the corpus succeeds, so a
-    terminal success label carries one bit per episode and no gradient anywhere
-    else; position within the demonstration is the same information spread over
-    every timestep.
+    Dense by construction. Prefer :func:`progress_targets_eef` when proprio is
+    available — pure time is a phase signal and fights the grounding objective.
     """
     t = torch.arange(1, T + 1, device=device, dtype=dtype) / float(T)
     return t.unsqueeze(0).expand(B, T)
+
+
+def progress_targets_eef(proprio: torch.Tensor) -> torch.Tensor:
+    """``[B, T]`` progress from EEF travel toward the episode's final pose.
+
+    ``1 - ||eef_t - eef_T|| / ||eef_0 - eef_T||``, clamped to [0, 1]. Falls
+    back to pure time for episodes whose validity flag is off (Bridge) or whose
+    start and end coincide (degenerate denominator).
+
+    This is still a demonstration-derived surrogate, not true task success —
+    but it is geometry rather than wall-clock, so maximizing it through the
+    world model asks for motions that close distance to the goal pose instead
+    of motions that merely age the latent.
+    """
+    if proprio.ndim != 3 or proprio.shape[-1] < 4:
+        raise ValueError(f"expected proprio [B,T,>=4], got {tuple(proprio.shape)}")
+    B, T, _ = proprio.shape
+    device, dtype = proprio.device, proprio.dtype
+    time_tgt = progress_targets(T, B, device, dtype)
+    eef = proprio[..., :3]
+    valid = proprio[..., -1] > 0.5                                    # [B, T]
+    # Episodes with any invalid tick fall back entirely — mixing would let a
+    # zeroed EEF (the usual missing-sensor fill) invent a false goal.
+    ep_ok = valid.all(dim=-1)                                         # [B]
+    if not bool(ep_ok.any()):
+        return time_tgt
+    final = eef[:, -1:, :]                                            # [B,1,3]
+    dist = (eef - final).norm(dim=-1)                                 # [B, T]
+    d0 = dist[:, :1].clamp_min(1e-6)
+    geom = (1.0 - dist / d0).clamp(0.0, 1.0)
+    # Degenerate path (start ≈ end): keep time.
+    degenerate = (dist[:, 0] < 1e-4).unsqueeze(-1).expand(B, T)
+    out = torch.where(degenerate, time_tgt, geom)
+    return torch.where(ep_ok.unsqueeze(-1), out, time_tgt)
 
 
 def frozen_value(critic: ProgressCritic, latent: torch.Tensor) -> torch.Tensor:

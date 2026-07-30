@@ -525,3 +525,27 @@ class TestTaskAlignedLosses:
                 "an oversized perturbation still produced a saturating target")
         finally:
             tb._RECOVERY_GAIN = old
+
+    def test_stage_b_loop_passes_recovery_proprio_to_planner(self):
+        """Defect 24: recovery computed `_step_proprio` and then discarded it.
+
+        The planner was called with a fresh `_noisy_proprio(...)` — unperturbed
+        under `--recovery-noise`, or a DIFFERENT draw under `--proprio-noise` —
+        so the corrected target described a displacement the observation did not
+        carry. That trains saturation / random directional bias and is the
+        mechanism behind dag_* making divergence worse even after the clamp
+        guard (paper.md 5i / 5k).
+        """
+        import inspect
+
+        import train.train_batched as tb
+
+        src = inspect.getsource(tb.stage_b)
+        # The bug was literally `proprio=_noisy_proprio(batch, t, args)` on the
+        # planner call after `_step_proprio` had already been computed. Pin the
+        # fix: the planner must receive `_step_proprio`.
+        assert "proprio=_step_proprio" in src, (
+            "stage_b planner call must pass the recovery-perturbed proprio")
+        # And the broken form must stay gone.
+        assert "proprio=_noisy_proprio(batch, t, args)" not in src, (
+            "stage_b still re-draws proprio for the planner — defect 24 is back")

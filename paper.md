@@ -3724,3 +3724,84 @@ And closed-loop success is 0.000. The remaining gap sits in the one part of the
 stack that was never allowed to learn. That is a defensible negative result about
 frozen-encoder VLAs at this scale, and it is not the result this project set out
 to report.
+
+## 5k. Fresh-mind audit — flaws in 5j, defect 24, and the plan that follows
+
+Read against the session that produced 5j and against this document as a whole.
+Three conclusions in 5j do not survive scrutiny; one new defect explains why the
+recovery arms could not have worked; and the paper's opening claims are no longer
+the right target.
+
+### Flaw 1 — "frozen features are the ceiling" overclaims the probe
+
+The 8x8 grid probe is a clean negative on *resolution*: resampling P5 does not
+add information. It is **not** a measurement that fine-tuning the backbone is
+the only remaining lever.
+
+* Pose **corr** from `spatial_grid` alone is **0.465**. Features constrain
+  direction. Pose **R²** of 0.07–0.13 means a *linear* map cannot uniquely
+  determine the action — expected under multimodal continuous control, not proof
+  that the encoder lacks a usable error signal.
+* The trained policy already **beats** the linear probe (corr 0.59–0.69 vs
+  0.415). Capacity on these features is not exhausted.
+* Recovery training was **never validly tested** (defect 23, then defect 24
+  below). Declaring the encoder the ceiling before a correct recovery arm is
+  premature.
+* Fine-tuning YOLO-World breaks the design's central bet (Claim 6) and needs a
+  frames-bearing re-bake. It is the expensive last resort, not the next step.
+
+### Flaw 2 — the progress critic, as wired, reinforced the phase shortcut
+
+`--critic-weight` supervised against `(t+1)/T` — pure wall-clock. The actor term
+then asked the planner for actions that make the world model predict
+"later-looking" latents. That is the same PHASE signal 4h measured the planner
+already over-using. A task-aligned critic must score geometry (EEF travel toward
+the episode's final pose), not time. Fixed: `progress_targets_eef`.
+
+### Flaw 3 — the paper's Claim 1/2 framing is currently unreachable
+
+Claim 1's kill bar (`<30%` where big models exceed 80%) is met. Claim 2
+(perception-rate decoupling) cannot be measured at `mean_success = 0.000`. The
+honest paper right now is the forensic / systems paper already assembled in the
+skeleton (§PAPER SKELETON): interface defects that leave open-loop metrics healthy
+while closed-loop reads zero. AIAYN framing in the opening is aspirational debt.
+
+### Defect 24 — recovery proprio was computed and discarded
+
+`--recovery-noise` built `_step_proprio` (perturbed EEF) and a corrected target,
+then called the planner with `_noisy_proprio(batch, t, args)` — the
+**unperturbed** vector when recovery is on, or a **fresh independent draw** when
+`--proprio-noise` is on. The label described a displacement the observation did
+not carry. That trains "emit a correction you cannot see", which produces
+exactly the divergence-worsening signature of `dag_lo` / `dag_hi` even after the
+target-clamp guard of 5i. Fixed: `proprio=_step_proprio`. The sum
+`demo_action + correction` is no longer silently clamped either — corrections
+are scaled per-dim to fit `[-1, 1]` so the observation and label stay matched.
+
+Pinned by `tests/test_v8_train_path.py::test_stage_b_loop_passes_recovery_proprio_to_planner`.
+
+### What to run next (ordered by cost and falsifiability)
+
+1. **IBVS residual, zero training** (`--ibvs-gain 0.05..0.2` on
+   `eval.libero_eval`). A P-controller on the detected source center. If success
+   moves, frozen features are NOT the ceiling and 5j is retracted. If it does
+   not, the encoder hypothesis gains weight — *after* a measurement, not before.
+2. **Re-run recovery with defect 24 fixed** (`--recovery-noise 0.01`, same
+   clean recipe as `rec_mid` + variance matching). Report the divergence curve
+   at step 20; success is secondary.
+3. **Critic + light dreamer on the fixed recipe**
+   (`--critic-weight 0.1 --progress-weight 0.05 --dream-weight 0.01
+   --dream-horizon 2 --variance-weight 0.1 --action-token-sampling 0.5
+   --recovery-noise 0.01`). Dream weight stays tiny: the world model is real
+   (`wm_margin +43.3%` on v8_s0) but still exploitable.
+4. **Only then** consider a finer backbone *layer* (P3/P4 hook, not P5
+   resample) or a partial neck fine-tune. Full-backbone fine-tune remains the
+   design-breaking last resort.
+
+### Retracted from 5j
+
+The sentence "the remaining gap sits in the one part of the stack that was never
+allowed to learn" is suspended. The gap sits in a stack whose recovery path was
+broken, whose critic target was a phase signal, and whose frozen-ceiling claim
+was inferred from a resolution probe that does not license it. Measure (1)–(3)
+before touching the encoder.
