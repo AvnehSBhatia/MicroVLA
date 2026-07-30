@@ -96,6 +96,50 @@ policy's place prior), or gating place-phase motion on a grasped condition.
 The falsifier's approach evidence (sweep stages c–e above) says the features
 support the servo half of that plan.
 
+## Postscript 3 — phased falsifier (0c2a35e): the failure stage is GROUNDING PRECISION
+
+`--ibvs-phase` gives the state machine full ownership of the action
+(servo/grasp/lift/place from detections + proprio, zero training; see
+`eval/ibvs_phase.py`). Run on `libero_object` tasks 0–2, honest protocol
+(`eval_results/ibvs_phase/`): `mean_success` 0.000, `grip_close_rate`
+**0.000** — the machine never left the servo phase. But its intermediates and
+video (`eval_results/videos_phase/`) isolate the cause definitively:
+
+* Detection duty is now ~**0.98** at conf 0.12–0.27 — the machine keeps the
+  table in view, so recall is no longer the issue.
+* **The box is on the wrong object.** Task 2's stable "salad dressing"
+  detection is the BASKET (video: the wrist centers the basket liner and
+  descends onto it, error dutifully converging to 0.10). Tasks 0–1 never
+  converge because the box **teleports between objects**: median
+  frame-to-frame movement is 0.008 (stable tracking), but 20–26% of
+  consecutive fixes jump > 0.15 in normalized image coords — the argmax
+  detection re-binds to a different physical object every ~4–5 fixes. A
+  P-controller cannot servo a target that teleports 5×/s.
+
+Combined with postscripts 1–2, every stage is now measured:
+
+| stage | verdict | evidence |
+|---|---|---|
+| recall | fixed | det duty 0.13–0.46 → 0.98 (`det_conf` 0.02, render 256) |
+| **binding (which object)** | **BROKEN — the bottleneck** | box on basket at conf 0.15; 20–26% teleport rate |
+| servo mechanics | works | converges err→0.10 whenever the box is stable |
+| grasp/lift sequencing | works (unit-tested); unreached in sim | gated behind binding |
+| learned policy phase structure | broken separately | postscript 2 (parks in basket) |
+
+So 5j returns in a sharper, defensible form: the ceiling is not "features
+lack geometric information" (they demonstrably support servoing) — it is that
+**open-vocabulary detection at this scale cannot stably bind the language
+phrase to the correct object**, and everything downstream starves. Precision
+and recall trade off with no operating point that yields a stable, correct
+box.
+
+Cheapest falsifiable next lever (zero training, eval-side): **temporal box
+association** — servo the detection nearest the previously tracked box (IOU/
+distance-gated) instead of the per-frame argmax, which directly attacks the
+teleporting; plus a CLIP re-rank of candidate boxes against the source phrase
+for initial binding. If binding stabilizes and the machine still can't grasp,
+THEN the encoder is the ceiling with no asterisks left.
+
 ## Method (reproducible)
 
 Group telemetry rows by (run, task, trial); per trial compute: detection rate
