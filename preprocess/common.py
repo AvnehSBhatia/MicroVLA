@@ -246,7 +246,10 @@ class EpisodeBuilder:
             from microvla.perception.text_encoder import ClipTaskEncoder
             from microvla.perception.yolo_world import YoloWorldPerception
 
-            self.perception = YoloWorldPerception(device=device, grid_size=grid_size)
+            # det_conf from cfg, NOT the detector class default: the robot
+            # reads the same field, so the two sides cannot drift (defect 26).
+            self.perception = YoloWorldPerception(
+                device=device, grid_size=grid_size, det_conf=cfg.det_conf)
             self.task_encoder = ClipTaskEncoder(self.perception)
         # CLIP text encoding costs ~1-2 s per call; datasets repeat the same
         # instruction across many demos (LIBERO: 50 demos/instruction), so
@@ -396,6 +399,7 @@ def run_conversion(
     teacher=None,
     store_frames: bool = False,
     grid_size: int = 0,
+    provenance: dict | None = None,
 ) -> Path:
     """Two-pass conversion driver: fit action stats, then write episodes.
 
@@ -417,6 +421,11 @@ def run_conversion(
             distillation; wrap with ``CachedTeacher`` so the teacher runs
             once across the two passes). Stats are fitted on the teacher
             actions, so the planner distills the teacher's distribution.
+        provenance: Extra dataset-specific facts to record in
+            ``manifest.json``'s ``provenance`` block — the LIBERO converter
+            passes the camera and the de-flip. Anything a DEPLOYMENT must
+            reproduce belongs here; the shared knobs read off ``cfg`` are
+            added automatically.
 
     Returns:
         The output directory path.
@@ -434,6 +443,7 @@ def run_conversion(
                 ep = dataclasses.replace(ep, actions=teacher.relabel(ep))
             yield ep
 
+    provenance = dict(provenance or {})
     logger.info("pass 1/2: fitting SYMMETRIC action normalization stats")
     normalizer = ActionNormalizer.fit_symmetric(ep.actions for ep in _take(episodes()))
     normalizer.save(out / "norm_stats.json")
@@ -453,9 +463,23 @@ def run_conversion(
         if (n + 1) % 50 == 0:
             logger.info("  %d episodes written", n + 1)
 
+    # The corpus SELF-DESCRIBES the conditions the robot must reproduce. Three
+    # of the 26 defects so far were a deployment knob silently differing from
+    # the value the corpus was built with (camera, detector threshold,
+    # perception period); none was catchable from the .npz files, because the
+    # .npz files did not say. `provenance` is what makes a mismatch checkable.
     (out / "manifest.json").write_text(
         json.dumps(
             {"label_source": type(teacher).__name__ if teacher else "dataset",
+             "provenance": {
+                 "det_conf": float(cfg.det_conf),
+                 "real_frame_hz": float(cfg.real_frame_hz),
+                 "max_objects": int(cfg.max_objects),
+                 "grid_size": int(grid_size),
+                 "vis_dim": int(cfg.vis_dim),
+                 "perception": type(builder.perception).__name__,
+                 **provenance,
+             },
              "episodes": manifest},
             indent=2,
         )

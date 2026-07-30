@@ -188,6 +188,17 @@ class MicroVLAConfig:
     # operates on the same state the planner is conditioned on.
     max_objects: int = 8            # K proposals kept per frame (data-rich: full
                                     # 512-d each, no [32,5] bottleneck)
+    # Detector score threshold, shared by the BAKE and the ROBOT. It has to be
+    # one number: it decides which boxes exist at all, and every surviving box
+    # carries its confidence into fusion's `box_weight` fade, so a threshold
+    # that differs between the two sides puts evidence mass at deployment
+    # exactly where training had none. The bake used the detector class default
+    # (0.10) while eval/policy.py passed 0.02 — defect 26, and the asymmetry was
+    # even documented in eval/policy.py's docstring rather than reconciled.
+    # 0.02 is the measured operating point: on agentview it grounds the source
+    # role on 85% of frames with 2.82 proposals/frame, against 0.10's sparser
+    # scene (paper.md 5n).
+    det_conf: float = 0.02
     rel_dim: int = 384              # relational token width
     rel_tokens: int = 12            # tokens emitted to the planner
     rel_layers: int = 2

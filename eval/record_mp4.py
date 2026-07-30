@@ -25,6 +25,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+from microvla.config import DEFAULT_CONFIG
 from microvla.utils.camera import AGENTVIEW, ENV_KEY, WRIST, upright
 from microvla.utils.signals import ignore_sigterm
 
@@ -103,7 +104,9 @@ def main(argv=None) -> None:
                          "checkpoint was trained on. Both cameras are filmed "
                          "either way — this only selects which one drives act().")
     ap.add_argument("--perception-period", type=int, default=15)
-    ap.add_argument("--det-conf", type=float, default=0.02)
+    ap.add_argument("--det-conf", type=float, default=DEFAULT_CONFIG.det_conf,
+                    help="detector threshold; defaults to cfg.det_conf, which is "
+                         "what the corpus was baked with (defect 26).")
     ap.add_argument("--no-brake", action="store_true")
     ap.add_argument("--ibvs-gain", type=float, default=0.0)
     ap.add_argument("--ibvs-sign", default="1,-1,0")

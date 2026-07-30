@@ -179,7 +179,7 @@ def _load_relaxed(module, sd, name: str) -> None:
         )
 
 
-def _build_real_perception(device: str, det_conf: float = 0.02):
+def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_conf):
     """Lazily builds the real ``YoloWorldPerception`` + ``ClipTaskEncoder``.
 
     Mirrors ``JEPALoop.build_real``'s construction exactly. Only called when
@@ -187,11 +187,12 @@ def _build_real_perception(device: str, det_conf: float = 0.02):
     that inject mocks never trigger the ``ultralytics``/``torchvision``
     imports this needs.
 
-    ``det_conf`` defaults to 0.02 at eval (bake keeps the class default 0.10).
-    Closed-loop on libero_object wrist measured source detection on only
-    ~20% of real ticks at 0.10 / mean conf 0.04 — below the floor the IBVS
-    residual and the planner's geometry path need. Text-region bake already
-    uses 0.02; eval was the outlier.
+    ``det_conf`` comes from ``cfg.det_conf``, which the BAKE also reads
+    (``preprocess/common.py``). It used to be 0.02 here against the detector
+    class default 0.10 there — defect 26. The threshold decides which boxes
+    exist, and each surviving box carries its confidence into fusion's
+    ``box_weight`` fade, so a split threshold hands the deployed policy
+    evidence weights that training never produced.
     """
     from microvla.perception.text_encoder import ClipTaskEncoder
     from microvla.perception.yolo_world import YoloWorldPerception
@@ -249,7 +250,7 @@ class MicroVLAPolicy:
         ibvs_phase: bool = False,
         ibvs_track_gate: float = 0.0,
         ibvs_clip_rerank: bool = False,
-        det_conf: float = 0.02,
+        det_conf: float = DEFAULT_CONFIG.det_conf,
     ) -> None:
         """Builds the policy.
 

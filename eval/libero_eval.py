@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
+from microvla.config import DEFAULT_CONFIG
 from microvla.utils.camera import ENV_KEY, upright
 from microvla.utils.signals import ignore_sigterm
 
@@ -638,7 +639,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
-    p.add_argument("--det-conf", type=float, default=0.02,
+    p.add_argument("--det-conf", type=float, default=DEFAULT_CONFIG.det_conf,
                    help="YOLO-World confidence floor at EVAL (bake stays at "
                         "0.10). Closed-loop wrist detection was ~20%% at 0.10; "
                         "0.02 matches the text-region bake path.")

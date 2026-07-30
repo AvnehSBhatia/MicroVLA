@@ -726,7 +726,9 @@ class JEPALoop:
         from microvla.perception.yolo_world import YoloWorldPerception
 
         cfg = cfg or DEFAULT_CONFIG
-        perception = YoloWorldPerception(device=device)
+        # Same threshold the bake used (defect 26). A third construction site
+        # holding a fourth default is how this class of defect propagates.
+        perception = YoloWorldPerception(device=device, det_conf=cfg.det_conf)
         if trm is None:
             logger.warning(
                 "No TRM provided to build_real(); falling back to the MockTRM "

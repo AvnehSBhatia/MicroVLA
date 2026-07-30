@@ -220,6 +220,13 @@ def main(argv: list[str] | None = None) -> None:
                         action="store_true",
                         help="row-flip frames upright (the default).")
     parser.set_defaults(deflip=True)
+    parser.add_argument("--det-conf", type=float, default=None,
+                        help="OVERRIDE cfg.det_conf (%(default)s = use the config "
+                             "value, currently the one eval/policy.py also reads). "
+                             "The bake used to take the detector class default "
+                             "0.10 while eval passed 0.02 -- defect 26. Whatever "
+                             "you set is recorded in manifest.json provenance, and "
+                             "the robot must be run with the same number.")
     parser.add_argument("--frame-hz", type=float, default=None,
                         help="OVERRIDE cfg.real_frame_hz for this bake, i.e. the "
                              "sampling rate. The default 2 Hz keeps 1 frame in 10 "
@@ -275,6 +282,11 @@ def main(argv: list[str] | None = None) -> None:
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)
     cfg = DEFAULT_CONFIG
+    if args.det_conf is not None:
+        import dataclasses
+        cfg = dataclasses.replace(cfg, det_conf=float(args.det_conf))
+        logger.info("detector threshold %.3f (cfg default %.3f)",
+                    args.det_conf, DEFAULT_CONFIG.det_conf)
     if args.frame_hz is not None:
         import dataclasses
         cfg = dataclasses.replace(cfg, real_frame_hz=float(args.frame_hz))
@@ -287,6 +299,10 @@ def main(argv: list[str] | None = None) -> None:
                                      deflip=args.deflip),
         args.out,
         cfg=cfg,
+        provenance={"camera": args.camera, "detect_camera": args.detect_camera,
+                    "deflip": bool(args.deflip),
+                    "eval_camera": {"eye_in_hand_rgb": "robot0_eye_in_hand_image",
+                                    "agentview_rgb": "agentview_image"}[args.camera]},
         grid_size=args.spatial_grid,
         mock=args.dry_run,
         device=args.device,

@@ -1,0 +1,3 @@
+[CURSOR_PING] 2026-07-30T06:56Z paper lock done
+night_sighted: success=0.000 detect=0.719 eef_min=0.132m grip_close=0.653
+rec_fix best val bc 0.0881. Claim1 kill-bar DROPPED. Front matter = forensic skeleton.
