@@ -556,6 +556,11 @@ def _trm_context(batch, t, cur, cfg):
 #: actuator divides by, so a recovery target computed here is executable.
 _RECOVERY_GAIN = torch.tensor([0.0109, 0.0131, 0.0118])
 
+#: Largest recovery correction allowed, in normalized action units. Half the
+#: range: the policy must be able to undo the displacement in ~2 steps, so the
+#: target it is trained on is one it could actually emit.
+_RECOVERY_MAX_CORR: float = 0.5
+
 
 def _recovery_batch(batch, t, args, cfg, act_scale):
     """Perturbed proprio + the action target that CANCELS the perturbation.
@@ -583,7 +588,25 @@ def _recovery_batch(batch, t, args, cfg, act_scale):
     pro[:, :d] = pro[:, :d] + delta
     gain = _RECOVERY_GAIN.to(pro.device)
     scale = act_scale[:d].to(pro.device) if act_scale is not None else torch.ones(d, device=pro.device)
-    return pro, -(delta / gain.clamp_min(1e-6)) / scale.clamp_min(1e-6)
+    corr = -(delta / gain.clamp_min(1e-6)) / scale.clamp_min(1e-6)
+    # The correction has to be EXECUTABLE. One full-magnitude action step moves
+    # only `gain` metres (~11 mm here), so a displacement of 15 mm needs ~1.4
+    # steps of saturated motion and its correction is 1.47 in normalized units --
+    # outside the [-1, 1] the target lives in. Clamping the target then silently
+    # discards the excess and trains the policy to emit MAXIMUM motion
+    # constantly, which is measurably worse than no augmentation at all:
+    # divergence at step 20 went 5.34 cm (none) -> 8.65 cm (15 mm) -> 12.82 cm
+    # (35 mm), monotonic in delta. Refuse instead of clamping.
+    worst = float(corr.abs().max())
+    if worst > _RECOVERY_MAX_CORR:
+        raise SystemExit(
+            f"--recovery-noise {eps} m implies a correction of {worst:.2f} in "
+            f"normalized action units, over the {_RECOVERY_MAX_CORR} budget "
+            f"(the action range is [-1, 1] and one step moves ~"
+            f"{float(gain.min())*1000:.0f} mm). A displacement the policy cannot "
+            f"undo in one step trains a saturated target, not a recovery. Use "
+            f"<= {_RECOVERY_MAX_CORR * float((gain * scale).min()) * 1000:.0f} mm.")
+    return pro, corr
 
 
 def _noisy_proprio(batch, t, args):

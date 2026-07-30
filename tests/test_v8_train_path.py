@@ -464,7 +464,9 @@ class TestTaskAlignedLosses:
         cfgd = cfg
         B_, T_ = 3, 4
         batch = {"proprio": torch.zeros(B_, T_, 10)}
-        gain = torch.tensor([0.01, 0.02, 0.04])
+        # Large gains keep the implied correction inside the executability
+        # budget for this unit test; the budget itself is asserted separately.
+        gain = torch.tensor([1.0, 2.0, 4.0])
         scale = torch.tensor([0.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0])
         old = tb._RECOVERY_GAIN
         tb._RECOVERY_GAIN = gain
@@ -491,3 +493,31 @@ class TestTaskAlignedLosses:
         pro, d = tb._recovery_batch(batch, 1, argparse.Namespace(recovery_noise=0.0),
                                     cfg, None)
         assert d is None and torch.equal(pro, batch["proprio"][:, 1])
+
+    def test_an_unexecutable_displacement_is_refused_not_clamped(self, cfg):
+        """A correction beyond the action range must raise, not silently clamp.
+
+        One full-magnitude step moves ~11 mm, so a 15 mm displacement implies a
+        1.47-unit correction against a [-1, 1] target range. Clamping discards
+        the excess and trains the policy to emit MAXIMUM motion constantly --
+        measurably worse than no augmentation: divergence at step 20 went
+        5.34 cm (none) -> 8.65 cm (15 mm) -> 12.82 cm (35 mm), monotonic in the
+        perturbation. That is paper.md 5i.
+        """
+        import argparse
+
+        import pytest
+        import torch
+
+        import train.train_batched as tb
+
+        batch = {"proprio": torch.zeros(4, 3, 10)}
+        old = tb._RECOVERY_GAIN
+        tb._RECOVERY_GAIN = torch.tensor([0.0109, 0.0131, 0.0118])
+        try:
+            with pytest.raises(SystemExit, match="normalized action units"):
+                tb._recovery_batch(batch, 1,
+                                   argparse.Namespace(recovery_noise=0.015),
+                                   cfg, torch.ones(cfg.num_servos))
+        finally:
+            tb._RECOVERY_GAIN = old
