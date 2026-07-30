@@ -93,6 +93,18 @@ def main(argv=None) -> None:
     ap.add_argument("--zero-center-actions", action="store_true",
                     help="denormalize actions zero-centered (x=0 -> no motion), so a "
                          "collapsed policy stays still instead of drifting into a wall.")
+    # Deployment knobs that change WHAT policy the video shows — mirrored from
+    # eval/libero_eval so a recording can reproduce a scored configuration
+    # exactly (a video of a different config answers a different question).
+    ap.add_argument("--perception-period", type=int, default=15)
+    ap.add_argument("--det-conf", type=float, default=0.02)
+    ap.add_argument("--no-brake", action="store_true")
+    ap.add_argument("--ibvs-gain", type=float, default=0.0)
+    ap.add_argument("--ibvs-sign", default="1,-1,0")
+    ap.add_argument("--ibvs-descend", type=float, default=0.0)
+    ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
+    ap.add_argument("--task-ids", default=None,
+                    help="comma-separated task ids; overrides the random pick")
     args = ap.parse_args(argv)
     ignore_sigterm()
 
@@ -104,7 +116,10 @@ def main(argv=None) -> None:
     bench = benchmark.get_benchmark_dict()[args.suite]()
     n_tasks = bench.n_tasks
     rng = random.Random(args.seed)
-    task_ids = rng.sample(range(n_tasks), k=min(args.n_videos, n_tasks))
+    if args.task_ids:
+        task_ids = [int(t) for t in args.task_ids.split(",")][: args.n_videos]
+    else:
+        task_ids = rng.sample(range(n_tasks), k=min(args.n_videos, n_tasks))
     # if more videos than tasks, allow repeats (different init states)
     while len(task_ids) < args.n_videos:
         task_ids.append(rng.randrange(n_tasks))
@@ -119,7 +134,14 @@ def main(argv=None) -> None:
     policy = MicroVLAPolicy(checkpoint=args.checkpoint, norm_stats=args.norm_stats,
                             device=args.device, zero_center_actions=args.zero_center_actions,
                             waypoint_stats=args.waypoint_stats,
-                            heads_device=args.heads_device)
+                            heads_device=args.heads_device,
+                            perception_period=args.perception_period,
+                            det_conf=args.det_conf,
+                            no_brake=args.no_brake,
+                            ibvs_gain=args.ibvs_gain,
+                            ibvs_conf_floor=args.ibvs_conf_floor,
+                            ibvs_sign=tuple(float(v) for v in args.ibvs_sign.split(",")),
+                            ibvs_descend=args.ibvs_descend)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)
