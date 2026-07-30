@@ -199,6 +199,22 @@ class MicroVLAConfig:
     # role on 85% of frames with 2.82 proposals/frame, against 0.10's sparser
     # scene (paper.md 5n).
     det_conf: float = 0.02
+    # Reject a SOURCE box that overlaps the TARGET box by more than this IoU,
+    # and take the source chain's next candidate instead. 0.0 disables.
+    #
+    # Measured need: on the agentview libero_object corpus the two roles resolve
+    # to the SAME box on 40.9% of frames where both are detected. The source
+    # chain falls through its exact phrase ("alphabet soup", which YOLO-World
+    # scores 0.000) to a generic tail ("box", "can"), and the basket is the most
+    # box-like thing in the scene -- so on 4 frames in 10 the policy is told the
+    # object to pick up is exactly where it must be put. Every task in the
+    # corpus is "pick up X and place it in the basket", so source == target is
+    # definitionally wrong, which makes this checkable without any label.
+    #
+    # Shared by the bake and the robot like det_conf, and recorded in
+    # manifest.json provenance, because a corpus baked with a different value
+    # is a different corpus.
+    role_disjoint_iou: float = 0.0
     rel_dim: int = 384              # relational token width
     rel_tokens: int = 12            # tokens emitted to the planner
     rel_layers: int = 2

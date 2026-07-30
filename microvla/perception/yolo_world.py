@@ -121,8 +121,13 @@ class YoloWorldPerception:
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
                  det_conf: float = 0.10, min_side: int = 512,
                  max_proposals: int | None = None,
-                 grid_size: int = 0) -> None:
+                 grid_size: int = 0, role_disjoint_iou: float = 0.0) -> None:
         self.det_conf = det_conf
+        #: IoU above which a SOURCE candidate is rejected for landing on the
+        #: TARGET's box; 0.0 disables. Shared by the bake and the robot through
+        #: cfg.role_disjoint_iou -- a corpus baked with a different value is a
+        #: different corpus, so it is recorded in manifest.json provenance.
+        self.role_disjoint_iou = float(role_disjoint_iou)
         # Class-agnostic proposal cap. Defaults to cfg.max_objects so the baked
         # object tensor and the model's K agree by construction.
         if max_proposals is None:
@@ -314,6 +319,10 @@ class YoloWorldPerception:
 
             frame_h, frame_w = frame_bgr.shape[:2]
             best_by_class: dict[int, tuple[float, torch.Tensor]] = {}
+            # EVERY detection per class, confidence-descending. The role
+            # resolver needs the runners-up, not only the argmax, so it can
+            # skip a candidate that lands on the other role's object.
+            all_by_class: dict[int, list[tuple[float, torch.Tensor]]] = {}
             boxes = results[0].boxes
             if boxes is not None and len(boxes) > 0:
                 cls_ids = boxes.cls
@@ -322,9 +331,13 @@ class YoloWorldPerception:
                 for i in range(len(boxes)):
                     cid = int(cls_ids[i].item())
                     conf = float(confs[i].item())
+                    xy = xyxys[i].detach().float()
+                    all_by_class.setdefault(cid, []).append((conf, xy))
                     prev = best_by_class.get(cid)
                     if prev is None or conf > prev[0]:
-                        best_by_class[cid] = (conf, xyxys[i].detach().float())
+                        best_by_class[cid] = (conf, xy)
+                for v in all_by_class.values():
+                    v.sort(key=lambda t: -t[0])
 
             def _fallback() -> BoxObs:
                 return BoxObs(
@@ -389,18 +402,57 @@ class YoloWorldPerception:
                         break
                 return tuple(out)
 
-            def _box_for_role(role_idx: int) -> BoxObs:
+            def _iou(a: torch.Tensor, b: torch.Tensor) -> float:
+                x1 = max(float(a[0]), float(b[0]))
+                y1 = max(float(a[1]), float(b[1]))
+                x2 = min(float(a[2]), float(b[2]))
+                y2 = min(float(a[3]), float(b[3]))
+                if x2 <= x1 or y2 <= y1:
+                    return 0.0
+                inter = (x2 - x1) * (y2 - y1)
+                area_a = max(float(a[2]) - float(a[0]), 0.0) * max(float(a[3]) - float(a[1]), 0.0)
+                area_b = max(float(b[2]) - float(b[0]), 0.0) * max(float(b[3]) - float(b[1]), 0.0)
+                union = area_a + area_b - inter
+                return inter / union if union > 0 else 0.0
+
+            def _box_for_role(role_idx: int,
+                              avoid: Optional[torch.Tensor] = None) -> BoxObs:
                 # Preference order: take the best box of the first prompt
                 # (most specific -> bare noun) that actually detected anything.
+                #
+                # `avoid` is the other role's box. The source chain falls
+                # through its exact phrase to a generic tail, and the most
+                # box-like thing in a libero_object scene is the basket -- the
+                # TARGET. Measured: the two roles resolve to the same box on
+                # 40.9% of agentview frames. Every task is "pick up X and place
+                # it in the basket", so source == target is definitionally
+                # wrong, and skipping to the chain's next candidate is a
+                # label-free correction.
+                thr = float(getattr(self, "role_disjoint_iou", 0.0) or 0.0)
                 for cid in self._role_class_ids[role_idx]:
+                    cands = (all_by_class.get(cid) or []) if thr > 0.0 else []
+                    if thr > 0.0 and avoid is not None and cands:
+                        for conf, xy in cands:
+                            if _iou(xy, avoid) <= thr:
+                                return _box_from_xyxy(xy, conf)
+                        continue        # every candidate of this class is the other role
                     if best_by_class.get(cid) is not None:
                         return _box_for_class(cid)
                 return _fallback()
 
             if self._role_class_ids:
                 # Role-prompt API (spatial grounding): role -> preferred class id.
-                source = _box_for_role(0)
-                target = _box_for_role(1) if len(self._role_class_ids) > 1 else source
+                # TARGET first, then SOURCE avoiding it: the target ("basket")
+                # grounds on 99.9% of agentview frames at conf ~0.5 while the
+                # source falls back to a generic tail, so the target is the
+                # reliable anchor and the source is the role worth re-picking.
+                if len(self._role_class_ids) > 1:
+                    target = _box_for_role(1)
+                    avoid = target.xyxy if target.confidence > 0.0 else None
+                    source = _box_for_role(0, avoid=avoid)
+                else:
+                    source = _box_for_role(0)
+                    target = source
             else:
                 # Legacy positional API: role i == class id i.
                 n_active = len(self._active_classes)

@@ -761,7 +761,8 @@ class JEPALoop:
         # grid_size, or perceive() never produces the coarse grid and TQSA is
         # fed a raw feature map the trainer never showed it.
         perception = YoloWorldPerception(device=device, det_conf=cfg.det_conf,
-                                         grid_size=cfg.tqsa_grid)
+                                         grid_size=cfg.tqsa_grid,
+                                         role_disjoint_iou=cfg.role_disjoint_iou)
         if trm is None:
             logger.warning(
                 "No TRM provided to build_real(); falling back to the MockTRM "

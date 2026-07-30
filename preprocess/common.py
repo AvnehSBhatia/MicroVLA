@@ -249,7 +249,8 @@ class EpisodeBuilder:
             # det_conf from cfg, NOT the detector class default: the robot
             # reads the same field, so the two sides cannot drift (defect 26).
             self.perception = YoloWorldPerception(
-                device=device, grid_size=grid_size, det_conf=cfg.det_conf)
+                device=device, grid_size=grid_size, det_conf=cfg.det_conf,
+                role_disjoint_iou=cfg.role_disjoint_iou)
             self.task_encoder = ClipTaskEncoder(self.perception)
         # CLIP text encoding costs ~1-2 s per call; datasets repeat the same
         # instruction across many demos (LIBERO: 50 demos/instruction), so
@@ -479,6 +480,7 @@ def run_conversion(
             {"label_source": type(teacher).__name__ if teacher else "dataset",
              "provenance": {
                  "det_conf": float(cfg.det_conf),
+                 "role_disjoint_iou": float(cfg.role_disjoint_iou),
                  "real_frame_hz": float(cfg.real_frame_hz),
                  "max_objects": int(cfg.max_objects),
                  "grid_size": int(grid_size),
