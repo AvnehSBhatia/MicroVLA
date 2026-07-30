@@ -4000,3 +4000,63 @@ to ~0.1–0.4 and left `grip_close_rate` at 0 — same as CLIP re-rank. On this
 detector, `"box"` carries most grocery recall; stripping it without a working
 semantic binder only swaps wrong-object binding for no-object. Reverted in
 prompts; both attempts stay documented as measured negatives under §5m.
+
+### Defect 26 — the detector threshold was two numbers
+
+Found while fixing 25, in the same file the bake builds perception in. Three
+sites construct the real detector, and they disagreed:
+
+| site | `det_conf` |
+|---|---|
+| `preprocess/common.py` (the bake) | 0.10 — the class default, never passed |
+| `microvla/jepa/loop.py::build_real` | 0.10 — same omission |
+| `eval/policy.py` (what eval actually used) | 0.02 |
+
+The asymmetry was *written down* — `eval/policy.py`'s docstring said "bake keeps
+the class default 0.10" — and left standing. It is consequential twice: the
+threshold decides which boxes exist at all, and every surviving box carries its
+confidence into fusion's `box_weight` fade, so a split threshold hands the
+deployed policy evidence weights the training distribution never contained.
+`cfg.det_conf` is now the single value all three read.
+
+### The instrument: corpora that describe themselves
+
+Four of the 26 defects are one sentence with a different noun — *the deployment
+used a different camera / detector threshold / render size / perception period
+than the corpus was baked with*. None raises anything. Each surfaces as
+`mean_success 0.000`, which is indistinguishable from a policy that does not
+work, and each cost days.
+
+Their common root cause is not in any file: **the corpus did not record what
+produced it**, so no consumer could check. `run_conversion` now writes a
+`provenance` block into `manifest.json` (camera, `eval_camera`, deflip,
+`det_conf`, `real_frame_hz`, `source_hz`, `detect_frame_hw`, `max_objects`,
+`grid_size`), and `microvla/utils/provenance.py` is the consumer side, called by
+`eval/libero_eval.py` before it scores anything. Mismatches are logged as ERROR
+and written into the results JSON, so a number whose deployment did not match
+its corpus stays self-identifying after the scrollback is gone.
+`--strict-provenance` refuses to run at all.
+
+It immediately flags a live one: the bake reads 128 px hdf5 frames while eval
+renders at `--render-size 256`, and the two upscale differently into the
+detector's 512 px short side. §5o scores both.
+
+This is the generalizable claim of the systems half of the paper: in a stack
+built from frozen encoders and offline-baked features, **the feature corpus is
+an interface, and an interface with no schema will drift**. Twenty-six defects,
+and the ones that survived longest are all of this shape.
+
+### Not a defect: the evidence path sees two boxes
+
+Checked while hunting 27 and reported as a negative. `EvidenceEncoder` — the
+TRM's entire view of the scene — is fed by `pack_objects`, which puts the source
+role in slot 0, the target in slot 1, and zeros in the remaining
+`cfg.max_objects - 2`. The trainer (`train/train_batched.py::_obj_tokens`) and
+the robot (`microvla/v8.py::FusionAdapter`) do the *same* thing, so there is no
+parity break; the relational head separately receives the full baked proposal
+set on both sides (`objects_from_batch` / `JEPALoop._rel_tokens`).
+
+What is true is narrower, and only became material with 25: on agentview the
+detector supplies 2.82 proposals per frame that the world model's evidence port
+cannot see. That is an underuse, not a mismatch, and changing it is deliberately
+held out of the 25 experiment so the camera is the only variable.
