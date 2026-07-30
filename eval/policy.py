@@ -246,6 +246,7 @@ class MicroVLAPolicy:
         ibvs_conf_floor: float = 0.1,
         ibvs_sign: tuple[float, float, float] = (1.0, -1.0, 0.0),
         ibvs_descend: float = 0.0,
+        ibvs_phase: bool = False,
         det_conf: float = 0.02,
     ) -> None:
         """Builds the policy.
@@ -325,6 +326,17 @@ class MicroVLAPolicy:
         self.ibvs_conf_floor = float(ibvs_conf_floor)
         self.ibvs_sign = tuple(float(v) for v in ibvs_sign)
         self.ibvs_descend = float(ibvs_descend)
+        # Phased mode OWNS the action (servo/grasp/lift/place state machine)
+        # instead of adding a residual — see eval/ibvs_phase.py for why
+        # blending can never work when the prior skips the grasp phase.
+        self.ibvs_machine = None
+        self._phase_action = None
+        if ibvs_phase:
+            from eval.ibvs_phase import PhasedIBVS
+            self.ibvs_machine = PhasedIBVS(
+                gain=self.ibvs_gain, sign=self.ibvs_sign,
+                descend=self.ibvs_descend, target_uv=self.ibvs_target_uv,
+                conf_floor=self.ibvs_conf_floor)
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -506,6 +518,9 @@ class MicroVLAPolicy:
         self.trust_trace = []
         if self.actuator is not None:
             self.actuator.reset()
+        self._phase_action = None
+        if self.ibvs_machine is not None:
+            self.ibvs_machine.reset()
 
     def _emit(self, result, row: int, proprio, fresh: bool) -> np.ndarray:
         """Turns plan ``row`` of ``result`` into a raw action for this step.
@@ -550,6 +565,18 @@ class MicroVLAPolicy:
             if ibvs_cmd is not None:
                 action = action.copy()
                 action[:3] = action[:3] + ibvs_cmd[:3]
+        if self.ibvs_machine is not None:
+            # Phased mode REPLACES the action. On held-perception ticks the
+            # machine still steps (confidence is already staleness-faded, so
+            # a stale box decays below the floor on its own).
+            if result.perception is not None:
+                action = self.ibvs_machine.step(
+                    result.perception.source, result.perception.target,
+                    proprio, action_dim=int(action.shape[0]))
+                self._phase_action = action
+            elif self._phase_action is not None:
+                action = self._phase_action
+            ibvs_cmd = [float(v) for v in action[:3]]
         self.telemetry.append({
             "tick_index": self._tick_index,
             "is_real": bool(fresh),
@@ -566,6 +593,8 @@ class MicroVLAPolicy:
                 "tgt_conf": float(result.perception.target.confidence),
                 "src_center": [float(v) for v in result.perception.source.center],
             }),
+            **({} if self.ibvs_machine is None
+               else {"phase": self.ibvs_machine.phase}),
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1
