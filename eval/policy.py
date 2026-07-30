@@ -179,18 +179,24 @@ def _load_relaxed(module, sd, name: str) -> None:
         )
 
 
-def _build_real_perception(device: str):
+def _build_real_perception(device: str, det_conf: float = 0.02):
     """Lazily builds the real ``YoloWorldPerception`` + ``ClipTaskEncoder``.
 
     Mirrors ``JEPALoop.build_real``'s construction exactly. Only called when
     the caller did not inject ``perception=``/``task_encoder=`` -- so tests
     that inject mocks never trigger the ``ultralytics``/``torchvision``
     imports this needs.
+
+    ``det_conf`` defaults to 0.02 at eval (bake keeps the class default 0.10).
+    Closed-loop on libero_object wrist measured source detection on only
+    ~20% of real ticks at 0.10 / mean conf 0.04 — below the floor the IBVS
+    residual and the planner's geometry path need. Text-region bake already
+    uses 0.02; eval was the outlier.
     """
     from microvla.perception.text_encoder import ClipTaskEncoder
     from microvla.perception.yolo_world import YoloWorldPerception
 
-    perception = YoloWorldPerception(device=device)
+    perception = YoloWorldPerception(device=device, det_conf=float(det_conf))
     task_encoder = ClipTaskEncoder(perception)
     return perception, task_encoder
 
@@ -240,6 +246,7 @@ class MicroVLAPolicy:
         ibvs_conf_floor: float = 0.1,
         ibvs_sign: tuple[float, float, float] = (1.0, -1.0, 0.0),
         ibvs_descend: float = 0.0,
+        det_conf: float = 0.02,
     ) -> None:
         """Builds the policy.
 
@@ -437,7 +444,8 @@ class MicroVLAPolicy:
             tqsa.to(heads_device).eval()
 
         if perception is None or task_encoder is None:
-            real_perception, real_task_encoder = _build_real_perception(device)
+            real_perception, real_task_encoder = _build_real_perception(
+                device, det_conf=float(det_conf))
             perception = perception if perception is not None else real_perception
             task_encoder = task_encoder if task_encoder is not None else real_task_encoder
 

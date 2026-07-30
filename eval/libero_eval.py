@@ -234,8 +234,15 @@ def _run_mock_trial(
 
 def _run_real_trial(
     policy, task: _TaskSpec, trial_seed: int, max_steps: int, camera: str,
+    render_size: int = 256,
 ) -> tuple[bool, list[dict]]:
-    """Runs one episode against a real LIBERO ``OffScreenRenderEnv``."""
+    """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
+
+    ``render_size`` defaults to 256 (was hardcoded 128). YOLO-World upscales
+    short sides to 512, but cubic upscaling from 128 invents texture that the
+    region-text head cannot ground — measured source detection ~20% on wrist
+    frames. 256 is the cheapest resolution that still carries usable edges.
+    """
     from eval._libero_compat import prepare_libero
     prepare_libero()
     from libero.libero.envs import OffScreenRenderEnv
@@ -243,18 +250,19 @@ def _run_real_trial(
     # Render ONLY the policy's camera: osmesa is CPU software rendering and the
     # default env renders agentview + wrist every step — half of it discarded.
     cam_base = camera[:-6] if camera.endswith("_image") else camera
+    size = max(64, int(render_size))
     try:
         env = OffScreenRenderEnv(
             bddl_file_name=task.bddl_file,
-            camera_heights=MockLiberoEnv.FRAME_SIZE,
-            camera_widths=MockLiberoEnv.FRAME_SIZE,
+            camera_heights=size,
+            camera_widths=size,
             camera_names=[cam_base],
         )
     except TypeError:  # older robosuite/LIBERO without camera_names passthrough
         env = OffScreenRenderEnv(
             bddl_file_name=task.bddl_file,
-            camera_heights=MockLiberoEnv.FRAME_SIZE,
-            camera_widths=MockLiberoEnv.FRAME_SIZE,
+            camera_heights=size,
+            camera_widths=size,
         )
     try:
         if hasattr(env, "seed"):
@@ -286,7 +294,22 @@ def _run_real_trial(
                 action = np.nan_to_num(action, nan=0.0, posinf=0.0, neginf=0.0)
             obs, _reward, done, info = env.step(action)
             step_telemetry = policy.telemetry[-1] if policy.telemetry else {}
-            telemetry.append({"step": step, **step_telemetry})
+            # Intermediate diagnostics: binary success alone collapses approach
+            # / grasp / place into one bit. Gripper close + src detection are
+            # free from existing telemetry; EEF-object distance when the sim
+            # exposes object bodies.
+            extra = {}
+            try:
+                eef = step_telemetry.get("eef")
+                obj = _sim_object_pos(env)
+                if eef is not None and obj is not None:
+                    extra["eef_obj_dist"] = float(np.linalg.norm(
+                        np.asarray(eef, dtype=np.float64)[:3]
+                        - np.asarray(obj, dtype=np.float64)[:3]))
+                    extra["obj_pos"] = [float(v) for v in obj[:3]]
+            except Exception:
+                pass
+            telemetry.append({"step": step, **step_telemetry, **extra})
             success = bool(info.get("success", False)) if isinstance(info, dict) else False
             if not success and hasattr(env, "check_success"):
                 success = bool(env.check_success())
@@ -305,6 +328,55 @@ def _run_real_trial(
             env.close()
 
 
+def _sim_object_pos(env) -> list[float] | None:
+    """Best-effort source-object position from the live robosuite/LIBERO sim.
+
+    Returns ``[x,y,z]`` or ``None`` when the env does not expose bodies. Used
+    only for intermediate metrics — never for control.
+    """
+    try:
+        inner = getattr(env, "env", env)
+        sim = getattr(inner, "sim", None)
+        if sim is None:
+            return None
+        # LIBERO typically keeps obj_body_id: {name: body_id}. Prefer the first
+        # non-target-looking body; fall back to the first entry.
+        body_ids = getattr(inner, "obj_body_id", None) or {}
+        if not body_ids:
+            return None
+        names = list(body_ids.keys())
+        pick = next((n for n in names
+                     if not any(t in n.lower() for t in ("basket", "bin", "plate", "tray"))),
+                    names[0])
+        pos = sim.data.body_xpos[body_ids[pick]]
+        return [float(pos[0]), float(pos[1]), float(pos[2])]
+    except Exception:
+        return None
+
+
+def _episode_intermediates(telemetry: list[dict]) -> dict:
+    """Approach / grasp / detection rates from one episode's telemetry."""
+    out: dict = {}
+    real = [r for r in telemetry if r.get("is_real")]
+    if real:
+        src = [float(r["src_conf"]) for r in real if "src_conf" in r]
+        if src:
+            out["src_detect_rate"] = float(sum(c > 0.0 for c in src) / len(src))
+            out["src_conf_mean"] = float(sum(src) / len(src))
+    acts = [r["action"] for r in telemetry if r.get("action")]
+    if acts:
+        # Last dim is gripper; convention: >0 closed / closing.
+        grips = [float(a[-1]) for a in acts if len(a) >= 7]
+        if grips:
+            out["grip_close_rate"] = float(sum(g > 0.0 for g in grips) / len(grips))
+    dists = [float(r["eef_obj_dist"]) for r in telemetry if r.get("eef_obj_dist") is not None]
+    if dists:
+        out["eef_obj_dist_min"] = float(min(dists))
+        out["eef_obj_dist_at_20"] = float(dists[min(19, len(dists) - 1)])
+        out["eef_obj_dist_final"] = float(dists[-1])
+    return out
+
+
 def run_eval(
     policy_factory: Callable[[], object],
     suite: str,
@@ -317,6 +389,7 @@ def run_eval(
     task_filter: list[int] | None = None,
     run_tag: str = "",
     tasks: list[_TaskSpec] | None = None,
+    render_size: int = 256,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -349,18 +422,25 @@ def run_eval(
             parallel driver enumerates ONCE in the parent and ships the specs
             to workers, so N workers do not import ``libero`` and re-read every
             task's init states simultaneously.
+        render_size: Camera resolution for the real backend (default 256).
 
     Returns:
         ``{"suite", "per_task": {task_name: success_rate}, "mean_success",
-        "n_trials", "telemetry_path"}``.
+        "n_trials", "telemetry_path", "intermediates"}``.
     """
-    run_trial = _run_mock_trial if mock_env else _run_real_trial
+    if mock_env:
+        run_trial = _run_mock_trial
+    else:
+        def run_trial(policy, task, trial_seed, max_steps, camera):
+            return _run_real_trial(policy, task, trial_seed, max_steps, camera,
+                                   render_size=render_size)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}{run_tag}"
     telemetry_path = out / f"{run_id}_telemetry.jsonl"
 
     per_task: dict[str, float] = {}
+    inter_acc: dict[str, list[float]] = {}
     wtag = (run_tag or "main").lstrip("_")
     # The telemetry file is opened BEFORE the expensive policy build on purpose:
     # its existence is the cheapest possible proof that a worker got this far.
@@ -388,9 +468,13 @@ def run_eval(
                 t_start = time.time()
                 success, telemetry = run_trial(policy, task, trial_seed, max_steps, camera)
                 successes += int(success)
+                inter = _episode_intermediates(telemetry)
+                for k, v in inter.items():
+                    inter_acc.setdefault(k, []).append(v)
+                inter_s = " ".join(f"{k}={v:.3f}" for k, v in inter.items()) or "-"
                 print(f"[{wtag}] DONE  {task.name} trial {trial}: "
                       f"success={success} steps={len(telemetry)} "
-                      f"({time.time() - t_start:.0f}s)", flush=True)
+                      f"({time.time() - t_start:.0f}s) {inter_s}", flush=True)
                 for rec in telemetry:
                     tf.write(json.dumps({
                         "suite": suite, "task": task.name, "trial": trial,
@@ -400,19 +484,23 @@ def run_eval(
             per_task[task.name] = successes / n_trials if n_trials else 0.0
 
     mean_success = sum(per_task.values()) / len(per_task) if per_task else 0.0
+    intermediates = {k: float(sum(vs) / len(vs)) for k, vs in inter_acc.items() if vs}
     results = {
         "suite": suite,
         "per_task": per_task,
         "mean_success": mean_success,
         "n_trials": n_trials,
         "telemetry_path": str(telemetry_path),
+        "intermediates": intermediates,
+        "render_size": None if mock_env else int(render_size),
     }
     results_path = out / f"{run_id}_results.json"
     results_path.write_text(json.dumps(results, indent=2))
     # Printed because this file is a worker's OWN durable output: if the parent
     # later aborts the pool (a sibling worker died, the watchdog fired), the
     # shards that did finish are still on disk under these names.
-    print(f"[{wtag}] mean_success {mean_success:.3f} -> {results_path}", flush=True)
+    print(f"[{wtag}] mean_success {mean_success:.3f} intermediates={intermediates} "
+          f"-> {results_path}", flush=True)
     return results
 
 
@@ -452,6 +540,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_sign=tuple(float(v) for v in
                             getattr(args, "ibvs_sign", "1,-1,0").split(",")),
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
+            det_conf=getattr(args, "det_conf", 0.02),
         )
 
     return factory
@@ -514,6 +603,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
+    p.add_argument("--det-conf", type=float, default=0.02,
+                   help="YOLO-World confidence floor at EVAL (bake stays at "
+                        "0.10). Closed-loop wrist detection was ~20%% at 0.10; "
+                        "0.02 matches the text-region bake path.")
+    p.add_argument("--render-size", type=int, default=256,
+                   help="LIBERO camera resolution (was 128). Cubic upscale from "
+                        "128 to YOLO's 512 invents texture the detector cannot "
+                        "ground; 256 is the cheapest usable size.")
     p.add_argument("--waypoint-no-brake", action="store_true",
                     help="do NOT scale the waypoint translation command by the corrector's "
                          "trust. The delta-mode brake exists because a held DELTA is a "
@@ -650,6 +747,7 @@ def _parallel_worker(payload: dict) -> dict:
         out_dir=args.out_dir,
         run_tag=f"_w{w}",
         tasks=payload["tasks"],
+        render_size=getattr(args, "render_size", 256),
     )
 
 
@@ -825,6 +923,7 @@ def main(argv: list[str] | None = None) -> None:
             seed=args.seed,
             out_dir=args.out_dir,
             tasks=tasks,
+            render_size=getattr(args, "render_size", 256),
         )
     print(json.dumps(results, indent=2))
 

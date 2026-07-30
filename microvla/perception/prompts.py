@@ -44,7 +44,7 @@ from microvla.perception.command_parser import strip_article
 #: conf 0.950; "black bowl" — the phrase the task actually uses — fires on 25%
 #: at 0.235. Since a chain takes the first prompt that detects ANYTHING, a weak
 #: early entry blocks a strong later one.
-_TAIL_GROCERY: tuple[str, ...] = ("box", "can", "bottle")
+_TAIL_GROCERY: tuple[str, ...] = ("box", "cardboard box", "can")
 _TAIL_TABLEWARE: tuple[str, ...] = ("ceramic bowl", "bowl")
 _TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin")
 #: Target-role tails, kept DISJOINT from the source tails above — see

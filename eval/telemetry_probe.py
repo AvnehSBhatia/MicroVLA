@@ -72,6 +72,23 @@ def summarize(records: list[dict]) -> dict:
         if vals:
             out[f"{key}_mean"] = float(np.mean(vals))
             out[f"{key}_min"] = float(np.min(vals))
+    # Intermediate diagnostics — binary success alone is too coarse when
+    # detection is sparse and approach fails before grasp.
+    if real:
+        src = [float(r["src_conf"]) for r in real if "src_conf" in r]
+        if src:
+            out["src_detect_rate"] = float(np.mean([c > 0.0 for c in src]))
+            out["src_conf_mean"] = float(np.mean(src))
+    acts = [r["action"] for r in records if r.get("action")]
+    if acts:
+        grips = [float(a[-1]) for a in acts if len(a) >= 7]
+        if grips:
+            out["grip_close_rate"] = float(np.mean([g > 0.0 for g in grips]))
+    dists = [float(r["eef_obj_dist"]) for r in records if r.get("eef_obj_dist") is not None]
+    if dists:
+        out["eef_obj_dist_min"] = float(np.min(dists))
+        out["eef_obj_dist_mean"] = float(np.mean(dists))
+        out["eef_obj_dist_at_20"] = float(dists[min(19, len(dists) - 1)])
     return out
 
 
@@ -98,6 +115,15 @@ def _report(path: Path) -> dict:
     if "trust_mean" in s:
         print(f" | trust mean {s['trust_mean']:.3f} min {s['trust_min']:.3f}", end="")
     print()
+    if "src_detect_rate" in s:
+        print(f"  src detect {100*s['src_detect_rate']:.1f}% "
+              f"(mean conf {s.get('src_conf_mean', 0):.3f})")
+    if "grip_close_rate" in s:
+        print(f"  grip close rate {100*s['grip_close_rate']:.1f}%")
+    if "eef_obj_dist_min" in s:
+        print(f"  eef↔obj dist min {s['eef_obj_dist_min']:.3f} m "
+              f"| @20 {s.get('eef_obj_dist_at_20', float('nan')):.3f} m "
+              f"| mean {s.get('eef_obj_dist_mean', float('nan')):.3f} m")
     return s
 
 
