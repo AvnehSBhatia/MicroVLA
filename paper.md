@@ -4383,7 +4383,17 @@ should have been on all along.
 | 1 | `_agent` | camera + orientation + threshold + TQSA grid | bake + train |
 | 2 | `_agent` | `--planner-drop-rate state_delta=0.5,proprio=0.2` | train only |
 | 3 | `_disj` | `role_disjoint_iou 0.1` | bake + train |
+| 4 | `_agent` | arm 2 + geometric progress critic + dreamer 0.01 | train only |
 | control | `_wristctl` | wrist camera, arm-1 code | bake + train |
+
+Arm 4 is the step-3 recipe of §5k, stacked on arm 2's drop rates rather than
+replacing them: the critic and the drop rates attack the same shortcut from
+opposite ends. The critic asks for actions the world model believes ADVANCE the
+task, scored by EEF travel toward the episode's final pose — geometry, not
+wall-clock, because a time target reinforces exactly the phase signal being
+suppressed (§5k flaw 2). The dreamer term stays at 0.01: the world model is real
+(`wm_margin` +43.3%) but exploitable, and an actor optimizing an imagined latent
+will find the exploit if given weight.
 
 Each arm also scores `--no-dream-correct` (defect 28) as a free eval-side A/B,
 and `eval.bench --sensitivity` after every retrain, so the question "is the
