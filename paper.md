@@ -4351,6 +4351,25 @@ reaches the basket perfectly and never touches the object. Try 0.3."*
 **It defaults to 0.0, and every arm ever run left it there**, including §5o's
 arm 1.
 
+The naive fix is wrong, and the repository already says so. `--planner-drop-rate`'s
+help records that `--phase-dropout 0.3` *was* tried: it bought a 2.3× better
+phase:vision ratio and **collapsed the gripper from 0.93 to 0.50**, because
+proprio carries the arm's gripper state — the single best predictor of the
+gripper command — so withholding it destroys the BCE head. Its verdict is "drop
+`state_delta`, keep `proprio`."
+
+Taken literally that verdict is too weak here: `proprio` (0.291) *is* the pose
+shortcut, and `state_delta` is only 0.075, so dropping `state_delta` alone barely
+touches the dominant path. Arm 2 therefore drops `state_delta` hard (0.5) and
+`proprio` moderately (0.2), with the existing `--grip-weight 2.0` protecting the
+BCE head and open-loop gripper agreement as the tripwire: if it returns near
+0.50, the trade failed and `proprio` goes back to 0.
+
+This is the trade the earlier measurement could not make. Withholding the
+shortcut only helps if something else can carry the task, and until this week the
+alternative was a source role grounded on 22% of frames by a box that moved 0.18
+between them.
+
 That was not obviously wrong before now. Withholding the shortcut only helps if
 something else can carry the task, and until this week the alternative was a
 source role grounded on 22% of frames by a box that moved 0.18 between them.
@@ -4362,7 +4381,7 @@ should have been on all along.
 | arm | corpus | one change from the previous arm | cost |
 |---|---|---|---|
 | 1 | `_agent` | camera + orientation + threshold + TQSA grid | bake + train |
-| 2 | `_agent` | `--phase-dropout 0.3` | train only |
+| 2 | `_agent` | `--planner-drop-rate state_delta=0.5,proprio=0.2` | train only |
 | 3 | `_disj` | `role_disjoint_iou 0.1` | bake + train |
 | control | `_wristctl` | wrist camera, arm-1 code | bake + train |
 
