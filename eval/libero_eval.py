@@ -449,6 +449,9 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             no_brake=getattr(args, "no_brake", False),
             ibvs_gain=getattr(args, "ibvs_gain", 0.0),
             ibvs_conf_floor=getattr(args, "ibvs_conf_floor", 0.1),
+            ibvs_sign=tuple(float(v) for v in
+                            getattr(args, "ibvs_sign", "1,-1,0").split(",")),
+            ibvs_descend=getattr(args, "ibvs_descend", 0.0),
         )
 
     return factory
@@ -497,6 +500,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "Zero training. If this moves closed-loop success, "
                         "frozen features are NOT the ceiling — the BC "
                         "objective is (paper.md 5k). Try 0.05-0.2.")
+    p.add_argument("--ibvs-sign", default="1,-1,0",
+                   help="per-axis multipliers for the IBVS residual, 'sx,sy,sz'. "
+                        "The image-down vs robot-up convention is not "
+                        "self-evident and a wrong sign pushes AWAY from the "
+                        "object, which would be a false negative from the one "
+                        "experiment meant to falsify the encoder claim. Sweep it.")
+    p.add_argument("--ibvs-descend", type=float, default=0.0,
+                   help="raw downward action applied once the object is centred, "
+                        "scaled by how centred it is. A residual that only "
+                        "centres can never grasp, so a null without this says "
+                        "nothing about the features.")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")

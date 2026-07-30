@@ -57,3 +57,49 @@ def test_progress_targets_eef_degenerate_path_falls_back_to_time():
     proprio[..., -1] = 1.0
     tgt = progress_targets_eef(proprio)
     assert torch.allclose(tgt, progress_targets(T, B, proprio.device))
+
+
+class TestIbvsFalsifierIsCapableOfGrasping:
+    """A falsifier that cannot grasp cannot falsify.
+
+    The residual's default sign is (1, -1, 0): no z component, so it centres the
+    object and never approaches it. A null result from that configuration says
+    nothing about whether the frozen features localize well enough to act, which
+    is the entire question paper.md 5k reopened. Both knobs must be reachable and
+    the descend must actually engage.
+    """
+
+    def test_descend_engages_only_when_centred(self):
+        import numpy as np
+
+        from microvla.utils.ibvs import ibvs_residual
+
+        far = ibvs_residual((0.9, 0.9), 0.9, gain=0.1, descend=-0.5, descend_tol=0.2)
+        near = ibvs_residual((0.5, 0.55), 0.9, gain=0.1, descend=-0.5, descend_tol=0.2)
+        assert far is not None and near is not None
+        assert far[2] == 0.0, "descended while the object was still off to one side"
+        assert near[2] < 0.0, "did not descend when centred on the grasp point"
+
+    def test_descend_scales_with_centredness(self):
+        from microvla.utils.ibvs import ibvs_residual
+
+        a = ibvs_residual((0.5, 0.55), 0.9, gain=0.1, descend=-0.5, descend_tol=0.2)
+        b = ibvs_residual((0.5, 0.70), 0.9, gain=0.1, descend=-0.5, descend_tol=0.2)
+        assert abs(a[2]) > abs(b[2]), "descend rate should fall off with image error"
+
+    def test_sign_is_reachable_from_the_cli(self):
+        from eval.libero_eval import parse_args
+
+        a = parse_args(["--suite", "libero_object", "--ibvs-sign", "1,1,-1",
+                        "--ibvs-descend", "-0.4"])
+        assert a.ibvs_sign == "1,1,-1"
+        assert a.ibvs_descend == -0.4
+
+    def test_gripper_and_orientation_are_never_touched(self):
+        from microvla.utils.ibvs import ibvs_residual
+
+        r = ibvs_residual((0.2, 0.8), 0.9, gain=0.3, descend=-0.5)
+        assert all(v == 0.0 for v in r[3:]), (
+            "IBVS must only add translation; orientation and the gripper belong "
+            "to the policy"
+        )

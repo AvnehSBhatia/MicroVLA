@@ -33,6 +33,8 @@ def ibvs_residual(
     target_uv: Tuple[float, float] = (0.5, 0.55),
     conf_floor: float = 0.1,
     sign: Tuple[float, float, float] = (1.0, -1.0, 0.0),
+    descend: float = 0.0,
+    descend_tol: float = 0.2,
     action_dim: int = 7,
 ) -> Optional[np.ndarray]:
     """Returns a ``[action_dim]`` residual or ``None`` when evidence is absent.
@@ -45,7 +47,15 @@ def ibvs_residual(
         target_uv: desired object location in the wrist frame. Slightly below
             center so a top-down grasp approaches rather than centering.
         conf_floor: ignore detections below this weight.
-        sign: per-axis multipliers into ``(dx, dy, dz)``.
+        sign: per-axis multipliers into ``(dx, dy, dz)``. The image-down vs
+            robot-up convention is NOT self-evident, and a wrong sign makes the
+            residual push AWAY from the object — a false negative from the one
+            experiment meant to falsify the encoder claim. Sweep it.
+        descend: raw action units of downward motion applied once the object is
+            within ``descend_tol`` of the grasp point, scaled by how centred it
+            is. Zero disables. A residual that only centres can never grasp, so
+            without this a null result is uninformative.
+        descend_tol: image-error radius inside which ``descend`` engages.
         action_dim: full action width; residual pads with zeros past translation.
     """
     if gain == 0.0 or source_confidence < conf_floor:
@@ -61,6 +71,13 @@ def ibvs_residual(
     # Optional small approach along camera optical axis when the object is
     # near the grasp point — keeps the residual from thrusting forward while
     # the object is still off-center.
-    if abs(eu) < 0.15 and abs(ev) < 0.15 and len(sign) > 2:
+    # DESCEND once centred. Without this the residual centres the object and
+    # never approaches it, so the falsifier cannot complete a grasp and a null
+    # result says nothing about the features. Proportional to how centred we
+    # are, so it does not thrust forward while still off to one side.
+    err = max(abs(eu), abs(ev))
+    if descend != 0.0 and err < descend_tol:
+        out[2] = float(descend) * (1.0 - err / float(descend_tol))
+    elif len(sign) > 2 and sign[2] != 0.0 and err < 0.15:
         out[2] = float(gain) * float(sign[2]) * 0.5
     return out
