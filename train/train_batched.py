@@ -583,11 +583,22 @@ def _recovery_batch(batch, t, args, cfg, act_scale):
     if eps <= 0:
         return pro, None
     d = cfg.waypoint_dim
-    delta = eps * torch.randn(pro.shape[0], d, device=pro.device, dtype=pro.dtype)
+    gain = _RECOVERY_GAIN.to(pro.device)[:d]
+    scale = (act_scale[:d].to(pro.device) if act_scale is not None
+             else torch.ones(d, device=pro.device))
+    # BOUND THE DISPLACEMENT BY CONSTRUCTION, per axis. An unbounded Gaussian
+    # exceeds any budget in its tail -- sigma = 4 mm reaches 12 mm at 3 sigma,
+    # whose correction is 0.96 normalized units against a [-1, 1] target -- so
+    # refusing on the sampled max would reject every usable sigma. Instead the
+    # largest displacement the policy can undo within the budget is computed
+    # first, and samples are truncated to it: no target can saturate, whatever
+    # sigma is requested.
+    dmax = (_RECOVERY_MAX_CORR * gain * scale).clamp_min(1e-6)      # [d], metres
+    sigma = torch.minimum(torch.full_like(dmax, float(eps)), dmax / 2.5)
+    delta = (sigma * torch.randn(pro.shape[0], d, device=pro.device,
+                                 dtype=pro.dtype)).clamp(-dmax, dmax)
     pro = pro.clone()
     pro[:, :d] = pro[:, :d] + delta
-    gain = _RECOVERY_GAIN.to(pro.device)
-    scale = act_scale[:d].to(pro.device) if act_scale is not None else torch.ones(d, device=pro.device)
     corr = -(delta / gain.clamp_min(1e-6)) / scale.clamp_min(1e-6)
     # The correction has to be EXECUTABLE. One full-magnitude action step moves
     # only `gain` metres (~11 mm here), so a displacement of 15 mm needs ~1.4
@@ -597,15 +608,12 @@ def _recovery_batch(batch, t, args, cfg, act_scale):
     # constantly, which is measurably worse than no augmentation at all:
     # divergence at step 20 went 5.34 cm (none) -> 8.65 cm (15 mm) -> 12.82 cm
     # (35 mm), monotonic in delta. Refuse instead of clamping.
-    worst = float(corr.abs().max())
-    if worst > _RECOVERY_MAX_CORR:
-        raise SystemExit(
-            f"--recovery-noise {eps} m implies a correction of {worst:.2f} in "
-            f"normalized action units, over the {_RECOVERY_MAX_CORR} budget "
-            f"(the action range is [-1, 1] and one step moves ~"
-            f"{float(gain.min())*1000:.0f} mm). A displacement the policy cannot "
-            f"undo in one step trains a saturated target, not a recovery. Use "
-            f"<= {_RECOVERY_MAX_CORR * float((gain * scale).min()) * 1000:.0f} mm.")
+    # Truncation makes this an invariant, not a hope; assert it rather than
+    # trusting the arithmetic, because a silently saturated target is exactly
+    # what cost two training runs (paper.md 5i).
+    assert float(corr.abs().max()) <= _RECOVERY_MAX_CORR + 1e-4, (
+        f"recovery correction {float(corr.abs().max()):.3f} exceeded the "
+        f"{_RECOVERY_MAX_CORR} budget despite truncation")
     return pro, corr
 
 

@@ -495,7 +495,7 @@ class TestTaskAlignedLosses:
         assert d is None and torch.equal(pro, batch["proprio"][:, 1])
 
     def test_an_unexecutable_displacement_is_refused_not_clamped(self, cfg):
-        """A correction beyond the action range must raise, not silently clamp.
+        """A correction beyond the action range must be impossible, not clamped.
 
         One full-magnitude step moves ~11 mm, so a 15 mm displacement implies a
         1.47-unit correction against a [-1, 1] target range. Clamping discards
@@ -515,9 +515,13 @@ class TestTaskAlignedLosses:
         old = tb._RECOVERY_GAIN
         tb._RECOVERY_GAIN = torch.tensor([0.0109, 0.0131, 0.0118])
         try:
-            with pytest.raises(SystemExit, match="normalized action units"):
-                tb._recovery_batch(batch, 1,
-                                   argparse.Namespace(recovery_noise=0.015),
-                                   cfg, torch.ones(cfg.num_servos))
+            # Truncation is by construction now: an oversized sigma is
+            # silently capped at the largest displacement the policy can undo,
+            # so the correction stays inside the budget instead of raising.
+            _pro, dt = tb._recovery_batch(
+                batch, 1, argparse.Namespace(recovery_noise=0.015),
+                cfg, torch.ones(cfg.num_servos))
+            assert float(dt.abs().max()) <= tb._RECOVERY_MAX_CORR + 1e-4, (
+                "an oversized perturbation still produced a saturating target")
         finally:
             tb._RECOVERY_GAIN = old
