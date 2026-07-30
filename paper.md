@@ -4250,3 +4250,39 @@ provenance and checked at eval time.
 The control matters: every previous wrist number was produced by a different
 code version, so it cannot be differenced against arm 1. Without it the paper
 would be asserting a counterfactual it never ran.
+
+### What moving the camera does to the world model's job
+
+Reviewers will ask, and the answer is not the obvious one. A static camera
+should make "predict the next latent" easier, because only the arm and the
+manipulated object move. Measured on the baked corpora (120 episodes each, no
+model involved):
+
+| corpus | per-step latent motion | persistence R² | drift from anchor |
+|---|---|---|---|
+| wrist (`_grid`) | 0.071 | **0.764** | 0.236 |
+| agentview (`_agent`) | 0.044 | **0.494** | 0.096 |
+
+The agentview latent moves *less* per step and is *less* predictable by copying.
+The wrist latent moves more, but coherently — a translating camera sweeps the
+embedding through a large, smooth range, so its total variance is large and the
+step-to-step residual is a small fraction of it. On a fixed camera the scene's
+total variation over an episode is small, so the same absolute step is a larger
+share of it.
+
+Two consequences to state honestly:
+
+* **Stage A's `wm_margin` is measured against a weaker baseline on agentview.**
+  The `+43.3%` of §4q was over a persistence baseline that already explained 76%
+  of the next latent; on agentview persistence explains 49%. Margins across the
+  two corpora are not comparable, and §5o's must be reported with this number
+  beside it.
+* **The drift encoder gets a smaller signal.** Anchor drift falls 0.236 → 0.096,
+  so the HRM's state code spans less of the space it was sized for. If the
+  agentview arm underperforms on anything, this is the first place to look — and
+  it is a design consequence of the camera change, not a defect.
+
+Neither undermines the change: control needs the *boxes*, and those went from a
+source role grounded on 22% of frames with a box that jumped 0.18 between frames
+to 97% with 0.03. But a paper that reported the grounding win without this table
+would be selecting its evidence.
