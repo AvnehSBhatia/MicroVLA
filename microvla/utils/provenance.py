@@ -30,6 +30,7 @@ _CHECKS = {
     "det_conf": "det_conf",
     "render_size": "detect_frame_hw",
     "perception_period": "_stride",
+    "role_disjoint_iou": "role_disjoint_iou",
 }
 
 
@@ -112,9 +113,9 @@ def mismatches(prov: dict[str, Any], **deployment: Any) -> list[str]:
                     f"512-px short side"
                 )
             continue
-        if knob == "det_conf":
+        if knob in ("det_conf", "role_disjoint_iou"):
             if abs(float(have) - float(want)) > 1e-9:
-                out.append(f"det_conf={have} but the corpus was baked at {want}")
+                out.append(f"{knob}={have} but the corpus was baked at {want}")
             continue
         if str(have) != str(want):
             out.append(f"{knob}={have!r} but the corpus was baked for {want!r}")
@@ -125,7 +126,8 @@ def describe(prov: dict[str, Any]) -> str:
     """One-line summary of a provenance block, for logs and results JSON."""
     if not prov:
         return "corpus provenance: (absent — baked before 2026-07-30)"
-    keys = ("camera", "eval_camera", "det_conf", "real_frame_hz",
-            "detect_frame_hw", "deflip", "max_objects", "grid_size")
+    keys = ("camera", "eval_camera", "det_conf", "role_disjoint_iou",
+            "real_frame_hz", "detect_frame_hw", "deflip", "max_objects",
+            "grid_size")
     parts = [f"{k}={prov[k]}" for k in keys if k in prov]
     return "corpus provenance: " + ", ".join(parts)

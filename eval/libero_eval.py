@@ -551,6 +551,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
             ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
             det_conf=getattr(args, "det_conf", 0.02),
+            role_disjoint_iou=getattr(args, "role_disjoint_iou",
+                                      DEFAULT_CONFIG.role_disjoint_iou),
         )
 
     return factory
@@ -572,6 +574,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "the box jumps 0.18 between frames; agentview grounds "
                         "85%% at 0.066 with 0.03 jitter (paper.md 5m).")
     p.add_argument("--mock-env", action="store_true", help="use MockLiberoEnv (no sim deps)")
+    p.add_argument("--role-disjoint-iou", type=float,
+                   default=DEFAULT_CONFIG.role_disjoint_iou,
+                   help="must match the corpus's provenance; see the bake flag")
     p.add_argument("--no-dream-correct", action="store_true",
                    help="skip InnovationCorrector on dream ticks. The corrector "
                         "is deployment-only state the trainer never modelled, so "
@@ -960,6 +965,7 @@ def main(argv: list[str] | None = None) -> None:
         prov,
         camera=args.camera,
         det_conf=getattr(args, "det_conf", None),
+        role_disjoint_iou=getattr(args, "role_disjoint_iou", None),
         render_size=getattr(args, "render_size", None),
         perception_period=args.perception_period,
     )

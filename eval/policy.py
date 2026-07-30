@@ -179,7 +179,8 @@ def _load_relaxed(module, sd, name: str) -> None:
         )
 
 
-def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_conf):
+def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_conf,
+                           role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou):
     """Lazily builds the real ``YoloWorldPerception`` + ``ClipTaskEncoder``.
 
     Mirrors ``JEPALoop.build_real``'s construction exactly. Only called when
@@ -202,7 +203,7 @@ def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_con
     # while the trainer feeds a g x g pooled, per-cell standardized one.
     perception = YoloWorldPerception(device=device, det_conf=float(det_conf),
                                      grid_size=DEFAULT_CONFIG.tqsa_grid,
-                                     role_disjoint_iou=DEFAULT_CONFIG.role_disjoint_iou)
+                                     role_disjoint_iou=float(role_disjoint_iou))
     task_encoder = ClipTaskEncoder(perception)
     return perception, task_encoder
 
@@ -257,6 +258,7 @@ class MicroVLAPolicy:
         ibvs_track_gate: float = 0.0,
         ibvs_clip_rerank: bool = False,
         det_conf: float = DEFAULT_CONFIG.det_conf,
+        role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
     ) -> None:
         """Builds the policy.
 
@@ -468,7 +470,8 @@ class MicroVLAPolicy:
 
         if perception is None or task_encoder is None:
             real_perception, real_task_encoder = _build_real_perception(
-                device, det_conf=float(det_conf))
+                device, det_conf=float(det_conf),
+                role_disjoint_iou=float(role_disjoint_iou))
             perception = perception if perception is not None else real_perception
             task_encoder = task_encoder if task_encoder is not None else real_task_encoder
 

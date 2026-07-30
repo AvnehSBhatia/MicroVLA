@@ -227,6 +227,14 @@ def main(argv: list[str] | None = None) -> None:
                              "0.10 while eval passed 0.02 -- defect 26. Whatever "
                              "you set is recorded in manifest.json provenance, and "
                              "the robot must be run with the same number.")
+    parser.add_argument("--role-disjoint-iou", type=float, default=None,
+                        help="OVERRIDE cfg.role_disjoint_iou: reject a SOURCE box "
+                             "overlapping the TARGET box by more than this IoU and "
+                             "take the source chain's next candidate. Measured on "
+                             "agentview libero_object: 0.0 leaves the two roles on "
+                             "the same box on 27%% of frames (usable source evidence "
+                             "0.720); 0.1 drives that to 0%% for 3%% of duty (0.960). "
+                             "Recorded in provenance; the robot must match.")
     parser.add_argument("--frame-hz", type=float, default=None,
                         help="OVERRIDE cfg.real_frame_hz for this bake, i.e. the "
                              "sampling rate. The default 2 Hz keeps 1 frame in 10 "
@@ -304,6 +312,10 @@ def main(argv: list[str] | None = None) -> None:
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)
     cfg = DEFAULT_CONFIG
+    if args.role_disjoint_iou is not None:
+        import dataclasses
+        cfg = dataclasses.replace(cfg, role_disjoint_iou=float(args.role_disjoint_iou))
+        logger.info("role_disjoint_iou %.2f", args.role_disjoint_iou)
     if args.det_conf is not None:
         import dataclasses
         cfg = dataclasses.replace(cfg, det_conf=float(args.det_conf))
