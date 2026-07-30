@@ -128,10 +128,19 @@ def role_chains(src: str, tgt: str) -> tuple[list[str], list[str] | None]:
         return with_fallbacks(src), None
     s = with_fallbacks(src)
     t_chain = with_fallbacks(tgt)
+    tgt_noun = tgt.split()[-1] if tgt.split() else ""
     # Tableware targets get their own tail so "plate" does not fall back onto
     # the same bowl prompts the source is using.
-    if _TAIL_BY_NOUN.get(tgt.split()[-1] if tgt.split() else "") is _TAIL_TABLEWARE:
+    if _TAIL_BY_NOUN.get(tgt_noun) is _TAIL_TABLEWARE:
         t_chain = [tgt] + [c for c in _TAIL_TARGET_TABLEWARE if c != tgt]
+    # Receptacle targets (basket/bin): grocery source tails include "box" /
+    # "cardboard box", which fire on the basket liner (IBVS forensics:
+    # "salad dressing" bound the BASKET at conf 0.15). Strip those from the
+    # SOURCE chain when the place target is a receptacle — keep exact phrase,
+    # noun, and non-box grocery cues ("can").
+    if _TAIL_BY_NOUN.get(tgt_noun) is _TAIL_RECEPTACLE:
+        _boxish = {"box", "cardboard box"}
+        s = [c for c in s if c not in _boxish] or [src]
     t_chain = [c for c in dict.fromkeys(t_chain) if c not in s]
     if not t_chain:
         # Every target prompt collided with the source chain. Keep the exact

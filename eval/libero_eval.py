@@ -542,6 +542,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
+            ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
             det_conf=getattr(args, "det_conf", 0.02),
         )
 
@@ -608,6 +609,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "from the tracked box unless it persists ~5 fixes. 0 "
                         "disables. Attacks the measured 20-26%% teleport rate "
                         "of per-frame argmax binding (postscript 3).")
+    p.add_argument("--ibvs-clip-rerank", action="store_true",
+                   help="with --ibvs-phase: rebind source/target each tick to "
+                        "the proposal whose ROIAlign emb best matches the role "
+                        "CLIP text emb (reject if the other role scores higher). "
+                        "Attacks the tracking-null finding that a stable box "
+                        "can still be the wrong object (basket for salad dressing).")
     p.add_argument("--ibvs-phase", action="store_true",
                    help="phased falsifier: the state machine in eval/ibvs_phase.py "
                         "OWNS the action (servo/grasp/lift/place from detections + "

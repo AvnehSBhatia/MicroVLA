@@ -38,6 +38,44 @@ GRASP_Z: float = 0.06
 LIFT_Z: float = 0.30
 
 
+def clip_rerank_box(proposals, role_emb, conf_floor: float = 0.02,
+                    reject_emb=None):
+    """Pick the proposal whose ROIAlign emb best matches a role text emb.
+
+    Postscript 3 / tracking null (results/IBVS_SWEEP_FORENSICS.md): temporal
+    association locks the SAME wrong box (basket for "salad dressing"). The
+    remaining zero-training lever is semantic rebinding — cosine of each
+    proposal's visual emb against the role's CLIP text emb, optionally
+    rejecting proposals that match the OTHER role better (source vs target).
+
+    Returns the winning proposal object, or ``None`` when nothing clears the
+    floor. Pure numpy/torch-free on the hot path: callers pass tensors.
+    """
+    if not proposals or role_emb is None:
+        return None
+    import torch
+    role = torch.as_tensor(role_emb, dtype=torch.float32).reshape(-1)
+    role = role / (role.norm() + 1e-8)
+    rej = None
+    if reject_emb is not None:
+        rej = torch.as_tensor(reject_emb, dtype=torch.float32).reshape(-1)
+        rej = rej / (rej.norm() + 1e-8)
+    best, best_s = None, float("-inf")
+    for p in proposals:
+        if float(getattr(p, "confidence", 0.0)) < conf_floor:
+            continue
+        e = torch.as_tensor(p.emb, dtype=torch.float32).reshape(-1)
+        if e.numel() != role.numel():
+            continue
+        e = e / (e.norm() + 1e-8)
+        s = float((e * role).sum())
+        if rej is not None and float((e * rej).sum()) > s:
+            continue
+        if s > best_s:
+            best_s, best = s, p
+    return best
+
+
 class _BoxTracker:
     """Temporal association over per-frame argmax detections.
 
@@ -118,13 +156,15 @@ class PhasedIBVS:
 
     def __init__(self, gain: float, sign: tuple[float, float, float],
                  descend: float, target_uv: tuple[float, float],
-                 conf_floor: float, track_gate: float = 0.0) -> None:
+                 conf_floor: float, track_gate: float = 0.0,
+                 clip_rerank: bool = False) -> None:
         self.gain = float(gain)
         self.sign = tuple(float(v) for v in sign)
         self.descend = float(descend)
         self.target_uv = (float(target_uv[0]), float(target_uv[1]))
         self.conf_floor = float(conf_floor)
         self.track_gate = float(track_gate)
+        self.clip_rerank = bool(clip_rerank)
         self.reset()
 
     def reset(self) -> None:
@@ -164,7 +204,8 @@ class PhasedIBVS:
         return float(np.asarray(proprio, dtype=np.float64).reshape(-1)[2])
 
     # ------------------------------------------------------------------- step
-    def step(self, source, target, proprio, action_dim: int = 7) -> np.ndarray:
+    def step(self, source, target, proprio, action_dim: int = 7,
+             proposals=(), source_emb=None, target_emb=None) -> np.ndarray:
         """One control tick.
 
         Args:
@@ -174,7 +215,24 @@ class PhasedIBVS:
                 env always has it; without proprio there is no grasp check
                 and the machine just servos).
             action_dim: output width; translation + zeros + gripper.
+            proposals: optional class-agnostic boxes for CLIP re-rank.
+            source_emb / target_emb: CLIP text embeddings for re-rank
+                (``TaskEncoding.source_emb`` / ``.target_emb``).
         """
+        self._last_proposals = proposals
+        self._last_src_emb = source_emb
+        self._last_tgt_emb = target_emb
+        if self.clip_rerank and proposals:
+            reb_src = clip_rerank_box(
+                proposals, source_emb, conf_floor=self.conf_floor,
+                reject_emb=target_emb)
+            if reb_src is not None:
+                source = reb_src
+            reb_tgt = clip_rerank_box(
+                proposals, target_emb, conf_floor=self.conf_floor,
+                reject_emb=source_emb)
+            if reb_tgt is not None:
+                target = reb_tgt
         out = np.zeros(int(action_dim), dtype=np.float32)
         grip = out.shape[0] - 1
         z = self._eef_z(proprio) if proprio is not None else 1.0
@@ -218,7 +276,10 @@ class PhasedIBVS:
             if proprio is not None and self._jaws(proprio) < HELD_JAW_MIN:
                 # Dropped it mid-traverse: start over.
                 self.phase = "servo_src"
-                return self.step(source, target, proprio, action_dim)
+                return self.step(source, target, proprio, action_dim,
+                                 proposals=getattr(self, "_last_proposals", ()),
+                                 source_emb=getattr(self, "_last_src_emb", None),
+                                 target_emb=getattr(self, "_last_tgt_emb", None))
             center = self._believe("tgt", target)
             if center is not None:
                 err = self._servo_xy(center, out)

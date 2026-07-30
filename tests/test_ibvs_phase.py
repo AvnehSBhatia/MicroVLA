@@ -147,3 +147,37 @@ class TestBoxTracker:
             center = (0.9, 0.1) if i % 2 else (0.5, 0.55)
             a = m.step(_Det(center=center), _Det(), _proprio(z=0.2))
             assert a[2] < 0  # still descending on the held/centered box
+
+
+class TestClipRerank:
+    def test_picks_role_matched_proposal_rejects_other_role(self):
+        import torch
+        from eval.ibvs_phase import clip_rerank_box
+
+        class _P:
+            def __init__(self, emb, conf, center):
+                self.emb = torch.tensor(emb, dtype=torch.float32)
+                self.confidence = conf
+                self.center = center
+
+        src_dir = [1.0, 0.0, 0.0]
+        tgt_dir = [0.0, 1.0, 0.0]
+        wrong = _P(tgt_dir, 0.9, (0.2, 0.2))   # looks like target (basket)
+        right = _P(src_dir, 0.2, (0.7, 0.7))  # looks like source, lower conf
+        pick = clip_rerank_box(
+            [wrong, right], role_emb=src_dir, conf_floor=0.05,
+            reject_emb=tgt_dir)
+        assert pick is right
+
+    def test_conf_floor_filters(self):
+        import torch
+        from eval.ibvs_phase import clip_rerank_box
+
+        class _P:
+            def __init__(self, emb, conf):
+                self.emb = torch.tensor(emb, dtype=torch.float32)
+                self.confidence = conf
+
+        assert clip_rerank_box(
+            [_P([1.0, 0.0], 0.01)], role_emb=[1.0, 0.0], conf_floor=0.05
+        ) is None

@@ -124,6 +124,15 @@ class TestRoleChainsAreDisjoint:
             "the task's own words must stay first; the tail is only for recall"
         )
 
+    def test_receptacle_target_strips_box_from_grocery_source(self):
+        # IBVS forensics: "salad dressing" -> basket bound the BASKET via
+        # grocery "box"/"cardboard box" tails. When the place target is a
+        # receptacle, those cues must leave the SOURCE chain.
+        s, t = _role_chains("salad dressing", "basket")
+        assert "box" not in s and "cardboard box" not in s, s
+        assert "can" in s or s[0] == "salad dressing"
+        assert t is not None and "basket" in t
+
 
 def test_every_suite_family_is_covered():
     """One representative phrase per LIBERO suite must get a usable tail."""

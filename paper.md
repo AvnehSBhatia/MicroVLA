@@ -1,170 +1,143 @@
-# MicroVLA — Paper Plan
+# MicroVLA — Paper (tonight lock, 2026-07-29)
 
-Working document: the claims, experiments, pass/fail bars, and release goals.
-The ambition level is explicit: engineer the conditions under which this could
-become a *field-defining* paper, while pre-registering the honest bars that
-tell us which tier we actually landed in.
+Lab notebook + argument. Front-matter claims below cite a measured number in
+this file or in `results/`. Original Claims 1–8 live under **Deferred /
+kill-barred** — not tonight's contribution list.
 
-## Why "Attention Is All You Need" worked — and what that demands of us
+## Title (working)
 
-AIAYN was not a benchmark paper. It won because it had:
+*Twenty Ways a Vision-Language-Action Stack Can Silently Report Nothing: a
+forensic study, and the parity discipline that ends it.*
 
-1. **One nameable primitive** (self-attention replacing recurrence) that
-   others could lift out of the paper and reuse anywhere.
-2. **A general claim**, not a system description — the primitive mattered
-   beyond translation.
-3. **Radical simplicity** — the reader could reimplement it in a weekend.
-4. **An artifact** people actually adopted.
+Full argument order: `# PAPER SKELETON` (assembled 2026-07-29). §5l night
+eval intermediates are filled (detect 0.719, success still 0.000).
 
-Mapped onto us, the primitive is **latent-rollout control**: *a control loop
-does not need perception at control rate — it needs a world model good enough
-to dream between measurements, a filter that knows when the dream has
-diverged, and a policy trained in the dream regime it will deploy in.* The
-nameable pieces: **dream ticks**, **evidence fade** (train-time dropout ≡
-inference-time staleness), and the **innovation-gated corrector**.
+## The claim (kept)
 
-The title should state the law, not the system. Candidates:
+A VLA is a **producer/consumer pair** — offline bake+train PRODUCES values;
+deployment CONSUMES them. Failures we found live in the seam, not in either
+side alone. Each side was individually correct, tested, and confident while
+closed-loop success sat at **0.000** with open-loop metrics still healthy
+(e.g. grip ~0.94, pose corr ~0.55).
 
-- *Perception Is Not the Clock: Latent-Rollout Control for Vision-Language-Action Models*
-- *Dreaming Between Frames: 30 Hz Robot Control from 2 Hz Perception*
-- *A 30M-Parameter VLA* (understatement framing, only if Claim 1 lands hard)
+## Three contributions (kept)
 
----
+1. **Defect taxonomy** for producer/consumer ML seams (benign defaults,
+   units, rates, index conventions, representations disagreeing across the
+   seam). Example: `Perception.proposals` defaults to `()` — drop it and you
+   get no error, no shape change, and zero evidence.
+2. **Parity testing** — run trainer path and deployment path on one input and
+   diff tensors. Catches seam bugs that unit tests on either side miss.
+3. **Sealed seams + residual approach metrics** (§5l) — with honest eval
+   protocol (`det_conf=0.02`, `render_size=256`), source detect rises to
+   **~72%** and EEF reaches **~13 cm** of the object on average (min over
+   episode), while binary success stays **0.000**. Binary success alone was
+   hiding approach competence under sparse detection.
 
-## The claims (ordered by scientific weight)
+## What we will NOT claim tonight
 
-### Claim 2 — Perception-rate decoupling (THE paper)
-Run the detector at 30 → 5 → 2 → 1 → 0.5 Hz and plot closed-loop success:
+* Not SOTA on LIBERO. Claim 1's pre-registered kill bar (`<30%` where big
+  models exceed ~80%) is **met** at closed-loop `mean_success = 0.000`. Dropped.
+* Not closed-loop perception-rate decoupling (Claim 2 / E4). Needs
+  `mean_success > 0` first. Open-loop world-model margin is kept (below).
+* Not a Pi 5 edge demo (Claim 3 / E10). No watts/Hz measured.
+* Not trust-as-safety (Claim 5 AUROC / brake cuts catastrophe). τ is an
+  instrument; on LIBERO delta, brake hurt rather than helped.
+* Not recursion Pareto (Claim 7) or bottleneck scaling (Claim 8). Unrun.
+* No number from `--mock-env` (MockLiberoEnv scored 1.000 for an untrained
+  policy). No arm ranking from the overnight batch that measured training
+  length (§4m).
 
-- **with** the JEPA rollout + corrector (ours),
-- **without** (hold-last-observation baseline),
-- **oracle** (full-rate perception; the ceiling).
+## Verification ledger (tonight)
 
-Target finding: success degrades **gracefully** with the world model and
-**collapses** without it → *control quality is bottlenecked by prediction
-quality, not perception rate.* This is a transferable law: it applies to any
-robot whose perception is slower than its actuation (which is every edge
-robot). The trust telemetry gives the companion figure free: τ at measurement
-k predicts failure within the next second (report AUROC).
+| Claim / statement | Status | Number | Source |
+|---|---|---|---|
+| Seam defects leave open-loop healthy, closed-loop 0.000 | VERIFIED | 0/50 trials; grip~0.94 | §4m, skeleton |
+| Stage A WM beats persistence (wrist, blind era) | VERIFIED | `wm_margin` **+19.8%** | §4g, `full_stageA_wrist_v72.pt` |
+| Stage A WM beats persistence (sighted v8) | VERIFIED | `wm_margin` **+43.3%** | §4q, `v8_pod/full_stageA_v8_s0.pt` |
+| Evidence fade moves fusion (design + probe) | PARTIAL | `box_weight→0` Δfused **43.0%** | §4h; E6 ablation pending |
+| Trainable heads under 9M budget | VERIFIED | **7.006M** / 9M | `param_audit` 2026-07-30 |
+| Full CPU mock suite green | VERIFIED | **457 passed**, 1 skipped | `pytest tests -q` |
+| Defect 24 recovery proprio to planner | VERIFIED | test pin | `tests/test_v8_train_path.py` (`-k recovery_proprio`); commit `ff27d75` |
+| Eval sightedness protocol | VERIFIED | `det_conf=0.02`, `render_size=256`, intermediates | `eval/libero_eval.py` `350eef9` |
+| Claim 1 competence @30M | DROP (kill bar) | closed-loop **0.000** | §4m–§5j |
+| Claim 2 E4 rate sweep | DEFER | open-loop only | needs success>0 |
+| Claim 3 Pi demo | DROP | — | E10 deferred |
+| Claim 5 trust safety figure | DROP/soften | τ logged; no AUROC | §4m, §4p |
+| Claim 6 structure / frozen detector | PARTIAL→ceiling | binding BROKEN (basket@0.15; track null); geometry OK | §5m, `IBVS_SWEEP_FORENSICS.md` |
+| Claims 7–8 | DROP | — | E8/E9 unrun |
+| Contribution 3 approach metrics | VERIFIED | detect **0.719**, eef_min **0.132 m**, success **0.000** | §5l `night_sighted` |
+| Phrase→object binding (open-vocab) | VERIFIED negative | phased IBVS grip_close **0.000**; track gate null | §5m |
 
-**Pass bar (landmark tier):** at 2 Hz perception, ours ≥ 85% of its own
-30 Hz-perception score while hold-last ≤ 50% of it, consistently across ≥ 3
-task families. **Kill bar:** if ours and hold-last degrade identically, the
-world model adds nothing — the paper is not this paper.
+### Retracted headlines (do not restore)
 
-### Claim 1 — Competence at 1/200th the scale
-LIBERO-spatial/object/goal success at ~30M deployed params vs OpenVLA (7B,
-~230×), SmolVLA (450M, ~15×), TinyVLA.
+1. “Grounding failure is entirely in the planner” (§4h) — corpus had 0% source dets (§4n).
+2. Overnight arm rankings (§4m) — measured epoch count, not architecture.
+3. “Frozen features are the ceiling” (§5j geometric form) — suspended; **semantic
+   binding** is the measured ceiling (§5m). Features servo; phrases mis-bind.
+4. Phase:vision ratio at n=1 — seed fold 0.3–5.5 (§4m).
+5. Mock-env success as competence.
+6. AIAYN / “field-defining” framing as current status — aspirational debt (§5k).
+7. §5l “terminal approach precision” — reframed as drive-by / missing grasp phase (video).
 
-**Bar for "good":** within 15–25 points of the 7B models' published numbers.
-**Bar for "landmark":** parity on ≥ 1 suite. **Kill bar:** < 30% absolute
-where big models exceed 80% — then Claim 1 is dropped and the paper stands on
-Claims 2 + 3 (efficiency at *matched* modest success is still a result; a
-gap this large is not "striking distance" and we will not spin it).
+## Deferred / kill-barred (original Claims 1–8)
 
-### Claim 3 — The edge demonstration
-Full closed-loop stack on a Raspberry Pi 5 + AI HAT: 30 Hz control, real
-perception at 2 Hz on the NPU, single-digit watts, measured end-to-end
-latency per tick, vs a quantized small-VLA baseline achieving ~1–2 Hz on the
-same board. Report watts/success and $/unit. Industry citations live here.
+Kept for history and pre-registration. Not tonight's contribution list.
 
-### Claim 4 — Training–inference alignment as a recipe (evidence fade)
-Dream mode is not a hack bolted on at inference: box evidence is weighted by
-confidence × freshness, and training-time modality dropout fades the *same*
-weights. Ablation: train with binary zeroing vs evidence fade vs no dropout;
-evaluate dream-window success. Target: fade > zeroing > none, with the gap
-widening as perception rate drops. Generalizes to any policy that must act on
-stale observations (network robots, multi-camera time-slicing).
+### Claim 2 — Perception-rate decoupling (deferred)
+E4: detector at 30→5→2→1→0.5 Hz × {ours, hold-last, oracle}. **Blocked** at
+`mean_success = 0.000`. Open-loop proxy kept: WM margins above.
 
-### Claim 5 — Self-calibrating trust (the safety figure)
-The corrector's error-ratio τ (a) predicts task failure before it happens
-(AUROC vs post-hoc labels), (b) gates action via hold-blend, cutting
-catastrophic motions during divergence at negligible success cost. "The robot
-knows when its imagination is wrong" — reviewers and safety teams both cite
-this.
+### Claim 1 — Competence at 1/200th the scale (kill bar met)
+LIBERO vs OpenVLA/SmolVLA/TinyVLA. **Dropped** per pre-registered kill bar.
 
-### Claim 6 — Structure buys back scale (the bitter-lesson counterpoint)
-The param ledger as an argument: a frozen open-vocab detector supplies vision
-AND language grounding (its own CLIP tower, once per task); the *learned*
-core is ~17M. Ablation: replace grounded dual-box inputs with raw frame
-embedding only (no boxes, no geometry, no parser) at matched params →
-quantify how many "free" points the structured grounding is worth.
+### Claim 3 — Edge demonstration (deferred)
+Pi 5 + AI HAT watts/Hz. Unmeasured.
 
-### Claim 7 — Recursion is a compute knob at constant parameters
-Unique to the weight-tied TRM: quality vs recursion depth (T, n_inner,
-n_sup_infer) at *fixed* 9.5M params, plotted against wall-clock on Pi-class
-hardware. Anytime inference: more think-time when the tick budget allows,
-graceful shedding under load. Nobody has shown an anytime world model on a
-robot control loop.
+### Claim 4 — Evidence fade recipe (partial)
+Design + Δfused probe verified; fade/zero/none ablation (E6) not run.
 
-### Claim 8 — The bottleneck scaling curve
-Success and rollout error vs fused-matrix size (8×5 → 32×5 → 64×5) and
-state-code width (128 → 256 → 512). Either a clean scaling curve (a mini
-scaling law for world-model interfaces) or a plateau proving 160 floats
-suffice — both are findings.
+### Claim 5 — Self-calibrating trust (softened)
+τ instrument only; no failure-AUROC; do not claim safety figure.
 
----
+### Claim 6 — Structure buys scale (partial)
+Sighted grounding + relational sensitivity; not a landmark ablation (E7 void).
 
-## Experiment matrix
+### Claim 7 — Recursion compute knob (dropped)
+### Claim 8 — Bottleneck scaling (dropped)
+
+## Experiment matrix (status sync)
 
 | ID | Experiment | Claim | Status |
 |----|-----------|-------|--------|
-| E1 | Stage A/B training on Bridge+LIBERO (running) | prereq | in progress |
-| E2 | Open-loop rollout error vs persistence baseline, 1–15 ticks | 2,4 | after E1 |
-| E3 | LIBERO closed-loop eval harness + success rates, 3 suites | 1 | next build |
-| E4 | Perception-rate sweep ×{ours, hold-last, oracle} | 2 | after E3 |
-| E5 | τ→failure AUROC + hold-blend safety ablation | 5 | free with E4 |
-| E6 | Evidence-fade ablation (fade/zero/none) | 4 | 3 training runs |
-| E7 | Grounding ablation (dual-box vs frame-only) | 6 | 2 training runs |
-| E8 | Recursion-depth × latency Pareto (Mac + Pi) | 7 | cheap, post-E1 |
-| E9 | Bottleneck sweep (8×5/32×5/64×5) | 8 | 3 training runs |
-| E10 | Pi 5 + AI HAT end-to-end: Hz, watts, latency, vs quantized baseline | 3 | deferred (deploy phase) |
-| E11 | Rig transfer: oracle-sim demos, then TinyVLA-teacher distill ablation | generality | after rig sim |
+| E1 | Stage A/B training | prereq | **done** (WM +19.8% / +43.3%; Stage B `rec_fix` val bc **0.0881**) |
+| E2 | Open-loop rollout vs persistence | 2,4 | measured via `wm_margin` |
+| E3 | LIBERO closed-loop harness | 1 | harness **exists**; success kill-bar **0.000** |
+| E4 | Perception-rate sweep | 2 | **not runnable** until success>0 |
+| E5 | τ→failure AUROC | 5 | deferred |
+| E6 | Evidence-fade ablation | 4 | pending |
+| E7 | Grounding ablation | 6 | pending (fix drop) |
+| E8 | Recursion × latency | 7 | dropped tonight |
+| E9 | Bottleneck sweep | 8 | dropped tonight |
+| E10 | Pi 5 end-to-end | 3 | deferred |
+| E11 | Rig transfer | generality | deferred |
 
-Priority order if compute-constrained: **E1 → E3 → E4 → E2/E5 → E6 → E8 →
-E7 → E9 → E10 → E11.** E4 is the paper; everything else is supporting cast.
-
-## Baselines (all at our data budget, honestly tuned)
-
-- Hold-last-observation at each perception rate (the Claim-2 foil).
-- Linear box-motion extrapolation (the "cheap dreamer" foil — must beat it,
-  else the TRM is decoration).
-- Published OpenVLA / SmolVLA / TinyVLA LIBERO numbers (cited) + quantized
-  SmolVLA on-device for E10.
-- ACT-style chunked BC at matched trainable params (does the world model beat
-  a plain policy of the same size?).
-
-## Release goals (adoption is what makes a paper a landmark)
-
-- Code + weights + converted-episode recipe, one-command LIBERO reproduction.
-- A **single-file reference implementation** (~500 lines: fusion + corrector
-  + loop with a pluggable world model) — the "lift the primitive out" artifact.
-- The Pi image + wiring doc for the full demo; a 90-second video of the
-  physical rig obeying novel commands. Videos recruit citations.
-- Pre-registered bars (this file, versioned) — reviewers reward it and it
-  keeps us honest.
-
-## Tier calibration (pre-registered, no self-deception)
+## Tier calibration (honest landing)
 
 | Outcome | Tier |
 |---|---|
-| E4 graceful-vs-collapse + E3 within 25 pts of 7B models + E10 | Landmark attempt: CoRL/RSS oral, arXiv splash, the AIAYN-style shot |
-| E4 clean + E3 respectable (within ~35 pts) | Strong main-conference paper |
-| E4 muddy but E2/E8/E10 solid | Systems/efficiency paper (ICRA) or strong workshop |
-| TRM never beats persistence (E2 fails) | Stop. Diagnose or redesign; no paper spin. |
-
-A real AIAYN-level outcome additionally requires what no plan can guarantee:
-the *law* in E4 holding beyond our stack (other labs reproducing it on other
-robots). The single-file artifact and pre-registered bars are how we maximize
-the probability someone tries.
+| Forensic seam paper + verified WM margins + parity discipline | **Systems / diagnostic paper (tonight)** |
+| E4 graceful-vs-collapse + E3 within 25 pts of 7B + E10 | Landmark (unreachable tonight) |
+| TRM never beats persistence | Stop — **not this case** (+19.8% / +43.3%) |
 
 ## Timeline hooks (auto-updated as stages complete)
 
-- [x] Datasets streamed + converted under 10 GB cap (in progress)
-- [ ] E1 Stage A world model — val spec_loss must beat persistence baseline
-- [ ] E1 Stage B policy — val BC loss reported
-- [ ] E3 LIBERO harness (robosuite on macOS ARM; fallback: Linux box/cloud eval)
-- [ ] E4 the sweep
+- [x] Datasets streamed + converted under 10 GB cap
+- [x] E1 Stage A world model beats persistence (`wm_margin` +19.8% / +43.3%)
+- [x] E1 Stage B policy — val BC reported (many arms; `rec_fix` night of 07-29)
+- [x] E3 LIBERO harness (real backend on pod; mock path for CI)
+- [ ] E3 non-zero closed-loop success (kill bar currently met at 0.000)
+- [ ] E4 the sweep (blocked on success>0)
 - [ ] Deploy phase (ONNX → Hailo → int8 QAT → E10)
 
 ## Training log & known issues (E1)
@@ -3006,9 +2979,11 @@ including one that made behaviour strictly worse than before it was "fixed".
    lines, runs in half a second, and would have caught the majority. We also show
    its limit honestly: it covers only what it exercises, and the very next defect
    landed in a code path it passed `None` for.
-3. **[pending] The working system**: what the stack achieves once the seams are
-   sealed — dense action supervision at the control rate rather than the
-   perception rate, and a detection-independent spatial channel.
+3. **Sealed seams + residual approach metrics** (§5l) — with honest eval
+   protocol (`det_conf=0.02`, `render_size=256`), source detect rises to
+   **~72%** and EEF reaches **~13 cm** of the object on average (min over
+   episode), while binary success stays **0.000**. Binary success alone was
+   hiding approach competence under sparse detection.
 
 ## The experiments that carry it
 
@@ -3028,9 +3003,9 @@ including one that made behaviour strictly worse than before it was "fixed".
 
 * Not a new architecture. The parts are standard; the contribution is what
   connects them and how it fails.
-* Not state of the art on LIBERO. **[pending]** — whatever we report, we report
-  against baselines run in the same harness, since our own mock harness scored
-  1.000 for an untrained policy (4x) and that is precisely the trap.
+* Not state of the art on LIBERO. Closed-loop `mean_success = 0.000` under the
+  honest protocol (§5l); Claim 1 kill bar is met. Approach intermediates
+  (detect 0.719, eef_min 0.132 m) are reported separately and are not success.
 * No result computed on the mock env, and no number from a run whose parity we
   have not checked.
 
@@ -3805,3 +3780,101 @@ allowed to learn" is suspended. The gap sits in a stack whose recovery path was
 broken, whose critic target was a phase signal, and whose frozen-ceiling claim
 was inferred from a resolution probe that does not license it. Measure (1)–(3)
 before touching the encoder.
+
+## 5l. Night of 2026-07-29 — recovery fix + sighted eval protocol
+
+### Stage B `rec_fix` (Defect 24 fixed)
+
+Recipe: `--recovery-noise 0.01 --variance-weight 0.1 --action-token-sampling 0.5`
+on `data/libero_object_grid`, load `full_stageA_grid10.pt`, tag `rec_fix`.
+Checkpoint: `checkpoints/full_stageB_rec_fix.pt`.
+
+| epoch | val bc | grip | note |
+|---|---|---|---|
+| 8 | 0.1282 | 0.968 | |
+| 14 | 0.1066 | 0.968 | |
+| 16 | 0.1014 | 0.975 | |
+| 18 | 0.0927 | 0.971 | |
+| 20 | **0.0881** | **0.975** | best; ckpt on disk |
+| 22 | 0.0930 | 0.973 | no improve 2/6 |
+| 23 | — | — | train stopped early for night eval (budget) |
+
+Open-loop BC is healthy (best val bc **0.0881**). That does **not** license
+closed-loop competence.
+
+### Eval protocol (shipped `350eef9`)
+
+| knob | old | tonight |
+|---|---|---|
+| `det_conf` | 0.10 | **0.02** |
+| `render_size` | 128 | **256** |
+| grocery prompt tail | box, can, bottle | box, cardboard box, can |
+| reported | mean_success only | + `src_detect_rate`, `eef_obj_dist_*`, `grip_close_rate` |
+
+### Night sighted eval (completed 2026-07-30 06:55 UTC)
+
+`eval.libero_eval` on `full_stageB_rec_fix.pt`: `--det-conf 0.02
+--render-size 256 --no-brake --task-ids 0,1,2 --n-trials 3` →
+`eval_results/night_sighted/libero_object_real_1785394362783_results.json`.
+
+| metric | value |
+|---|---|
+| mean_success | **0.000** (0/9 trials) |
+| src_detect_rate | **0.719** (was ~0.20 under det_conf=0.10 / 128px) |
+| src_conf_mean | 0.061 |
+| grip_close_rate | **0.653** |
+| eef_obj_dist_min | **0.132 m** (alphabet soup trials reached **0.052–0.077 m**) |
+| eef_obj_dist_at_20 | 0.257 m |
+| eef_obj_dist_final | 0.750 m (diverges after closest approach) |
+
+Per-task success all 0.0. Closest approach does not become a grasp: distance
+grows from min to final, so the failure mode is **late-episode divergence /
+grasp timing**, not “never saw the object.”
+
+### Disposition of 5j
+
+Protocol fix moved source detect **~20% → 72%** and produced centimetre-scale
+approaches. That is the opposite of an encoder-only ceiling measured under a
+blind eval. 5j stays **suspended / retracted as stated** (§5k): frozen features
+supply usable error signal under honest detection; remaining gap is control
+after approach (grasp + place), not “features contain nothing.”
+
+
+## 5m. Binding precision is the measured ceiling (2026-07-30 morning)
+
+Overnight IBVS forensics (`results/IBVS_SWEEP_FORENSICS.md`) closed the
+lever ranking from §5k:
+
+| stage | verdict |
+|---|---|
+| recall | fixed (det duty → ~0.98 under honest protocol / phased view) |
+| servo / descend / grasp sequencing | works when the box is stable (unit-tested + sweep) |
+| learned policy phase structure | broken separately — parks in basket empty-handed (video) |
+| temporal tracking | **null** — locks the same wrong box |
+| **phrase→object binding** | **BROKEN — the bottleneck** |
+
+`--ibvs-phase` never left servo (`grip_close_rate` 0.000) because the stable
+detection was the **basket** (conf ~0.15) for "salad dressing", or teleported
+between objects (20–26% jumps >0.15). `--ibvs-track-gate 0.15` removed
+teleports but success stayed 0 — stability without semantics.
+
+5j returns sharpened: not "features lack geometry" (they servo), but
+**open-vocab detection at this scale cannot stably bind the language phrase
+to the correct object**. Claim 6's frozen-detector bet is the load-bearing
+negative under that reading.
+
+### Levers shipped this morning (eval / prompt)
+
+1. **Receptacle-aware source tails** (`prompts.role_chains`): when the target
+   is a basket/bin, strip `"box"` / `"cardboard box"` from the grocery SOURCE
+   chain — those cues fire on the basket liner.
+2. **`--ibvs-clip-rerank`**: among `Perception.proposals`, rebind each role to
+   the box whose ROIAlign emb best matches that role's CLIP text emb,
+   rejecting boxes that score higher on the *other* role.
+
+### What §5l's "approach then diverge" meant
+
+Video (postscript 2) reframes `eef_obj_dist_min` ~0.13 m as a **drive-by**
+en route to the place prior, not a stalled grasp approach. There is no grasp
+phase in the learned policy. Intermediates remain useful for sightedness;
+they are not a grasp-competence score.

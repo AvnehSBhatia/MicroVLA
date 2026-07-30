@@ -248,6 +248,7 @@ class MicroVLAPolicy:
         ibvs_descend: float = 0.0,
         ibvs_phase: bool = False,
         ibvs_track_gate: float = 0.0,
+        ibvs_clip_rerank: bool = False,
         det_conf: float = 0.02,
     ) -> None:
         """Builds the policy.
@@ -338,7 +339,8 @@ class MicroVLAPolicy:
                 gain=self.ibvs_gain, sign=self.ibvs_sign,
                 descend=self.ibvs_descend, target_uv=self.ibvs_target_uv,
                 conf_floor=self.ibvs_conf_floor,
-                track_gate=float(ibvs_track_gate))
+                track_gate=float(ibvs_track_gate),
+                clip_rerank=bool(ibvs_clip_rerank))
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -572,9 +574,13 @@ class MicroVLAPolicy:
             # machine still steps (confidence is already staleness-faded, so
             # a stale box decays below the floor on its own).
             if result.perception is not None:
+                task = getattr(self.loop, "_task", None)
                 action = self.ibvs_machine.step(
                     result.perception.source, result.perception.target,
-                    proprio, action_dim=int(action.shape[0]))
+                    proprio, action_dim=int(action.shape[0]),
+                    proposals=getattr(result.perception, "proposals", ()) or (),
+                    source_emb=None if task is None else task.source_emb,
+                    target_emb=None if task is None else task.target_emb)
                 self._phase_action = action
             elif self._phase_action is not None:
                 action = self._phase_action
