@@ -1,52 +1,90 @@
-# MicroVLA — Paper (tonight lock, 2026-07-29)
+# MicroVLA — Paper (revised 2026-07-30)
 
-Lab notebook + argument. Front-matter claims below cite a measured number in
+Lab notebook + argument. Every front-matter claim cites a measured number in
 this file or in `results/`. Original Claims 1–8 live under **Deferred /
-kill-barred** — not tonight's contribution list.
+kill-barred** — they are not the contribution list.
 
 ## Title (working)
 
-*Twenty Ways a Vision-Language-Action Stack Can Silently Report Nothing: a
-forensic study, and the parity discipline that ends it.*
+*Agreement Is Not Correctness: twenty-eight ways a vision-language-action stack
+can silently report nothing, and the provenance discipline that ends them.*
 
-Full argument order: `# PAPER SKELETON` (assembled 2026-07-29). §5l night
-eval intermediates are filled (detect 0.719, success still 0.000).
+## The claim
 
-## The claim (kept)
+A VLA built on frozen encoders and offline-baked features is a
+**producer/consumer pair**: the bake PRODUCES a feature corpus, deployment
+CONSUMES it. Every defect we found lives in that seam, not in either side. Each
+side was individually correct, individually tested, and individually confident
+while closed-loop success sat at **0.000** and open-loop metrics stayed healthy
+(gripper agreement ~0.93, val BC 0.088).
 
-A VLA is a **producer/consumer pair** — offline bake+train PRODUCES values;
-deployment CONSUMES them. Failures we found live in the seam, not in either
-side alone. Each side was individually correct, tested, and confident while
-closed-loop success sat at **0.000** with open-loop metrics still healthy
-(e.g. grip ~0.94, pose corr ~0.55).
+The seam has two failure modes, and the second is the one that cost the most:
 
-## Three contributions (kept)
+1. **The two sides disagree.** A benign default, a unit, a rate, an index
+   convention, a representation. Twenty-four of these. Example:
+   `Perception.proposals` defaults to `()`, so dropping it in a device
+   transfer produces no error, no shape change, and zero evidence — and the
+   same omission recurred later for `spatial_grid` (§5n, defect 27).
+2. **The two sides agree on something wrong.** No parity test can catch this,
+   because parity holds. Every corpus was baked from the wrist camera and every
+   eval read the wrist camera — perfectly consistent, and the one view in the
+   dataset where the frozen detector is blind: source role grounded on 22% of
+   frames at confidence 0.011, target role on **1.4% of 38 000 frames**
+   (§5n/5o, defect 25).
 
-1. **Defect taxonomy** for producer/consumer ML seams (benign defaults,
-   units, rates, index conventions, representations disagreeing across the
-   seam). Example: `Perception.proposals` defaults to `()` — drop it and you
-   get no error, no shape change, and zero evidence.
-2. **Parity testing** — run trainer path and deployment path on one input and
-   diff tensors. Catches seam bugs that unit tests on either side miss.
-3. **Sealed seams + residual approach metrics** (§5l) — with honest eval
-   protocol (`det_conf=0.02`, `render_size=256`), source detect rises to
-   **~72%** and EEF reaches **~13 cm** of the object on average (min over
-   episode), while binary success stays **0.000**. Binary success alone was
-   hiding approach competence under sparse detection.
+## Contributions
 
-## What we will NOT claim tonight
+1. **A defect taxonomy for producer/consumer ML seams**, with 28 worked
+   instances, each with the measurement that found it and the measurement that
+   would have caught it earlier. The taxonomy's own boundary is a finding: 24 are
+   disagreements, and the last 4 are agreements on a wrong convention, which
+   need a different instrument.
+2. **Parity testing** — run the trainer path and the deployment path on one
+   input and diff tensors. Catches class 1. Its limits are stated and were hit:
+   `eval/train_vs_deploy.py` forces a real tick every step, which is exactly why
+   defect 28 (the deployment-only innovation corrector, perturbing half of all
+   ticks at `perception_period 2`) was invisible to it for weeks.
+3. **Provenance as the instrument for class 2.** A feature corpus is an
+   interface; an interface with no schema will drift. `manifest.json` now records
+   the camera, orientation, detector threshold, role-disjointness, sampling
+   rate, and the frame size the encoder actually saw; `eval/libero_eval.py`
+   checks the deployment against it and writes any mismatch into the results
+   JSON. Four of the 28 defects are precisely a field this block would have
+   flagged.
+4. **Input-quality auditing as a first-class step.** Detection duty,
+   confidence, and box stability *per candidate view* are four cheap numbers
+   that were never measured until the 25th defect hunt — after ~10 000 GPU
+   seconds spent on levers downstream of them. Measuring them moved source
+   grounding 0.219 → 0.850 and target grounding 0.014 → 0.999 without touching a
+   single model parameter.
 
-* Not SOTA on LIBERO. Claim 1's pre-registered kill bar (`<30%` where big
-  models exceed ~80%) is **met** at closed-loop `mean_success = 0.000`. Dropped.
-* Not closed-loop perception-rate decoupling (Claim 2 / E4). Needs
-  `mean_success > 0` first. Open-loop world-model margin is kept (below).
-* Not a Pi 5 edge demo (Claim 3 / E10). No watts/Hz measured.
-* Not trust-as-safety (Claim 5 AUROC / brake cuts catastrophe). τ is an
-  instrument; on LIBERO delta, brake hurt rather than helped.
-* Not recursion Pareto (Claim 7) or bottleneck scaling (Claim 8). Unrun.
-* No number from `--mock-env` (MockLiberoEnv scored 1.000 for an untrained
-  policy). No arm ranking from the overnight batch that measured training
-  length (§4m).
+## What we do NOT claim
+
+* **Not SOTA on LIBERO.** Claim 1's pre-registered kill bar (`<30%` where large
+  models exceed ~80%) is met at `mean_success = 0.000`. Dropped.
+* **Not perception-rate decoupling** (Claim 2 / E4). It needs
+  `mean_success > 0` first. The agentview arms of §5o are the first runs with a
+  corpus whose target role was ever observed; until they report, Claim 2 is
+  unmeasured, not supported.
+* **Not a Pi 5 edge demo** (Claim 3 / E10). No watts/Hz measured.
+* **Not trust-as-safety** (Claim 5). τ is an instrument; on LIBERO delta actions
+  the brake hurt.
+* **Not recursion Pareto** (Claim 7) or bottleneck scaling (Claim 8). Unrun.
+* **No number from `--mock-env`** (it scored 1.000 for an untrained policy).
+
+## Retracted during this study
+
+Kept visible because the retractions are part of the result — each was a
+confident reading of a number produced under a condition we had not checked.
+
+| claim | why it fell |
+|---|---|
+| §4e — the waypoint actuator is a tracking controller | its feedback is algebraically dead; a frozen arm and one moving 5 cm/step emit bit-identical commands (§5n) |
+| §5b — the policy does not beat a linear probe | measured before the model was allowed to fit (§5c) |
+| §5j — frozen features are the ceiling, resolution is not | inferred from a resolution probe that does not license it, then from experiments run through a blind camera (§5k, §5n) |
+| §5m — open-vocab detection cannot bind the phrase to the object | established only for the wrist view; agentview grounds both roles at 0.97/0.999 with 6× less jitter (§5n) |
+| §5m — the tracking and CLIP re-rank nulls | uninformative rather than negative: both re-ranked boxes that were not on objects |
+| §5l — "approach then diverge", terminal-precision problem | video showed a drive-by en route to the place prior, not a stalled approach (§5m postscript 2) |
 
 ## Verification ledger (tonight)
 
@@ -56,25 +94,42 @@ closed-loop success sat at **0.000** with open-loop metrics still healthy
 | Stage A WM beats persistence (wrist, blind era) | VERIFIED | `wm_margin` **+19.8%** | §4g, `full_stageA_wrist_v72.pt` |
 | Stage A WM beats persistence (sighted v8) | VERIFIED | `wm_margin` **+43.3%** | §4q, `v8_pod/full_stageA_v8_s0.pt` |
 | Evidence fade moves fusion (design + probe) | PARTIAL | `box_weight→0` Δfused **43.0%** | §4h; E6 ablation pending |
-| Trainable heads under 9M budget | VERIFIED | **7.006M** / 9M | `param_audit` 2026-07-30 |
-| Full CPU mock suite green | VERIFIED | **457 passed**, 1 skipped | `pytest tests -q` |
 | Defect 24 recovery proprio to planner | VERIFIED | test pin | `tests/test_v8_train_path.py` (`-k recovery_proprio`); commit `ff27d75` |
-| Eval sightedness protocol | VERIFIED | `det_conf=0.02`, `render_size=256`, intermediates | `eval/libero_eval.py` `350eef9` |
+| Eval sightedness protocol | SUPERSEDED | `render_size=256` vs a 128 px corpus is itself a mismatch | §5n provenance |
 | Claim 1 competence @30M | DROP (kill bar) | closed-loop **0.000** | §4m–§5j |
 | Claim 2 E4 rate sweep | DEFER | open-loop only | needs success>0 |
 | Claim 3 Pi demo | DROP | — | E10 deferred |
 | Claim 5 trust safety figure | DROP/soften | τ logged; no AUROC | §4m, §4p |
-| Claim 6 structure / frozen detector | PARTIAL→ceiling | binding BROKEN (basket@0.15; track null); geometry OK | §5m, `IBVS_SWEEP_FORENSICS.md` |
+| Claim 6 structure / frozen detector | REOPENED | the "ceiling" was the wrist view; agentview grounds 0.970/0.999 | §5n, §5o |
 | Claims 7–8 | DROP | — | E8/E9 unrun |
-| Contribution 3 approach metrics | VERIFIED | detect **0.719**, eef_min **0.132 m**, success **0.000** | §5l `night_sighted` |
-| Phrase→object binding (open-vocab) | VERIFIED negative | phased IBVS grip_close **0.000**; track gate null | §5m |
+| Contribution 3 approach metrics | WITHDRAWN as read | eef_min 0.132 m was a drive-by, not an approach | §5m postscript 2 |
+| Contribution 4 input-quality audit | VERIFIED | src duty 0.219→0.850 with no parameter changed | §5n |
+| Phrase→object binding (open-vocab), WRIST view | VERIFIED negative | phased IBVS grip_close **0.000**; track gate null | §5m |
+| Phrase→object binding, AGENTVIEW | **RETRACTS the row above** | src duty **0.970**, tgt **0.999**, jitter 0.030 | §5n, §5o |
+| Corpus target role was never observed (wrist) | VERIFIED | **1.4%** of ~38 000 frames | §5o |
+| Agentview source box tracks the moved object | VERIFIED | `const_frac` **0.032** | §5o |
+| Source box lands on the basket (agentview) | VERIFIED | **40.9%** of both-detected frames; 0.000 at `role_disjoint_iou` 0.1 | §5o |
+| Waypoint actuator is open-loop | VERIFIED | frozen vs moving arm: bit-identical commands | §5n |
+| Corrector perturbs half of all deployed ticks | VERIFIED | rel-diff fused **0.15–0.22** | §5n (defect 28) |
+| Trainable heads under budget | VERIFIED | **7.006M** / 9M | `param_audit` 2026-07-30 |
+| Full CPU mock suite green | VERIFIED | **504 passed**, 1 skipped | `pytest tests -q` |
 
 ### Retracted headlines (do not restore)
 
 1. “Grounding failure is entirely in the planner” (§4h) — corpus had 0% source dets (§4n).
 2. Overnight arm rankings (§4m) — measured epoch count, not architecture.
-3. “Frozen features are the ceiling” (§5j geometric form) — suspended; **semantic
-   binding** is the measured ceiling (§5m). Features servo; phrases mis-bind.
+3. “Frozen features are the ceiling” (§5j geometric form) — suspended twice:
+   first as unlicensed by the resolution probe (§5k), then because every
+   experiment behind it ran through a camera the detector cannot see (§5n).
+8. “Semantic binding is the measured ceiling” (§5m) — measured on the wrist view
+   only. Agentview grounds both roles at 0.970 / 0.999 with 6x less box jitter,
+   and the residual source/target collision is fixable with no training
+   (§5n, §5o). The one surviving piece is narrow and still true: YOLO-World-S
+   scores the product phrases themselves ("alphabet soup") at 0.000, so binding
+   comes from generic tails plus disjointness, not from the phrase.
+9. “The wrist view is 4x the dynamics signal and better grounding than
+   agentview” (`preprocess/shard_pipeline.py` help text) — measured backwards.
+   Agentview is 3.9x source duty, 4.7x target duty, 6.3x proposals per frame.
 4. Phase:vision ratio at n=1 — seed fold 0.3–5.5 (§4m).
 5. Mock-env success as competence.
 6. AIAYN / “field-defining” framing as current status — aspirational debt (§5k).

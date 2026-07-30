@@ -431,14 +431,21 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--libero-camera", default="agentview_rgb",
-        help="libero only: observation stream (eye_in_hand_rgb = wrist cam — "
-        "4x the dynamics signal and far better grounding than agentview on "
-        "these 128px sim renders)",
+        help="libero only: observation stream. This help text used to claim the "
+        "wrist cam had '4x the dynamics signal and far better grounding than "
+        "agentview'; measured, it is backwards. On libero_object with the "
+        "deployed prompt chain, agentview grounds the SOURCE role on 85%% of "
+        "frames against the wrist's 22%%, the TARGET on 100%% against 21%%, "
+        "supplies 2.82 proposals/frame against 0.45, and its box center moves "
+        "0.030 between frames against 0.183. See paper.md 5n (defect 25).",
     )
     parser.add_argument(
-        "--libero-no-rotate", action="store_true",
-        help="libero only: skip the 180-degree rotation (wrist cam is stored "
-        "correctly oriented; agentview is not)",
+        "--libero-no-deflip", "--libero-no-rotate", dest="libero_no_rotate",
+        action="store_true",
+        help="libero only: bake frames as robosuite rendered them (upside down). "
+        "BOTH streams come out of a bottom-left-origin framebuffer, so the "
+        "default row flip is right for both cameras — see "
+        "microvla/utils/camera.py.",
     )
     args = parser.parse_args(argv)
     ignore_sigterm()
@@ -455,7 +462,7 @@ def main(argv: list[str] | None = None) -> None:
         reader_kwargs["features_dir"] = args.rlds_meta or str(Path(args.out) / "_rlds_meta")
     if args.dataset == "libero":
         reader_kwargs["camera"] = args.libero_camera
-        reader_kwargs["rotate_180"] = not args.libero_no_rotate
+        reader_kwargs["deflip"] = not args.libero_no_rotate
     run_shards(
         shards, args.out, args.dataset,
         budget_gb=args.budget_gb, workdir=args.workdir,
