@@ -100,7 +100,15 @@ def _load_checkpoint_state(
         tried.append(str(cand))
         if not cand.exists():
             continue
-        state = torch.load(cand, map_location=device, weights_only=True)
+        # Our checkpoints are repo-owned. torch>=2.6 defaults weights_only=True,
+        # which rejects MicroVLA state dicts that embed numpy / cfg objects
+        # (UnpicklingError "Unsupported operand 118" — observed on the pod IBVS
+        # sweep, 3/3 workers dead, mean_success covering 0 tasks). Try the
+        # safe path first; fall back for our own files.
+        try:
+            state = torch.load(cand, map_location=device, weights_only=True)
+        except Exception:
+            state = torch.load(cand, map_location=device, weights_only=False)
         is_stage_b = "planner" in state
         if i > 0:
             logger.warning(
@@ -230,6 +238,8 @@ class MicroVLAPolicy:
         ibvs_gain: float = 0.0,
         ibvs_target_uv: tuple[float, float] = (0.5, 0.55),
         ibvs_conf_floor: float = 0.1,
+        ibvs_sign: tuple[float, float, float] = (1.0, -1.0, 0.0),
+        ibvs_descend: float = 0.0,
     ) -> None:
         """Builds the policy.
 
@@ -306,6 +316,8 @@ class MicroVLAPolicy:
         self.ibvs_gain = float(ibvs_gain)
         self.ibvs_target_uv = (float(ibvs_target_uv[0]), float(ibvs_target_uv[1]))
         self.ibvs_conf_floor = float(ibvs_conf_floor)
+        self.ibvs_sign = tuple(float(v) for v in ibvs_sign)
+        self.ibvs_descend = float(ibvs_descend)
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -521,6 +533,8 @@ class MicroVLAPolicy:
                 result.perception.source.center,
                 float(result.perception.source.confidence),
                 gain=self.ibvs_gain,
+                sign=self.ibvs_sign,
+                descend=self.ibvs_descend,
                 target_uv=self.ibvs_target_uv,
                 conf_floor=self.ibvs_conf_floor,
                 action_dim=int(action.shape[0]),
