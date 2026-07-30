@@ -3662,3 +3662,65 @@ The rule this suggests, and the one the paper should carry: *a clamp, a mask, or
 fallback that can silently remove signal must count what it removed.* The
 gradient guard of 5b-i already does this (`NONFINITE 11b/11skip`), and it is why
 that failure took minutes to characterize while this one took two training runs.
+
+## 5j. The frozen features are the ceiling — resolution is not
+
+`var_only` isolated the magnitude fix and produced the most useful negative in
+this document:
+
+| arm | std_ratio | separation @ step 20 | @ step 40 | success |
+|---|---|---|---|---|
+| `rec_mid` (no variance term) | 0.49 | **5.34 cm** | 9.74 cm | 0.000 |
+| `var_only` (variance matching) | ~1.0 | **12.79 cm** | 21.76 cm | 0.000 |
+
+It trained cleanly — val bc **0.1537**, val grip **0.959**, gripper agreement
+0.917, closing 64.7% against the demonstrator's 58.5% — and diverges **2.4x
+faster**.
+
+**This invalidates how divergence was being read.** `rec_mid` had the lowest
+separation because it UNDER-MOVES: at std_ratio 0.49 it physically cannot get far
+from the demonstrated path. Restoring correct magnitude amplifies an imperfect
+DIRECTION, so the arm leaves faster. Low divergence was a symptom of not moving,
+not of accuracy, and the two quantities do not decompose: **correct magnitude
+requires near-correct direction, and correlation 0.69 is not enough.**
+
+### Testing the direction hypothesis directly
+
+If direction is the limit, the candidate cause is representational: the corpus
+pools the backbone's P5 map (20x20 at the detector's native input) down to 4x4,
+discarding 96% of structure already computed. The corpus was re-baked at 8x8 —
+4x the spatial resolution, same layer, same frames — and probed before training
+anything on it:
+
+| features | 4x4 grid | 8x8 grid |
+|---|---|---|
+| `spatial_grid` alone, pose R² | 0.076 | **0.070** |
+| `spatial_grid` alone, pose corr | 0.465 | **0.459** |
+| `grid + frame_emb + proprio`, pose R² | — | 0.128 |
+| `grid + frame_emb + proprio`, pose corr | — | 0.477 |
+
+**Quadrupling the spatial resolution changes nothing.** The limit is not how
+finely the P5 map is sampled; it is what P5 encodes. Frozen detection features at
+stride 32 carry pose R² of order 0.1 for this task, and no amount of resampling
+adds information that is not there.
+
+Running the probe BEFORE training on the new corpus is the only reason this cost
+40 minutes instead of two hours, and it is the discipline this document has been
+arguing for throughout: measure the information content before building on it.
+
+### What this means for the architecture
+
+The design's central bet — a frozen open-vocabulary detector supplies all
+perception, and only ~7M task heads train — is the thing now under question.
+Every downstream component has been fixed, measured, and verified:
+
+* grounding recovered (0% -> 75.8% detection)
+* the objective corrected (two load-bearing terms identified out of six)
+* divergence bounded (the NaN that corrupted every prior closed-loop number)
+* rate matched, actuation excluded across five configurations and four gains
+* the policy beats a linear probe on its own features (0.69 vs 0.415)
+
+And closed-loop success is 0.000. The remaining gap sits in the one part of the
+stack that was never allowed to learn. That is a defensible negative result about
+frozen-encoder VLAs at this scale, and it is not the result this project set out
+to report.
