@@ -61,6 +61,41 @@ contrast with stage (c)–(e) above: the zero-training IBVS residual got closer
 longer the bottleneck; terminal approach precision and late-episode divergence
 are.
 
+## Postscript 2 — video ground truth (2026-07-30 08:05 UTC): it's the phase shortcut, not an approach floor
+
+Two MP4s of the exact scored config (`rec_fix` + ibvs 0.5, honest protocol;
+`eval_results/videos_rec_fix_ibvs/` on the pod, recorded via the new
+`record_mp4` deployment-knob passthrough, 6342a67) show the same behavior:
+**the policy drives to the basket and parks there, empty-handed, never
+attempting a grasp.** Task 2 ends with the wrist camera buried in the basket
+liner; task 0 sweeps past the objects early, then overshoots left of the
+basket onto bare table.
+
+This reframes both earlier postscripts:
+
+* `eef_obj_dist_min` ≈ 0.10–0.13 is a **drive-by** en route to the place
+  phase, not an approach that stalls — there is no "terminal approach
+  precision" problem, there is **no grasp phase at all** (the 4h/5k phase
+  shortcut, executed in the sim).
+* The IBVS residual cannot rescue this and gain is irrelevant: once the arm
+  is over the basket the source is not in the wrist view, so there are no
+  detections and the residual is **silent by construction**. A residual
+  defined on the wrist image only has authority where the policy's prior
+  already points the camera.
+* Follow-on eval runs (`rec_fix_ibvs`, gain 0.2 ratio-to-policy 0.22;
+  `rec_fix_ibvs05`, gain 0.5) confirmed: intermediates statistically
+  identical to bare `rec_fix`. High `src_detect_rate` on some trials
+  (0.88–0.98 with the wrist in the basket) is low-conf false positives at
+  `det_conf=0.02` (conf mean ~0.06), so detect-rate intermediates need a
+  confidence-weighted variant before being trusted.
+
+Implication for the lever ranking: the cheapest path to a nonzero
+`mean_success` is **phase sequencing**, not more controller authority — e.g.
+IBVS-first scheduling (servo+grasp until holding, only then hand over to the
+policy's place prior), or gating place-phase motion on a grasped condition.
+The falsifier's approach evidence (sweep stages c–e above) says the features
+support the servo half of that plan.
+
 ## Method (reproducible)
 
 Group telemetry rows by (run, task, trial); per trial compute: detection rate
