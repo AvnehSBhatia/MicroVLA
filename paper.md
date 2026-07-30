@@ -3605,3 +3605,60 @@ trajectory while every loss curve looked fine.
 closed-loop success. The divergence curve is the one that matters: it measures
 the mechanism directly, so if recovery training works the separation at step 20
 should fall well below 5.3 cm whether or not success moves off zero yet.
+
+## 5i. Defect 23 — a silent clamp turned recovery training into saturation
+
+The recovery arms did not merely fail to help; they made the mechanism they
+targeted **monotonically worse**:
+
+| arm | perturbation | separation @ step 20 | @ step 40 | success |
+|---|---|---|---|---|
+| `rec_mid` | none (observation noise only) | **5.34 cm** | 9.74 cm | 0.000 |
+| `dag_lo` | 15 mm | 8.65 cm | 14.95 cm | 0.000 |
+| `dag_hi` | 35 mm | 12.82 cm | 23.95 cm | 0.000 |
+
+Monotonic in the perturbation is the signature of a scale error, not a sign
+error. The arithmetic:
+
+| displacement | correction in normalized units | executable? |
+|---|---|---|
+| 3 mm | 0.29 | yes |
+| 10 mm | 0.98 | marginal |
+| **15 mm** | **1.47** | **no** |
+| **35 mm** | **3.43** | **no** |
+
+One full-magnitude action step moves only `gain` metres — 10.9 / 13.1 / 11.8 mm
+per axis. A 15 mm displacement therefore needs 1.4 steps of *saturated* motion to
+undo, and its correction lies outside the [-1, 1] the target lives in. The
+`.clamp(-1, 1)` protecting the target then discarded the excess, so both arms
+trained on **saturated targets** — a policy instructed to emit maximum motion
+constantly. The negative result says nothing about recovery training; it measures
+a clamp.
+
+### The guard, and why the first version of it was also wrong
+
+The first fix refused any perturbation whose correction exceeded a 0.5-unit
+budget. It rejected 4 mm — the value intended as safe — because it checked the
+MAX over sampled deltas, and an unbounded Gaussian exceeds any budget in its
+tail: sigma = 4 mm reaches 12 mm at 3 sigma, correction 0.96. A refusal rule on a
+Gaussian tail rejects every usable sigma.
+
+The working version computes the largest undoable displacement per axis first
+(`0.5 * gain * q_high`), caps sigma at `dmax / 2.5`, and truncates samples to
+`dmax`. Verified across requested sigmas of 1 / 4 / 15 / 35 mm: max correction
+0.390 / 0.500 / 0.500 / 0.500 against the 0.5 budget. Oversized requests are
+capped rather than refused, no target can saturate, and the invariant is
+asserted rather than trusted.
+
+### What this is an instance of
+
+Twenty-three defects, and this one belongs to the same family as the very first:
+**a protective operation that discards a signal instead of reporting it.** The
+clamp was added to keep targets in range, which is correct; what it lacked was
+any statement of what it had thrown away. Every loss curve stayed smooth, `val bc`
+improved, and the augmentation was training the opposite of its intent.
+
+The rule this suggests, and the one the paper should carry: *a clamp, a mask, or a
+fallback that can silently remove signal must count what it removed.* The
+gradient guard of 5b-i already does this (`NONFINITE 11b/11skip`), and it is why
+that failure took minutes to characterize while this one took two training runs.
