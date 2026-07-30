@@ -2980,7 +2980,7 @@ every other defect in this document.
 
 ---
 
-# PAPER SKELETON (assembled 2026-07-29)
+# PAPER SKELETON (revised 2026-07-30)
 
 Everything above is a lab notebook. This is the argument it supports, in the
 order a reviewer should meet it. Numbers marked **[pending]** are the ones the
@@ -2988,25 +2988,38 @@ current runs must supply; everything else is measured and in this document.
 
 ## Title (working)
 
-*Twenty Ways a Vision-Language-Action Stack Can Silently Report Nothing: a
-forensic study, and the parity discipline that ends it.*
+*Agreement Is Not Correctness: twenty-eight ways a vision-language-action stack
+can silently report nothing.*
 
 ## The claim
 
-A VLA is not one model. It is a **producer/consumer pair** — an offline
-preprocessing + training path that PRODUCES values, and a deployment path that
-CONSUMES them — and essentially every failure we found lives in the seam, not in
-either side. Each side was individually correct, individually tested, and
-individually confident.
+A VLA built on frozen encoders and offline-baked features is not one model. It
+is a **producer/consumer pair** — a preprocessing + training path that PRODUCES
+a feature corpus, and a deployment path that CONSUMES it — and every failure we
+found lives in that seam. Each side was individually correct, individually
+tested, and individually confident.
+
+The seam fails in two ways, and they need different instruments:
+
+**Class 1 — the two sides disagree.** An optional field with a benign default, a
+unit, a rate, an index convention, a representation. Silent because the
+consumer's default is well-formed. Twenty-four instances. Parity testing catches
+these.
+
+**Class 2 — the two sides agree on something wrong.** No parity test can catch
+this, because parity holds. Four instances, and they were the most expensive:
+every corpus was baked from the wrist camera and every eval read the wrist
+camera — perfectly consistent, and the one view where the frozen detector is
+blind. Provenance and input-quality auditing catch these.
 
 ## Why anyone should care
 
 The field reports closed-loop success rates. This paper reports what those
-numbers are made of. We found **nineteen** defects; **every single one** left
-open-loop metrics healthy — gripper accuracy 0.94, pose correlation 0.55 — while
-closed-loop success sat at exactly 0.000. A number that low reads as "the model
-is bad" and invites the standard responses: more data, more parameters, a better
-loss. In this system it meant, in order:
+numbers are made of. We found **twenty-eight** defects; **every one** left
+open-loop metrics healthy — gripper agreement 0.93, validation BC 0.088, world
+model +43% over persistence — while closed-loop success sat at exactly 0.000. A
+number that low reads as "the model is bad" and invites the standard responses:
+more data, more parameters, a better loss. In this system it meant, in order:
 
 | what 0.000 actually meant | § |
 |---|---|
@@ -3017,28 +3030,49 @@ loss. In this system it meant, in order:
 | a stale box was fed where training taught zero | 4v |
 | the relational head received all-zero evidence | 4x |
 | the HRM never saw the end-effector | 4x-b |
+| the recurrent state diverged to NaN past its training horizon | 5e |
+| the recovery label described a displacement the input did not carry | 5k |
+| **the detector was reading a camera it cannot see through** | **5n** |
+| the deployed spatial adapter never saw the grid it trained on | 5n |
+| half of every episode's ticks carried a perturbation training never modelled | 5n |
 
-Six of the nineteen were introduced BY THE FIXES for the previous ones,
+Seven of the twenty-eight were introduced BY THE FIXES for previous ones,
 including one that made behaviour strictly worse than before it was "fixed".
 
-## The three contributions
+## The four contributions
 
-1. **A defect taxonomy for producer/consumer ML systems**, with the failure mode
-   named: an optional field with a benign default, a unit, a rate, an index
-   convention, or a representation, disagreeing across the seam — silent because
-   the consumer's default is well-formed. `Perception.proposals` defaults to
-   `()`; dropping it produced no error, no shape change, and zero evidence.
-2. **Parity testing as the discipline that catches them.** A test asserting
-   either side's behaviour is evidence about that side alone. The test that finds
-   these runs BOTH paths on ONE input and diffs, tensor by tensor. Ours is 180
-   lines, runs in half a second, and would have caught the majority. We also show
-   its limit honestly: it covers only what it exercises, and the very next defect
-   landed in a code path it passed `None` for.
-3. **Sealed seams + residual approach metrics** (§5l) — with honest eval
-   protocol (`det_conf=0.02`, `render_size=256`), source detect rises to
-   **~72%** and EEF reaches **~13 cm** of the object on average (min over
-   episode), while binary success stays **0.000**. Binary success alone was
-   hiding approach competence under sparse detection.
+1. **A defect taxonomy for producer/consumer ML systems**, with 28 worked
+   instances, each paired with the measurement that found it and the measurement
+   that would have found it sooner. The taxonomy's own boundary is a result: the
+   split at 24 is where parity testing stops working.
+2. **Parity testing as the discipline for class 1.** A test asserting either
+   side's behaviour is evidence about that side alone. The test that finds these
+   runs BOTH paths on ONE input and diffs, tensor by tensor. Ours is 180 lines,
+   runs in half a second, and would have caught most of them. We also report its
+   limit honestly, because we hit it: `eval/train_vs_deploy.py` forces a real
+   perception tick every step, which is exactly why the deployment-only
+   innovation corrector — perturbing HALF of all ticks at the rate we evaluate
+   at — was invisible to it for weeks (defect 28).
+3. **Provenance as the discipline for class 2.** A feature corpus is an
+   interface, and an interface with no schema will drift. The corpus now records
+   the camera, orientation, detector threshold, role-disjointness policy,
+   sampling rate and the frame size the encoder actually saw; the eval harness
+   checks the deployment against it and writes any mismatch into the results
+   file. Four of the 28 are precisely a field this block would have flagged.
+4. **Input-quality auditing as a first-class step.** Detection duty, confidence
+   and box stability *per candidate view* are four cheap numbers nobody computed
+   until the 25th defect hunt, after ~10 000 GPU-seconds spent on levers
+   downstream of them. Computing them moved source grounding 0.219 → 0.850 and
+   target grounding 0.014 → 0.999 with no parameter changed — and retracted
+   three of this paper's own earlier conclusions.
+
+## The result the paper is honest about
+
+Closed-loop success was 0.000 for the entire study. The agentview arms (§5o) are
+the first runs whose corpus ever contained the target object. Their numbers are
+**[pending]**, and the paper states plainly which of its claims depend on them:
+Claim 2 (perception-rate decoupling) is unmeasurable at zero success, and stays
+unmeasured rather than argued around.
 
 ## The experiments that carry it
 
@@ -3058,9 +3092,14 @@ including one that made behaviour strictly worse than before it was "fixed".
 
 * Not a new architecture. The parts are standard; the contribution is what
   connects them and how it fails.
-* Not state of the art on LIBERO. Closed-loop `mean_success = 0.000` under the
-  honest protocol (§5l); Claim 1 kill bar is met. Approach intermediates
-  (detect 0.719, eef_min 0.132 m) are reported separately and are not success.
+* Not state of the art on LIBERO. Closed-loop `mean_success = 0.000`; Claim 1's
+  kill bar is met. The approach intermediates we once offered in its place
+  (detect 0.719, eef_min 0.132 m) are WITHDRAWN as evidence of competence: video
+  showed the 13 cm was a drive-by en route to the basket, not a stalled
+  approach (§5m).
+* Not that we have found the last defect. Three of the 28 were found in the last
+  hours of the study, by an instrument (input-quality auditing) that did not
+  exist the day before.
 * No result computed on the mock env, and no number from a run whose parity we
   have not checked.
 
