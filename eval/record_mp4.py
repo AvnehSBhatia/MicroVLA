@@ -25,6 +25,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+from microvla.utils.camera import AGENTVIEW, ENV_KEY, WRIST, upright
 from microvla.utils.signals import ignore_sigterm
 
 
@@ -96,6 +97,11 @@ def main(argv=None) -> None:
     # Deployment knobs that change WHAT policy the video shows — mirrored from
     # eval/libero_eval so a recording can reproduce a scored configuration
     # exactly (a video of a different config answers a different question).
+    ap.add_argument("--camera", default=ENV_KEY[WRIST],
+                    choices=sorted(ENV_KEY.values()),
+                    help="the view the POLICY is fed; must match the corpus its "
+                         "checkpoint was trained on. Both cameras are filmed "
+                         "either way — this only selects which one drives act().")
     ap.add_argument("--perception-period", type=int, default=15)
     ap.add_argument("--det-conf", type=float, default=0.02)
     ap.add_argument("--no-brake", action="store_true")
@@ -171,12 +177,19 @@ def main(argv=None) -> None:
 
             frames, success = [], False
             for step in range(args.max_steps):
-                wrist = np.asarray(obs["robot0_eye_in_hand_image"])  # policy's view
+                # upright() is the SAME row flip the bake and eval/libero_eval
+                # apply (microvla/utils/camera.py). The recorder used np.rot90(.,2)
+                # on agentview -- a 180 turn, so its "what is really happening"
+                # panel was left-right mirrored relative to the scene, and it
+                # left the wrist stream upside down, which is what the policy
+                # was actually fed.
+                policy_view = upright(obs[args.camera], args.camera)
                 action = np.asarray(
-                    policy.act(wrist, proprio=proprio_from_obs(obs)), dtype=np.float32
+                    policy.act(policy_view, proprio=proprio_from_obs(obs)),
+                    dtype=np.float32,
                 )
-                # agentview is mounted upside down -> rotate 180 for viewing.
-                agent = np.rot90(np.asarray(obs["agentview_image"]), 2)
+                wrist = upright(obs[ENV_KEY[WRIST]], ENV_KEY[WRIST])
+                agent = upright(obs[ENV_KEY[AGENTVIEW]], ENV_KEY[AGENTVIEW])
                 # Side by side: 3rd person (left) + wrist/policy view (right).
                 frames.append(_side_by_side(agent, wrist, cv2))
                 obs, _r, done, _info = env.step(action)

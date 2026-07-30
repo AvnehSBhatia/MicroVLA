@@ -40,6 +40,7 @@ import platform
 
 import numpy as np
 
+from microvla.utils.camera import HDF5_KEY, upright
 from microvla.utils.signals import ignore_sigterm
 
 
@@ -52,7 +53,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--norm-stats", default=None)
     p.add_argument("--waypoint-stats", default=None)
     p.add_argument("--camera", default="eye_in_hand_rgb",
-                   help="hdf5 obs key; must be the view the corpus was baked from")
+                   choices=sorted(HDF5_KEY.values()),
+                   help="hdf5 obs key; must be the view the corpus was baked "
+                        "from. Frames are put upright with the same function "
+                        "the bake and the live eval use "
+                        "(microvla/utils/camera.py) — teacher forcing is only "
+                        "an instrument if the pixels match.")
     p.add_argument("--n-demos", type=int, default=3)
     p.add_argument("--max-steps", type=int, default=300)
     p.add_argument("--task", default=None, help="language string; defaults to the file stem")
@@ -107,7 +113,7 @@ def main(argv=None) -> None:
         demos = sorted(f["data"].keys(), key=lambda k: int(k.split("_")[1]))[: args.n_demos]
         for d in demos:
             grp = f["data"][d]
-            frames = np.asarray(grp["obs"][args.camera])
+            frames = upright(np.asarray(grp["obs"][args.camera]), args.camera)
             actions = np.asarray(grp["actions"], dtype=np.float64)
             obs = grp["obs"]
             n = min(len(frames), len(actions), args.max_steps)

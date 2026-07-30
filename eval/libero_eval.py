@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
+from microvla.utils.camera import ENV_KEY, upright
 from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
@@ -279,7 +280,10 @@ def _run_real_trial(
         success = False
         nonfinite_steps = 0
         for step in range(max_steps):
-            frame = obs[camera]
+            # Same row flip the bake applies (microvla/utils/camera.py). The
+            # detector is not rotation invariant and neither side was allowed
+            # to hold a private copy of this convention again.
+            frame = upright(obs[camera], camera)
             # v6: arm state every step (None on envs that don't expose it).
             action = policy.act(frame, proprio=proprio_from_obs(obs))
             # A NON-FINITE ACTION DOES NOT RAISE. The env accepts it, the
@@ -555,7 +559,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="LIBERO benchmark key (real backend) or a label for the synthetic tasks (mock)")
     p.add_argument("--n-trials", type=int, default=50, help="episodes per task")
     p.add_argument("--max-steps", type=int, default=300, help="max env steps per episode")
-    p.add_argument("--camera", default="robot0_eye_in_hand_image")
+    p.add_argument("--camera", default="robot0_eye_in_hand_image",
+                   choices=sorted(ENV_KEY.values()),
+                   help="live observation the policy sees. MUST match the "
+                        "corpus the checkpoint was trained on: agentview_image "
+                        "for an agentview bake, robot0_eye_in_hand_image for a "
+                        "wrist bake. On libero_object the wrist view grounds "
+                        "the source phrase on 22%% of frames at conf 0.011 and "
+                        "the box jumps 0.18 between frames; agentview grounds "
+                        "85%% at 0.066 with 0.03 jitter (paper.md 5m).")
     p.add_argument("--mock-env", action="store_true", help="use MockLiberoEnv (no sim deps)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--checkpoint", default="none",

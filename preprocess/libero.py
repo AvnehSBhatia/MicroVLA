@@ -11,9 +11,13 @@ files, one file per task, ~50 human demos per file:
         actions                [T, 7] float  (Δxyz, Δrpy, gripper), ~20 Hz
       demo_1/ ...
 
-Known quirk handled here: robosuite renders the agentview camera upside down —
-frames are rotated 180° by default (``--no-rotate-180`` to disable), matching
-what OpenVLA/Octo do for LIBERO.
+Known quirk handled here: robosuite renders through an OpenGL framebuffer whose
+origin is bottom-left, so BOTH camera streams arrive row-reversed. Putting them
+upright is a row flip and nothing else — see ``microvla/utils/camera.py``, which
+holds that convention for the bake and the deployment path alike. Historically
+this file rotated agentview a full 180° (row flip plus a spurious left-right
+mirror) and left the wrist stream untouched; ``--no-deflip`` reproduces the
+"untouched" half for a deliberate ablation, nothing reproduces the mirror.
 
 Instructions come from ``data.attrs['problem_info']`` (JSON with
 ``language_instruction``) when present, else are reconstructed from the
@@ -39,6 +43,7 @@ from typing import Iterator
 import numpy as np
 
 from microvla.config import DEFAULT_CONFIG
+from microvla.utils.camera import upright
 from preprocess.common import SourceEpisode, run_conversion
 from preprocess.teacher import build_teacher
 from microvla.utils.signals import ignore_sigterm
@@ -91,14 +96,24 @@ def iter_libero_episodes(
     root: str | Path,
     camera: str = "agentview_rgb",
     detect_camera: str | None = None,
-    rotate_180: bool = True,
+    deflip: bool = True,
 ) -> Iterator[SourceEpisode]:
     """Streams every demo of every LIBERO hdf5 under ``root``.
 
     Args:
         root: Directory containing (possibly nested) LIBERO ``*.hdf5`` files.
         camera: Observation key to use as the video stream.
-        rotate_180: Rotate frames 180° (robosuite renders agentview flipped).
+        deflip: Put frames upright via :func:`microvla.utils.camera.upright`.
+            BOTH LIBERO streams need it — they share one OpenGL framebuffer
+            whose origin is bottom-left — and the deployment path applies the
+            same function to the live observation, so this must stay on unless
+            you are deliberately baking a mis-oriented control corpus.
+
+            This replaces a ``rotate_180`` flag that applied ``[:, ::-1, ::-1]``
+            to agentview: the correct row flip PLUS a spurious left-right
+            mirror, which cost source detection duty 0.850 → 0.613 and mirrored
+            every baked box center with respect to the action frame. See
+            ``microvla/utils/camera.py``.
 
     Yields:
         One :class:`SourceEpisode` per demo (frames RGB, actions ``[T, 7]``).
@@ -122,13 +137,10 @@ def iter_libero_episodes(
                 det_frames = None
                 if detect_camera and detect_camera != camera:
                     det_frames = np.asarray(grp["obs"][detect_camera])
-                    if detect_camera == "agentview_rgb":
-                        # robosuite renders agentview upside down; the detector
-                        # is not rotation-invariant, so this must be corrected
-                        # here even though the EMBEDDING view is not rotated.
-                        det_frames = det_frames[:, ::-1, ::-1]
-                if rotate_180:
-                    frames = frames[:, ::-1, ::-1]
+                    if deflip:
+                        det_frames = upright(det_frames, detect_camera)
+                if deflip:
+                    frames = upright(frames, camera)
                 actions = np.asarray(grp["actions"], dtype=np.float32)  # [T, 7]
                 T = min(len(frames), len(actions))
 
@@ -196,13 +208,18 @@ def main(argv: list[str] | None = None) -> None:
                              "eval/libero_eval.py's robot0_eye_in_hand_image. "
                              "agentview_rgb is a THIRD-PERSON view and needs "
                              "--rotate-180; the wrist view must NOT be rotated.")
-    parser.add_argument("--no-rotate-180", dest="rotate", action="store_false",
-                        help="robosuite renders AGENTVIEW upside down; the wrist view is "
-                             "already upright. Defaults per --camera, so you normally "
-                             "never pass this.")
-    parser.add_argument("--rotate-180", dest="rotate", action="store_true",
-                        help="force the 180° flip (implied by --camera agentview_rgb).")
-    parser.set_defaults(rotate=None)
+    parser.add_argument("--no-deflip", "--no-rotate-180", dest="deflip",
+                        action="store_false",
+                        help="bake frames as robosuite rendered them, i.e. UPSIDE "
+                             "DOWN. Both LIBERO streams come out of a bottom-left-"
+                             "origin framebuffer, so the default (on) is correct for "
+                             "both cameras and you normally never pass this. Kept "
+                             "only so the shipped-corpus orientation stays "
+                             "reproducible as an ablation.")
+    parser.add_argument("--deflip", "--rotate-180", dest="deflip",
+                        action="store_true",
+                        help="row-flip frames upright (the default).")
+    parser.set_defaults(deflip=True)
     parser.add_argument("--frame-hz", type=float, default=None,
                         help="OVERRIDE cfg.real_frame_hz for this bake, i.e. the "
                              "sampling rate. The default 2 Hz keeps 1 frame in 10 "
@@ -243,17 +260,17 @@ def main(argv: list[str] | None = None) -> None:
     ignore_sigterm()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    # Rotation follows the camera unless overridden: robosuite renders agentview
-    # flipped, the wrist view upright. Getting this wrong is as damaging as the
-    # camera itself and just as silent.
-    if args.rotate is None:
-        args.rotate = args.camera == "agentview_rgb"
-    logger.info("baking camera=%s rotate_180=%s", args.camera, args.rotate)
-    if args.camera != "eye_in_hand_rgb":
+    logger.info("baking camera=%s deflip=%s", args.camera, args.deflip)
+    if not args.deflip:
         logger.warning(
-            "camera=%s is NOT the view eval/libero_eval.py reads "
-            "(robot0_eye_in_hand_image). A policy trained on this corpus will "
-            "see a viewpoint it never encounters at deployment.", args.camera)
+            "--no-deflip: frames stay as robosuite rendered them (upside down). "
+            "eval/libero_eval.py puts the live observation upright, so this "
+            "bakes a train/deploy orientation mismatch on purpose.")
+    logger.info(
+        "eval/libero_eval.py must be run with --camera %s to match this bake; "
+        "the corpus records the choice in manifest.json.",
+        {"eye_in_hand_rgb": "robot0_eye_in_hand_image",
+         "agentview_rgb": "agentview_image"}[args.camera])
     teacher = build_teacher(args.teacher, args.teacher_checkpoint, args.teacher_repo,
                             args.teacher_cache, device=args.device,
                             model_base=args.teacher_base, stats_path=args.teacher_stats)
@@ -267,7 +284,7 @@ def main(argv: list[str] | None = None) -> None:
     run_conversion(
         lambda: iter_libero_episodes(args.root, camera=args.camera,
                                      detect_camera=args.detect_camera,
-                                     rotate_180=args.rotate),
+                                     deflip=args.deflip),
         args.out,
         cfg=cfg,
         grid_size=args.spatial_grid,
