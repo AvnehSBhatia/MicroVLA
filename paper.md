@@ -4060,3 +4060,65 @@ What is true is narrower, and only became material with 25: on agentview the
 detector supplies 2.82 proposals per frame that the world model's evidence port
 cannot see. That is an underuse, not a mismatch, and changing it is deliberately
 held out of the 25 experiment so the camera is the only variable.
+
+### Defect 27 — the deployed spatial adapter never saw the grid it was trained on
+
+Found by an adversarial audit of the paths that survive 25, and confirmed by an
+independent verifier reading the same code.
+
+`microvla/jepa/loop.py` contains a branch that explicitly prefers the coarse
+spatial grid the corpus bakes. Its own comment names the hazard: *"a
+full-resolution map here against a g × g pooled one in training is the
+resolution-mismatch version of every other train/deploy defect in this stack."*
+The branch was dead, twice over:
+
+1. `_percept_to` rebuilt `Perception` with four fields and dropped
+   `spatial_grid`, which defaults to `None`. The real-tick path rebuilt it a
+   second time with the same omission. **This is the second optional field lost
+   in exactly this way** — `proposals` was the first, and cost the relational
+   head its evidence on every real tick.
+2. Both deployment sites constructed `YoloWorldPerception` without `grid_size`,
+   so `perceive()` never produced a grid at all. Either fault alone is
+   sufficient; each hides the other.
+
+So TQSA was trained on a `[B, 512, 4, 4]` map whose 16 cells are each
+`standardize()`d, and deployed on the raw, un-standardized `[1, 512, ~20, ~20]`
+SPPF map — softmax attention over ~400 positions instead of 16, in a different
+normalization. Live in every `--tqsa` run on a grid corpus, which is the recipe
+every arm in §5l–5n uses.
+
+The regression test now walks `dataclasses.fields(Perception)` rather than
+checking the two fields we happen to know about, because the failure mode is
+"someone adds a third optional field."
+
+### Two more, confirmed and NOT fixed (deliberately)
+
+**The waypoint actuator is open-loop by construction.** `WaypointActuator`
+re-anchors its target from the same `eef` it subtracts eight lines later
+(`anchor_real` defaults `False` and no call site passes it), so
+`(target − eef)` reduces algebraically to `disp[row] · waypoint_range`: the
+measured proprio cancels exactly. The verifier reproduced it — a frozen arm and
+an arm moving 5 cm/step emit **bit-identical** commands. The module's entire
+documented premise ("magnitude stops being the network's job"; "if the arm lags
+the error stays large until it arrives") is void, and §4e's reading of
+`|cmd| 0.4533` as evidence of a tracking controller is **retracted**: it is a
+fixed per-axis constant times the head output, so the translation command
+inherits the head's shrinkage 1:1.
+
+This is *not* a parity defect — `train/train_batched.py`'s actuation loss
+hard-codes the same closed form, and it is exact precisely because the feedback
+is dead, so both sides agree. Turning the feedback on would *create* a mismatch
+unless the trainer simulated the arm. Recorded, not patched, and held out of the
+§5o experiment.
+
+**`waypoint_row_stride` is a 2 Hz constant.** `--waypoint-long` sets stride 10,
+which is `20 Hz / 2 Hz`; the dense corpora are baked at 10 Hz, where the true
+stride is 2. Both the trainer's actuation loss and the deployed actuator divide
+by the same `cfg` field, so every parity test passes while the emitted
+translation rate is wrong by the stride ratio, and the two supervision terms on
+the head pull against each other. The runs in §5o pass `--waypoint-row-stride 2`
+explicitly, so they are clear of it; the earlier `--waypoint-long` arms were not.
+
+Both were found by asking a different question than "do the two sides agree?" —
+*agreement is not correctness*, which is the same lesson 25b taught with the
+mirrored de-rotation.
