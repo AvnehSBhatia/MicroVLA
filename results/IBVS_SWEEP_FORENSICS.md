@@ -140,6 +140,20 @@ teleporting; plus a CLIP re-rank of candidate boxes against the source phrase
 for initial binding. If binding stabilizes and the machine still can't grasp,
 THEN the encoder is the ceiling with no asterisks left.
 
+**Measured (7d41be3, `eval_results/ibvs_tracked/`): the tracking null.**
+`--ibvs-track-gate 0.15` (hold the bound box; a jump re-binds only after ~5
+consecutive agreeing fixes; held boxes age out): detection duty 0.985,
+`grip_close_rate` still **0.000**, `eef_obj_dist_min` unchanged (0.297 vs
+0.294 untracked). Stabilizing the box does not help because **the stable box
+is the wrong object** — association locks onto the same persistent false
+positive the argmax produces (task 2: the basket). Teleporting was a symptom;
+the disease is *semantic* binding precision. That removes the last cheap
+asterisk: recall fixed, stability fixed, servo mechanics verified — the
+frozen detector's phrase-to-object binding is the measured ceiling of this
+stack. The remaining untested levers all modify perception internals (CLIP
+re-rank of candidate boxes against the role phrase, prompt engineering per
+suite, or a finer backbone hook) — design decisions, not eval flags.
+
 ## Method (reproducible)
 
 Group telemetry rows by (run, task, trial); per trial compute: detection rate
