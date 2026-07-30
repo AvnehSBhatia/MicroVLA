@@ -124,13 +124,12 @@ class TestRoleChainsAreDisjoint:
             "the task's own words must stay first; the tail is only for recall"
         )
 
-    def test_receptacle_target_strips_box_from_grocery_source(self):
-        # IBVS forensics: "salad dressing" -> basket bound the BASKET via
-        # grocery "box"/"cardboard box" tails. When the place target is a
-        # receptacle, those cues must leave the SOURCE chain.
+    def test_receptacle_target_keeps_box_on_grocery_source_for_now(self):
+        # Stripping box when target is a basket was measured harmful (§5m):
+        # detect collapsed and grip never engaged. Document the tradeoff; do
+        # not re-enable the strip without a working semantic rebinder.
         s, t = _role_chains("salad dressing", "basket")
-        assert "box" not in s and "cardboard box" not in s, s
-        assert "can" in s or s[0] == "salad dressing"
+        assert "box" in s, s
         assert t is not None and "basket" in t
 
 

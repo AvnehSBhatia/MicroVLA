@@ -3991,3 +3991,12 @@ on levers downstream of them.
 500 episodes) with a duty gate that refuses to train if the corpus does not
 clear 0.65 on both roles; stage A + stage B and a closed-loop eval at
 `--camera agentview_image` follow automatically. Numbers land in §5o.
+
+### Box-tail strip is also a null (precision↔recall)
+
+Removing `"box"`/`"cardboard box"` from grocery SOURCE chains when the target
+is a receptacle (intended to stop basket false binds) collapsed source detect
+to ~0.1–0.4 and left `grip_close_rate` at 0 — same as CLIP re-rank. On this
+detector, `"box"` carries most grocery recall; stripping it without a working
+semantic binder only swaps wrong-object binding for no-object. Reverted in
+prompts; both attempts stay documented as measured negatives under §5m.
