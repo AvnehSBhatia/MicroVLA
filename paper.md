@@ -4122,3 +4122,76 @@ explicitly, so they are clear of it; the earlier `--waypoint-long` arms were not
 Both were found by asking a different question than "do the two sides agree?" —
 *agreement is not correctness*, which is the same lesson 25b taught with the
 mirrored de-rotation.
+
+## 5o. The agentview corpus (2026-07-30 15:09 UTC)
+
+`data/libero_object_agent`: 500 episodes, agentview, 10 Hz, 4×4 spatial grid,
+`det_conf` 0.02, corrected row-flip. Same converter, same recipe, same detector
+as `libero_object_grid` — the camera is the only difference.
+
+| corpus statistic | wrist (`_grid`) | agentview (`_agent`) |
+|---|---|---|
+| source role detected | 0.491 | **0.970** |
+| target role detected | **0.014** | **0.999** |
+| source detection, worst decile of the episode | 0.25 | 0.95 |
+| target center std (x, y) | — | [0.010, 0.006] |
+| episodes whose source box never moves | n/a (camera moves) | 0.032 |
+
+Three things worth stating plainly.
+
+**The target role was never observed.** Over 500 wrist episodes the basket was
+detected on **1.4%** of frames — 541 of ~38 000. Every claim about the policy's
+"place phase", including §5m's video reading that it *drives to the basket and
+parks*, describes a policy that had never been shown the basket. On agentview
+the target is detected on 99.9% of frames, at a center whose standard deviation
+is 0.010 — a static camera pinning a static basket, which is exactly right and
+is also a free correctness check on the whole pipeline.
+
+**Detection is no longer a function of episode phase.** The wrist corpus's
+source detection sagged to 0.25 in the fourth decile — the approach, when the
+gripper occludes the object and the camera is closest to it, i.e. precisely when
+the policy needs the box most. Agentview is flat at 0.95–1.00 across all ten
+deciles.
+
+**The source box tracks the manipulated object.** With a static camera, "which
+box is the right one" becomes answerable without labels: in a `libero_object`
+demo exactly one object moves, so a correctly-bound source box must be the only
+box in the scene that travels. `const_frac` — episodes whose source box never
+leaves a 0.05 window — is **0.032**. In 96.8% of episodes the source box follows
+something that moved.
+
+### The residual: source == target on 40.9% of frames
+
+The same instrument exposes what agentview does *not* fix. On 40.9% of frames
+where both roles ground, they ground to the **same box**. The source chain falls
+through its exact phrase (YOLO-World scores "alphabet soup" 0.000 — §5m's one
+surviving finding) to a generic tail, and the basket is the most box-like thing
+in the scene. Every task in the suite is *"pick up X and place it in the
+basket"*, so **source == target is definitionally wrong**, which makes this
+measurable with no labels at all.
+
+`cfg.role_disjoint_iou` resolves the target first — the reliable role at 99.9%
+duty — then lets the source skip candidates overlapping it:
+
+| `role_disjoint_iou` | source duty | source == target | usable source evidence |
+|---|---|---|---|
+| 0.0 (arm 1) | 0.990 | 0.273 | 0.720 |
+| **0.1 (arm 2)** | 0.960 | **0.000** | **0.960** |
+
+"Usable" is `duty × (1 − same)`: the box is present *and* is not the basket.
+The collision goes to zero for three points of duty, so this is a real gain
+rather than a role traded away for a miss. Held out of arm 1 so the camera stays
+the only variable; arm 2 differs from arm 1 in this one knob, recorded in
+provenance and checked at eval time.
+
+### Arms in flight
+
+| arm | corpus | differs by | status |
+|---|---|---|---|
+| 1 | `_agent` | camera (25a) + row flip (25b) + `det_conf` (26) + TQSA grid (27) | training |
+| 2 | `_disj` | arm 1 + `role_disjoint_iou` 0.1 | queued |
+| control | `_wristctl` | arm 1 with the wrist camera, same code | queued |
+
+The control matters: every previous wrist number was produced by a different
+code version, so it cannot be differenced against arm 1. Without it the paper
+would be asserting a counterfactual it never ran.
