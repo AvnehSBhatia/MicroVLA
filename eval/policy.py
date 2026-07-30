@@ -197,7 +197,11 @@ def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_con
     from microvla.perception.text_encoder import ClipTaskEncoder
     from microvla.perception.yolo_world import YoloWorldPerception
 
-    perception = YoloWorldPerception(device=device, det_conf=float(det_conf))
+    # grid_size is what makes perceive() emit the coarse spatial grid. Without
+    # it the deployed TQSA falls through to the raw full-resolution SPPF map
+    # while the trainer feeds a g x g pooled, per-cell standardized one.
+    perception = YoloWorldPerception(device=device, det_conf=float(det_conf),
+                                     grid_size=DEFAULT_CONFIG.tqsa_grid)
     task_encoder = ClipTaskEncoder(perception)
     return perception, task_encoder
 

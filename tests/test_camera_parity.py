@@ -111,3 +111,61 @@ def test_eval_and_bake_import_the_same_upright():
 
     assert le.upright is upright
     assert pl.upright is upright
+
+
+def test_percept_transfer_carries_every_optional_field():
+    """``_percept_to`` must not drop optional Perception fields.
+
+    Twice now an optional field with a benign default was silently lost when
+    the loop rebuilt a ``Perception`` for another device: ``proposals`` (the
+    relational head then read zeros on every real tick) and ``spatial_grid``
+    (TQSA then fell through to a raw full-resolution SPPF map, ~400 attention
+    positions and un-standardized, where the trainer feeds 16 standardized
+    cells). Both are invisible — the field has a default, so nothing raises.
+    """
+    import dataclasses
+
+    import torch
+
+    from microvla.jepa.loop import _percept_to
+    from microvla.perception.yolo_world import BoxObs, Perception
+
+    def _box(v):
+        return BoxObs(emb=torch.full((8,), v), center=torch.tensor([v, v]),
+                      xyxy=torch.zeros(4), confidence=float(v))
+
+    p = Perception(frame_emb=torch.zeros(8), source=_box(0.5), target=_box(0.25),
+                   proposals=(_box(0.9), _box(0.8)),
+                   spatial_grid=torch.arange(16 * 8, dtype=torch.float32).reshape(16, 8))
+    out = _percept_to(p, torch.device("cpu"))
+
+    for f in dataclasses.fields(Perception):
+        assert getattr(out, f.name) is not None, f"_percept_to dropped {f.name!r}"
+    assert len(out.proposals) == 2
+    torch.testing.assert_close(out.spatial_grid, p.spatial_grid)
+
+
+def test_deployed_detector_is_built_with_a_spatial_grid():
+    """Carrying the field is useless if the detector never produces one.
+
+    ``perceive()`` only emits ``spatial_grid`` when the detector was
+    constructed with ``grid_size > 0``; both deployment construction sites
+    omitted it, so the field was always None and the carry above could not
+    have helped on its own.
+    """
+    import ast
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    for rel in ("eval/policy.py", "microvla/jepa/loop.py"):
+        tree = ast.parse((root / rel).read_text())
+        calls = [n for n in ast.walk(tree)
+                 if isinstance(n, ast.Call)
+                 and (getattr(n.func, "id", None) or getattr(n.func, "attr", None))
+                 == "YoloWorldPerception"]
+        assert calls, f"{rel}: expected a YoloWorldPerception construction"
+        for c in calls:
+            names = {kw.arg for kw in c.keywords if kw.arg}
+            assert "grid_size" in names, (
+                f"{rel} builds the deployed detector without grid_size; TQSA "
+                f"would be fed a raw feature map instead of the baked grid")

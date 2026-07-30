@@ -87,9 +87,17 @@ def _percept_to(percept: Perception, device: torch.device) -> Perception:
     # trainer feeds the baked scene whenever has_objects is set. 52.7% of baked
     # frames carry at least one proposal, so the relational head was reading
     # zeros on most ticks it should have had evidence for.
+    # `spatial_grid` MUST be carried for the same reason `proposals` must:
+    # dropping an optional field here silently swaps what a downstream module
+    # is fed. The TQSA branch below prefers the coarse grid the corpus bakes
+    # and the trainer consumes; with the field lost it fell through to the raw
+    # full-resolution SPPF map -- ~400 attention positions instead of 16, and
+    # un-standardized where every baked cell is standardize()d.
+    grid = getattr(percept, "spatial_grid", None)
     return Perception(frame_emb=percept.frame_emb.to(device),
                       source=box(percept.source), target=box(percept.target),
-                      proposals=tuple(box(b) for b in getattr(percept, "proposals", ())))
+                      proposals=tuple(box(b) for b in getattr(percept, "proposals", ())),
+                      spatial_grid=None if grid is None else grid.to(device))
 
 
 @dataclass
@@ -437,6 +445,7 @@ class JEPALoop:
                 percept = Perception(
                     frame_emb=frame_emb, source=eff_boxes[0], target=eff_boxes[1],
                     proposals=raw_percept.proposals,
+                    spatial_grid=raw_percept.spatial_grid,
                 )
 
                 # Evidence weight per role = detection confidence (fresh or
@@ -728,7 +737,10 @@ class JEPALoop:
         cfg = cfg or DEFAULT_CONFIG
         # Same threshold the bake used (defect 26). A third construction site
         # holding a fourth default is how this class of defect propagates.
-        perception = YoloWorldPerception(device=device, det_conf=cfg.det_conf)
+        # grid_size, or perceive() never produces the coarse grid and TQSA is
+        # fed a raw feature map the trainer never showed it.
+        perception = YoloWorldPerception(device=device, det_conf=cfg.det_conf,
+                                         grid_size=cfg.tqsa_grid)
         if trm is None:
             logger.warning(
                 "No TRM provided to build_real(); falling back to the MockTRM "
