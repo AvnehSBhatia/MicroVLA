@@ -3896,3 +3896,98 @@ Next zero-training lever that stays on the binding question: re-rank with
 `TextRegionExtractor` / cv4 region↔phrase scores (the space already measured
 to agree with the detector head), or bind source to the exact-phrase class id
 only (no grocery tail) when that class fires at all.
+
+## 5n. Defect 25 — the ceiling of §5m was measured through a camera that cannot see
+
+§5m concluded that "open-vocabulary detection at this scale cannot stably bind
+the language phrase to the correct object", and nominated that as the
+load-bearing negative result of the paper. Every measurement behind that
+sentence — the 20–26% teleport rate, the stable-but-wrong basket box, the
+tracking null, the CLIP re-rank null — was taken on the **wrist** camera.
+
+Every MicroVLA corpus was baked from `eye_in_hand_rgb`, and every closed-loop
+eval read `robot0_eye_in_hand_image`. That is train/deploy consistent, which is
+why 24 defect hunts never flagged it. It is also the one view in the dataset
+where the frozen detector is blind.
+
+### The measurement
+
+Deployed prompt chain, real LIBERO demo frames, `det_conf` 0.02, detector short
+side upscaled to 512 as in production. "Duty" is the fraction of frames on which
+a role grounded at all; "jitter" is the mean absolute movement of the source
+center between consecutive sampled frames, in normalized image coordinates.
+
+| variant | src duty | src conf | tgt duty | tgt conf | props/frame | ctr jitter |
+|---|---|---|---|---|---|---|
+| wrist, as shipped | 0.219 | 0.011 | 0.212 | 0.007 | 0.45 | 0.183 |
+| wrist, row-flipped | 0.237 | 0.009 | 0.419 | 0.020 | 0.74 | 0.177 |
+| agentview, 180° (converter's) | 0.613 | 0.049 | 1.000 | 0.550 | 2.29 | 0.032 |
+| **agentview, row-flipped (correct)** | **0.850** | **0.066** | **1.000** | 0.486 | **2.82** | **0.030** |
+
+Source detection 0.219 → 0.850. Target 0.212 → 1.000. Proposals per frame
+0.45 → 2.82 — the relational head was being fed an essentially empty scene.
+Center jitter 0.183 → 0.030: **the teleporting of §5m is a property of the
+wrist view, not of open-vocabulary detection.**
+
+Annotated frames (`eval_results/bindprobe/`) make it concrete. On agentview the
+target box is the basket on every frame and the source box holds one object and
+tracks it through the grasp — for `alphabet soup` the box follows the can up
+into the gripper at t=111. On the wrist the "basket" box lands on the robot's
+own gripper finger, and the source box is on a different object in each of four
+sampled frames.
+
+### Two faults, not one
+
+**25a — the wrong camera.** The wrist view at 128 px is a close-up of tabletop
+with no scene context; YOLO-World-S grounds almost nothing in it. The corpus
+statistics agree independently: over all 500 baked episodes of
+`libero_object_grid`, the target role is detected on **1.4%** of frames
+(541 of ~38 000). The policy has never had target evidence at all.
+
+**25b — a mirrored de-rotation.** `preprocess/libero.py` corrected agentview
+with `frames[:, ::-1, ::-1]`, a full 180° turn. robosuite renders through a
+bottom-left-origin GL framebuffer, which is a **row reversal only**; the extra
+column reversal is a left-right mirror. It costs source duty 0.850 → 0.613 on
+its own, and it mirrors every baked box center with respect to the frame the
+actions move in. A mirrored tabletop still looks like a tabletop, so nothing
+downstream could complain. The wrist stream was never de-flipped at all, on
+either side — self-consistent, but consistently upside down, and worth
+target duty 0.212 → 0.419 by itself.
+
+Orientation now lives in `microvla/utils/camera.py::upright` and nowhere else.
+`preprocess/libero.py`, `eval/libero_eval.py`, `eval/record_mp4.py` and
+`eval/openloop_check.py` all call it; `--camera` is a checked choice on both
+sides. `eval/record_mp4.py` had been holding a *third* private copy
+(`np.rot90(·, 2)`), so the "what is really happening" panel of every diagnostic
+video in §5m was itself mirrored. 13 tests in `tests/test_camera_parity.py`.
+
+### What this retracts
+
+* §5m's headline — "phrase→object binding is BROKEN, the bottleneck" — is
+  **withdrawn as stated**. It is established only for the wrist view. The
+  binding question has not yet been asked of a view where the detector can see.
+* The tracking null and the CLIP re-rank null (§5m) are **uninformative**, not
+  negative: both were re-ranking and stabilizing boxes that were not on objects.
+  The CLIP re-rank's diagnosis (SPPF-GAP and CLIP text are unaligned spaces)
+  may still be correct, but it was not tested under conditions that could show it.
+* §5j remains retracted, and now for a second, stronger reason: the "frozen
+  features are the ceiling" claim was inferred from experiments run through a
+  blind camera.
+
+### The honest form of the defect
+
+This is the same shape as the other 24, one level up. The earlier defects were
+a producer and a consumer disagreeing about a convention. This is a producer and
+a consumer **agreeing** on a convention that is wrong — which no parity test can
+catch, because parity held. The instrument that caught it was not a test but a
+question the project had never asked: *is the input any good?* Detection duty,
+confidence and box stability per candidate view are four cheap numbers that were
+never measured until the 25th defect hunt, after ten thousand GPU-seconds spent
+on levers downstream of them.
+
+### Status
+
+`data/libero_object_agent` re-baking from agentview (10 Hz, 4×4 spatial grid,
+500 episodes) with a duty gate that refuses to train if the corpus does not
+clear 0.65 on both roles; stage A + stage B and a closed-loop eval at
+`--camera agentview_image` follow automatically. Numbers land in §5o.
