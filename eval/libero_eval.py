@@ -40,6 +40,7 @@ from typing import Callable, Optional
 import numpy as np
 from microvla.config import DEFAULT_CONFIG
 from microvla.utils.camera import ENV_KEY, upright
+from microvla.utils import provenance as _prov
 from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
@@ -570,6 +571,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "the box jumps 0.18 between frames; agentview grounds "
                         "85%% at 0.066 with 0.03 jitter (paper.md 5m).")
     p.add_argument("--mock-env", action="store_true", help="use MockLiberoEnv (no sim deps)")
+    p.add_argument("--strict-provenance", action="store_true",
+                   help="refuse to run when the deployment knobs disagree with "
+                        "the corpus's manifest.json provenance (camera, "
+                        "det_conf, render size, perception period). Off by "
+                        "default so a deliberate ablation still runs — the "
+                        "mismatches are logged and written into the results "
+                        "JSON either way.")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--checkpoint", default="none",
                     help="full_stageB.pt/full_stageA.pt path or directory; 'none' for fresh modules")
@@ -935,6 +943,27 @@ def main(argv: list[str] | None = None) -> None:
     # Enumerate ONCE, in the parent: N workers importing libero and re-reading
     # every task's init states simultaneously is a concurrency hazard bought for
     # nothing, and the specs pickle fine across the spawn boundary.
+    # Does this deployment match the corpus the checkpoint was trained on?
+    # Four of the 26 defects in paper.md are exactly this mismatch, and none of
+    # them raises anything at run time -- the eval simply reports 0.000. The
+    # corpus now records what produced it (manifest.json provenance); this is
+    # the one place that reads it back.
+    prov = _prov.load(args.norm_stats) if args.norm_stats else {}
+    logging.info("%s", _prov.describe(prov))
+    bad = _prov.mismatches(
+        prov,
+        camera=args.camera,
+        det_conf=getattr(args, "det_conf", None),
+        render_size=getattr(args, "render_size", None),
+        perception_period=args.perception_period,
+    )
+    for m in bad:
+        logging.error("PROVENANCE MISMATCH: %s", m)
+    if bad and getattr(args, "strict_provenance", False):
+        raise SystemExit(
+            "refusing to score a deployment that does not match its corpus; "
+            "pass --no-strict-provenance to measure it anyway")
+
     tasks = _mock_tasks(args.suite) if args.mock_env else _real_tasks(args.suite)
     if args.task_ids:
         keep = {int(i) for i in args.task_ids.split(",") if i.strip() != ""}
@@ -961,6 +990,12 @@ def main(argv: list[str] | None = None) -> None:
             tasks=tasks,
             render_size=getattr(args, "render_size", 256),
         )
+    # Carried in the results file, not only the log: a scored number whose
+    # deployment did not match its corpus must stay self-identifying after the
+    # terminal scrollback is gone.
+    if isinstance(results, dict):
+        results["provenance_mismatches"] = bad
+        results["corpus_provenance"] = prov
     print(json.dumps(results, indent=2))
 
 

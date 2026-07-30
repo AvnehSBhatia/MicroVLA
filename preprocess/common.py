@@ -452,7 +452,13 @@ def run_conversion(
     builder = EpisodeBuilder(cfg, mock=mock, device=device,
                              store_frames=store_frames, grid_size=grid_size)
     manifest = []
+    frame_hw = None
     for n, ep in enumerate(_take(episodes())):
+        if frame_hw is None:
+            src = ep.detect_frames if ep.detect_frames is not None else ep.frames
+            if len(src):
+                frame_hw = [int(np.asarray(src[0]).shape[0]),
+                            int(np.asarray(src[0]).shape[1])]
         arrays = builder.build(ep, normalizer)
         path = out / f"{ep.episode_id}.npz"
         save_episode(path, arrays)
@@ -478,6 +484,12 @@ def run_conversion(
                  "grid_size": int(grid_size),
                  "vis_dim": int(cfg.vis_dim),
                  "perception": type(builder.perception).__name__,
+                 # The pixels the frozen detector actually saw. A live env
+                 # rendered at a different size upscales differently into the
+                 # detector's 512-px short side, so the deployed features come
+                 # from images the corpus never contained -- same shape of
+                 # defect as the camera and the threshold.
+                 "detect_frame_hw": frame_hw,
                  **provenance,
              },
              "episodes": manifest},

@@ -300,7 +300,7 @@ def main(argv: list[str] | None = None) -> None:
         args.out,
         cfg=cfg,
         provenance={"camera": args.camera, "detect_camera": args.detect_camera,
-                    "deflip": bool(args.deflip),
+                    "deflip": bool(args.deflip), "source_hz": LIBERO_HZ,
                     "eval_camera": {"eye_in_hand_rgb": "robot0_eye_in_hand_image",
                                     "agentview_rgb": "agentview_image"}[args.camera]},
         grid_size=args.spatial_grid,
