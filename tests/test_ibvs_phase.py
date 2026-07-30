@@ -95,3 +95,55 @@ def test_grasp_needs_both_centered_and_low():
     m = _machine()
     m.step(_Det(), _Det(), _proprio(z=GRASP_Z + 0.1))
     assert m.phase == "servo_src"  # centered but too high
+
+
+class TestBoxTracker:
+    def _tracker(self):
+        from eval.ibvs_phase import _BoxTracker
+        return _BoxTracker(gate=0.15, persist=3, hold_ticks=5)
+
+    def test_small_movement_tracks(self):
+        t = self._tracker()
+        assert t.update((0.5, 0.5)) == (0.5, 0.5)
+        assert t.update((0.51, 0.5)) == (0.51, 0.5)
+
+    def test_teleport_rejected_and_held(self):
+        t = self._tracker()
+        t.update((0.5, 0.5))
+        # A single teleporting fix is rejected; servo keeps the held box.
+        assert t.update((0.9, 0.1)) == (0.5, 0.5)
+
+    def test_persistent_new_location_rebinds(self):
+        t = self._tracker()
+        t.update((0.5, 0.5))
+        t.update((0.9, 0.1))
+        t.update((0.9, 0.11))
+        assert t.update((0.89, 0.1)) == (0.89, 0.1)  # 3rd consistent fix wins
+
+    def test_flicker_between_two_objects_stays_bound(self):
+        t = self._tracker()
+        t.update((0.5, 0.5))
+        for _ in range(2):  # alternating fixes never persist long enough
+            assert t.update((0.9, 0.1)) == (0.5, 0.5)
+            assert t.update((0.5, 0.5)) == (0.5, 0.5)
+
+    def test_held_box_goes_stale(self):
+        t = self._tracker()
+        t.update((0.5, 0.5))
+        out = (0.5, 0.5)
+        for i in range(7):
+            out = t.update((0.9, 0.1 + i * 0.2))  # incoherent teleports
+            if out is None:
+                break
+        assert out is None  # stale hold dropped rather than served forever
+
+    def test_machine_with_gate_survives_flicker(self):
+        m = PhasedIBVS(gain=0.5, sign=(1.0, 1.0, 0.0), descend=-0.3,
+                       target_uv=(0.5, 0.55), conf_floor=0.005,
+                       track_gate=0.15)
+        # Centered fixes interleaved with teleports: the servo keeps acting
+        # on the tracked (centered) box, so descend keeps engaging.
+        for i in range(6):
+            center = (0.9, 0.1) if i % 2 else (0.5, 0.55)
+            a = m.step(_Det(center=center), _Det(), _proprio(z=0.2))
+            assert a[2] < 0  # still descending on the held/centered box

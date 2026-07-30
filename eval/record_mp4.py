@@ -103,6 +103,7 @@ def main(argv=None) -> None:
     ap.add_argument("--ibvs-sign", default="1,-1,0")
     ap.add_argument("--ibvs-descend", type=float, default=0.0)
     ap.add_argument("--ibvs-phase", action="store_true")
+    ap.add_argument("--ibvs-track-gate", type=float, default=0.0)
     ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
     ap.add_argument("--task-ids", default=None,
                     help="comma-separated task ids; overrides the random pick")
@@ -143,7 +144,8 @@ def main(argv=None) -> None:
                             ibvs_conf_floor=args.ibvs_conf_floor,
                             ibvs_sign=tuple(float(v) for v in args.ibvs_sign.split(",")),
                             ibvs_descend=args.ibvs_descend,
-                            ibvs_phase=args.ibvs_phase)
+                            ibvs_phase=args.ibvs_phase,
+                            ibvs_track_gate=args.ibvs_track_gate)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)

@@ -541,6 +541,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
                             getattr(args, "ibvs_sign", "1,-1,0").split(",")),
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
             ibvs_phase=getattr(args, "ibvs_phase", False),
+            ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
             det_conf=getattr(args, "det_conf", 0.02),
         )
 
@@ -601,6 +602,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "scaled by how centred it is. A residual that only "
                         "centres can never grasp, so a null without this says "
                         "nothing about the features.")
+    p.add_argument("--ibvs-track-gate", type=float, default=0.0,
+                   help="temporal box association for --ibvs-phase: reject a fix "
+                        "that jumps more than this (normalized image inf-norm) "
+                        "from the tracked box unless it persists ~5 fixes. 0 "
+                        "disables. Attacks the measured 20-26%% teleport rate "
+                        "of per-frame argmax binding (postscript 3).")
     p.add_argument("--ibvs-phase", action="store_true",
                    help="phased falsifier: the state machine in eval/ibvs_phase.py "
                         "OWNS the action (servo/grasp/lift/place from detections + "

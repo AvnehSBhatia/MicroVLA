@@ -38,6 +38,75 @@ GRASP_Z: float = 0.06
 LIFT_Z: float = 0.30
 
 
+class _BoxTracker:
+    """Temporal association over per-frame argmax detections.
+
+    Postscript 3 measured the argmax box re-binding to a DIFFERENT physical
+    object on 20-26% of consecutive fixes (jump > 0.15 normalized) while
+    median frame-to-frame movement was 0.008. A servo cannot converge on a
+    target that teleports; this tracker holds the bound box and only accepts
+    a re-bind after ``persist`` consecutive fixes agree on the new location.
+
+    Zero training, eval-side only — perception's own role binding is
+    untouched; this just decides which fix the SERVO believes.
+    """
+
+    def __init__(self, gate: float, persist: int = 5, hold_ticks: int = 15) -> None:
+        self.gate = float(gate)
+        self.persist = int(persist)
+        self.hold_ticks = int(hold_ticks)
+        self.reset()
+
+    def reset(self) -> None:
+        self._track = None
+        self._cand = None
+        self._cand_n = 0
+        self._held = 0
+
+    def update(self, center) -> tuple[float, float] | None:
+        """Feeds one fix; returns the center the servo should believe, or
+        ``None`` when there is no trustworthy fix this tick."""
+        c = (float(center[0]), float(center[1]))
+        if self._track is None:
+            self._track = c
+            self._held = 0
+            return c
+        d = max(abs(c[0] - self._track[0]), abs(c[1] - self._track[1]))
+        if d <= self.gate:
+            self._track = c
+            self._cand = None
+            self._cand_n = 0
+            self._held = 0
+            return c
+        # Teleport: count agreement on the new location before re-binding.
+        if (self._cand is not None
+                and max(abs(c[0] - self._cand[0]), abs(c[1] - self._cand[1])) <= self.gate):
+            self._cand_n += 1
+        else:
+            self._cand = c
+            self._cand_n = 1
+        if self._cand_n >= self.persist:
+            self._track = c
+            self._cand = None
+            self._cand_n = 0
+            self._held = 0
+            return c
+        # Reject the jump; servo the held box, but not forever — the wrist
+        # camera moves with the arm, so a held center goes stale.
+        self._held += 1
+        if self._held > self.hold_ticks:
+            self.reset()
+            return None
+        return self._track
+
+    def miss(self) -> None:
+        """No fix this tick; ages the held box."""
+        if self._track is not None:
+            self._held += 1
+            if self._held > self.hold_ticks:
+                self.reset()
+
+
 class PhasedIBVS:
     """Owns the action: servo/grasp/lift/place from detections + proprio.
 
@@ -49,18 +118,32 @@ class PhasedIBVS:
 
     def __init__(self, gain: float, sign: tuple[float, float, float],
                  descend: float, target_uv: tuple[float, float],
-                 conf_floor: float) -> None:
+                 conf_floor: float, track_gate: float = 0.0) -> None:
         self.gain = float(gain)
         self.sign = tuple(float(v) for v in sign)
         self.descend = float(descend)
         self.target_uv = (float(target_uv[0]), float(target_uv[1]))
         self.conf_floor = float(conf_floor)
+        self.track_gate = float(track_gate)
         self.reset()
 
     def reset(self) -> None:
         self.phase = "servo_src"
         self._close_ticks = 0
         self._release_ticks = 0
+        self._trackers = ({"src": _BoxTracker(self.track_gate),
+                           "tgt": _BoxTracker(self.track_gate)}
+                          if self.track_gate > 0.0 else None)
+
+    def _believe(self, role: str, det) -> tuple[float, float] | None:
+        """The center the servo should act on for ``role``, after tracking."""
+        if float(det.confidence) < self.conf_floor:
+            if self._trackers is not None:
+                self._trackers[role].miss()
+            return None
+        if self._trackers is None:
+            return (float(det.center[0]), float(det.center[1]))
+        return self._trackers[role].update(det.center)
 
     # ------------------------------------------------------------------ utils
     def _servo_xy(self, center, out: np.ndarray) -> float:
@@ -98,8 +181,9 @@ class PhasedIBVS:
 
         if self.phase == "servo_src":
             out[grip] = -1.0
-            if float(source.confidence) >= self.conf_floor:
-                err = self._servo_xy(source.center, out)
+            center = self._believe("src", source)
+            if center is not None:
+                err = self._servo_xy(center, out)
                 if err < 0.2:  # centered enough: descend, scaled by centering
                     out[2] = self.descend * (1.0 - err / 0.2)
                 if err < 0.10 and z < GRASP_Z:
@@ -135,8 +219,9 @@ class PhasedIBVS:
                 # Dropped it mid-traverse: start over.
                 self.phase = "servo_src"
                 return self.step(source, target, proprio, action_dim)
-            if float(target.confidence) >= self.conf_floor:
-                err = self._servo_xy(target.center, out)
+            center = self._believe("tgt", target)
+            if center is not None:
+                err = self._servo_xy(center, out)
                 if z < LIFT_Z:  # keep altitude over the traverse
                     out[2] = 0.2
                 if err < 0.12:

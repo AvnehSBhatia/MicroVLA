@@ -247,6 +247,7 @@ class MicroVLAPolicy:
         ibvs_sign: tuple[float, float, float] = (1.0, -1.0, 0.0),
         ibvs_descend: float = 0.0,
         ibvs_phase: bool = False,
+        ibvs_track_gate: float = 0.0,
         det_conf: float = 0.02,
     ) -> None:
         """Builds the policy.
@@ -336,7 +337,8 @@ class MicroVLAPolicy:
             self.ibvs_machine = PhasedIBVS(
                 gain=self.ibvs_gain, sign=self.ibvs_sign,
                 descend=self.ibvs_descend, target_uv=self.ibvs_target_uv,
-                conf_floor=self.ibvs_conf_floor)
+                conf_floor=self.ibvs_conf_floor,
+                track_gate=float(ibvs_track_gate))
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
