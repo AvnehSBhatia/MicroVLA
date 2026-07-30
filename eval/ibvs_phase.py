@@ -54,17 +54,17 @@ def clip_rerank_box(proposals, role_emb, conf_floor: float = 0.02,
     if not proposals or role_emb is None:
         return None
     import torch
-    role = torch.as_tensor(role_emb, dtype=torch.float32).reshape(-1)
+    role = torch.as_tensor(role_emb, dtype=torch.float32).detach().cpu().reshape(-1)
     role = role / (role.norm() + 1e-8)
     rej = None
     if reject_emb is not None:
-        rej = torch.as_tensor(reject_emb, dtype=torch.float32).reshape(-1)
+        rej = torch.as_tensor(reject_emb, dtype=torch.float32).detach().cpu().reshape(-1)
         rej = rej / (rej.norm() + 1e-8)
     best, best_s = None, float("-inf")
     for p in proposals:
         if float(getattr(p, "confidence", 0.0)) < conf_floor:
             continue
-        e = torch.as_tensor(p.emb, dtype=torch.float32).reshape(-1)
+        e = torch.as_tensor(p.emb, dtype=torch.float32).detach().cpu().reshape(-1)
         if e.numel() != role.numel():
             continue
         e = e / (e.norm() + 1e-8)
