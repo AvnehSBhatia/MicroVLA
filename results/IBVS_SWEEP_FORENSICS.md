@@ -47,6 +47,20 @@ metrics below — and they point the other way.
    object, the residual is a grasp engine and the gap is pure place-phase
    sequencing.
 
+## Postscript — night eval (post-350eef9) numbers landed 2026-07-30 06:55 UTC
+
+`full_stageB_rec_fix.pt`, honest protocol (`det_conf=0.02`, `render_size=256`),
+3 tasks × 3 trials (`eval_results/night_sighted/`): `mean_success` **0.000**,
+`src_detect_rate` **0.719** (supersedes row (a): sightedness fix confirmed —
+detection went from 6–46% duty / median conf 0 to 72%), `src_conf_mean` 0.061,
+`grip_close_rate` 0.653, `eef_obj_dist_min` **0.132 m**, `eef_obj_dist_at_20`
+0.257 m, `eef_obj_dist_final` **0.750 m**. The trained policy approaches to
+~13 cm — never grasp range — then diverges to 75 cm by episode end. Note the
+contrast with stage (c)–(e) above: the zero-training IBVS residual got closer
+(grasp height, sustained closes) than the trained policy does. Detection is no
+longer the bottleneck; terminal approach precision and late-episode divergence
+are.
+
 ## Method (reproducible)
 
 Group telemetry rows by (run, task, trial); per trial compute: detection rate
