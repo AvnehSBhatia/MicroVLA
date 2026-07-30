@@ -3878,3 +3878,21 @@ Video (postscript 2) reframes `eef_obj_dist_min` ~0.13 m as a **drive-by**
 en route to the place prior, not a stalled grasp approach. There is no grasp
 phase in the learned policy. Intermediates remain useful for sightedness;
 they are not a grasp-competence score.
+
+### CLIP re-rank null (01e0acf, 2026-07-30 14:38 UTC)
+
+`--ibvs-phase --ibvs-track-gate 0.15 --ibvs-clip-rerank` plus receptacle-aware
+box-tail strip on `rec_fix`: `mean_success` **0.000**, `grip_close_rate`
+**0.000**, `src_detect_rate` **0.242** (worse than the un-reranked phased run's
+~0.98). Salad-dressing trials still never leave servo.
+
+Reading: cosine(ROIAlign-SPPF emb, CLIP text emb) is the wrong similarity —
+those spaces are not guaranteed aligned (YOLO-World's contrastive head uses
+cv4 region feats, not the SPPF GAP we ROIAlign for `BoxObs.emb`). Re-rank
+therefore rejects usable boxes and starves the servo. The prompt strip alone
+is not enough to move grasp.
+
+Next zero-training lever that stays on the binding question: re-rank with
+`TextRegionExtractor` / cv4 region↔phrase scores (the space already measured
+to agree with the detector head), or bind source to the exact-phrase class id
+only (no grocery tail) when that class fires at all.

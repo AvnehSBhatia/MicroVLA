@@ -162,3 +162,10 @@ displacement, z-min, best image-space distance of `src_center` to frame
 center, sustained-close segments (≥10 consecutive ticks with `action[6] > 0`)
 and max z-rise within 60 ticks after each. One-file script; ask any session to
 regenerate from `eval_results/libero_object_real_*_telemetry.jsonl`.
+
+## Postscript 4 — CLIP re-rank on BoxObs.emb is a null (2026-07-30 14:38 UTC)
+
+`--ibvs-clip-rerank` + receptacle box-tail strip (`f6557d9`/`01e0acf`):
+`mean_success` 0.000, `grip_close_rate` 0.000, detect duty collapsed to 0.24.
+Cosine(SPPF ROIAlign, CLIP text) is the wrong instrument; use cv4
+text-region scores next.
