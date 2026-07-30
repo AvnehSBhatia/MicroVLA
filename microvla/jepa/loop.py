@@ -249,6 +249,11 @@ class JEPALoop:
         # held-evidence philosophy as boxes).
         self.tqsa = tqsa
         self.corrector = InnovationCorrector(cfg)
+        #: Apply the innovation correction on dream ticks. Plain attribute, not
+        #: a constructor arg, so no caller's signature changes and a checkpoint
+        #: never carries it; eval/policy.py sets it from --no-dream-correct.
+        #: See the dream branch of tick() for why it is a switch at all.
+        self.dream_correction: bool = True
 
         self._task: Optional["TaskEncoding"] = None
         self._pending_pred: Optional[torch.Tensor] = None
@@ -534,7 +539,23 @@ class JEPALoop:
 
                 # Corrected latent, re-standardized into the canonical space
                 # fusion/TRM were trained on.
-                latent = standardize(self.corrector.correct(self._pending_pred))
+                #
+                # `dream_correction` exists because the correction is
+                # DEPLOYMENT-ONLY state: stage B's dream regime feeds
+                # standardize(trm(...)) with no innovation term, and nothing in
+                # train_batched.py ever instantiates a corrector. Measured on
+                # v8_s0 with perception replayed identically and the action
+                # token teacher-forced, the correction is 4-6% of the latent
+                # norm and moves the planner's inputs by rel-diff 0.15-0.22
+                # (fused) / 0.12-0.13 (wm_delta) -- the band paper.md 4v named
+                # as the root cause. At perception_period 2 HALF of all ticks
+                # are dream ticks. Turning it off makes the deployed dream tick
+                # bit-comparable to what the planner was trained on; leaving it
+                # on keeps the drift correction the loop was designed around.
+                # Which is better is an EMPIRICAL question, so it is a flag.
+                pred = self._pending_pred
+                latent = standardize(self.corrector.correct(pred)
+                                     if self.dream_correction else pred)
 
                 # Hold the last REAL boxes; fade their evidence weight with
                 # staleness (objects don't teleport between measurements).

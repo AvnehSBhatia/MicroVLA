@@ -267,6 +267,28 @@ def main(argv: list[str] | None = None) -> None:
     ignore_sigterm()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    if args.detect_camera and args.detect_camera != args.camera:
+        # The flag's documented contract is "--camera still drives the frame
+        # embedding; only the detector's pixels move". EpisodeBuilder does not
+        # honour it: preprocess/common.py makes exactly ONE perceive() call per
+        # frame, on the DETECT view, and frame_embs/spatial_grid/box embs/obj_*
+        # all come from that call. So a two-view bake silently trains the world
+        # model on a viewpoint the robot never sees -- defect 25 again, from the
+        # tool built to avoid it.
+        #
+        # It is also unusable downstream even if fixed here: eval/libero_eval.py
+        # renders a single camera (`camera_names=[cam_base]`), so a two-view
+        # corpus's boxes have no deployment counterpart. And manifest.json's
+        # `eval_camera` is derived from --camera, the view that never reached
+        # the encoder, so the provenance guard would certify the swap CLEAN.
+        raise SystemExit(
+            "--detect-camera is disabled: preprocess/common.py runs the frozen "
+            "encoder ONLY on the detect view, so --camera would not drive the "
+            "frame embedding as documented, and eval/libero_eval.py renders one "
+            "camera anyway. Bake a single view (--camera agentview_rgb grounds "
+            "the source role on 85% of libero_object frames against the wrist's "
+            "22%; see paper.md 5n).")
+
     logger.info("baking camera=%s deflip=%s", args.camera, args.deflip)
     if not args.deflip:
         logger.warning(

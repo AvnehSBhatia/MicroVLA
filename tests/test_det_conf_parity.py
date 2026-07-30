@@ -87,3 +87,23 @@ def test_libero_converter_records_the_camera_pairing():
     assert '"eval_camera"' in src, (
         "the corpus must name the live camera key a deployment has to use"
     )
+
+
+def test_two_view_bake_is_refused_not_silently_wrong():
+    """``--detect-camera`` must not produce a corpus the guard calls clean.
+
+    ``preprocess/common.py`` makes ONE ``perceive()`` call per frame, on the
+    DETECT view, so ``frame_embs`` come from there too — the opposite of the
+    flag's documented contract. Worse, ``manifest.json``'s ``eval_camera`` is
+    derived from ``--camera``, the view that never reached the encoder, so the
+    provenance check of ``test_provenance.py`` would report zero mismatches for
+    a corpus whose every latent is from the other camera.
+    """
+    import pytest
+
+    from preprocess.libero import main
+
+    with pytest.raises(SystemExit) as e:
+        main(["/nonexistent", "/tmp/out", "--camera", "eye_in_hand_rgb",
+              "--detect-camera", "agentview_rgb"])
+    assert "detect-camera" in str(e.value)

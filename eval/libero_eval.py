@@ -541,6 +541,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             chunk_exec=getattr(args, "chunk_exec", False),
             replan_every=getattr(args, "replan_every", 0),
             no_brake=getattr(args, "no_brake", False),
+            no_dream_correct=getattr(args, "no_dream_correct", False),
             ibvs_gain=getattr(args, "ibvs_gain", 0.0),
             ibvs_conf_floor=getattr(args, "ibvs_conf_floor", 0.1),
             ibvs_sign=tuple(float(v) for v in
@@ -571,6 +572,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "the box jumps 0.18 between frames; agentview grounds "
                         "85%% at 0.066 with 0.03 jitter (paper.md 5m).")
     p.add_argument("--mock-env", action="store_true", help="use MockLiberoEnv (no sim deps)")
+    p.add_argument("--no-dream-correct", action="store_true",
+                   help="skip InnovationCorrector on dream ticks. The corrector "
+                        "is deployment-only state the trainer never modelled, so "
+                        "this makes a dream tick's planner inputs match what "
+                        "stage B actually optimised (paper.md 5n, defect 28).")
     p.add_argument("--strict-provenance", action="store_true",
                    help="refuse to run when the deployment knobs disagree with "
                         "the corpus's manifest.json provenance (camera, "

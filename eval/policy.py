@@ -237,6 +237,7 @@ class MicroVLAPolicy:
         chunk_exec: bool = False,
         replan_every: int = 0,
         no_brake: bool = False,
+        no_dream_correct: bool = False,
         trm: Optional[TRMBase] = None,
         device: str = "cpu",
         perception=None,
@@ -481,6 +482,13 @@ class MicroVLAPolicy:
             tqsa=tqsa,
             relational=relational,
         )
+        # Deployment-only recurrent state, made optional. The trainer's dream
+        # regime feeds standardize(trm(...)) with NO innovation term -- nothing
+        # in train_batched.py instantiates a corrector -- so with this on, every
+        # dream tick hands the planner inputs it never trained against
+        # (measured rel-diff: fused 0.15-0.22, wm_delta 0.12-0.13). At
+        # perception_period 2 that is half of all ticks.
+        self.loop.dream_correction = not bool(no_dream_correct)
 
         # v7.2 waypoint actuation: only ever active when BOTH the checkpoint
         # has the head and a fitted gain was supplied. A gain fitted under a
