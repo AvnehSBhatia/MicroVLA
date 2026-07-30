@@ -4286,3 +4286,47 @@ Neither undermines the change: control needs the *boxes*, and those went from a
 source role grounded on 22% of frames with a box that jumped 0.18 between frames
 to 97% with 0.03. But a paper that reported the grounding win without this table
 would be selecting its evidence.
+
+### The second half of the fix: the phase shortcut was never regularized
+
+Fixing grounding gives the policy something to see. It does not make the policy
+look. `microvla/config.py` and `train/train_batched.py` both record an earlier
+measurement of where the plan's sensitivity actually sits:
+
+    proprio 0.291 >> state_delta 0.075 > wm_msg 0.031 > current_emb 0.025
+    ~ fused 0.023 > pred_box 0.013 > geometry 0.004 > next_emb 0.001
+
+The plan is ~12× more sensitive to arm pose than to any visual input. A policy
+of that shape replays an average trajectory conditioned on where the arm is,
+which on a suite of stereotyped pick-and-place demos with a fixed basket
+reproduces most of the action variance — and is exactly the "drives to the
+basket and parks, empty-handed" behaviour the §5m videos show.
+
+`train/train_batched.py` already ships the countermeasure. `--phase-dropout`
+withholds `state_delta` and `proprio` during stage B, deliberately asymmetric
+with `--planner-input-dropout` (which withholds the vision paths): *drop the
+shortcut more than the signal you want used*. Its own help text names the
+symptom — *"phase sensitivity 0.464 vs vision 0.040 (12:1), and a policy that
+reaches the basket perfectly and never touches the object. Try 0.3."*
+
+**It defaults to 0.0, and every arm ever run left it there**, including §5o's
+arm 1.
+
+That was not obviously wrong before now. Withholding the shortcut only helps if
+something else can carry the task, and until this week the alternative was a
+source role grounded on 22% of frames by a box that moved 0.18 between them.
+Regularizing the shortcut against evidence that bad would have starved the
+policy, not redirected it. With agentview at 0.970 / 0.999 the trade is
+available for the first time — which is why it is arm 2 rather than a knob that
+should have been on all along.
+
+| arm | corpus | one change from the previous arm | cost |
+|---|---|---|---|
+| 1 | `_agent` | camera + orientation + threshold + TQSA grid | bake + train |
+| 2 | `_agent` | `--phase-dropout 0.3` | train only |
+| 3 | `_disj` | `role_disjoint_iou 0.1` | bake + train |
+| control | `_wristctl` | wrist camera, arm-1 code | bake + train |
+
+Each arm also scores `--no-dream-correct` (defect 28) as a free eval-side A/B,
+and `eval.bench --sensitivity` after every retrain, so the question "is the
+policy using vision yet" gets a number rather than an opinion.
