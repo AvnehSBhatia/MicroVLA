@@ -209,3 +209,19 @@ falsifier. What remains falsifiable, in order:
    used a single mapping).
 3. Depth-aware servo (use box scale as a range signal) — a controller class
    change, no longer "trivial control".
+
+## Postscript 6 — band descend CONFIRMS the height-coupling deadlock (488f70c)
+
+`--ibvs-descend-hyst` as a band (descend whenever image error < bound, no
+narrow engage gate): with band 0.50, the wrist servo converges for the first
+time on true-object boxes — **min image error 0.042** (vs 0.204+ across every
+prior config), **EEF reaches z = 0.022** (grasp height), grasp attempts fire
+(`grip_close_rate` 0.56). Band 0.35 is too narrow (initial error ~0.36 sits
+outside it). The deadlock mechanism of postscript 5 is confirmed: image error
+falls BECAUSE the arm descends; any controller gating descent on that error
+waits forever.
+
+Remaining gap in `band_050`: `eef_obj_dist_min` 0.201 while centered at grasp
+height — the hand-eye AIM-POINT offset, which postscript 4 could not measure
+(the servo never converged then) and which is now the live, sweepable
+variable (`aim2_*` queue).
