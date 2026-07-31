@@ -5,6 +5,8 @@ Implemented:
     * ``smoothness_loss``   — second-difference action-smoothness penalty.
     * ``total_planner_loss``— weighted sum of the two above.
     * ``waypoint_loss``     — v7.2 metric-displacement head, row/validity masked.
+    * ``centering_loss``    — IBVS-shaped grasp/place xy aux (lateral near-miss).
+    * ``depth_loss``        — IBVS-shaped z/descend aux (only once centred).
     * ``modality_consistency_loss`` — optional fusion modality-dropout /
       dream-mode consistency term (same code path as JEPA dream ticks).
 
@@ -183,6 +185,161 @@ def waypoint_loss(
     if float(denom) == 0.0:
         return (pred * 0.0).sum()
     return (((pred - target) ** 2) * w).sum() / denom
+
+
+def centering_loss(
+    plan: torch.Tensor,
+    target: torch.Tensor,
+    source_centers: torch.Tensor,
+    target_centers: torch.Tensor,
+    grasp_mask: torch.Tensor,
+    place_mask: torch.Tensor,
+    box_weights: torch.Tensor | None = None,
+    grasp_uv: tuple[float, float] = (0.5, 0.55),
+    sign: tuple[float, float] = (1.0, -1.0),
+    gain: float = 0.5,
+    conf_floor: float = 0.1,
+) -> torch.Tensor:
+    """IBVS-shaped grasp/place centering aux on plan row 0 xy.
+
+    Closed-loop lateral misses approach the object, then close/release *beside*
+    it. MSE-BC averages that last centimetre away; this term reshapes the xy
+    BC target on grasp/place windows by the same image-space residual IBVS
+    uses at eval: ``Δxy = gain * sign * (center − grasp_uv)``, gated by
+    detection confidence.
+
+    Grasp windows supervise against the SOURCE center; place windows against
+    the TARGET (basket) center. Outside those windows / below ``conf_floor``
+    the residual is zero and this term is an exact no-op (still connected to
+    ``plan`` so it never silently drops out of the graph).
+
+    Args:
+        plan / target: ``[..., plan_steps, num_servos]`` (flattened ``[B*T,…]``
+            is fine — leading dims must match ``*_centers`` / masks).
+        source_centers / target_centers: ``[..., 2]`` in ``[0, 1]``.
+        grasp_mask / place_mask: ``[...]`` in ``[0, 1]`` from
+            ``microvla.utils.phase.grasp_place_masks``.
+        box_weights: Optional ``[..., 2]`` (source, target) confidences; when
+            omitted every detection is treated as fully trusted.
+        grasp_uv: Desired object location in the camera frame at contact.
+            Wrist / eye-in-hand default ``(0.5, 0.55)``; agentview IBVS uses
+            the same default with ``sign=(1, 1)``.
+        sign: Per-axis map from image error to delta-action (camera convention).
+        gain: Residual scale in action units (match eval ``--ibvs-gain`` order).
+        conf_floor: Ignore detections weaker than this.
+
+    Returns:
+        Scalar mean squared error over weighted xy entries; exact zero tensor
+        (still tied to ``plan``) when nothing is supervised.
+    """
+    lead = plan.shape[:-2]
+    if source_centers.shape != (*lead, 2) or target_centers.shape != (*lead, 2):
+        raise ValueError(
+            f"centers must be {(*lead, 2)}; got source {tuple(source_centers.shape)} "
+            f"target {tuple(target_centers.shape)}")
+    if grasp_mask.shape != lead or place_mask.shape != lead:
+        raise ValueError(
+            f"masks must be {lead}; got grasp {tuple(grasp_mask.shape)} "
+            f"place {tuple(place_mask.shape)}")
+
+    uv = plan.new_tensor(grasp_uv)
+    sg = plan.new_tensor(sign)
+    if box_weights is None:
+        src_w = plan.new_ones(lead)
+        tgt_w = plan.new_ones(lead)
+    else:
+        if box_weights.shape != (*lead, 2):
+            raise ValueError(f"box_weights must be {(*lead, 2)}, got {tuple(box_weights.shape)}")
+        src_w = (box_weights[..., 0] >= conf_floor).to(plan.dtype) * box_weights[..., 0]
+        tgt_w = (box_weights[..., 1] >= conf_floor).to(plan.dtype) * box_weights[..., 1]
+
+    # Image error → action residual (same linear map as eval IBVS).
+    src_res = gain * sg * (source_centers - uv)          # [..., 2]
+    tgt_res = gain * sg * (target_centers - uv)
+    w = grasp_mask * src_w + place_mask * tgt_w          # [...,]
+    residual = (grasp_mask * src_w).unsqueeze(-1) * src_res \
+        + (place_mask * tgt_w).unsqueeze(-1) * tgt_res
+
+    pred_xy = plan[..., 0, :2]
+    want_xy = target[..., 0, :2] + residual
+    denom = w.sum().clamp_min(1e-8)
+    if float(w.sum()) == 0.0:
+        return (pred_xy * 0.0).sum()
+    return ((pred_xy - want_xy.detach()).pow(2).sum(dim=-1) * w).sum() / denom
+
+
+def depth_loss(
+    plan: torch.Tensor,
+    target: torch.Tensor,
+    source_centers: torch.Tensor,
+    target_centers: torch.Tensor,
+    grasp_mask: torch.Tensor,
+    place_mask: torch.Tensor,
+    box_weights: torch.Tensor | None = None,
+    grasp_uv: tuple[float, float] = (0.5, 0.55),
+    descend: float = -0.3,
+    descend_tol: float = 0.2,
+    conf_floor: float = 0.1,
+) -> torch.Tensor:
+    """IBVS-shaped depth (z) aux — descend only once image-centred.
+
+    Mirrors ``microvla.utils.ibvs.ibvs_residual``'s descend gate: when the
+    object is within ``descend_tol`` of ``grasp_uv``, reshape plan row-0 z
+    by ``descend * (1 - err/tol)``. Far off-center → no depth push (same
+    "don't thrust while still lateral" rule that made the IBVS falsifier
+    able to grasp). Grasp windows use SOURCE centers; place windows use
+    TARGET.
+
+    Args:
+        plan / target / masks / centers / box_weights: same contract as
+            ``centering_loss``.
+        descend: raw action units of approach (negative = toward table in
+            the LIBERO OSC frame used by the rec_fix+IBVS clips).
+        descend_tol: image-error radius (``max(|eu|,|ev|)``) that unlocks
+            the depth residual.
+
+    Returns:
+        Scalar masked MSE on z; exact zero tensor when nothing is supervised.
+    """
+    lead = plan.shape[:-2]
+    if source_centers.shape != (*lead, 2) or target_centers.shape != (*lead, 2):
+        raise ValueError(
+            f"centers must be {(*lead, 2)}; got source {tuple(source_centers.shape)} "
+            f"target {tuple(target_centers.shape)}")
+    if grasp_mask.shape != lead or place_mask.shape != lead:
+        raise ValueError(
+            f"masks must be {lead}; got grasp {tuple(grasp_mask.shape)} "
+            f"place {tuple(place_mask.shape)}")
+
+    uv = plan.new_tensor(grasp_uv)
+    if box_weights is None:
+        src_w = plan.new_ones(lead)
+        tgt_w = plan.new_ones(lead)
+    else:
+        if box_weights.shape != (*lead, 2):
+            raise ValueError(f"box_weights must be {(*lead, 2)}, got {tuple(box_weights.shape)}")
+        src_w = (box_weights[..., 0] >= conf_floor).to(plan.dtype) * box_weights[..., 0]
+        tgt_w = (box_weights[..., 1] >= conf_floor).to(plan.dtype) * box_weights[..., 1]
+
+    def _z_res(centers: torch.Tensor) -> torch.Tensor:
+        err = (centers - uv).abs().amax(dim=-1)                  # [...,]
+        # Gate: only inside the centering radius, fall off with residual error.
+        inside = (err < descend_tol).to(plan.dtype)
+        return descend * (1.0 - err / max(float(descend_tol), 1e-6)).clamp_min(0.0) * inside
+
+    src_z = _z_res(source_centers)
+    tgt_z = _z_res(target_centers)
+    residual = grasp_mask * src_w * src_z + place_mask * tgt_w * tgt_z
+    w = grasp_mask * src_w + place_mask * tgt_w
+
+    pred_z = plan[..., 0, 2]
+    want_z = target[..., 0, 2] + residual
+    # Only supervise steps that actually asked for a depth push (centred +
+    # conf). Outside that set this is a no-op.
+    active = (residual.abs() > 0).to(plan.dtype) * w
+    if float(active.sum()) == 0.0:
+        return (pred_z * 0.0).sum()
+    return ((pred_z - want_z.detach()).pow(2) * active).sum() / active.sum().clamp_min(1e-8)
 
 
 def modality_consistency_loss(

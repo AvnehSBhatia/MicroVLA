@@ -57,12 +57,13 @@ from microvla.critic import (
     ProgressCritic, frozen_value, progress_targets, progress_targets_eef,
 )
 from microvla.utils.embedding import standardize
-from microvla.utils.phase import pre_grasp_weights
+from microvla.utils.phase import pre_grasp_weights, grasp_place_masks
 from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
-                          total_planner_loss, waypoint_loss)
+                          total_planner_loss, waypoint_loss, centering_loss,
+                          depth_loss)
 from train.train_full import _scheduled_horizon, _tagged_name, save
 from microvla.utils.param_audit import count_trainable_params
 from train.train_planner import resolve_device
@@ -132,6 +133,34 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "and self-fed evaluation shows the head UNDER-firing "
                         "(closes on 25.1%% of steps against the demo's 58.5%%, "
                         "paper.md 4y). It was hard-coded at 1.0 and never swept.")
+    p.add_argument("--centering-weight", type=float, default=0.0,
+                   help="stage B: weight on the IBVS-shaped grasp/place centering "
+                        "aux (train.losses.centering_loss). Closed-loop lateral "
+                        "misses close/release beside the object; this reshapes "
+                        "row-0 xy toward canceling (center - grasp_uv) on those "
+                        "windows. 0 = off; 0.5-1.0 to match eval --ibvs-gain order.")
+    p.add_argument("--centering-gain", type=float, default=0.5,
+                   help="action-unit scale of the centering residual (like --ibvs-gain).")
+    p.add_argument("--centering-uv", type=str, default="0.5,0.55",
+                   help="desired object UV at contact (x,y) in [0,1].")
+    p.add_argument("--centering-sign", type=str, default="1,-1",
+                   help="image-error → delta-action signs (x,y). Wrist/eye-in-hand "
+                        "default 1,-1; agentview IBVS falsifier uses 1,1.")
+    p.add_argument("--centering-window", type=int, default=2,
+                   help="half-window (timesteps) around grasp close / place open.")
+    p.add_argument("--centering-conf-floor", type=float, default=0.1,
+                   help="ignore role detections weaker than this for centering.")
+    p.add_argument("--depth-weight", type=float, default=0.0,
+                   help="stage B: weight on the IBVS-shaped depth/descend aux "
+                        "(train.losses.depth_loss). Engages only once the object "
+                        "is within --depth-tol of grasp_uv — same gate as eval "
+                        "--ibvs-descend. 0 = off; 0.5-1.0 with --centering-weight "
+                        "to enforce the rec_fix+IBVS prior in the loss.")
+    p.add_argument("--depth-descend", type=float, default=-0.3,
+                   help="z residual (action units) when fully centred. Negative "
+                        "matches the LIBERO table approach used by rec_fix+IBVS.")
+    p.add_argument("--depth-tol", type=float, default=0.2,
+                   help="image-error radius unlocking the depth residual.")
     p.add_argument("--variance-weight", type=float, default=0.0,
                    help="stage B: weight on matching the per-dim STD of the "
                         "predicted pose to the demo's. MSE regression to the "
@@ -1515,6 +1544,28 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                       grip_weight=args.grip_weight,
                                       step_weight=None if step_w is None
                                       else step_w.reshape(-1))
+            if args.centering_weight > 0 or args.depth_weight > 0:
+                gmask, pmask = grasp_place_masks(
+                    batch["pwm_targets"], half_window=args.centering_window)
+                uv = tuple(float(x) for x in args.centering_uv.split(","))
+                sg = tuple(float(x) for x in args.centering_sign.split(","))
+                if len(uv) != 2 or len(sg) != 2:
+                    raise SystemExit("--centering-uv and --centering-sign need two csv floats")
+                sc = batch["source_centers"].reshape(-1, 2)
+                tc = batch["target_centers"].reshape(-1, 2)
+                bw = batch["box_weights"].reshape(-1, 2)
+                gm, pm = gmask.reshape(-1), pmask.reshape(-1)
+                if args.centering_weight > 0:
+                    loss = loss + args.centering_weight * centering_loss(
+                        P, Y, sc, tc, gm, pm, box_weights=bw,
+                        grasp_uv=uv, sign=sg, gain=args.centering_gain,
+                        conf_floor=args.centering_conf_floor)
+                if args.depth_weight > 0:
+                    loss = loss + args.depth_weight * depth_loss(
+                        P, Y, sc, tc, gm, pm, box_weights=bw,
+                        grasp_uv=uv, descend=args.depth_descend,
+                        descend_tol=args.depth_tol,
+                        conf_floor=args.centering_conf_floor)
             if wps:
                 wp_t, row_mask = _wp_targets(batch, cfg)
                 # Clamped: this is a 0/1 validity FLAG, and it multiplies

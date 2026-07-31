@@ -73,3 +73,43 @@ def pre_grasp_weights(
     w = w / w.mean(dim=1, keepdim=True).clamp_min(1e-8)
     w = torch.where(usable.unsqueeze(1), w, torch.ones_like(w))
     return w, t_close, usable
+
+
+def grasp_place_masks(
+    pwm_targets: torch.Tensor,
+    half_window: int = 2,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Binary masks around the demo grasp close and the subsequent place open.
+
+    Lateral near-miss failures close/release *beside* the object (image-space
+    offset of a few cm). Those moments are exactly where a centering aux should
+    fire — not uniformly across the episode.
+
+    Args:
+        pwm_targets: ``[B, T, plan_steps, num_servos]``.
+        half_window: Timesteps on each side of the transition (inclusive).
+            ``2`` => a 5-step window at 2 Hz ≈ 2.5 s.
+
+    Returns:
+        ``(grasp_mask, place_mask)`` each ``[B, T]`` float in ``{0, 1}``.
+        Episodes with no usable close (or no subsequent open) get an all-zero
+        mask on that role — the centering term then contributes nothing.
+    """
+    if pwm_targets.dim() != 4:
+        raise ValueError(f"expected [B, T, plan_steps, num_servos], got {tuple(pwm_targets.shape)}")
+    B, T = pwm_targets.shape[0], pwm_targets.shape[1]
+    closed = pwm_targets[..., 0, -1] > 0
+    idx = torch.arange(T, device=pwm_targets.device).expand(B, T)
+    t_close = torch.where(closed, idx, torch.full_like(idx, T)).min(dim=1).values
+    usable_grasp = (t_close < T) & (t_close > 0)
+
+    # First open AFTER the grasp close (place / release).
+    after = idx > t_close.unsqueeze(1)
+    opened = (~closed) & after
+    t_place = torch.where(opened, idx, torch.full_like(idx, T)).min(dim=1).values
+    usable_place = usable_grasp & (t_place < T)
+
+    hw = max(0, int(half_window))
+    grasp = ((idx - t_close.unsqueeze(1)).abs() <= hw) & usable_grasp.unsqueeze(1)
+    place = ((idx - t_place.unsqueeze(1)).abs() <= hw) & usable_place.unsqueeze(1)
+    return grasp.float(), place.float()
