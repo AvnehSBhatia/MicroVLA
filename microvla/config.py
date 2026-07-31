@@ -215,6 +215,12 @@ class MicroVLAConfig:
     # manifest.json provenance, because a corpus baked with a different value
     # is a different corpus.
     role_disjoint_iou: float = 0.0
+    # Reject SOURCE boxes larger than this fraction of the frame. The basket
+    # (target) is routinely the biggest "box"-like detection when the grocery
+    # phrase falls through; a size prior is label-free and orthogonal to
+    # role_disjoint_iou. 0 disables. 0.12 is a starting point for LIBERO
+    # object (bottles/cans << basket liner).
+    source_max_area: float = 0.0
     rel_dim: int = 384              # relational token width
     rel_tokens: int = 12            # tokens emitted to the planner
     rel_layers: int = 2

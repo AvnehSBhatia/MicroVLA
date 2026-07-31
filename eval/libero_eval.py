@@ -553,6 +553,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             det_conf=getattr(args, "det_conf", 0.02),
             role_disjoint_iou=getattr(args, "role_disjoint_iou",
                                       DEFAULT_CONFIG.role_disjoint_iou),
+            source_max_area=getattr(args, "source_max_area",
+                                    DEFAULT_CONFIG.source_max_area),
         )
 
     return factory
@@ -577,6 +579,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--role-disjoint-iou", type=float,
                    default=DEFAULT_CONFIG.role_disjoint_iou,
                    help="must match the corpus's provenance; see the bake flag")
+    p.add_argument("--source-max-area", type=float,
+                   default=DEFAULT_CONFIG.source_max_area,
+                   help="reject SOURCE boxes larger than this fraction of the "
+                        "frame (0=off). Kills basket-as-source when the grocery "
+                        "phrase falls through to 'box'; 0.12 is a starting "
+                        "point for libero_object.")
     p.add_argument("--no-dream-correct", action="store_true",
                    help="skip InnovationCorrector on dream ticks. The corrector "
                         "is deployment-only state the trainer never modelled, so "

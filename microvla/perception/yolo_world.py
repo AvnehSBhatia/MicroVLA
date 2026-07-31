@@ -121,13 +121,18 @@ class YoloWorldPerception:
     def __init__(self, weights: str = "yolov8s-worldv2.pt", device: str = "cpu",
                  det_conf: float = 0.10, min_side: int = 512,
                  max_proposals: int | None = None,
-                 grid_size: int = 0, role_disjoint_iou: float = 0.0) -> None:
+                 grid_size: int = 0, role_disjoint_iou: float = 0.0,
+                 source_max_area: float = 0.0) -> None:
         self.det_conf = det_conf
         #: IoU above which a SOURCE candidate is rejected for landing on the
         #: TARGET's box; 0.0 disables. Shared by the bake and the robot through
         #: cfg.role_disjoint_iou -- a corpus baked with a different value is a
         #: different corpus, so it is recorded in manifest.json provenance.
         self.role_disjoint_iou = float(role_disjoint_iou)
+        #: Fraction of frame area above which a SOURCE box is rejected
+        #: (basket-sized detections when the grocery phrase falls through).
+        #: 0 disables. Orthogonal to role_disjoint_iou.
+        self.source_max_area = float(source_max_area)
         # Class-agnostic proposal cap. Defaults to cfg.max_objects so the baked
         # object tensor and the model's K agree by construction.
         if max_proposals is None:
@@ -428,16 +433,38 @@ class YoloWorldPerception:
                 # it in the basket", so source == target is definitionally
                 # wrong, and skipping to the chain's next candidate is a
                 # label-free correction.
+                #
+                # `source_max_area` is a second label-free filter for SOURCE
+                # only: the basket liner is routinely >> grocery area, so a
+                # hard area cap rejects "servo to basket" even when IoU with
+                # the target box is low (wrist view: basket partially in
+                # frame, disjoint IoU often misses).
                 thr = float(getattr(self, "role_disjoint_iou", 0.0) or 0.0)
+                max_area = float(getattr(self, "source_max_area", 0.0) or 0.0)
+                frame_area = float(max(frame_h * frame_w, 1))
+
+                def _ok(xy: torch.Tensor) -> bool:
+                    if role_idx == 0 and max_area > 0.0:
+                        a = max(float(xy[2]) - float(xy[0]), 0.0) * max(
+                            float(xy[3]) - float(xy[1]), 0.0) / frame_area
+                        if a > max_area:
+                            return False
+                    if thr > 0.0 and avoid is not None and _iou(xy, avoid) > thr:
+                        return False
+                    return True
+
                 for cid in self._role_class_ids[role_idx]:
-                    cands = (all_by_class.get(cid) or []) if thr > 0.0 else []
-                    if thr > 0.0 and avoid is not None and cands:
+                    cands = all_by_class.get(cid) or []
+                    if (thr > 0.0 or (role_idx == 0 and max_area > 0.0)) and cands:
                         for conf, xy in cands:
-                            if _iou(xy, avoid) <= thr:
+                            if _ok(xy):
                                 return _box_from_xyxy(xy, conf)
-                        continue        # every candidate of this class is the other role
+                        continue
                     if best_by_class.get(cid) is not None:
-                        return _box_for_class(cid)
+                        conf, xy = best_by_class[cid]
+                        if _ok(xy):
+                            return _box_from_xyxy(xy, conf)
+                        continue
                 return _fallback()
 
             if self._role_class_ids:

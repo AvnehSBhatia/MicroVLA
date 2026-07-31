@@ -762,7 +762,8 @@ class JEPALoop:
         # fed a raw feature map the trainer never showed it.
         perception = YoloWorldPerception(device=device, det_conf=cfg.det_conf,
                                          grid_size=cfg.tqsa_grid,
-                                         role_disjoint_iou=cfg.role_disjoint_iou)
+                                         role_disjoint_iou=cfg.role_disjoint_iou,
+                                         source_max_area=cfg.source_max_area)
         if trm is None:
             logger.warning(
                 "No TRM provided to build_real(); falling back to the MockTRM "

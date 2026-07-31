@@ -114,6 +114,11 @@ def main(argv=None) -> None:
     ap.add_argument("--ibvs-phase", action="store_true")
     ap.add_argument("--ibvs-track-gate", type=float, default=0.0)
     ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
+    ap.add_argument("--role-disjoint-iou", type=float,
+                    default=DEFAULT_CONFIG.role_disjoint_iou)
+    ap.add_argument("--source-max-area", type=float,
+                    default=DEFAULT_CONFIG.source_max_area,
+                    help="reject oversized SOURCE boxes (basket-as-source).")
     ap.add_argument("--task-ids", default=None,
                     help="comma-separated task ids; overrides the random pick")
     args = ap.parse_args(argv)
@@ -154,7 +159,9 @@ def main(argv=None) -> None:
                             ibvs_sign=tuple(float(v) for v in args.ibvs_sign.split(",")),
                             ibvs_descend=args.ibvs_descend,
                             ibvs_phase=args.ibvs_phase,
-                            ibvs_track_gate=args.ibvs_track_gate)
+                            ibvs_track_gate=args.ibvs_track_gate,
+                            role_disjoint_iou=args.role_disjoint_iou,
+                            source_max_area=args.source_max_area)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)
