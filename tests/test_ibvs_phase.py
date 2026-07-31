@@ -181,3 +181,40 @@ class TestClipRerank:
         assert clip_rerank_box(
             [_P([1.0, 0.0], 0.01)], role_emb=[1.0, 0.0], conf_floor=0.05
         ) is None
+
+
+class TestDescendHysteresis:
+    def _machine(self, hyst=0.35):
+        return PhasedIBVS(gain=0.5, sign=(1.0, 1.0, 0.0), descend=-0.3,
+                          target_uv=(0.5, 0.55), conf_floor=0.005,
+                          descend_hyst=hyst)
+
+    def test_ratchet_keeps_descending_through_parallax_growth(self):
+        m = self._machine()
+        # Engage: centered fix.
+        a = m.step(_Det(center=(0.5, 0.55)), _Det(), _proprio(z=0.3))
+        assert a[2] < 0
+        # Parallax pushes err to 0.25 (> old 0.2 gate, < 0.35 release):
+        # the old gate would stop descending; the ratchet must not.
+        a = m.step(_Det(center=(0.75, 0.55)), _Det(), _proprio(z=0.2))
+        assert a[2] < 0
+        assert a[0] != 0.0  # still steering laterally on the way down
+
+    def test_ratchet_releases_beyond_bound(self):
+        m = self._machine()
+        m.step(_Det(center=(0.5, 0.55)), _Det(), _proprio(z=0.3))
+        a = m.step(_Det(center=(0.95, 0.55)), _Det(), _proprio(z=0.2))
+        assert a[2] == 0.0  # err 0.45 > 0.35: released
+
+    def test_grasp_gate_widens_with_hysteresis(self):
+        m = self._machine()
+        m.step(_Det(center=(0.5, 0.55)), _Det(), _proprio(z=0.3))
+        # err 0.2 (> old 0.10 gate, < hyst) at grasp height -> grasp fires.
+        m.step(_Det(center=(0.7, 0.55)), _Det(), _proprio(z=GRASP_Z - 0.01))
+        assert m.phase == "grasp"
+
+    def test_zero_hyst_preserves_old_gate(self):
+        m = PhasedIBVS(gain=0.5, sign=(1.0, 1.0, 0.0), descend=-0.3,
+                       target_uv=(0.5, 0.55), conf_floor=0.005)
+        a = m.step(_Det(center=(0.75, 0.55)), _Det(), _proprio(z=0.3))
+        assert a[2] == 0.0  # err 0.25 > 0.2: old behavior, no descend

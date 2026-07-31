@@ -157,7 +157,8 @@ class PhasedIBVS:
     def __init__(self, gain: float, sign: tuple[float, float, float],
                  descend: float, target_uv: tuple[float, float],
                  conf_floor: float, track_gate: float = 0.0,
-                 clip_rerank: bool = False) -> None:
+                 clip_rerank: bool = False,
+                 descend_hyst: float = 0.0) -> None:
         self.gain = float(gain)
         self.sign = tuple(float(v) for v in sign)
         self.descend = float(descend)
@@ -165,12 +166,14 @@ class PhasedIBVS:
         self.conf_floor = float(conf_floor)
         self.track_gate = float(track_gate)
         self.clip_rerank = bool(clip_rerank)
+        self.descend_hyst = float(descend_hyst)
         self.reset()
 
     def reset(self) -> None:
         self.phase = "servo_src"
         self._close_ticks = 0
         self._release_ticks = 0
+        self._descending = False
         self._trackers = ({"src": _BoxTracker(self.track_gate),
                            "tgt": _BoxTracker(self.track_gate)}
                           if self.track_gate > 0.0 else None)
@@ -242,9 +245,27 @@ class PhasedIBVS:
             center = self._believe("src", source)
             if center is not None:
                 err = self._servo_xy(center, out)
-                if err < 0.2:  # centered enough: descend, scaled by centering
-                    out[2] = self.descend * (1.0 - err / 0.2)
-                if err < 0.10 and z < GRASP_Z:
+                if self.descend_hyst > 0.0:
+                    # Ratcheted descend (postscript 4): wrist-camera parallax
+                    # during descent pushes the object away from any fixed
+                    # image target, so an err<tol gate disengages, the arm
+                    # rises, and the loop parks at hover height (~0.23 m,
+                    # invariant to target_uv). Hysteresis breaks the cycle:
+                    # engage at err<0.2, then keep descending — steering
+                    # laterally the whole way — unless err exceeds the much
+                    # wider release bound.
+                    if not self._descending and err < 0.2:
+                        self._descending = True
+                    elif self._descending and err > self.descend_hyst:
+                        self._descending = False
+                    if self._descending:
+                        out[2] = self.descend
+                    grasp_err = self.descend_hyst
+                else:
+                    if err < 0.2:  # centered enough: descend, scaled by centering
+                        out[2] = self.descend * (1.0 - err / 0.2)
+                    grasp_err = 0.10
+                if err < grasp_err and z < GRASP_Z:
                     self.phase = "grasp"
                     self._close_ticks = 0
             else:

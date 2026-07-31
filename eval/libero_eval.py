@@ -551,6 +551,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
+            ibvs_descend_hyst=getattr(args, "ibvs_descend_hyst", 0.0),
             ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
             tool_phase=getattr(args, "tool_phase", False),
             tool_center_tol=getattr(args, "tool_center_tol", 0.05),
@@ -689,6 +690,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
+    p.add_argument("--ibvs-descend-hyst", type=float, default=0.0,
+                   help="ratcheted descend for --ibvs-phase: engage descent at "
+                        "err<0.2, release only above this (much wider) bound, "
+                        "and gate the grasp at it too. Breaks the parallax "
+                        "limit cycle that parks every fixed-gate servo at "
+                        "~0.23m hover (forensics postscript 4). 0 = old gate. "
+                        "Try 0.35.")
     p.add_argument("--ibvs-target-uv", default="0.5,0.55",
                    help="image-space aim point 'u,v' the servo drives the source "
                         "toward (feeds --ibvs-gain/--ibvs-phase and --tool-phase's "
