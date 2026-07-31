@@ -255,18 +255,14 @@ class PhasedIBVS:
             if center is not None:
                 err = self._servo_xy(center, out)
                 if self.descend_hyst > 0.0:
-                    # Ratcheted descend (postscript 4): wrist-camera parallax
-                    # during descent pushes the object away from any fixed
-                    # image target, so an err<tol gate disengages, the arm
-                    # rises, and the loop parks at hover height (~0.23 m,
-                    # invariant to target_uv). Hysteresis breaks the cycle:
-                    # engage at err<0.2, then keep descending — steering
-                    # laterally the whole way — unless err exceeds the much
-                    # wider release bound.
-                    if not self._descending and err < 0.2:
-                        self._descending = True
-                    elif self._descending and err > self.descend_hyst:
-                        self._descending = False
+                    # Band descend (postscript 5): the dihedral null showed
+                    # wrist-image error is height-dominated — it hovers at
+                    # 0.20–0.28 and CANNOT shrink without descending, while
+                    # the old err<0.2 engage gate waits on it: a deadlock.
+                    # So descend whenever the error is inside the (wide)
+                    # band, steering laterally the whole way down; the grasp
+                    # gate widens to the band too.
+                    self._descending = err < self.descend_hyst
                     if self._descending:
                         out[2] = self.descend
                     grasp_err = self.descend_hyst
