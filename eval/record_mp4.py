@@ -114,6 +114,10 @@ def main(argv=None) -> None:
     ap.add_argument("--ibvs-phase", action="store_true")
     ap.add_argument("--ibvs-track-gate", type=float, default=0.0)
     ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
+    ap.add_argument("--tool-phase", action="store_true",
+                    help="accuracy tools own the action (reach_center→grasp…).")
+    ap.add_argument("--tool-center-tol", type=float, default=0.05)
+    ap.add_argument("--tool-gain", type=float, default=1.0)
     ap.add_argument("--role-disjoint-iou", type=float,
                     default=DEFAULT_CONFIG.role_disjoint_iou)
     ap.add_argument("--source-max-area", type=float,
@@ -163,6 +167,9 @@ def main(argv=None) -> None:
                             ibvs_descend=args.ibvs_descend,
                             ibvs_phase=args.ibvs_phase,
                             ibvs_track_gate=args.ibvs_track_gate,
+                            tool_phase=args.tool_phase,
+                            tool_center_tol=args.tool_center_tol,
+                            tool_gain=args.tool_gain,
                             role_disjoint_iou=args.role_disjoint_iou,
                             source_max_area=args.source_max_area,
                             source_min_aspect=args.source_min_aspect)

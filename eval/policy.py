@@ -261,6 +261,9 @@ class MicroVLAPolicy:
         ibvs_phase: bool = False,
         ibvs_track_gate: float = 0.0,
         ibvs_clip_rerank: bool = False,
+        tool_phase: bool = False,
+        tool_center_tol: float = 0.05,
+        tool_gain: float = 1.0,
         det_conf: float = DEFAULT_CONFIG.det_conf,
         role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
         source_max_area: float = DEFAULT_CONFIG.source_max_area,
@@ -347,8 +350,21 @@ class MicroVLAPolicy:
         # instead of adding a residual — see eval/ibvs_phase.py for why
         # blending can never work when the prior skips the grasp phase.
         self.ibvs_machine = None
+        self.tool_machine = None
         self._phase_action = None
-        if ibvs_phase:
+        if tool_phase:
+            # Accuracy tools OWN the action (reach_center → descend → grasp…).
+            # Prefer this over residual IBVS when the miss is "almost centred".
+            from microvla.tools import GraspToolController
+            self.tool_machine = GraspToolController(
+                gain=float(tool_gain),
+                sign=(float(ibvs_sign[0]), float(ibvs_sign[1])),
+                descend_rate=float(ibvs_descend) if ibvs_descend != 0.0 else -0.4,
+                grasp_uv=self.ibvs_target_uv,
+                conf_floor=self.ibvs_conf_floor,
+                center_tol=float(tool_center_tol),
+            )
+        elif ibvs_phase:
             from eval.ibvs_phase import PhasedIBVS
             self.ibvs_machine = PhasedIBVS(
                 gain=self.ibvs_gain, sign=self.ibvs_sign,
@@ -550,6 +566,8 @@ class MicroVLAPolicy:
         self._phase_action = None
         if self.ibvs_machine is not None:
             self.ibvs_machine.reset()
+        if self.tool_machine is not None:
+            self.tool_machine.reset()
 
     def _emit(self, result, row: int, proprio, fresh: bool) -> np.ndarray:
         """Turns plan ``row`` of ``result`` into a raw action for this step.
@@ -579,6 +597,7 @@ class MicroVLAPolicy:
             action[: wp_cmd.shape[0]] = wp_cmd
         ibvs_cmd = None
         if (self.ibvs_gain > 0.0 and result.perception is not None
+                and self.ibvs_machine is None and self.tool_machine is None
                 and float(result.perception.source.confidence) >= self.ibvs_conf_floor):
             from microvla.utils.ibvs import ibvs_residual
             ibvs_cmd = ibvs_residual(
@@ -594,7 +613,16 @@ class MicroVLAPolicy:
             if ibvs_cmd is not None:
                 action = action.copy()
                 action[:3] = action[:3] + ibvs_cmd[:3]
-        if self.ibvs_machine is not None:
+        if self.tool_machine is not None:
+            if result.perception is not None:
+                action = self.tool_machine.step(
+                    result.perception.source, result.perception.target,
+                    proprio, action_dim=int(action.shape[0]))
+                self._phase_action = action
+            elif self._phase_action is not None:
+                action = self._phase_action
+            ibvs_cmd = [float(v) for v in action[:3]]
+        elif self.ibvs_machine is not None:
             # Phased mode REPLACES the action. On held-perception ticks the
             # machine still steps (confidence is already staleness-faded, so
             # a stale box decays below the floor on its own).
@@ -628,6 +656,9 @@ class MicroVLAPolicy:
             }),
             **({} if self.ibvs_machine is None
                else {"phase": self.ibvs_machine.phase}),
+            **({} if self.tool_machine is None
+               else {"phase": self.tool_machine.phase,
+                     "tool": self.tool_machine.last_tool}),
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1

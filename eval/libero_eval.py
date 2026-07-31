@@ -550,6 +550,9 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
             ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
+            tool_phase=getattr(args, "tool_phase", False),
+            tool_center_tol=getattr(args, "tool_center_tol", 0.05),
+            tool_gain=getattr(args, "tool_gain", 1.0),
             det_conf=getattr(args, "det_conf", 0.02),
             role_disjoint_iou=getattr(args, "role_disjoint_iou",
                                       DEFAULT_CONFIG.role_disjoint_iou),
@@ -670,6 +673,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "task under trivial control — video showed the learned "
                         "prior skips the grasp phase, so residual blending "
                         "(--ibvs-gain alone) can never complete it.")
+    p.add_argument("--tool-phase", action="store_true",
+                   help="accuracy tools OWN the action (microvla.tools): "
+                        "reach_center → descend → grasp → lift → place. "
+                        "Tighter center gate than --ibvs-phase; callable via "
+                        "GraspToolController.call(name). Mutually exclusive "
+                        "with --ibvs-phase (tool-phase wins if both set).")
+    p.add_argument("--tool-center-tol", type=float, default=0.05,
+                   help="image-error radius required before close_gripper "
+                        "(normalized). Smaller = more accurate settle.")
+    p.add_argument("--tool-gain", type=float, default=1.0,
+                   help="reach_center gain (action units per image error).")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
