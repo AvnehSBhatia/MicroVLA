@@ -546,6 +546,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_conf_floor=getattr(args, "ibvs_conf_floor", 0.1),
             ibvs_sign=tuple(float(v) for v in
                             getattr(args, "ibvs_sign", "1,-1,0").split(",")),
+            ibvs_target_uv=tuple(float(v) for v in
+                                 getattr(args, "ibvs_target_uv", "0.5,0.55").split(",")),
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
@@ -687,6 +689,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
+    p.add_argument("--ibvs-target-uv", default="0.5,0.55",
+                   help="image-space aim point 'u,v' the servo drives the source "
+                        "toward (feeds --ibvs-gain/--ibvs-phase and --tool-phase's "
+                        "grasp_uv). NEVER swept before: every servo config stalls "
+                        "at a constant lateral offset, which is exactly the "
+                        "signature of a hand-eye aim-point error — the grasp "
+                        "point projects to a different pixel than frame center.")
     p.add_argument("--det-conf", type=float, default=DEFAULT_CONFIG.det_conf,
                    help="YOLO-World confidence floor at EVAL (bake stays at "
                         "0.10). Closed-loop wrist detection was ~20%% at 0.10; "
