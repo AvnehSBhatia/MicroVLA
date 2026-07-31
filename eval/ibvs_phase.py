@@ -158,7 +158,8 @@ class PhasedIBVS:
                  descend: float, target_uv: tuple[float, float],
                  conf_floor: float, track_gate: float = 0.0,
                  clip_rerank: bool = False,
-                 descend_hyst: float = 0.0) -> None:
+                 descend_hyst: float = 0.0,
+                 swap_uv: bool = False) -> None:
         self.gain = float(gain)
         self.sign = tuple(float(v) for v in sign)
         self.descend = float(descend)
@@ -167,6 +168,7 @@ class PhasedIBVS:
         self.track_gate = float(track_gate)
         self.clip_rerank = bool(clip_rerank)
         self.descend_hyst = float(descend_hyst)
+        self.swap_uv = bool(swap_uv)
         self.reset()
 
     def reset(self) -> None:
@@ -193,8 +195,15 @@ class PhasedIBVS:
         """Writes the xy servo into ``out``; returns the image error (inf-norm)."""
         eu = float(center[0]) - self.target_uv[0]
         ev = float(center[1]) - self.target_uv[1]
-        out[0] = self.gain * self.sign[0] * eu
-        out[1] = self.gain * self.sign[1] * ev
+        # Measured (postscript 5): with true-object boxes, NO sign combination
+        # reduces image error — min err 0.204 over 618 fixes, mean flat across
+        # the episode. Sign flips span reflections only; a wrist camera rolled
+        # 90° relative to base xy needs the axes SWAPPED (image-u error moves
+        # the arm along world-y and vice versa). swap+signs spans all 8
+        # dihedral mappings.
+        a, b = (ev, eu) if self.swap_uv else (eu, ev)
+        out[0] = self.gain * self.sign[0] * a
+        out[1] = self.gain * self.sign[1] * b
         return max(abs(eu), abs(ev))
 
     @staticmethod

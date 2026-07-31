@@ -262,6 +262,7 @@ class MicroVLAPolicy:
         ibvs_track_gate: float = 0.0,
         ibvs_clip_rerank: bool = False,
         ibvs_descend_hyst: float = 0.0,
+        ibvs_swap_uv: bool = False,
         tool_phase: bool = False,
         tool_center_tol: float = 0.05,
         tool_gain: float = 1.0,
@@ -373,7 +374,8 @@ class MicroVLAPolicy:
                 conf_floor=self.ibvs_conf_floor,
                 track_gate=float(ibvs_track_gate),
                 clip_rerank=bool(ibvs_clip_rerank),
-                descend_hyst=float(ibvs_descend_hyst))
+                descend_hyst=float(ibvs_descend_hyst),
+                swap_uv=bool(ibvs_swap_uv))
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were

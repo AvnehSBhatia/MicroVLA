@@ -218,3 +218,11 @@ class TestDescendHysteresis:
                        target_uv=(0.5, 0.55), conf_floor=0.005)
         a = m.step(_Det(center=(0.75, 0.55)), _Det(), _proprio(z=0.3))
         assert a[2] == 0.0  # err 0.25 > 0.2: old behavior, no descend
+
+
+def test_swap_uv_exchanges_axes():
+    m = PhasedIBVS(gain=0.5, sign=(1.0, 1.0, 0.0), descend=-0.3,
+                   target_uv=(0.5, 0.55), conf_floor=0.005, swap_uv=True)
+    # Pure u error: with swap, it must drive action[1], not action[0].
+    a = m.step(_Det(center=(0.8, 0.55)), _Det(), _proprio(z=0.3))
+    assert a[0] == pytest.approx(0.0) and a[1] > 0

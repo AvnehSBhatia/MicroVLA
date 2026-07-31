@@ -552,6 +552,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
             ibvs_descend_hyst=getattr(args, "ibvs_descend_hyst", 0.0),
+            ibvs_swap_uv=getattr(args, "ibvs_swap_uv", False),
             ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
             tool_phase=getattr(args, "tool_phase", False),
             tool_center_tol=getattr(args, "tool_center_tol", 0.05),
@@ -690,6 +691,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
+    p.add_argument("--ibvs-swap-uv", action="store_true",
+                   help="swap image-u/v errors before applying --ibvs-sign: a "
+                        "wrist camera rolled 90 deg needs the axes exchanged, "
+                        "which no sign combination can express. Measured: with "
+                        "true-object boxes no sign config reduces image error "
+                        "at all (min err 0.204/618 fixes).")
     p.add_argument("--ibvs-descend-hyst", type=float, default=0.0,
                    help="ratcheted descend for --ibvs-phase: engage descent at "
                         "err<0.2, release only above this (much wider) bound, "
