@@ -34,22 +34,32 @@ class _Box:
 
 
 def test_controller_stays_in_reach_until_centred():
-    ctl = GraspToolController(gain=1.0, center_tol=0.05, descend_tol=0.08,
-                              conf_floor=0.05, descend_rate=-0.4)
+    ctl = GraspToolController(gain=1.0, center_tol=0.04, descend_tol=0.12,
+                              conf_floor=0.05, descend_rate=-0.35,
+                              settle_persist=3, i_gain=0.0)
     proprio = np.zeros(10); proprio[2] = 0.20; proprio[7:9] = 1.0
-    # Far off-center: must NOT enter grasp
+    # Far off-center: stay in reach_src
     a = ctl.step(_Box((0.8, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
     assert ctl.phase == "reach_src"
-    assert a[0] > 0  # pushing toward center
-    # Near center + low z → grasp
-    proprio[2] = 0.04
+    assert a[0] > 0
+    # Near enough → settle
+    ctl.step(_Box((0.55, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
+    assert ctl.phase == "settle"
+    # Persist inside tol → descend
+    for _ in range(5):
+        ctl.step(_Box((0.51, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
+    assert ctl.phase == "descend"
+    # Low z + centred → grasp
+    proprio[2] = 0.05
     ctl.step(_Box((0.51, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
     assert ctl.phase == "grasp"
 
 
-def test_call_dispatches_named_tool():
-    ctl = GraspToolController()
-    obs = _obs()
-    a = ctl.call("descend", obs)
-    assert a[2] < 0
-    assert ctl.last_tool == "descend"
+def test_integral_pushes_past_steady_offset():
+    ctl = GraspToolController(gain=0.5, i_gain=0.5, i_clamp=0.3, settle_persist=99)
+    proprio = np.zeros(10); proprio[2] = 0.2; proprio[7:9] = 1.0
+    # Same small offset for many ticks — integral should grow the command.
+    a0 = ctl.step(_Box((0.55, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
+    for _ in range(20):
+        a1 = ctl.step(_Box((0.55, 0.55), 0.9), _Box((0.5, 0.55), 0.9), proprio)
+    assert abs(float(a1[0])) > abs(float(a0[0]))
