@@ -169,3 +169,19 @@ regenerate from `eval_results/libero_object_real_*_telemetry.jsonl`.
 `mean_success` 0.000, `grip_close_rate` 0.000, detect duty collapsed to 0.24.
 Cosine(SPPF ROIAlign, CLIP text) is the wrong instrument; use cv4
 text-region scores next.
+
+## Postscript 4 — aim-point sweep null (d627acb): the stall is descend-loop dynamics, not hand-eye offset
+
+`--ibvs-target-uv` swept over {(.5,.55),(.5,.68),(.5,.80),(.38,.68),(.62,.68)}
+on the tool_loose config (`eval_results/auton/aim_*`): every variant stalls at
+`eef_obj_dist_min` 0.217–0.261 with **zero** grip closes — ±2 cm spread, no
+directional gradient. A hand-eye aim-point error is ruled out. Remaining
+suspect: a **descend limit cycle** — wrist-camera parallax during descent
+pushes the object away from any fixed image target, the `err < tol` descend
+gate disengages, the arm rises, error shrinks, descend re-engages; the loop
+parks at hover height (~0.23 m), which matches the measured stall exactly and
+explains why the trained policy (whose descent is not gated on image error)
+gets to 0.09–0.15 m while every pure-servo config cannot. Falsifiable fix:
+ratchet the descend gate (hysteresis: once engaged, keep descending unless
+error exceeds a much larger bound) or run the descend phase on agentview,
+whose geometry does not change with EEF height.
