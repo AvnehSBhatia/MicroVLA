@@ -555,6 +555,8 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
                                       DEFAULT_CONFIG.role_disjoint_iou),
             source_max_area=getattr(args, "source_max_area",
                                     DEFAULT_CONFIG.source_max_area),
+            source_min_aspect=getattr(args, "source_min_aspect",
+                                      DEFAULT_CONFIG.source_min_aspect),
         )
 
     return factory
@@ -585,6 +587,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "frame (0=off). Kills basket-as-source when the grocery "
                         "phrase falls through to 'box'; 0.12 is a starting "
                         "point for libero_object.")
+    p.add_argument("--source-min-aspect", type=float,
+                   default=DEFAULT_CONFIG.source_min_aspect,
+                   help="reject SOURCE boxes with height/width below this "
+                        "(0=off). Bottles/cans are tall; the basket liner is "
+                        "wide — 1.15 is a soft bottle prior.")
     p.add_argument("--no-dream-correct", action="store_true",
                    help="skip InnovationCorrector on dream ticks. The corrector "
                         "is deployment-only state the trainer never modelled, so "

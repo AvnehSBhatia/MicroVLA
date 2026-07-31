@@ -119,6 +119,9 @@ def main(argv=None) -> None:
     ap.add_argument("--source-max-area", type=float,
                     default=DEFAULT_CONFIG.source_max_area,
                     help="reject oversized SOURCE boxes (basket-as-source).")
+    ap.add_argument("--source-min-aspect", type=float,
+                    default=DEFAULT_CONFIG.source_min_aspect,
+                    help="prefer tall SOURCE boxes (bottles over basket).")
     ap.add_argument("--task-ids", default=None,
                     help="comma-separated task ids; overrides the random pick")
     args = ap.parse_args(argv)
@@ -161,7 +164,8 @@ def main(argv=None) -> None:
                             ibvs_phase=args.ibvs_phase,
                             ibvs_track_gate=args.ibvs_track_gate,
                             role_disjoint_iou=args.role_disjoint_iou,
-                            source_max_area=args.source_max_area)
+                            source_max_area=args.source_max_area,
+                            source_min_aspect=args.source_min_aspect)
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)

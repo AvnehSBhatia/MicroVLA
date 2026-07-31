@@ -181,7 +181,8 @@ def _load_relaxed(module, sd, name: str) -> None:
 
 def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_conf,
                            role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
-                           source_max_area: float = DEFAULT_CONFIG.source_max_area):
+                           source_max_area: float = DEFAULT_CONFIG.source_max_area,
+                           source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect):
     """Lazily builds the real ``YoloWorldPerception`` + ``ClipTaskEncoder``.
 
     Mirrors ``JEPALoop.build_real``'s construction exactly. Only called when
@@ -205,7 +206,8 @@ def _build_real_perception(device: str, det_conf: float = DEFAULT_CONFIG.det_con
     perception = YoloWorldPerception(device=device, det_conf=float(det_conf),
                                      grid_size=DEFAULT_CONFIG.tqsa_grid,
                                      role_disjoint_iou=float(role_disjoint_iou),
-                                     source_max_area=float(source_max_area))
+                                     source_max_area=float(source_max_area),
+                                     source_min_aspect=float(source_min_aspect))
     task_encoder = ClipTaskEncoder(perception)
     return perception, task_encoder
 
@@ -262,6 +264,7 @@ class MicroVLAPolicy:
         det_conf: float = DEFAULT_CONFIG.det_conf,
         role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
         source_max_area: float = DEFAULT_CONFIG.source_max_area,
+        source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect,
     ) -> None:
         """Builds the policy.
 
@@ -475,7 +478,8 @@ class MicroVLAPolicy:
             real_perception, real_task_encoder = _build_real_perception(
                 device, det_conf=float(det_conf),
                 role_disjoint_iou=float(role_disjoint_iou),
-                source_max_area=float(source_max_area))
+                source_max_area=float(source_max_area),
+                source_min_aspect=float(source_min_aspect))
             perception = perception if perception is not None else real_perception
             task_encoder = task_encoder if task_encoder is not None else real_task_encoder
 

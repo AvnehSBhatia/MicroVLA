@@ -221,6 +221,9 @@ class MicroVLAConfig:
     # role_disjoint_iou. 0 disables. 0.12 is a starting point for LIBERO
     # object (bottles/cans << basket liner).
     source_max_area: float = 0.0
+    # Prefer tall SOURCE boxes (bottles/cans) over wide ones (basket liner).
+    # height/width must be >= this; 0 disables. 1.15 is a soft bottle prior.
+    source_min_aspect: float = 0.0
     rel_dim: int = 384              # relational token width
     rel_tokens: int = 12            # tokens emitted to the planner
     rel_layers: int = 2

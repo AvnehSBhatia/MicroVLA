@@ -122,7 +122,8 @@ class YoloWorldPerception:
                  det_conf: float = 0.10, min_side: int = 512,
                  max_proposals: int | None = None,
                  grid_size: int = 0, role_disjoint_iou: float = 0.0,
-                 source_max_area: float = 0.0) -> None:
+                 source_max_area: float = 0.0,
+                 source_min_aspect: float = 0.0) -> None:
         self.det_conf = det_conf
         #: IoU above which a SOURCE candidate is rejected for landing on the
         #: TARGET's box; 0.0 disables. Shared by the bake and the robot through
@@ -133,6 +134,7 @@ class YoloWorldPerception:
         #: (basket-sized detections when the grocery phrase falls through).
         #: 0 disables. Orthogonal to role_disjoint_iou.
         self.source_max_area = float(source_max_area)
+        self.source_min_aspect = float(source_min_aspect)
         # Class-agnostic proposal cap. Defaults to cfg.max_objects so the baked
         # object tensor and the model's K agree by construction.
         if max_proposals is None:
@@ -441,6 +443,7 @@ class YoloWorldPerception:
                 # frame, disjoint IoU often misses).
                 thr = float(getattr(self, "role_disjoint_iou", 0.0) or 0.0)
                 max_area = float(getattr(self, "source_max_area", 0.0) or 0.0)
+                min_asp = float(getattr(self, "source_min_aspect", 0.0) or 0.0)
                 frame_area = float(max(frame_h * frame_w, 1))
 
                 def _ok(xy: torch.Tensor) -> bool:
@@ -449,13 +452,19 @@ class YoloWorldPerception:
                             float(xy[3]) - float(xy[1]), 0.0) / frame_area
                         if a > max_area:
                             return False
+                    if role_idx == 0 and min_asp > 0.0:
+                        w = max(float(xy[2]) - float(xy[0]), 1e-6)
+                        h = max(float(xy[3]) - float(xy[1]), 0.0)
+                        if (h / w) < min_asp:
+                            return False
                     if thr > 0.0 and avoid is not None and _iou(xy, avoid) > thr:
                         return False
                     return True
 
+                need_scan = thr > 0.0 or (role_idx == 0 and (max_area > 0.0 or min_asp > 0.0))
                 for cid in self._role_class_ids[role_idx]:
                     cands = all_by_class.get(cid) or []
-                    if (thr > 0.0 or (role_idx == 0 and max_area > 0.0)) and cands:
+                    if need_scan and cands:
                         for conf, xy in cands:
                             if _ok(xy):
                                 return _box_from_xyxy(xy, conf)
