@@ -114,6 +114,9 @@ def main(argv=None) -> None:
     ap.add_argument("--ibvs-phase", action="store_true")
     ap.add_argument("--ibvs-track-gate", type=float, default=0.0)
     ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
+    ap.add_argument("--ibvs-descend-hyst", type=float, default=0.0)
+    ap.add_argument("--ibvs-swap-uv", action="store_true")
+    ap.add_argument("--ibvs-target-uv", default="0.5,0.55")
     ap.add_argument("--tool-phase", action="store_true",
                     help="accuracy tools own the action (reach_center→grasp…).")
     ap.add_argument("--tool-center-tol", type=float, default=0.05)
@@ -167,6 +170,9 @@ def main(argv=None) -> None:
                             ibvs_descend=args.ibvs_descend,
                             ibvs_phase=args.ibvs_phase,
                             ibvs_track_gate=args.ibvs_track_gate,
+                            ibvs_descend_hyst=args.ibvs_descend_hyst,
+                            ibvs_swap_uv=args.ibvs_swap_uv,
+                            ibvs_target_uv=tuple(float(v) for v in args.ibvs_target_uv.split(",")),
                             tool_phase=args.tool_phase,
                             tool_center_tol=args.tool_center_tol,
                             tool_gain=args.tool_gain,
