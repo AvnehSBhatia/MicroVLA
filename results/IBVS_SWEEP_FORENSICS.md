@@ -185,3 +185,27 @@ gets to 0.09–0.15 m while every pure-servo config cannot. Falsifiable fix:
 ratchet the descend gate (hysteresis: once engaged, keep descending unless
 error exceeds a much larger bound) or run the descend phase on agentview,
 whose geometry does not change with EEF height.
+
+## Postscript 5 — the dihedral null (1d8953b): wrist-image error is not planar-controllable
+
+With binding filters keeping only true-object boxes, ALL EIGHT static
+image-to-world mappings (`--ibvs-sign` × `--ibvs-swap-uv`) fail identically:
+min image error 0.204–0.278 over 600+ fixes per config, zero ticks below the
+0.2 descend gate, mean error flat across the episode (`eval_results/auton/
+{hyst_*,sign_pp_*,swap_*}`). The aim-point sweep (postscript 4) and descend
+hysteresis were also nulls. Conclusion: on the eye-in-hand camera, the
+object's image-v position is dominated by camera HEIGHT and TILT, not lateral
+offset — so no planar xy P-servo can reduce it, and any controller that gates
+descent on image error deadlocks (error cannot shrink without descending;
+descent waits on error). The historical "convergence" (postscript 3 era) was
+onto the basket false-positive, whose huge box centers under any motion.
+
+What this retires: the entire wrist-camera planar-servo family as a
+falsifier. What remains falsifiable, in order:
+1. **Unconditional descend** — servo xy while descending from tick 0 (no
+   error gate at all); breaks the deadlock if height-coupling is the story.
+2. **Agentview servo** — the fixed third-person camera has no height
+   coupling; run the same dihedral sweep there (the one agentview tool run
+   used a single mapping).
+3. Depth-aware servo (use box scale as a range signal) — a controller class
+   change, no longer "trivial control".
