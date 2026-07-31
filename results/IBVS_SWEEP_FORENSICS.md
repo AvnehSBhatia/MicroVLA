@@ -225,3 +225,27 @@ Remaining gap in `band_050`: `eef_obj_dist_min` 0.201 while centered at grasp
 height — the hand-eye AIM-POINT offset, which postscript 4 could not measure
 (the servo never converged then) and which is now the live, sweepable
 variable (`aim2_*` queue).
+
+## Postscript 7 — video of band_050 (02f38d5): physical contact achieved; the residuals are binding identity and grasp completion
+
+`eval_results/auton/band_vids/` (exact band_050 config): in task 0 the wrist
+view shows a box DIRECTLY BETWEEN THE GRIPPER FINGERS at table height for
+most of the episode — the zero-training servo family, with band descend,
+reaches graspable contact. The two remaining failures are visible in the same
+frames:
+
+1. **It grasps at the WRONG object** — the butter box, not the alphabet
+   soup. `eef_obj_dist_min` 0.2 measures distance to the *correct* object
+   while the fingers surround an incorrect one, so the metric conflates
+   "servo broken" with "binding wrong"; they are now separable and only
+   binding remains. (Task 2 descends short onto bare floor — binding again:
+   the tracked box was not the salad dressing.)
+2. **The close never completes** — fingers around the box for hundreds of
+   ticks without a lift; either the close pushes the box, the held-jaw check
+   rejects, or the grasp trigger never fires at the achieved error.
+
+Net for the falsifier program: perception features + trivial control reach
+contact with A graspable object (features vindicated for servo + descend +
+approach), and every remaining millimeter of the gap is (a) phrase-to-object
+binding — the same semantic-precision ceiling as postscript 3, now isolated
+with everything else working — and (b) grasp-trigger mechanics.
