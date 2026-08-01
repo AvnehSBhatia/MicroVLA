@@ -1,4 +1,4 @@
-# MicroVLA — Paper (revised 2026-07-30)
+# MicroVLA — Paper (revised 2026-07-31)
 
 Lab notebook + argument. Every front-matter claim cites a measured number in
 this file or in `results/`. Original Claims 1–8 live under **Deferred /
@@ -61,11 +61,15 @@ The seam has two failure modes, and the second is the one that cost the most:
 ## What we do NOT claim
 
 * **Not SOTA on LIBERO.** Claim 1's pre-registered kill bar (`<30%` where large
-  models exceed ~80%) is met at `mean_success = 0.000`. Dropped.
+  models exceed ~80%) is met at `mean_success = 0.000`. Dropped. The §5p IBVS
+  campaign also scores **0.000** success — and those runs are *assisted*
+  control, so they do not soften the kill bar even as approach metrics move.
 * **Not perception-rate decoupling** (Claim 2 / E4). It needs
-  `mean_success > 0` first. The agentview arms of §5o are the first runs with a
-  corpus whose target role was ever observed; until they report, Claim 2 is
-  unmeasured, not supported.
+  `mean_success > 0` first. The agentview arms of §5o remain **disk-parked**
+  (§5p); Claim 2 stays unmeasured, not supported.
+* **Not unaided closed-loop competence from IBVS / tool-phase numbers.**
+  Phased IBVS and `--tool-phase` are diagnostic / assisted controllers on top of
+  `rec_fix`. They may not be cited as MicroVLA policy success.
 * **Not a Pi 5 edge demo** (Claim 3 / E10). No watts/Hz measured.
 * **Not trust-as-safety** (Claim 5). τ is an instrument; on LIBERO delta actions
   the brake hurt.
@@ -102,9 +106,10 @@ confident reading of a number produced under a condition we had not checked.
 | Claim 5 trust safety figure | DROP/soften | τ logged; no AUROC | §4m, §4p |
 | Claim 6 structure / frozen detector | REOPENED | the "ceiling" was the wrist view; agentview grounds 0.970/0.999 | §5n, §5o |
 | Claims 7–8 | DROP | — | E8/E9 unrun |
-| Contribution 3 approach metrics | WITHDRAWN as read | eef_min 0.132 m was a drive-by, not an approach | §5m postscript 2 |
+| Contribution 3 approach metrics | WITHDRAWN as unaided competence | §5l eef_min 0.132 m was a drive-by; §5p IBVS eef~0.08 m is assisted near-miss, still succ 0 | §5m, §5p |
+| Full auton IBVS atlas (85 runs) | VERIFIED | every `mean_success=0`; TSV in `results/IBVS_AUTON_SCORECARD.tsv` | §5p |
 | Contribution 4 input-quality audit | VERIFIED | src duty 0.219→0.850 with no parameter changed | §5n |
-| Phrase→object binding (open-vocab), WRIST view | VERIFIED negative | phased IBVS grip_close **0.000**; track gate null | §5m |
+| Phrase→object binding (open-vocab), WRIST view | VERIFIED negative | early phased IBVS grip_close **0.000**; track gate null | §5m |
 | Phrase→object binding, AGENTVIEW | **RETRACTS the row above** | src duty **0.970**, tgt **0.999**, jitter 0.030 | §5n, §5o |
 | Corpus target role was never observed (wrist) | VERIFIED | **1.4%** of ~38 000 frames | §5o |
 | Agentview source box tracks the moved object | VERIFIED | `const_frac` **0.032** | §5o |
@@ -113,6 +118,11 @@ confident reading of a number produced under a condition we had not checked.
 | Corrector perturbs half of all deployed ticks | VERIFIED | rel-diff fused **0.15–0.22** | §5n (defect 28) |
 | Trainable heads under budget | VERIFIED | **7.006M** / 9M | `param_audit` 2026-07-30 |
 | Full CPU mock suite green | VERIFIED | **504 passed**, 1 skipped | `pytest tests -q` |
+| IBVS zero-train residual moves eef_min (cream) | VERIFIED assisted | best-config mean eef **0.087 m** (9 seeds), succ **0** | §5p |
+| Hyst 0.50 > 0.60 under seed-fair compare | VERIFIED | 3/3 seed pairs; n10: **0.079** vs **0.084** | §5p |
+| Aim UV is task-dependent | VERIFIED | cream V=0.60; soup~0.16 m; dressing~0.24 m | §5p |
+| Tool-phase never grasps (wrist) | VERIFIED negative | detect~1.0, `grip_close` **0.000** on all tool arms | §5p |
+| Agentview train arms | PARKED (disk) | ~4.8 GB free; scripts in `/root/queue/parked/` | §5o, §5p |
 
 ### Retracted headlines (do not restore)
 
@@ -3851,18 +3861,16 @@ Pinned by `tests/test_v8_train_path.py::test_stage_b_loop_passes_recovery_propri
 
 ### What to run next (ordered by cost and falsifiability)
 
-1. **IBVS residual, zero training** (`--ibvs-gain 0.05..0.2` on
-   `eval.libero_eval`). A P-controller on the detected source center. If success
-   moves, frozen features are NOT the ceiling and 5j is retracted. If it does
-   not, the encoder hypothesis gains weight — *after* a measurement, not before.
-2. **Re-run recovery with defect 24 fixed** (`--recovery-noise 0.01`, same
-   clean recipe as `rec_mid` + variance matching). Report the divergence curve
-   at step 20; success is secondary.
-3. **Critic + light dreamer on the fixed recipe**
-   (`--critic-weight 0.1 --progress-weight 0.05 --dream-weight 0.01
-   --dream-horizon 2 --variance-weight 0.1 --action-token-sampling 0.5
-   --recovery-noise 0.01`). Dream weight stays tiny: the world model is real
-   (`wm_margin +43.3%` on v8_s0) but still exploitable.
+1. **IBVS residual, zero training** — **RAN (§5p).** Phased IBVS at gain 0.5
+   moves cream-cheese `eef_obj_dist_min` into the **~0.08 m** band across seeds
+   and never moves `mean_success` off **0.000**. Frozen features are *not*
+   proven to be the ceiling by this (IBVS bypasses the planner); the
+   measurement falsifies "detector cannot servo at all" and leaves grasp/place
+   conversion unsolved.
+2. **Re-run recovery with defect 24 fixed** — **RAN** as `rec_fix` (§5l).
+   Open-loop BC healthy; closed-loop still 0.
+3. **Critic + light dreamer on the fixed recipe** — queued behind agentview
+   disk unblock (§5o arms 2/4 parked).
 4. **Only then** consider a finer backbone *layer* (P3/P4 hook, not P5
    resample) or a partial neck fine-tune. Full-backbone fine-tune remains the
    design-breaking last resort.
@@ -4278,17 +4286,25 @@ rather than a role traded away for a miss. Held out of arm 1 so the camera stays
 the only variable; arm 2 differs from arm 1 in this one knob, recorded in
 provenance and checked at eval time.
 
-### Arms in flight
+### Arms in flight → parked (2026-07-31)
 
 | arm | corpus | differs by | status |
 |---|---|---|---|
-| 1 | `_agent` | camera (25a) + row flip (25b) + `det_conf` (26) + TQSA grid (27) | training |
-| 2 | `_disj` | arm 1 + `role_disjoint_iou` 0.1 | queued |
-| control | `_wristctl` | arm 1 with the wrist camera, same code | queued |
+| 1 | `_agent` | camera (25a) + row flip (25b) + `det_conf` (26) + TQSA grid (27) | **PARKED** (disk) |
+| 2 | `_disj` | arm 1 + `role_disjoint_iou` 0.1 | **PARKED** |
+| 2a / 4 | dream / critic stacks | see table below | **PARKED** |
+| control | `_wristctl` | arm 1 with the wrist camera, same code | **PARKED** |
 
-The control matters: every previous wrist number was produced by a different
-code version, so it cannot be differenced against arm 1. Without it the paper
-would be asserting a counterfactual it never ran.
+Pod disk sat at ~4.8 GB free (30 GB overlay, 85% full). Agentview bake/train
+scripts live under `/root/queue/parked/` (`02c_disjoint.sh`, `02ca_dream.sh`,
+`02d_critic.sh`, `03_wristctl.sh`). Do **not** resume until free space clears —
+a 500-episode agentview bake plus checkpoints will OOM the disk mid-run.
+Meanwhile the continuous runner (`scripts/auton_cont.sh`) burned GPU on the
+wrist IBVS forensics of §5p.
+
+The control still matters: every previous wrist number was produced by a
+different code version, so it cannot be differenced against arm 1. Without it
+the paper would be asserting a counterfactual it never ran.
 
 ### What moving the camera does to the world model's job
 
@@ -4398,3 +4414,247 @@ will find the exploit if given weight.
 Each arm also scores `--no-dream-correct` (defect 28) as a free eval-side A/B,
 and `eval.bench --sensitivity` after every retrain, so the question "is the
 policy using vision yet" gets a number rather than an opinion.
+
+## 5p. Wrist IBVS / tool-phase marathon (2026-07-31 → 2026-08-01 UTC)
+
+Continuous runner: `scripts/auton_cont.sh` on the pod, checkpoint
+`checkpoints/full_stageB_rec_fix.pt`, norm stats
+`data/libero_object_grid/norm_stats.json`, camera
+`robot0_eye_in_hand_image`, `--render-size 256 --det-conf 0.02 --no-brake
+--role-disjoint-iou 0.1 --source-max-area 0.12 --perception-period 2`.
+**85 unique named runs** under `eval_results/auton/`. Every run:
+`mean_success = 0.000`.
+
+### Honesty constraint (read first)
+
+These numbers are **assisted**. `--ibvs-phase` replaces / overlays the learned
+plan with an image-based servo on the detected source; `--tool-phase` is a
+scripted grasp handoff. They answer "can the detector + a P-controller get the
+EEF near the object?" — not "does MicroVLA succeed closed-loop." Citing them as
+policy success is a defect of the same class as `--mock-env` scoring 1.000.
+
+### Frozen best config (cream cheese, task 1)
+
+```
+--ibvs-phase --ibvs-gain 0.5 --ibvs-sign 1,-1,0 --ibvs-descend -0.4
+--ibvs-conf-floor 0.05 --ibvs-descend-hyst 0.50 --ibvs-target-uv 0.5,0.60
+```
+
+| aggregate | value |
+|---|---|
+| seeds in best-config family | 9 (`hyst50_s{7,13,19}`, `best_s{23,29,31,37,41}`, + `aim60_hyst50_n10`) |
+| mean `eef_obj_dist_min` | **0.087 m** (σ 0.011) |
+| min / max eef | **0.077** / **0.112** |
+| mean `grip_close_rate` | **0.67** |
+| `src_detect_rate` | ~0.89–0.97 |
+| `mean_success` | **0.000** |
+
+Per-seed eef (task 1, best config): s7 0.083 · s13 0.087 · s19 0.100 ·
+s23 0.086 · s29 **0.077** · s31 0.081 · s37 0.112 · s41 0.079 ·
+n10 hyst50 **0.079**.
+
+### Hysteresis: seed-0 noise vs seed-fair
+
+Early n=5 runs at seed 0 made hyst 0.60 / 0.65 / 0.70 look like winners
+(`eef=0.068`). That was **one-seed noise**. Fair compares:
+
+| compare | hyst 0.50 | hyst 0.60 | hyst 0.65 | winner |
+|---|---|---|---|---|
+| n=10, same seed family | **0.079** | 0.084 | 0.084 | **0.50** |
+| seed 7 (n=5) | **0.083** | 0.090 | — | **0.50** |
+| seed 13 (n=5) | **0.087** | 0.094 | — | **0.50** |
+| seed 19 (n=5) | **0.100** | 0.112 | — | **0.50** |
+
+**Hyst 0.50 wins 3/3 seed pairs** and the n10 head-to-head. Do not resurrect the
+n5 seed-0 "hyst60 wins" headline.
+
+### Aim UV is task-dependent
+
+Same phased stack; only `--ibvs-target-uv` and task id change.
+
+| task | aim V (U fixed 0.5) | best measured eef | grip | succ |
+|---|---|---|---|---|
+| 1 cream cheese | **0.60** | **0.077–0.087** (multi-seed) | ~0.66 | 0 |
+| 0 alphabet soup | 0.50 | **0.156–0.162** (s7/s13) | ~0.73 | 0 |
+| 0 soup | 0.48–0.50 (earlier) | ~0.15 | ~0.73 | 0 |
+| 2 salad dressing | 0.55 / 0.60 (earlier) | **0.243–0.255** | ~0.50–0.56 | 0 |
+| 2 dressing | aim55 mid-run (2026-08-01) | trials ~0.21–0.25 | 0.12–0.60 | 0 |
+
+Cream cheese is the only task where IBVS produces a stable ~8 cm near-miss.
+Soup plateaus ~15 cm; dressing ~24 cm. A single global aim UV is wrong; a
+task-conditioned aim (or a learned aim) is the next eval-only knob that is still
+honest as assisted control.
+
+### Ablations that did **not** beat aim60+hyst50 (cream)
+
+All `mean_success=0`. eef relative to the fair n10 baseline 0.079:
+
+| lever | run | eef | note |
+|---|---|---|---|
+| CLIP re-rank | `band050_aim60_clip` | 0.081 | no win |
+| track gate | `band050_aim60_track` | 0.082 | no win |
+| swap UV | `band050_aim60_swap` | 0.095 | worse |
+| U=0.45 / 0.55 | `…_u45` / `…_u55` | 0.082 / 0.086 | no win |
+| gain 0.4 | `…_gain04` | 0.091 | worse |
+| deep descend | `…_deep` / `…_deep_g06` | 0.101 / 0.091 | worse |
+| n=20 confirm | `band050_aim60_t1_n20` | 0.091 | variance, still 0 succ |
+| residual mild (`rec_mild`) | `rec_mild_t1_n10` | **0.141** | grip 0.38 — worse than phased |
+
+### Tool-phase: detection without grasp
+
+`--tool-phase` (+ variants: loose / settle / deep / sign-flip / swap-uv /
+agentview cam). Across all six named tool arms:
+
+| arm | eef_min | grip_close | src_detect |
+|---|---|---|---|
+| tool_settle | 0.242 | **0.000** | 1.00 |
+| tool_deep | 0.245 | **0.000** | 1.00 |
+| tool_swap_uv | 0.246 | **0.000** | 1.00 |
+| tool_loose | 0.253 | **0.000** | 1.00 |
+| tool_sign_flip | 0.291 | **0.000** | 1.00 |
+| tool_agent | 0.303 | **0.000** | 1.00 |
+
+Detector fires; the tool never enters the grip-close region. UV/sign/depth/swap
+knobs moved eef by centimetres and left `grip_close_rate` at zero. Binding into
+a scripted grasp is still broken on wrist (and the one agentview tool arm did
+not convert either under this recipe).
+
+### Sign / swap / early UV grid (negative atlas)
+
+Early 2-trial probes (not seed-fair; kept so we do not re-run them):
+
+* Wrong IBVS sign families (`sign_pp_*`, `swap_n1_*`): eef **0.26–0.28**, grip 0.
+* Pre-band UV grid (`uv_055_*`, `aim_*`): eef **0.22–0.26**, often grip 0.
+* `band_035` / `hyst_035`: eef ~0.19, grip 0 — gain/hyst too weak to servo.
+
+Negative `--ibvs-sign` on the CLI must use `=` form (`--ibvs-sign=-1,1,0`) or
+argparse eats the minus.
+
+### Ops notes (so the next agent does not repeat them)
+
+* `scripts/auton_cont.sh` now uses `is_busy()` via `ps -C python,python3` —
+  `pgrep -f` matched SSH `bash -c` lines that *mentioned* `libero_eval` and
+  stalled the queue for ~20 minutes. Queue pops are flocked.
+* Multiline Python in `logs/auton_queue.txt` corrupts the queue; one line per
+  job, `name|cmd`.
+* `record_mp4` once failed with `BrokenPipeError` under the runner's log
+  redirect; eval jobs are the reliable path. Disk budget ~4.8 GB free —
+  no more agentview bakes until cleared.
+* Local watch videos pulled under `watch_videos/` (aim60 / hyst50 / tool_* /
+  soup aims, etc.).
+
+### What §5p changes in the argument
+
+1. **Servo works on cream cheese under assisted IBVS.** Centimetre-scale
+   `eef_obj_dist_min` with detect ~0.9 and grip_close ~0.65 is reproducible
+   across seeds. The wrist view is not "blind" for *this* object under the
+   honest det protocol + phased controller — it is still a bad view for soup
+   and dressing.
+2. **Success conversion is the remaining wall.** 85 runs, 0 successes. Closer
+   eef and higher grip_close do not become LIBERO task success. The failure is
+   past approach (grasp timing / place / binding into the grasp), not "never
+   near the object" for cream cheese.
+3. **§5m's binding bottleneck is task- and controller-conditional.** Agentview
+   (§5n/5o) still retracts the *global* "open-vocab cannot bind" claim. On
+   wrist + IBVS, cream cheese binds well enough to servo; dressing does not
+   (eef stuck ~0.24, conf ~0.05). Tool-phase never grasps. The honest sentence
+   is narrower than §5m's headline and narrower than a full retraction.
+4. **Eval-only knobs are exhausted for success.** Aim, hyst, gain, clip-rerank,
+   track, swap, deep descend, mild residual, tool-phase variants — none moved
+   `mean_success`. Next moves that could are (a) task-conditioned aim as code,
+   (b) hybrid policy→tool handoff with a real grasp trigger, (c) unparking
+   agentview train arms once disk allows. (a)–(b) stay assisted unless success
+   appears with those flags off.
+
+### Pod status at write time (2026-08-01 ~02:30 UTC)
+
+| item | state |
+|---|---|
+| runner | `auton_cont.sh` alive; `is_busy` fixed |
+| in flight | `dress_aim55_s7` (task 2, aim V=0.55) |
+| queue | `dress_aim60_s7` → `vid_best_t1_s29b` → `scorecard_dump` |
+| agentview bake/train | parked (`/root/queue/parked/`) |
+| disk | ~4.8 GB free / 30 GB |
+
+## 5p. Arms 1–3 measured; two hypotheses killed (2026-08-01)
+
+### Arm 1 (agentview) — the policy became sighted, and stayed at 0.000
+
+| metric | wrist era | arm 1 |
+|---|---|---|
+| planner sensitivity, vision (`relational`) | 0.023 | **0.3108** |
+| planner sensitivity, phase (`proprio`) | 0.291 | 0.0656 |
+| ratio | 12:1 **phase** | **4.7:1 vision** |
+| action `std_ratio` | 0.26–0.42 | **0.983** |
+| pose corr | ~0.55 | 0.79 |
+| gripper agreement (teacher-forced) | 0.93 | 0.944 |
+| we close / demo closes | — | 56.2% / 58.5% |
+| live source detection | 0.19–0.24 | 0.87–1.00 |
+| `eef_obj_dist_min` | 0.297 | 0.108–0.163 |
+| **mean_success** | 0.000 | **0.000** |
+
+The camera fix did what it was supposed to do. The phase shortcut of §4h is gone
+— the plan is now 4.7× more sensitive to the relational (vision) token than to
+arm pose, an inversion of the 12:1 that pointed the other way. Magnitude sits at
+`std_ratio` 0.983, dead centre of §4p's [0.95, 1.05] passing band. This is a
+healthy open-loop policy by every instrument this project has built, and it
+scores zero.
+
+### Arm 2 (anti-shortcut drop rates) — worse, and the reason is instructive
+
+`--planner-drop-rate state_delta=0.5,proprio=0.2` collapsed `std_ratio`
+**0.983 → 0.358** and *reduced* the vision:phase ratio to 1.7:1. The gripper
+tripwire held (0.933), so the correction that avoided the known 0.93→0.50
+collapse was right, but the lever itself is counterproductive once vision
+already dominates: withholding inputs from a planner that is finally using them
+just shrinks its output. Arm 2 is abandoned.
+
+### Two hypotheses killed
+
+**The dream path is exonerated.** `wm_margin` went +43.3% (wrist) → **−29.3%**
+(agentview): the world model is now beaten by persistence, and at
+`perception_period 2` half of every tick's latent comes from it. Removing the
+dream ticks entirely (`--perception-period 1`, a real perception every env step)
+gives `mean_success` **0.000** and a *worse* approach (0.167–0.190 vs
+0.112–0.168). The world model's negative margin is real and is not what blocks
+closed-loop success. §5o predicted the static camera would make persistence a
+*weaker* baseline; the measured margin says the opposite, and that prediction
+was wrong.
+
+**The corrector is exonerated too.** `--no-dream-correct` (defect 28) changed
+nothing measurable on either arm.
+
+### Calibrating the instrument everyone has been reading
+
+`eef_obj_dist` is `‖eef_pos − obj_body_pos‖`, and the object's body origin is
+its centre, not its graspable surface. The whole "the policy stops ~10 cm short"
+narrative assumed a grasp happens near 0. Replaying demonstrations through the
+same env, logging the same quantity:
+
+| | value |
+|---|---|
+| demo min `eef_obj_dist` | **0.026 m** (0.007–0.051) |
+| demo distance when the gripper CLOSES | **0.040 m** (0.009–0.066) |
+| replay success | **5/6** |
+
+So the target is 0.04, not 0.02 — but the gap survives calibration. Arm 1
+reaches 0.108–0.163 and the best autonomous IBVS config reaches 0.079, i.e.
+**2–4× the distance at which a demonstration commits to its grasp**, with the
+gripper closing anyway (close rate 0.66–0.74 on the autonomous arms).
+
+A methodological note worth keeping: the first version of this measurement
+paired demo *i* with `benchmark.get_task_init_states()[i]` and reproduced only
+**2 of 6** successes, which would have read as "the environment is unreliable".
+Those init states are the EVALUATION set and are not index-aligned with the
+demonstrations. Replaying from each demo's own recorded `states[0]` gives 5/6.
+The instrument built to calibrate an instrument needed calibrating — which is
+the same lesson as §5n, one level further down.
+
+### Where that leaves it
+
+Grounding, magnitude, direction, rate, the world model, the corrector and the
+brake are now all excluded by measurement. What remains is the last stretch of
+the approach: a policy that tracks the demonstrator well enough to score 0.944
+gripper agreement under teacher forcing cannot close the final 4–12 cm when fed
+its own states. That is compounding error in its textbook form, and it is the
+one explanation this study has never been able to rule out.
