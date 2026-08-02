@@ -62,6 +62,7 @@ from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
+                          pose_magnitude_loss, gain_magnitude_loss,
                           total_planner_loss, waypoint_loss, centering_loss,
                           depth_loss)
 from train.train_full import _scheduled_horizon, _tagged_name, save
@@ -179,6 +180,19 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "0.26-0.42 against a task whose passing band is ~[0.95, "
                         "1.05] (paper.md 4p); MSE alone rewards shrinking exactly "
                         "this quantity. 0.1 is a reasonable start.")
+    p.add_argument("--magnitude-weight", type=float, default=0.0,
+                   help="stage B: weight on pose_magnitude_loss — match per-dim "
+                        "mean|·| + std of plan ROW 0 (executed action) vs teacher. "
+                        "Targets the measured 4–8× xy undershoot of teacher_bc2 "
+                        "without needing waypoints. 0.5–1.0 recommended for "
+                        "distillation.")
+    p.add_argument("--gain-magnitude-weight", type=float, default=0.0,
+                   help="stage B: weight on gain_magnitude_loss — push HRM "
+                        "gain_head/log_gain_base toward raw |row-0 xyz| so the "
+                        "control law actually receives gradient when "
+                        "--actuation-weight is 0. Needs act_scale from "
+                        "norm_stats.json. 0.1–0.5 recommended with "
+                        "--magnitude-weight.")
     p.add_argument("--critic-weight", type=float, default=0.0,
                    help="stage B: weight on fitting the ProgressCritic (a "
                         "TRAINING-ONLY head, outside the deployed 9M budget) to "
@@ -1278,6 +1292,13 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
               "would compare raw-unit commands against normalized targets, so it "
               "is DISABLED for this run.", flush=True)
         args.actuation_weight = 0.0
+    if act_scale is None and args.gain_magnitude_weight > 0:
+        print("[stage B] WARNING: no norm_stats.json found; gain_magnitude "
+              "loss DISABLED.", flush=True)
+        args.gain_magnitude_weight = 0.0
+    if args.magnitude_weight > 0 or args.gain_magnitude_weight > 0:
+        print(f"[stage B] magnitude_w {args.magnitude_weight} "
+              f"gain_magnitude_w {args.gain_magnitude_weight}", flush=True)
     # The gain the DEPLOYED actuator uses, so the actuation loss optimizes the
     # quantity that actually runs.
     fitted_gain = None
@@ -1555,6 +1576,17 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                       grip_weight=args.grip_weight,
                                       step_weight=None if step_w is None
                                       else step_w.reshape(-1))
+            if args.magnitude_weight > 0:
+                loss = loss + args.magnitude_weight * pose_magnitude_loss(P, Y)
+            if (args.gain_magnitude_weight > 0 and act_scale is not None
+                    and getattr(drift, "last_gains", None) is not None):
+                # Match gains to mean |row-0 xyz| over T (normalized → raw via act_scale).
+                row0 = target[:, :, 0, :3].abs().mean(dim=1)  # [B, 3]
+                fake = torch.zeros(row0.shape[0], 1, cfg.num_servos,
+                                   device=row0.device, dtype=row0.dtype)
+                fake[:, 0, :3] = row0
+                loss = loss + args.gain_magnitude_weight * gain_magnitude_loss(
+                    drift.last_gains, fake, act_scale)
             if args.centering_weight > 0 or args.depth_weight > 0:
                 gmask, pmask = grasp_place_masks(
                     batch["pwm_targets"], half_window=args.centering_window)

@@ -9,6 +9,8 @@ Implemented:
     * ``depth_loss``        — IBVS-shaped z/descend aux (only once centred).
     * ``modality_consistency_loss`` — optional fusion modality-dropout /
       dream-mode consistency term (same code path as JEPA dream ticks).
+    * ``pose_magnitude_loss`` — match per-dim mean|·| + std of row-0 pose
+      (anti mean-collapse; no waypoint / gain_head dependency).
 
 Documented only (NOT implemented — no TRM training code exists in this repo):
     * ``trm_loss_documentation`` — returns the v2 TRM loss specification
@@ -141,6 +143,66 @@ def split_planner_loss(
         bce = F.binary_cross_entropy_with_logits(grip_logit, grip_target)
     smooth = smoothness_loss(pose_pred)
     return mse + grip_weight * bce + smooth_weight * smooth
+
+
+def pose_magnitude_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+) -> torch.Tensor:
+    """Match per-dim mean-abs and std of plan row-0 pose (gripper exempt).
+
+    MSE-BC collapses to the conditional mean; teacher_bc2 measured live |xy|
+    ~4–8× under the teacher corpus even with ``variance_weight`` on all plan
+    rows. Supervising row-0 magnitude (the only executed row) attacks that
+    shrink directly without needing waypoints or the HRM actuation path.
+
+    Args:
+        pred: ``[N, plan_steps, num_servos]`` planner pose+grip plan.
+        target: same shape, BC targets (normalized).
+
+    Returns:
+        Scalar ``mean((μ_|pred|-μ_|tgt|)² + (σ_pred-σ_tgt)²)`` over pose dims.
+    """
+    pe = pred[:, 0, :-1]
+    te = target[:, 0, :-1]
+    if pe.shape[0] < 2:
+        return (pe * 0.0).sum()
+    mean_term = (pe.abs().mean(dim=0) - te.abs().mean(dim=0)).pow(2).mean()
+    std_term = (pe.std(dim=0) - te.std(dim=0)).pow(2).mean()
+    return mean_term + std_term
+
+
+def gain_magnitude_loss(
+    gains: torch.Tensor,
+    target_pose: torch.Tensor,
+    act_scale: torch.Tensor,
+) -> torch.Tensor:
+    """Push HRM ``gains`` toward the raw-unit |row-0| of the demo pose.
+
+    Gives ``gain_head`` / ``log_gain_base`` a gradient when stage B freezes
+    the rest of the drift encoder and waypoints/actuation are off.
+
+    Args:
+        gains: ``[B, 3]`` positive gains from the HRM (last drift step).
+        target_pose: ``[B, plan_steps, num_servos]`` normalized BC targets
+            for the SAME batch (one row-0 per gain row).
+        act_scale: ``[num_servos]`` (or ≥3) half-span from ``norm_stats``
+            ``q_high`` so gains are compared in raw action units.
+
+    Returns:
+        Scalar MSE between ``gains`` and per-sample teacher |Δxyz|_raw.
+    """
+    scale = act_scale[:3].to(device=gains.device, dtype=gains.dtype)
+    tgt = target_pose[:, 0, :3].abs() * scale
+    g = gains.reshape(-1, 3)
+    if g.shape[0] != tgt.shape[0]:
+        # Broadcast gains across a flattened T if needed.
+        if tgt.shape[0] % g.shape[0] == 0:
+            rep = tgt.shape[0] // g.shape[0]
+            g = g.repeat_interleave(rep, dim=0)
+        else:
+            return (gains * 0.0).sum()
+    return F.mse_loss(g, tgt.detach())
 
 
 def waypoint_loss(

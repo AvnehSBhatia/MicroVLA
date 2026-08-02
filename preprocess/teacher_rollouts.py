@@ -24,6 +24,13 @@ Teacher flags are forwarded verbatim from the winning eval configs; the
 recorder imposes no policy of its own. Success only, by design: the point
 is to imitate what worked.
 
+DAgger mode (`record --dagger-student-flags "..."`): the STUDENT policy
+(mostly) drives — teacher acts on a `--dagger-beta` fraction of ticks as
+recovery mixing — while the teacher labels every visited state; saved
+`actions` are always the teacher's labels (`executed_actions` records what
+actually ran). Failures are kept: off-distribution states with teacher
+labels are exactly the covariate-shift medicine BC lacks.
+
 Pod usage (cream, teacher = v5 config):
   MUJOCO_GL=osmesa python -m preprocess.teacher_rollouts record \
       --suite libero_object --task-id 1 --n-success 30 --raw-dir data/teacher_raw \
@@ -59,7 +66,21 @@ def record(argv: list[str]) -> None:
                         "keep them disjoint)")
     p.add_argument("--raw-dir", default="data/teacher_raw")
     p.add_argument("--max-steps", type=int, default=600)
+    p.add_argument("--dagger-student-flags", default=None,
+                   help="DAgger mode: libero_eval flags (one quoted string) "
+                        "for the STUDENT policy. The student (mostly) drives, "
+                        "the teacher labels every visited state; saved "
+                        "`actions` are ALWAYS the teacher's labels.")
+    p.add_argument("--dagger-beta", type=float, default=0.3,
+                   help="probability of executing the TEACHER's action on a "
+                        "given tick (recovery mixing); 0 = pure student roll")
+    p.add_argument("--keep-failures", action="store_true",
+                   help="save failed episodes too (default ON in DAgger mode: "
+                        "off-distribution states with teacher labels are the "
+                        "point; success-only for plain teacher recording)")
     args, teacher_flags = p.parse_known_args(argv)
+    dagger = args.dagger_student_flags is not None
+    keep_failures = args.keep_failures or dagger
 
     # The teacher is exactly the eval policy: reuse libero_eval's own arg
     # parser + factory so a winning config transfers flag-for-flag.
@@ -70,6 +91,13 @@ def record(argv: list[str]) -> None:
     targs = LE.parse_args(tf + ["--suite", args.suite])
     factory = LE._make_policy_factory(targs)
     policy = factory()
+
+    student = None
+    if dagger:
+        import shlex
+        sargs = LE.parse_args(shlex.split(args.dagger_student_flags)
+                              + ["--suite", args.suite])
+        student = LE._make_policy_factory(sargs)()
 
     tasks = LE._real_tasks(args.suite)
     task = tasks[args.task_id]
@@ -106,16 +134,30 @@ def record(argv: list[str]) -> None:
                 obs = env.set_init_state(
                     task.init_states[idx % len(task.init_states)])
             policy.reset(task.instruction)
+            if student is not None:
+                student.reset(task.instruction)
+            mix_rng = np.random.default_rng(10_000 + idx)
 
-            frames, actions, proprios = [], [], []
+            frames, actions, proprios, executed = [], [], [], []
             success = False
             for _step in range(args.max_steps):
                 frame = upright(obs[camera], camera)
                 pro = proprio_from_obs(obs)
-                action = policy.act(frame, proprio=pro)
-                action = np.nan_to_num(action, nan=0.0, posinf=0.0, neginf=0.0)
+                # Teacher runs on EVERY tick so its phase machine tracks the
+                # trajectory; its output is the label regardless of who drives.
+                label = policy.act(frame, proprio=pro)
+                label = np.nan_to_num(label, nan=0.0, posinf=0.0, neginf=0.0)
+                if student is not None:
+                    s_act = student.act(frame, proprio=pro)
+                    s_act = np.nan_to_num(s_act, nan=0.0, posinf=0.0,
+                                          neginf=0.0)
+                    action = (label if mix_rng.random() < args.dagger_beta
+                              else s_act)
+                else:
+                    action = label
                 frames.append(np.asarray(frame, dtype=np.uint8))
-                actions.append(np.asarray(action, dtype=np.float32))
+                actions.append(np.asarray(label, dtype=np.float32))
+                executed.append(np.asarray(action, dtype=np.float32))
                 proprios.append(np.asarray(pro, dtype=np.float32))
                 obs, _r, done, info = env.step(action)
                 success = (bool(info.get("success", False))
@@ -126,7 +168,7 @@ def record(argv: list[str]) -> None:
                     break
             logger.info("attempt %d (init %d): success=%s steps=%d",
                         attempt, idx, success, len(actions))
-            if not success:
+            if not success and not keep_failures:
                 continue
             n_ok += 1
             np.savez_compressed(
@@ -134,11 +176,15 @@ def record(argv: list[str]) -> None:
                 frames=np.stack(frames),
                 actions=np.stack(actions),
                 proprio=np.stack(proprios),
+                executed_actions=np.stack(executed),
+                success=np.array(success),
+                dagger_beta=np.array(args.dagger_beta if dagger else 1.0),
                 instruction=np.array(task.instruction),
                 init_index=np.array(idx),
                 camera=np.array(camera),
             )
-            logger.info("saved success %d/%d", n_ok, args.n_success)
+            logger.info("saved episode %d/%d (success=%s)",
+                        n_ok, args.n_success, success)
     finally:
         if hasattr(env, "close"):
             env.close()

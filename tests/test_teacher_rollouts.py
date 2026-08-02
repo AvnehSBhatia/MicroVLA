@@ -59,6 +59,36 @@ def test_convert_purge_raw_deletes_source(tmp_path):
     assert not raw.exists()
 
 
+def test_convert_tolerates_dagger_keys(tmp_path):
+    """DAgger episodes carry executed_actions/success/dagger_beta; the
+    converter must still consume them (labels live in `actions`)."""
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    rng = np.random.default_rng(1)
+    T = 20
+    np.savez_compressed(
+        raw / "teacher_libero_object_t0_i0150.npz",
+        frames=(rng.random((T, 64, 64, 3)) * 255).astype(np.uint8),
+        actions=rng.standard_normal((T, 7)).astype(np.float32) * 0.3,
+        proprio=rng.standard_normal((T, 10)).astype(np.float32),
+        executed_actions=rng.standard_normal((T, 7)).astype(np.float32) * 0.3,
+        success=np.array(False),
+        dagger_beta=np.array(0.3),
+        instruction=np.array("pick up the alphabet soup and place it in the basket"),
+        init_index=np.array(150),
+        camera=np.array("robot0_eye_in_hand_image"),
+    )
+    out = tmp_path / "shards"
+
+    from preprocess.teacher_rollouts import convert
+    convert(["--raw-dir", str(raw), "--out", str(out), "--dry-run",
+             "--spatial-grid", "4"])
+    eps = sorted(out.glob("*.npz"))
+    assert len(eps) == 1
+    d = np.load(eps[0])
+    assert d["pwm_targets"].shape[1:] == (5, 7)
+
+
 def test_record_requires_subcommand():
     from preprocess.teacher_rollouts import main
     import sys

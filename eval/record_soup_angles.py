@@ -11,7 +11,8 @@ separate MP4s plus a small JSON sidecar the activation webapp can play.
         --norm-stats data/libero_object_grid/norm_stats.json \\
         --device cuda:0 --out-dir eval_results/soup_1080
 
-Angles (MuJoCo names): agentview, sideview, birdview, galleryview.
+Angles (MuJoCo names): agentview, robot0_eye_in_hand (wrist), birdview,
+galleryview.
 """
 
 from __future__ import annotations
@@ -24,11 +25,19 @@ from pathlib import Path
 import numpy as np
 
 from microvla.config import DEFAULT_CONFIG
-from microvla.utils.camera import ENV_KEY, WRIST, upright
+from microvla.utils.camera import ENV_KEY, WRIST, upright, view_of
 from microvla.utils.signals import ignore_sigterm
 
-#: Four cinematic angles — distinct from the wrist the policy consumes.
-FILM_CAMS = ("agentview", "sideview", "birdview", "galleryview")
+#: Four angles — wrist replaces sideview so the pack includes the policy eye.
+FILM_CAMS = ("agentview", "robot0_eye_in_hand", "birdview", "galleryview")
+#: Friendly tab labels for the webapp (MuJoCo name → UI).
+FILM_LABELS = {
+    "agentview": "agentview",
+    "robot0_eye_in_hand": "wrist",
+    "birdview": "birdview",
+    "galleryview": "galleryview",
+    "sideview": "sideview",
+}
 
 
 def _open_writers(out_dir: Path, cams: tuple[str, ...], init_i: int,
@@ -38,6 +47,8 @@ def _open_writers(out_dir: Path, cams: tuple[str, ...], init_i: int,
 
     writers = {}
     paths = {}
+    # mp4v (MPEG-4 Part 2) is what OpenCV reliably writes; browsers need H.264 —
+    # we re-encode with ffmpeg after the episode (_to_h264).
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     for cam in cams:
         path = out_dir / f"soup_success_init{init_i}_{cam}_{film_w}x{film_h}.mp4"
@@ -47,6 +58,31 @@ def _open_writers(out_dir: Path, cams: tuple[str, ...], init_i: int,
         writers[cam] = w
         paths[cam] = path
     return writers, paths
+
+
+def _to_h264(path: Path) -> None:
+    """In-place re-encode to H.264/yuv420p so Chromium/Safari can play it."""
+    import shutil
+    import subprocess
+
+    if shutil.which("ffmpeg") is None:
+        print(f"[soup1080] ffmpeg missing — left {path.name} as mp4v "
+              "(may not play in browsers)", flush=True)
+        return
+    tmp = path.with_suffix(".h264.mp4")
+    cmd = [
+        "ffmpeg", "-y", "-i", str(path),
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart", "-an", str(tmp),
+    ]
+    r = subprocess.run(cmd, capture_output=True)
+    if r.returncode != 0 or not tmp.exists():
+        print(f"[soup1080] ffmpeg failed on {path.name}; keeping mp4v", flush=True)
+        if tmp.exists():
+            tmp.unlink()
+        return
+    tmp.replace(path)
+    print(f"[soup1080] h264 {path.name}", flush=True)
 
 
 def _get_sim(env):
@@ -61,9 +97,23 @@ def _get_sim(env):
 
 
 def _render_cam(sim, name: str, height: int, width: int) -> np.ndarray:
-    """MuJoCo framebuffer is bottom-left; flip to ordinary image coords."""
+    """MuJoCo framebuffer is bottom-left; flip to ordinary image coords.
+
+    Wrist also goes through :func:`upright` so the film matches the policy eye.
+    """
     img = sim.render(camera_name=name, height=height, width=width)
-    return np.ascontiguousarray(img[::-1])
+    img = np.ascontiguousarray(img[::-1])
+    try:
+        if view_of(name) == WRIST or view_of(name + "_image") == WRIST:
+            img = upright(img, WRIST)
+    except KeyError:
+        if "eye_in_hand" in name:
+            img = upright(img, WRIST)
+    return img
+
+
+def _film_label(cam: str) -> str:
+    return FILM_LABELS.get(cam, cam)
 
 
 def _label(img: np.ndarray, text: str, cv2) -> np.ndarray:
@@ -95,6 +145,8 @@ def parse_args(argv=None):
                     help="first LIBERO init-state index to try (soup_v1 trial 0 worked)")
     ap.add_argument("--max-inits", type=int, default=8,
                     help="try this many init indices until one succeeds")
+    ap.add_argument("--skip-scout", action="store_true",
+                    help="film --init-index directly (no scout loop)")
     ap.add_argument("--cameras", default=",".join(FILM_CAMS),
                     help="comma-separated MuJoCo camera names to film")
     # soup_v1 knobs (no gate-verify — that arm is soup_v2 and was failing)
@@ -164,6 +216,14 @@ def main(argv=None) -> int:
     policy = build_policy(args)
     print(f"[soup1080] policy ready ({time.time()-t0:.0f}s)", flush=True)
 
+    # Activation hooks — same schema as paper/activation_webapp (live model dump).
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from paper.activation_webapp.hook_bank import (  # noqa: E402
+        attach_policy_hooks, corrector_act, _r,
+    )
+    hook_bank = attach_policy_hooks(policy)
+
     from libero.libero.envs import OffScreenRenderEnv
     from microvla.utils.proprio import proprio_from_obs
     import cv2
@@ -179,6 +239,7 @@ def main(argv=None) -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     wrist_key = ENV_KEY[WRIST]
+    tick_hz = float(getattr(policy.cfg, "tick_hz", 30.0) or 30.0)
 
     def _make_env():
         # Match teacher_rollouts: wrist-only obs stream (film cams via sim.render).
@@ -198,7 +259,7 @@ def main(argv=None) -> int:
             )
 
     def _rollout(env, init_i: int, film: bool):
-        """One episode. If film=True, stream 1080p cams; else scout only."""
+        """One episode. If film=True, stream 1080p cams + full activation trace."""
         if hasattr(env, "seed"):
             env.seed(init_i)
         obs = env.reset()
@@ -216,9 +277,12 @@ def main(argv=None) -> int:
                 out_dir, film_cams, init_i, args.film_w, args.film_h, args.fps
             )
         steps = []
+        tick_rows = []
         ok = False
         try:
             for step in range(args.max_steps):
+                if film:
+                    hook_bank.clear_latest()
                 policy_view = upright(obs[wrist_key], wrist_key)
                 proprio = proprio_from_obs(obs)
                 action = np.asarray(
@@ -228,7 +292,9 @@ def main(argv=None) -> int:
                 if film:
                     for cam in film_cams:
                         frame = _label(
-                            _render_cam(sim, cam, args.film_h, args.film_w), cam, cv2
+                            _render_cam(sim, cam, args.film_h, args.film_w),
+                            _film_label(cam),
+                            cv2,
                         )
                         writers[cam].write(np.ascontiguousarray(frame[..., ::-1]))
                 tele = {}
@@ -243,15 +309,55 @@ def main(argv=None) -> int:
                     "src_conf": tele.get("src_conf"),
                     "src_center": tele.get("src_center"),
                     "plan_norm": tele.get("plan_norm"),
+                    "is_real": tele.get("is_real"),
+                    "ibvs_cmd": tele.get("ibvs_cmd"),
                 })
-                obs, _r, done, info = env.step(action)
+                if film:
+                    acts = dict(hook_bank.latest)
+                    acts["corrector"] = corrector_act(policy.loop)
+                    phase = tele.get("phase")
+                    acts["ibvs_phase"] = {
+                        "n": 1,
+                        "l2": 1.0 if phase else 0.0,
+                        "mean": 1.0,
+                        "absmax": 1.0,
+                        "sat": 0.0,
+                        "top": [],
+                        "phase": phase,
+                    }
+                    group_e: dict[str, float] = {}
+                    for mid, s in acts.items():
+                        g = mid.split(".", 1)[0]
+                        group_e[g] = group_e.get(g, 0.0) + float(s.get("l2", 0.0))
+                    tick_rows.append({
+                        "t": step,
+                        "t_s": _r(step / max(1.0, float(args.fps))),
+                        "is_real": bool(tele.get("is_real")),
+                        "trust": _r(float(tele.get("trust") or 0.0)),
+                        "phase": phase,
+                        "action": [_r(float(v)) for v in action.tolist()],
+                        "ibvs_cmd": tele.get("ibvs_cmd"),
+                        "plan_norm": _r(float(tele.get("plan_norm") or 0.0)),
+                        "eef": tele.get("eef"),
+                        "jaws": tele.get("jaws"),
+                        "src_conf": (None if tele.get("src_conf") is None
+                                     else _r(float(tele["src_conf"]))),
+                        "tgt_conf": (None if tele.get("tgt_conf") is None
+                                     else _r(float(tele["tgt_conf"]))),
+                        "src_center": tele.get("src_center"),
+                        "acts": acts,
+                        "group_e": {k: _r(v) for k, v in group_e.items()},
+                        "control": "assisted_phased_ibvs",
+                    })
+                obs, _reward, done, info = env.step(action)
                 ok = bool(info.get("success", False)) if isinstance(info, dict) else False
                 if not ok and hasattr(env, "check_success"):
                     ok = bool(env.check_success())
                 if step > 0 and step % 100 == 0:
                     phase = tele.get("phase")
                     print(f"[soup1080]   init {init_i} step {step} "
-                          f"phase={phase} film={film}", flush=True)
+                          f"phase={phase} film={film} hooks={len(hook_bank.latest)}",
+                          flush=True)
                 if done or ok:
                     break
         finally:
@@ -263,47 +369,84 @@ def main(argv=None) -> int:
                 if p.exists():
                     p.unlink()
             paths = None
-        return ok, steps, paths
+            tick_rows = []
+        return ok, steps, paths, tick_rows
 
     # ---- Phase 1: fast scout (no HD) until a success ----
     used_init = None
-    print(f"[soup1080] SCOUT (no HD) over up to {args.max_inits} inits "
-          f"from {args.init_index}…", flush=True)
-    for k in range(args.max_inits):
-        init_i = (args.init_index + k) % max(1, len(inits))
-        env = _make_env()
-        try:
-            ok, steps, _ = _rollout(env, init_i, film=False)
-            print(f"[soup1080] scout init {init_i}: steps={len(steps)} "
-                  f"success={ok}", flush=True)
-            if ok:
-                used_init = init_i
-                break
-        finally:
-            if hasattr(env, "close"):
-                env.close()
+    if args.skip_scout:
+        used_init = args.init_index
+        print(f"[soup1080] skip-scout → film init {used_init}", flush=True)
+    else:
+        print(f"[soup1080] SCOUT (no HD) over up to {args.max_inits} inits "
+              f"from {args.init_index}…", flush=True)
+        for k in range(args.max_inits):
+            init_i = (args.init_index + k) % max(1, len(inits))
+            env = _make_env()
+            try:
+                ok, steps, *_ = _rollout(env, init_i, film=False)
+                print(f"[soup1080] scout init {init_i}: steps={len(steps)} "
+                      f"success={ok}", flush=True)
+                if ok:
+                    used_init = init_i
+                    break
+            finally:
+                if hasattr(env, "close"):
+                    env.close()
 
     if used_init is None:
+        hook_bank.close()
         raise SystemExit("no soup success in scout — aborting (no MP4s written)")
 
-    # ---- Phase 2: re-run the winning init with 1080p film ----
+    # ---- Phase 2: re-run the winning init with 1080p film + activation dump ----
     print(f"[soup1080] FILM init {used_init} at "
-          f"{args.film_w}x{args.film_h}…", flush=True)
+          f"{args.film_w}x{args.film_h} (+activation hooks)…", flush=True)
     env = _make_env()
     try:
-        success, diag_steps, video_paths = _rollout(env, used_init, film=True)
+        success, diag_steps, video_paths, tick_rows = _rollout(
+            env, used_init, film=True
+        )
     finally:
         if hasattr(env, "close"):
             env.close()
+        hook_bank.close()
     n_steps = len(diag_steps)
     print(f"[soup1080] film init {used_init}: steps={n_steps} "
-          f"success={success}", flush=True)
+          f"success={success} trace_ticks={len(tick_rows)}", flush=True)
     if not success or not video_paths:
         raise SystemExit(
             f"scout succeeded on init {used_init} but film re-roll failed — aborting"
         )
 
+    for cam in film_cams:
+        _to_h264(video_paths[cam])
+
     stamp = int(time.time() * 1000)
+    trace = {
+        "meta": {
+            "source": "record_soup_angles",
+            "task": instruction,
+            "init_index": used_init,
+            "fps": args.fps,
+            "tick_hz": tick_hz,
+            "checkpoint": args.checkpoint,
+            "config": "soup_v1",
+            "control": "assisted_phased_ibvs",
+            "unaided": False,
+            "n_ticks": len(tick_rows),
+            "note": (
+                "PhasedIBVS owns the emitted action; planner/TRM still forward "
+                "every tick — activations are real, control is assisted."
+            ),
+        },
+        "modules": hook_bank.modules,
+        "ticks": tick_rows,
+    }
+    trace_path = out_dir / "trace.json"
+    trace_path.write_text(json.dumps(trace, separators=(",", ":")))
+    print(f"[soup1080] activation trace -> {trace_path} "
+          f"({trace_path.stat().st_size / 1e6:.1f} MB)", flush=True)
+
     pack = {
         "task": instruction,
         "task_id": tid,
@@ -314,8 +457,13 @@ def main(argv=None) -> int:
         "film_h": args.film_h,
         "fps": args.fps,
         "cameras": list(film_cams),
+        "camera_labels": {_film_label(c): c for c in film_cams},
+        "labels": {c: _film_label(c) for c in film_cams},
         "checkpoint": args.checkpoint,
         "config": "soup_v1",
+        "control": "assisted_phased_ibvs",
+        "unaided": False,
+        "trace": "trace.json",
         "videos": {c: video_paths[c].name for c in film_cams},
         "steps": diag_steps,
     }
@@ -324,8 +472,17 @@ def main(argv=None) -> int:
         print(f"[soup1080] {cam}: {mb:.1f} MB -> {video_paths[cam]}", flush=True)
 
     meta_path = out_dir / f"soup_success_init{used_init}_{stamp}.json"
+    # Slim meta for webapp (full steps stay in out_dir meta; web gets short + trace)
+    slim = {k: v for k, v in pack.items() if k != "steps"}
+    slim["steps"] = [
+        {kk: s.get(kk) for kk in (
+            "step", "action", "eef", "trust", "phase", "src_conf",
+            "src_center", "plan_norm", "is_real",
+        )}
+        for s in diag_steps
+    ]
     meta_path.write_text(json.dumps(pack, indent=2))
-    (out_dir / "latest.json").write_text(json.dumps(pack, indent=2))
+    (out_dir / "latest.json").write_text(json.dumps(slim, indent=2))
     print(f"[soup1080] meta -> {meta_path}", flush=True)
 
     web = Path(args.webapp_dir)
@@ -333,8 +490,12 @@ def main(argv=None) -> int:
     import shutil
     for cam in film_cams:
         shutil.copy2(video_paths[cam], web / pack["videos"][cam])
+    # drop stale sideview if present
+    for stale in web.glob("*sideview*"):
+        stale.unlink()
+    shutil.copy2(trace_path, web / "trace.json")
     (web / "latest.json").write_text(json.dumps({
-        **pack,
+        **slim,
         "source": str(out_dir),
     }, indent=2))
     print(f"[soup1080] webapp pack -> {web}/", flush=True)
