@@ -258,14 +258,35 @@ class MicroVLAPolicy:
         ibvs_conf_floor: float = 0.1,
         ibvs_sign: tuple[float, float, float] = (1.0, -1.0, 0.0),
         ibvs_descend: float = 0.0,
+        clearance_gain: float = 0.0,
+        clearance_radius: float = 0.35,
+        clearance_lift: float = 0.0,
+        clearance_aim_bias: float = 0.0,
         ibvs_phase: bool = False,
         ibvs_track_gate: float = 0.0,
         ibvs_clip_rerank: bool = False,
         ibvs_descend_hyst: float = 0.0,
         ibvs_swap_uv: bool = False,
+        ibvs_center_first: bool = False,
+        ibvs_center_tol: float = 0.06,
+        ibvs_half_fill: float = 0.50,
+        ibvs_grasp_offset: tuple[float, float] = (0.0, 0.0),
+        ibvs_close_z: float = 0.06,
+        ibvs_press: float = 0.0,
+        ibvs_retry_rise: int = 1,
+        ibvs_yaw_probe: bool = False,
+        ibvs_yaw_sign: float = 1.0,
+        ibvs_place_at: tuple[float, float] | None = None,
+        ibvs_drop_z: float = 0.18,
+        ibvs_gate_z: float = 0.06,
+        ibvs_approach_z: float = 0.0,
+        ibvs_gate_verify: bool = False,
+        ibvs_body_v: float = 1.0,
         tool_phase: bool = False,
         tool_center_tol: float = 0.05,
         tool_gain: float = 1.0,
+        tool_grasp_z: float = 0.06,
+        tool_i_gain: float = 0.35,
         det_conf: float = DEFAULT_CONFIG.det_conf,
         role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
         source_max_area: float = DEFAULT_CONFIG.source_max_area,
@@ -348,6 +369,10 @@ class MicroVLAPolicy:
         self.ibvs_conf_floor = float(ibvs_conf_floor)
         self.ibvs_sign = tuple(float(v) for v in ibvs_sign)
         self.ibvs_descend = float(ibvs_descend)
+        self.clearance_gain = float(clearance_gain)
+        self.clearance_radius = float(clearance_radius)
+        self.clearance_lift = float(clearance_lift)
+        self.clearance_aim_bias = float(clearance_aim_bias)
         # Phased mode OWNS the action (servo/grasp/lift/place state machine)
         # instead of adding a residual — see eval/ibvs_phase.py for why
         # blending can never work when the prior skips the grasp phase.
@@ -365,6 +390,8 @@ class MicroVLAPolicy:
                 grasp_uv=self.ibvs_target_uv,
                 conf_floor=self.ibvs_conf_floor,
                 center_tol=float(tool_center_tol),
+                grasp_z=float(tool_grasp_z),
+                i_gain=float(tool_i_gain),
             )
         elif ibvs_phase:
             from eval.ibvs_phase import PhasedIBVS
@@ -375,7 +402,25 @@ class MicroVLAPolicy:
                 track_gate=float(ibvs_track_gate),
                 clip_rerank=bool(ibvs_clip_rerank),
                 descend_hyst=float(ibvs_descend_hyst),
-                swap_uv=bool(ibvs_swap_uv))
+                swap_uv=bool(ibvs_swap_uv),
+                center_first=bool(ibvs_center_first),
+                center_tol=float(ibvs_center_tol),
+                half_fill=float(ibvs_half_fill),
+                grasp_offset=(float(ibvs_grasp_offset[0]),
+                              float(ibvs_grasp_offset[1])),
+                close_z=float(ibvs_close_z),
+                press=float(ibvs_press),
+                retry_rise=int(ibvs_retry_rise),
+                yaw_probe=bool(ibvs_yaw_probe),
+                yaw_sign=float(ibvs_yaw_sign),
+                place_at=(None if ibvs_place_at is None
+                          else (float(ibvs_place_at[0]),
+                                float(ibvs_place_at[1]))),
+                drop_z=float(ibvs_drop_z),
+                gate_z=float(ibvs_gate_z),
+                approach_z=float(ibvs_approach_z),
+                gate_verify=bool(ibvs_gate_verify),
+                body_v=float(ibvs_body_v))
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were
@@ -600,23 +645,62 @@ class MicroVLAPolicy:
                 wp_cmd = wp_cmd * min(1.0, float(result.trust) / self.cfg.brake_trust)
             action[: wp_cmd.shape[0]] = wp_cmd
         ibvs_cmd = None
-        if (self.ibvs_gain > 0.0 and result.perception is not None
+        if (result.perception is not None
                 and self.ibvs_machine is None and self.tool_machine is None
                 and float(result.perception.source.confidence) >= self.ibvs_conf_floor):
-            from microvla.utils.ibvs import ibvs_residual
-            ibvs_cmd = ibvs_residual(
-                result.perception.source.center,
-                float(result.perception.source.confidence),
-                gain=self.ibvs_gain,
-                sign=self.ibvs_sign,
-                descend=self.ibvs_descend,
-                target_uv=self.ibvs_target_uv,
-                conf_floor=self.ibvs_conf_floor,
-                action_dim=int(action.shape[0]),
+            from microvla.utils.ibvs import (
+                clearance_aim_shift, clearance_residual, ibvs_residual,
             )
-            if ibvs_cmd is not None:
-                action = action.copy()
-                action[:3] = action[:3] + ibvs_cmd[:3]
+            src_c = result.perception.source.center
+            if torch.is_tensor(src_c):
+                src_c = src_c.detach().cpu().numpy()
+            # Neighbours = proposals that are not the source box (IoU / center).
+            neigh = []
+            sc = np.asarray(src_c, dtype=np.float64).reshape(-1)[:2]
+            for p in getattr(result.perception, "proposals", ()) or ():
+                if float(getattr(p, "confidence", 0.0)) < self.ibvs_conf_floor:
+                    continue
+                pcen = p.center
+                if torch.is_tensor(pcen):
+                    pcen = pcen.detach().cpu().numpy()
+                pc = np.asarray(pcen, dtype=np.float64).reshape(-1)[:2]
+                if float(np.linalg.norm(pc - sc)) < 0.04:
+                    continue  # same box as source
+                neigh.append(pc)
+            target_uv = self.ibvs_target_uv
+            if self.clearance_aim_bias > 0.0 and neigh:
+                target_uv = clearance_aim_shift(
+                    sc, neigh, target_uv,
+                    bias=self.clearance_aim_bias,
+                    radius=self.clearance_radius,
+                )
+            if self.ibvs_gain > 0.0:
+                ibvs_cmd = ibvs_residual(
+                    src_c,
+                    float(result.perception.source.confidence),
+                    gain=self.ibvs_gain,
+                    sign=self.ibvs_sign,
+                    descend=self.ibvs_descend,
+                    target_uv=target_uv,
+                    conf_floor=self.ibvs_conf_floor,
+                    action_dim=int(action.shape[0]),
+                )
+                if ibvs_cmd is not None:
+                    action = action.copy()
+                    action[:3] = action[:3] + ibvs_cmd[:3]
+            if self.clearance_gain > 0.0 and neigh:
+                clr = clearance_residual(
+                    sc, neigh,
+                    gain=self.clearance_gain,
+                    radius=self.clearance_radius,
+                    sign=self.ibvs_sign,
+                    lift=self.clearance_lift,
+                    action_dim=int(action.shape[0]),
+                )
+                if clr is not None:
+                    action = action.copy()
+                    action[:3] = action[:3] + clr[:3]
+                    ibvs_cmd = clr if ibvs_cmd is None else (ibvs_cmd + clr)
         if self.tool_machine is not None:
             if result.perception is not None:
                 action = self.tool_machine.step(
@@ -653,6 +737,8 @@ class MicroVLAPolicy:
             "action": [float(v) for v in action],
             "eef": (None if proprio is None
                     else [float(v) for v in np.asarray(proprio).reshape(-1)[:3]]),
+            "jaws": (None if proprio is None
+                     else [float(v) for v in np.asarray(proprio).reshape(-1)[7:9]]),
             **({} if result.perception is None else {
                 "src_conf": float(result.perception.source.confidence),
                 "tgt_conf": float(result.perception.target.confidence),

@@ -32,6 +32,11 @@ data/
 # Eval outputs (telemetry JSONL + results JSON from eval/libero_eval.py)
 eval_results/
 
+# Generated activation-webapp replay bundles (re-run generate_trace.py)
+paper/activation_webapp/data/trace.json
+paper/activation_webapp/data/soup_success/
+eval_results/soup_1080/
+
 # OS / editor
 .DS_Store
 .idea/

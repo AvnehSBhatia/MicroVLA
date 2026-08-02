@@ -108,6 +108,15 @@ def main(argv=None) -> None:
                     help="detector threshold; defaults to cfg.det_conf, which is "
                          "what the corpus was baked with (defect 26).")
     ap.add_argument("--no-brake", action="store_true")
+    ap.add_argument("--action-gain", type=float, default=1.0,
+                    help="scale translation dims at emit (mirrors eval.libero_eval); "
+                         "diagnostic for under-magnitude BC priors.")
+    ap.add_argument("--clearance-gain", type=float, default=0.0)
+    ap.add_argument("--clearance-radius", type=float, default=0.35)
+    ap.add_argument("--clearance-lift", type=float, default=0.0)
+    ap.add_argument("--clearance-aim-bias", type=float, default=0.0)
+    ap.add_argument("--clear-distractors", action="store_true")
+    ap.add_argument("--keep-objects", default="cream_cheese,basket")
     ap.add_argument("--ibvs-gain", type=float, default=0.0)
     ap.add_argument("--ibvs-sign", default="1,-1,0")
     ap.add_argument("--ibvs-descend", type=float, default=0.0)
@@ -116,11 +125,28 @@ def main(argv=None) -> None:
     ap.add_argument("--ibvs-conf-floor", type=float, default=0.1)
     ap.add_argument("--ibvs-descend-hyst", type=float, default=0.0)
     ap.add_argument("--ibvs-swap-uv", action="store_true")
+    ap.add_argument("--ibvs-center-first", action="store_true")
+    ap.add_argument("--ibvs-center-tol", type=float, default=0.06)
+    ap.add_argument("--ibvs-half-fill", type=float, default=0.50)
+    ap.add_argument("--ibvs-grasp-offset", default="0,0")
+    ap.add_argument("--ibvs-close-z", type=float, default=0.06)
+    ap.add_argument("--ibvs-press", type=float, default=0.0)
+    ap.add_argument("--ibvs-retry-rise", type=int, default=1)
+    ap.add_argument("--ibvs-yaw-probe", action="store_true")
+    ap.add_argument("--ibvs-yaw-sign", type=float, default=1.0)
+    ap.add_argument("--ibvs-place-at", default="")
+    ap.add_argument("--ibvs-drop-z", type=float, default=0.18)
+    ap.add_argument("--ibvs-gate-z", type=float, default=0.06)
+    ap.add_argument("--ibvs-approach-z", type=float, default=0.0)
+    ap.add_argument("--ibvs-gate-verify", action="store_true")
+    ap.add_argument("--ibvs-body-v", type=float, default=1.0)
     ap.add_argument("--ibvs-target-uv", default="0.5,0.55")
     ap.add_argument("--tool-phase", action="store_true",
                     help="accuracy tools own the action (reach_center→grasp…).")
     ap.add_argument("--tool-center-tol", type=float, default=0.05)
     ap.add_argument("--tool-gain", type=float, default=1.0)
+    ap.add_argument("--tool-grasp-z", type=float, default=0.06)
+    ap.add_argument("--tool-i-gain", type=float, default=0.35)
     ap.add_argument("--role-disjoint-iou", type=float,
                     default=DEFAULT_CONFIG.role_disjoint_iou)
     ap.add_argument("--source-max-area", type=float,
@@ -164,6 +190,11 @@ def main(argv=None) -> None:
                             perception_period=args.perception_period,
                             det_conf=args.det_conf,
                             no_brake=args.no_brake,
+                            action_gain=args.action_gain,
+                            clearance_gain=args.clearance_gain,
+                            clearance_radius=args.clearance_radius,
+                            clearance_lift=args.clearance_lift,
+                            clearance_aim_bias=args.clearance_aim_bias,
                             ibvs_gain=args.ibvs_gain,
                             ibvs_conf_floor=args.ibvs_conf_floor,
                             ibvs_sign=tuple(float(v) for v in args.ibvs_sign.split(",")),
@@ -172,10 +203,29 @@ def main(argv=None) -> None:
                             ibvs_track_gate=args.ibvs_track_gate,
                             ibvs_descend_hyst=args.ibvs_descend_hyst,
                             ibvs_swap_uv=args.ibvs_swap_uv,
+                            ibvs_center_first=args.ibvs_center_first,
+                            ibvs_center_tol=args.ibvs_center_tol,
+                            ibvs_half_fill=args.ibvs_half_fill,
+                            ibvs_grasp_offset=tuple(float(v) for v in args.ibvs_grasp_offset.split(",")),
+                            ibvs_close_z=args.ibvs_close_z,
+                            ibvs_press=args.ibvs_press,
+                            ibvs_retry_rise=args.ibvs_retry_rise,
+                            ibvs_yaw_probe=args.ibvs_yaw_probe,
+                            ibvs_yaw_sign=args.ibvs_yaw_sign,
+                            ibvs_place_at=(None if not args.ibvs_place_at else
+                                           tuple(float(v) for v in
+                                                 args.ibvs_place_at.split(","))),
+                            ibvs_drop_z=args.ibvs_drop_z,
+                            ibvs_gate_z=args.ibvs_gate_z,
+                            ibvs_approach_z=args.ibvs_approach_z,
+                            ibvs_gate_verify=args.ibvs_gate_verify,
+                            ibvs_body_v=args.ibvs_body_v,
                             ibvs_target_uv=tuple(float(v) for v in args.ibvs_target_uv.split(",")),
                             tool_phase=args.tool_phase,
                             tool_center_tol=args.tool_center_tol,
                             tool_gain=args.tool_gain,
+                            tool_grasp_z=args.tool_grasp_z,
+                            tool_i_gain=args.tool_i_gain,
                             role_disjoint_iou=args.role_disjoint_iou,
                             source_max_area=args.source_max_area,
                             source_min_aspect=args.source_min_aspect)
@@ -198,6 +248,18 @@ def main(argv=None) -> None:
             obs = env.reset()
             if len(inits) > 0:
                 obs = env.set_init_state(inits[rng.randrange(len(inits))])
+            if args.clear_distractors:
+                from eval.libero_eval import clear_distractors
+                keep = tuple(s.strip() for s in args.keep_objects.split(",") if s.strip())
+                n = clear_distractors(env, keep)
+                print(f"    clear_distractors: removed {n}; keep={keep}")
+                try:
+                    if hasattr(env, "_get_observations"):
+                        obs = env._get_observations()
+                    elif hasattr(env, "env") and hasattr(env.env, "_get_observations"):
+                        obs = env.env._get_observations()
+                except Exception:
+                    pass
             policy.reset(task.language)
 
             from microvla.utils.proprio import proprio_from_obs

@@ -676,3 +676,261 @@ class TextRegionExtractor:            # ZERO trainable params
 The HRM cap rise is the only budget change, granted because the module absorbs
 work v7 did in three places. The joint `cfg.trainable_param_budget` is untouched
 and still binds.
+
+---
+
+## v9 — AS-BUILT: the architecture that completed the task (2026-08-01, BINDING)
+
+This section documents, layer by layer, the exact deployed stack behind the
+first completed LIBERO pick-and-places (cream cheese 0.20, alphabet soup
+0.75, assisted/calibrated track — see `paper/paper.md` §5r–§5t and
+`paper/MANUSCRIPT.md`). Checkpoint of record:
+`checkpoints/full_stageB_rec_fix.pt` (16.584M trainable across 211 tensors;
+frozen YOLO-World-S 13M on top ⇒ ~30M deployed). Live-path annotations come
+from the weight-forensics ledger (`paper/forensics_ledger.md`, 554 entries).
+
+### 0. Dataflow at a glance (dims are the checkpoint's actual config)
+
+```
+command text ─parse→ (source, target) phrases
+   └─CLIP text tower (frozen, once/task)→ text_tokens [3,512]  (cmd, src, tgt)
+
+frame BGR (2 Hz real ticks) ─YOLO-World-S (frozen)─┐
+   frame_emb [512]  (SPPF hook, standardized)      │
+   K=8 proposals: emb [8,512], center [8,2],       │
+     confidence → obj_weight [8]                   │
+   role boxes: source/target emb+center+conf       │
+   spatial_grid [16,512] (4×4 ROI features)        │
+                                                   ▼
+ ┌───────────── per-tick trainable stack (30 Hz) ────────────────┐
+ │ EvidenceEncoder (fusion slot, 0.116M)                          │
+ │   [frame|objs|text|last_action] → fused [32,5]                 │
+ │ HRMBackbone (drift slot, 2.110M)                               │
+ │   two-rate recurrent state → state_delta [256] (+gain code)    │
+ │ RecursiveTRM (9.969M, d=1024)                                  │
+ │   (fused, state_delta, current_emb[512], context[≤8,512])      │
+ │   → next_emb [512] (residual), next_box [512], msg [32],       │
+ │     latent [1024]                                              │
+ │ TQSA (0.132M): text × spatial_grid → spatial token [128]       │
+ │ RelationalHead (2.355M, d=384)                                 │
+ │   cross-attn(12 queries × [objs, text, next_emb, action])      │
+ │   → rel tokens [12,384]      ◄── 97% of plan ablation impact   │
+ │ ChronoQueryPlanner (1.901M, d_plan=256)                        │
+ │   5 time-queries cross-attend 3 blocks over the token memory   │
+ │   → plan [5,7] (tanh), grip logits [5], waypoints [5,3]        │
+ └────────────────────────────────────────────────────────────────┘
+                                                   ▼
+ JEPALoop 30 Hz: real tick every 15th (perception_period at eval: 2);
+ dream ticks feed corrected next_emb back through the SAME evidence path
+ with box confidences × staleness_decay^k (0.9^k). InnovationCorrector
+ (no params) rescales trust τ; "delta" action space brakes plan by
+ min(1, τ/0.5).
+                                                   ▼
+ CALIBRATED CONTROL LAYER (eval/ibvs_phase.py, zero learned params) —
+ the assisted track that produced the successes; see §5 below.
+```
+
+### 1. Perception (frozen, 13M)
+
+* YOLO-World-S with its own CLIP text tower. `ClipTaskEncoder` harvests
+  (command, source, target) text embeddings ONCE per task — the stack
+  contains no other language model.
+* SPPF forward hook → frame embedding; ROIAlign over detector proposals →
+  per-object embeddings; per-role (source/target) binding by text-region
+  matching with `role_disjoint_iou 0.1`, `source_max_area 0.12`,
+  `det_conf 0.02` at eval.
+* EVERY visual embedding is standardized (zero mean/unit std per vector,
+  `microvla/utils/embedding.py::standardize`) at the perception boundary —
+  the canonical-space rule. Never re-normalize downstream; the spec loss
+  depends on it (§4).
+
+### 2. Trainable modules, layer by layer
+
+#### 2.1 EvidenceEncoder — `microvla/relational/evidence.py` (fusion slot, 0.116M)
+```
+obj_proj    Linear(512+2 → 96)     # per-object [emb|center], conf-weighted mean-pool
+frame_proj  Linear(512 → 96)
+text_proj   Linear(512 → 96)
+action_proj Linear(7 → 96)         # previously EXECUTED action (plan row 0), never faded
+assemble    Linear(4·96 → 160) → reshape [32, 5] = fused
+```
+Evidence weighting: object tokens scale by `box_weight = confidence ×
+freshness ∈ [0,1]`; dream ticks pass held boxes decayed by 0.9^k; train-time
+modality dropout fades the SAME weights (no dream flag anywhere — the core
+alignment rule). Feeds the TRM's unchanged [32,5] port.
+
+#### 2.2 HRMBackbone — `microvla/hrm/hrm_backbone.py` (drift slot, 2.110M, d=256)
+```
+SLOW module (steps on REAL ticks only):
+  drift_proj   Linear(drift_feats → 256)   # multi-horizon lags (1,2,4,8) vs
+  horizon_emb  Param[4, 256]               #   a context_window=8 memory
+  ctx_attn     MHA(256, heads, batch_first) + q/kv LayerNorms
+  blocks       N× [LN → Linear(256→512) → GELU → Linear(512→256)] residual
+  rate         Linear(256→256)             # gated two-rate state update
+FAST module (every 30 Hz tick):
+  fast_in      Linear(2·512 → 256)         # [current_emb | predicted emb]
+  eef_proj     Linear(eef_feats → 256)     # proprio stream
+  slow_to_fast / fast_to_slow  Linear(256→256) cross-rate exchange
+  out_norm     LayerNorm → state_delta [256]
+READOUT (30 Hz path):
+  gain_head    Linear(256 → 3), ZERO-INITIALIZED by design;
+               modulation = GAIN_LOG_RANGE · tanh(gain_head(code))
+```
+⚠ Forensics: `gain_head.weight` is still EXACTLY its zero init after
+training (ledger F-003) — the learned per-axis action-gain mechanism never
+received gradient. This is the leading suspect for the §4p 2–4× action
+magnitude shrink and the first thing the next training run must fix.
+Runtime state (anchor, window deque, hidden) lives in plain attributes;
+first forward after `reset()` returns an exact-zero code (anchor tick).
+
+#### 2.3 RecursiveTRM — root `TRM.py` (9.969M, d=1024, T=3, n_inner=6)
+```
+embed      Linear(5+3·16 → 1024)   # per-slot: [fused row | current chunk |
+                                   #   fast-history chunk | slow-history chunk]
+ctx_decay  Param[2, 8]             # learned fast/slow softmax reads over the
+                                   #   caller-owned context window [≤8, 512]
+pos        Param[32, 1024]
+film       Linear(256 → 2048)      # state_delta → per-slot (scale, shift)
+net        TinyNet (WEIGHT-TIED, called T·(n_inner+1) times per pass):
+             norm1 LN(1024); token_mix Linear(32→32) over slots;
+             norm2 LN(1024); chan_mlp Linear(1024→4096) GELU Linear(4096→1024)
+y_init, z_init  Param[1024]        # two-latent (y, z) recursion scheme
+out_norm   LN(1024); head Linear(1024→512)        # pooled → residual Δ
+box_head   Linear(1024→256) GELU Linear(256→512)  # next SOURCE box emb
+msg_head   Linear(1024→32)         # action-shaped channel (stage-B unfrozen)
+```
+Contract (v3): `forward(fused, state_delta, current_emb, context) =
+current_emb + Δ` — the RESIDUAL convention. Inference runs ONE refinement
+pass (`n_sup_infer=1`, ~19 ms CPU); deep supervision (n_sup=3) is
+training-only via `refine_forward`. `forward_full` additionally returns
+`next_box`, `msg`, and the pooled `latent` (exported because `msg` collapsed
+to a near-constant, eff-rank 6/32 — §4h).
+Forensics: dreaming is intrinsically stable — closed 30-step rollouts orbit
+a shared attractor (contraction 0.42×), Jacobian σ₁ = 1.000 (ledger D-001..3).
+
+#### 2.4 TQSA — text-queried spatial attention (0.132M)
+```
+t_proj  Linear(512 → 128)   # text queries over the 16-cell spatial grid
+→ spatial token [128] + an 8×8 heat readout
+```
+Forensics: `t_proj` effective rank 28.5/128 — the corpus's task phrases
+compressed language conditioning to a task-ID lookup (ledger F-012).
+
+#### 2.5 RelationalHead — `microvla/relational/relational_head.py` (2.355M, d=384)
+```
+visual_proj Linear(512→384)  text_proj Linear(512→384)
+action_proj Linear(7→384)    geom_proj Linear(n_fourier+1 → 384)
+rel_bias    Linear(n_fourier → 8)   # pairwise geometry bias per head
+type_emb    Param[n_types, 384]     queries Param[12, 384]
+2 × [ LN → MHA(384, 8 heads) → LN → Linear(384→hidden) GELU → Linear(→384) ]
+out_norm    LN(384) → 12 relational tokens
+```
+Runs AFTER the TRM (the v8 ordering bet): object tokens (conf-weighted,
+staleness-faded on dream ticks), text tokens, the predicted latent, and the
+last action attend into 12 query tokens. Forensics: these 12 tokens carry
+**97% of the planner's ablation-measured input dependence** — this head IS
+the perception→action interface (ledger D-004).
+
+#### 2.6 ChronoQueryPlanner — (1.901M, d_plan=256, 3 blocks, 8 heads)
+```
+Token memory (type_emb Param[14,256] tags each source):
+  mem_proj(next_emb) · cur_proj(current_emb) · state_proj(state_delta)
+  · proprio_proj(10→256) · spat_proj(128→256) · heat_proj(64→256)
+  · msg_proj(32→256) · wm_latent_proj(chunked 1024) · wm_delta_proj
+  · rel_proj(384→256) ×12 · [fused_proj/box_proj/geom_proj when configured]
+time_queries Param[5, 256]  (zero-init; one per plan row)
+3 × _CrossAttentionBlock: LN(q) → MHA(256, 8) vs LN(memory) → LN →
+                          Linear(256→512) GELU Linear(512→256), residual
+final_norm LN(256)
+heads: pose (tanh-bounded cumulative updates → plan [5,7] rows=timesteps),
+       grip_head Linear(256→1) per row (BCE logit, hard ±1 at deploy),
+       waypoint_head Linear(256→3·5) metric EEF displacements,
+       wp_proj feeds waypoints back as a token
+```
+Planner inputs in the checkpoint: `(next_emb, current_emb, state_delta,
+proprio, spatial, wm_msg, wm_latent, wm_delta, relational)`. Forensics:
+ablation impact concentrates in `relational` (0.3615) ≫ `current_emb`
+(0.0120) ≫ everything else ≤ 0.0024 — candidates for pruning at deploy.
+
+### 3. Runtime: JEPALoop + corrector (no learned params)
+
+* 30 Hz tick; every `perception_period`-th is REAL (eval used 2; the design
+  point is 15). Real tick: perceive → drift slow-step → TRM `forward_full`
+  → planner. Dream tick: corrected prediction re-enters the SAME evidence
+  path with staleness-faded boxes; drift code held; context window
+  (caller-owned, ≤8 latents) appended each real tick.
+* InnovationCorrector: trust τ is a self-calibrating EMA ratio of innovation
+  norms. `action_space="delta"` ⇒ plan × min(1, τ/brake_trust=0.5)
+  (progressive BRAKE — holding a stale delta is momentum); `"absolute"` ⇒
+  hold-blend toward the previous plan, never scale to zero. Eval of record
+  ran `--no-brake`.
+
+### 4. Losses (exact forms)
+
+Stage A (world model: fusion+drift+TRM, deployment-exact 15-tick rollouts,
+scheduled horizon H 1→6, discount 0.95^h):
+```
+L_A = Σ_h 0.95^h · [ 1 − cos(ŷ_h, y_h) + 0.5·MSE(ŷ_h, y_h) ]   (spec_loss)
+    (+ box-head MSE on next source box emb, same standardized space)
+```
+RAW vectors — the space is already canonical; normalizing inside the loss
+would forgive the scale errors that poison the dream feedback loop.
+
+Stage B (planner BC through the frozen world model; TRM core frozen,
+`msg_head` deliberately unfrozen so the policy gradient shapes the message):
+```
+L_B = wMSE(pose rows, pwm_targets)          # row0_weight=2 (executed row),
+                                            # pre-grasp step weights (phase.py)
+    + grip_weight · BCE(grip_logits, target_grip>0)    # bimodal gripper
+    + smooth_weight · ‖Δ²(pose rows)‖²      # second-difference smoothness
+    + variance_weight · magnitude term      # anti-conditional-mean-shrink
+    + waypoint MSE (row/validity masked)    # when the waypoint head trains
+    (+ optional IBVS-shaped centering_loss / depth_loss on grasp windows,
+       modality_consistency_loss on the dream path — measured negative for
+       the centering family on this task, see paper §5q)
+```
+Recipe of record (rec_fix): recovery-noise 0.01, variance 0.1,
+action-token-sampling 0.5, v8 arch, TQSA on.
+
+### 5. The calibrated control layer (the piece that closed the task)
+
+`eval/ibvs_phase.py::PhasedIBVS` — zero learned parameters, owns the action
+under `--ibvs-phase`. Phases:
+```
+servo_src → (gate: z < gate_z, err inside band, BIND VERIFIED)
+  → align   (proprio-only P-servo to eef + grasp_offset, probe dx per retry,
+             fly-over above approach_z, optional yaw probe)
+  → grasp   (descend to close_z / z-stall contact; press while closing;
+             jaw check = ABS-mean of mirrored finger joints ≥ 0.2)
+  → lift → transport (proprio-only to place_at) → release (lower to drop_z,
+             open) → done;  air-close → rise (retry_rise ticks) → align
+```
+Calibrated constants — ALL offline, from logged runs / demo statistics,
+never from sim state at runtime:
+
+| constant | value | provenance |
+|---|---|---|
+| camera→gripper lever arm | (+0.080, −0.050) m | 231 at-gate episodes |
+| probe schedule | dx ∈ {0,±2,±4,+6} cm (× optional 90° yaw) | at-gate variance |
+| close_z / gate_z / approach_z | cream .01/.06/0 · soup .045/.10/.12 · dressing .114/.17/.20 | demo close heights + geometry |
+| basket point | (−0.005…−0.010, 0.255…0.260) | 50 demo end-states/task |
+| drop_z | 0.18–0.30 | basket rim |
+| gate bind verify | CLIP margin: src-cosine > tgt-cosine AND no better source proposal >0.10 away | defect-29 sibling analysis |
+
+Two defects this layer's telemetry exposed (both now fixed, both class-2
+"agreement on a wrong convention"): the aim-invariant lever arm (§5r) and
+defect 29 — `mean(gripper_qpos)` over MIRRORED (+q,−q) panda fingers ≡ 0 in
+every state, which had discarded every physically successful grasp in
+project history one tick before lift (fixed with `abs()` in `PhasedIBVS`
+and `GraspToolController`).
+
+### 6. Status of the claims
+
+The learned stack (perception → … → planner) is the measured, budgeted,
+novel architecture; the calibrated layer is the assisted track that proves
+the frozen features + three constants suffice for the full task (cream 0.20,
+soup 0.75, n=8–10, honest per-trial tables in `paper/paper.md`). The
+distillation path (record the machine's successful rollouts, stage-B BC on
+them, fix the dead `gain_head` gradient first) is the sanctioned route to
+converting these numbers into UNAIDED policy success. Do not blur the two
+tracks in any claim.

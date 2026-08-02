@@ -72,6 +72,7 @@ class _TaskSpec:
     instruction: str
     bddl_file: Optional[str] = None
     init_states: Optional[np.ndarray] = None
+    keep_objects: tuple[str, ...] = ()
 
 
 class MockLiberoEnv:
@@ -274,6 +275,21 @@ def _run_real_trial(
         if task.init_states is not None and len(task.init_states) > 0:
             init_state = task.init_states[trial_seed % len(task.init_states)]
             obs = env.set_init_state(init_state)
+        keep = getattr(task, "keep_objects", None) or ()
+        if keep:
+            n_clr = clear_distractors(env, keep)
+            if n_clr:
+                # Re-read obs after teleport so the first policy frame matches
+                # the cleared scene (wrist would otherwise see ghosts for 1 tick).
+                try:
+                    inner = _unwrap_libero(env)
+                    getter = getattr(inner, "_get_observations", None) or getattr(
+                        env, "_get_observations", None)
+                    if callable(getter):
+                        obs = getter()
+                except Exception:
+                    pass
+                logger.info("clear_distractors: removed %d bodies; keep=%s", n_clr, keep)
         policy.reset(task.instruction)
 
         from microvla.utils.proprio import proprio_from_obs
@@ -332,6 +348,76 @@ def _run_real_trial(
     finally:
         if hasattr(env, "close"):
             env.close()
+
+
+def _unwrap_libero(env):
+    """Walk robosuite/LIBERO wrappers until ``obj_body_id`` is visible."""
+    e = env
+    for _ in range(8):
+        if e is None:
+            return None
+        if getattr(e, "obj_body_id", None):
+            return e
+        e = getattr(e, "env", getattr(e, "unwrapped", None))
+    return getattr(env, "env", env)
+
+
+def clear_distractors(env, keep_substrings: tuple[str, ...] | list[str]) -> int:
+    """Teleport every movable object NOT matching ``keep_substrings`` off-table.
+
+    Diagnostic for the cream-cheese can-block (paper.md §5q): if the unaided
+    policy succeeds with only source + basket left, the failure is neighbour
+    collision on the last descent, not binding / planning in the abstract.
+
+    Free-joint objects are moved to ``z = -1`` with identity quat and the sim
+    is forwarded. Returns how many bodies were cleared.
+    """
+    import numpy as np
+
+    inner = _unwrap_libero(env)
+    if inner is None:
+        return 0
+    body_ids = getattr(inner, "obj_body_id", None) or {}
+    sim = getattr(inner, "sim", None)
+    if sim is None or not body_ids:
+        return 0
+    keep = tuple(s.lower() for s in keep_substrings if s)
+    if not keep:
+        return 0
+    model = sim.model
+    data = sim.data
+    n_cleared = 0
+    # Free joint = 7 qpos (xyz + quat). Identity quat wxyz = (1,0,0,0).
+    far = np.array([-0.5, 0.0, -1.0, 1.0, 0.0, 0.0, 0.0], dtype=np.float64)
+    for name in list(body_ids.keys()):
+        lname = str(name).lower()
+        if any(k in lname for k in keep):
+            continue
+        jname = f"{name}_joint0"
+        try:
+            jid = model.joint_name2id(jname)
+        except Exception:
+            try:
+                jid = model.joint_names.index(jname)
+            except Exception:
+                continue
+        adr = int(model.jnt_qposadr[jid])
+        # Only free joints (7-DoF) — skip hinges/slides.
+        nq_j = 7
+        if hasattr(model, "jnt_type"):
+            # mjJNT_FREE == 0 in mujoco / mujoco-py
+            if int(model.jnt_type[jid]) != 0:
+                continue
+        data.qpos[adr: adr + nq_j] = far
+        # Stagger X so cleared bodies do not stack-intersect under the table.
+        data.qpos[adr] = -0.5 - 0.15 * n_cleared
+        n_cleared += 1
+    if n_cleared:
+        try:
+            sim.forward()
+        except Exception:
+            pass
+    return n_cleared
 
 
 def _sim_object_pos(env) -> list[float] | None:
@@ -549,14 +635,38 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_target_uv=tuple(float(v) for v in
                                  getattr(args, "ibvs_target_uv", "0.5,0.55").split(",")),
             ibvs_descend=getattr(args, "ibvs_descend", 0.0),
+            clearance_gain=getattr(args, "clearance_gain", 0.0),
+            clearance_radius=getattr(args, "clearance_radius", 0.35),
+            clearance_lift=getattr(args, "clearance_lift", 0.0),
+            clearance_aim_bias=getattr(args, "clearance_aim_bias", 0.0),
             ibvs_phase=getattr(args, "ibvs_phase", False),
             ibvs_track_gate=getattr(args, "ibvs_track_gate", 0.0),
             ibvs_descend_hyst=getattr(args, "ibvs_descend_hyst", 0.0),
             ibvs_swap_uv=getattr(args, "ibvs_swap_uv", False),
             ibvs_clip_rerank=getattr(args, "ibvs_clip_rerank", False),
+            ibvs_center_first=getattr(args, "ibvs_center_first", False),
+            ibvs_center_tol=getattr(args, "ibvs_center_tol", 0.06),
+            ibvs_half_fill=getattr(args, "ibvs_half_fill", 0.50),
+            ibvs_grasp_offset=tuple(float(v) for v in
+                                    getattr(args, "ibvs_grasp_offset", "0,0").split(",")),
+            ibvs_close_z=getattr(args, "ibvs_close_z", 0.06),
+            ibvs_press=getattr(args, "ibvs_press", 0.0),
+            ibvs_retry_rise=getattr(args, "ibvs_retry_rise", 1),
+            ibvs_yaw_probe=getattr(args, "ibvs_yaw_probe", False),
+            ibvs_yaw_sign=getattr(args, "ibvs_yaw_sign", 1.0),
+            ibvs_place_at=(None if not getattr(args, "ibvs_place_at", "")
+                           else tuple(float(v) for v in
+                                      args.ibvs_place_at.split(","))),
+            ibvs_drop_z=getattr(args, "ibvs_drop_z", 0.18),
+            ibvs_gate_z=getattr(args, "ibvs_gate_z", 0.06),
+            ibvs_approach_z=getattr(args, "ibvs_approach_z", 0.0),
+            ibvs_gate_verify=getattr(args, "ibvs_gate_verify", False),
+            ibvs_body_v=getattr(args, "ibvs_body_v", 1.0),
             tool_phase=getattr(args, "tool_phase", False),
             tool_center_tol=getattr(args, "tool_center_tol", 0.05),
             tool_gain=getattr(args, "tool_gain", 1.0),
+            tool_grasp_z=getattr(args, "tool_grasp_z", 0.06),
+            tool_i_gain=getattr(args, "tool_i_gain", 0.35),
             det_conf=getattr(args, "det_conf", 0.02),
             role_disjoint_iou=getattr(args, "role_disjoint_iou",
                                       DEFAULT_CONFIG.role_disjoint_iou),
@@ -646,6 +756,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "Zero training. If this moves closed-loop success, "
                         "frozen features are NOT the ceiling — the BC "
                         "objective is (paper.md 5k). Try 0.05-0.2.")
+    p.add_argument("--clearance-gain", type=float, default=0.0,
+                   help="zero-training residual: repel laterally from the "
+                        "nearest non-source proposal when it sits inside "
+                        "--clearance-radius of the source (cream-cheese can-"
+                        "block on last descent, paper.md §5q). Independent of "
+                        "--ibvs-gain; works on top of the plain BC prior.")
+    p.add_argument("--clearance-radius", type=float, default=0.35,
+                   help="normalized image distance at which clearance fades.")
+    p.add_argument("--clearance-lift", type=float, default=0.0,
+                   help="upward z residual while a neighbour is inside the "
+                        "clearance radius (stop grinding into the can).")
+    p.add_argument("--clearance-aim-bias", type=float, default=0.0,
+                   help="with --ibvs-gain: shift the IBVS aim toward the "
+                        "neighbour so the grasp sits on the clear edge of the "
+                        "source object.")
+    p.add_argument("--clear-distractors", action="store_true",
+                   help="diagnostic: after each reset, teleport every movable "
+                        "object that does NOT match --keep-objects off the "
+                        "table (cream-cheese can-block ablation, paper.md §5q). "
+                        "Assisted scene edit — not unaided success.")
+    p.add_argument("--keep-objects", default="cream_cheese,basket",
+                   help="comma-separated substrings of bodies to KEEP when "
+                        "--clear-distractors is set (default: cream cheese + "
+                        "basket for libero_object task 1).")
     p.add_argument("--ibvs-sign", default="1,-1,0",
                    help="per-axis multipliers for the IBVS residual, 'sx,sy,sz'. "
                         "The image-down vs robot-up convention is not "
@@ -688,6 +822,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "(normalized). Smaller = more accurate settle.")
     p.add_argument("--tool-gain", type=float, default=1.0,
                    help="reach_center gain (action units per image error).")
+    p.add_argument("--tool-grasp-z", type=float, default=0.06,
+                   help="eef z below which tool-phase closes the gripper "
+                        "(proprio frame). Auton tools hovered at eef_min~0.24 "
+                        "with default 0.10 — drop this to force a deeper reach.")
+    p.add_argument("--tool-i-gain", type=float, default=0.35,
+                   help="integral gain on image error for tool-phase settle.")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
@@ -697,13 +837,81 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "which no sign combination can express. Measured: with "
                         "true-object boxes no sign config reduces image error "
                         "at all (min err 0.204/618 fixes).")
+    p.add_argument("--ibvs-grasp-offset", default="0,0",
+                   help="with --ibvs-phase: calibrated world-frame eef->object "
+                        "offset 'dx,dy' (metres). At the grasp gate the machine "
+                        "hands off from vision to proprio and P-servos the eef "
+                        "by this constant before descending to --ibvs-close-z. "
+                        "Calibrated offline from logged runs (paper.md 5r): the "
+                        "camera-gripper lever arm is constant across aim sweeps.")
+    p.add_argument("--ibvs-close-z", type=float, default=0.06,
+                   help="with --ibvs-grasp-offset: eef height to reach before "
+                        "closing (old gate closed at GRASP_Z=0.06 while the "
+                        "cream cheese sits at z~0.009 — 4cm of air).")
+    p.add_argument("--ibvs-press", type=float, default=0.0,
+                   help="with --ibvs-phase: downward action held for the first "
+                        "close ticks so the fingers seat low instead of "
+                        "pinching the object's top edge.")
+    p.add_argument("--ibvs-retry-rise", type=int, default=1,
+                   help="with --ibvs-phase: ticks to rise after closing on air "
+                        "before re-servoing (1 = legacy thrash-in-place).")
+    p.add_argument("--ibvs-yaw-probe", action="store_true",
+                   help="with --ibvs-grasp-offset: alternate attempts also "
+                        "rotate the wrist ~90 deg (proprio-yaw P-control) — "
+                        "the cream cheese long axis (8.1cm) matches the jaw "
+                        "span, so position-perfect closes can still be on the "
+                        "ungraspable axis.")
+    p.add_argument("--ibvs-yaw-sign", type=float, default=1.0,
+                   help="sign of action[5] per unit world-yaw error (dihedral "
+                        "lesson: verify empirically, do not assume).")
+    p.add_argument("--ibvs-place-at", default="",
+                   help="with --ibvs-phase: calibrated world 'x,y' of the "
+                        "basket (demo end-state mean; std <2.5cm over 50 "
+                        "demos). Replaces the visual place leg with a "
+                        "proprio-only traverse + lowered drop — the wrist "
+                        "camera almost never sees the basket at altitude.")
+    p.add_argument("--ibvs-drop-z", type=float, default=0.18,
+                   help="with --ibvs-place-at: lower the held object to this "
+                        "eef height over the basket before opening.")
+    p.add_argument("--ibvs-gate-z", type=float, default=0.06,
+                   help="height crossing that ends the visual approach and "
+                        "hands off to the calibrated align (per object "
+                        "geometry: cream 0.06, soup can 0.10, tall bottle "
+                        "0.16).")
+    p.add_argument("--ibvs-approach-z", type=float, default=0.0,
+                   help="align flies lateral corrections ABOVE this height "
+                        "so standing objects are not bulldozed (0 = off; "
+                        "soup 0.12, bottle 0.20).")
+    p.add_argument("--ibvs-body-v", type=float, default=1.0,
+                   help="self-body mask: ignore source fixes with image v "
+                        "beyond this (the wrist camera's own finger tabs "
+                        "live at v~0.8; the dressing detector bound a FINGER "
+                        "as the bottle at duty 1.000). 0.72 recommended.")
+    p.add_argument("--ibvs-gate-verify", action="store_true",
+                   help="CLIP-verify the bound box ONCE at the gate (veto on "
+                        "role confusion or a better-matching proposal "
+                        "elsewhere) — the gate freezes the align target, so "
+                        "a wrong bind there decides the episode (3/10 of "
+                        "handeye_v4 failures).")
     p.add_argument("--ibvs-descend-hyst", type=float, default=0.0,
                    help="ratcheted descend for --ibvs-phase: engage descent at "
                         "err<0.2, release only above this (much wider) bound, "
                         "and gate the grasp at it too. Breaks the parallax "
                         "limit cycle that parks every fixed-gate servo at "
                         "~0.23m hover (forensics postscript 4). 0 = old gate. "
-                        "Try 0.35.")
+                        "Try 0.35. Ignored when --ibvs-center-first is set.")
+    p.add_argument("--ibvs-center-first", action="store_true",
+                   help="with --ibvs-phase: XY-only until source is inside "
+                        "--ibvs-center-tol for several ticks, THEN descend "
+                        "until the box fills --ibvs-half-fill of the frame "
+                        "(or z<GRASP_Z fallback), THEN grasp. Fixes the "
+                        "~5cm lateral near-miss where band-descend closes "
+                        "beside the object.")
+    p.add_argument("--ibvs-center-tol", type=float, default=0.06,
+                   help="image-error gate for --ibvs-center-first (max |eu|,|ev|).")
+    p.add_argument("--ibvs-half-fill", type=float, default=0.50,
+                   help="box-height / frame-height at which --ibvs-center-first "
+                        "closes the gripper ('half the object visible').")
     p.add_argument("--ibvs-target-uv", default="0.5,0.55",
                    help="image-space aim point 'u,v' the servo drives the source "
                         "toward (feeds --ibvs-gain/--ibvs-phase and --tool-phase's "
@@ -1038,6 +1246,13 @@ def main(argv: list[str] | None = None) -> None:
                              f"(suite {args.suite} has {len(tasks)} tasks)")
         tasks = [t for i, t in enumerate(tasks) if i in keep]
         print(f"task filter: {sorted(keep)} -> {len(tasks)} task(s)", flush=True)
+
+    if getattr(args, "clear_distractors", False):
+        from dataclasses import replace
+        keep_subs = tuple(
+            s.strip() for s in str(args.keep_objects).split(",") if s.strip())
+        tasks = [replace(t, keep_objects=keep_subs) for t in tasks]
+        print(f"clear_distractors ON; keep substrings={keep_subs}", flush=True)
 
     if max(1, int(args.workers)) > 1:
         results = _run_parallel(args, tasks)

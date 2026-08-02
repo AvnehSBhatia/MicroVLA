@@ -1,0 +1,571 @@
+# Exhaustive weight-forensics ledger (machine-generated)
+
+One numbered finding per tensor per instrument. Source of truth: `forensics_static.json` / `forensics_dynamic.json`; figures in `visuals/`.
+
+## L1. Per-tensor census (mean / std / |max| / near-zero / kurtosis)
+- **L-001** `fusion.encoder.obj_proj.weight` [16448]: mean +0.0003, std 0.0255, |max| 0.049, near-zero 2.2%, kurtosis -1.2, skew -0.01
+- **L-002** `fusion.encoder.obj_proj.bias` [32]: mean -0.0012, std 0.0271, |max| 0.047, near-zero 6.2%, kurtosis -1.4, skew -0.27
+- **L-003** `fusion.encoder.frame_proj.weight` [16384]: mean +0.0005, std 0.0255, |max| 0.050, near-zero 2.3%, kurtosis -1.2, skew -0.01
+- **L-004** `fusion.encoder.frame_proj.bias` [32]: mean +0.0016, std 0.0257, |max| 0.046, near-zero 3.1%, kurtosis -1.3, skew +0.06
+- **L-005** `fusion.encoder.text_proj.weight` [16384]: mean -0.0003, std 0.0255, |max| 0.048, near-zero 2.2%, kurtosis -1.2, skew +0.02
+- **L-006** `fusion.encoder.text_proj.bias` [32]: mean +0.0042, std 0.0297, |max| 0.044, near-zero 3.1%, kurtosis -1.4, skew -0.23
+- **L-007** `fusion.encoder.action_proj.weight` [224]: mean +0.0072, std 0.2156, |max| 0.380, near-zero 0.4%, kurtosis -1.2, skew -0.03
+- **L-008** `fusion.encoder.action_proj.bias` [32]: mean -0.0741, std 0.2060, |max| 0.369, near-zero 0.0%, kurtosis -1.0, skew +0.29
+- **L-009** `fusion.encoder.assemble.weight` [66560]: mean +0.0000, std 0.0283, |max| 0.057, near-zero 2.1%, kurtosis -1.2, skew -0.00
+- **L-010** `fusion.encoder.assemble.bias` [160]: mean -0.0002, std 0.0291, |max| 0.054, near-zero 1.9%, kurtosis -1.2, skew -0.08
+- **L-011** `drift.hrm.horizon_emb` [1280]: mean -0.0011, std 0.0624, |max| 0.216, near-zero 1.3%, kurtosis -0.1, skew -0.09
+- **L-012** `drift.hrm.log_gain_base` [3]: mean -4.4338, std 0.0758, |max| 4.524, near-zero 0.0%, kurtosis -1.5, skew +0.12
+- **L-013** `drift.hrm.drift_proj.weight` [262144]: mean +0.0000, std 0.0180, |max| 0.039, near-zero 3.2%, kurtosis -1.2, skew -0.00
+- **L-014** `drift.hrm.drift_proj.bias` [256]: mean +0.0006, std 0.0178, |max| 0.031, near-zero 4.3%, kurtosis -1.2, skew -0.00
+- **L-015** `drift.hrm.ctx_q_norm.weight` [256]: mean +0.9983, std 0.0000, |max| 0.998, near-zero 0.0%, kurtosis +9.7, skew -0.42
+- **L-016** `drift.hrm.ctx_q_norm.bias` [256]: mean +0.0000, std 0.0000, |max| 0.000, near-zero 100.0%, kurtosis +0.6, skew -0.09
+- **L-017** `drift.hrm.ctx_kv_norm.weight` [256]: mean +0.9984, std 0.0015, |max| 1.004, near-zero 0.0%, kurtosis +0.9, skew +0.54
+- **L-018** `drift.hrm.ctx_kv_norm.bias` [256]: mean -0.0001, std 0.0017, |max| 0.004, near-zero 44.5%, kurtosis -0.3, skew +0.08
+- **L-019** `drift.hrm.ctx_attn.in_proj_weight` [196608]: mean +0.0001, std 0.0441, |max| 0.084, near-zero 1.3%, kurtosis -1.2, skew +0.00
+- **L-020** `drift.hrm.ctx_attn.in_proj_bias` [768]: mean +0.0000, std 0.0012, |max| 0.005, near-zero 78.4%, kurtosis +4.7, skew +0.14
+- **L-021** `drift.hrm.ctx_attn.out_proj.weight` [65536]: mean +0.0000, std 0.0361, |max| 0.071, near-zero 1.6%, kurtosis -1.2, skew -0.01
+- **L-022** `drift.hrm.ctx_attn.out_proj.bias` [256]: mean +0.0003, std 0.0026, |max| 0.007, near-zero 29.3%, kurtosis -0.5, skew +0.20
+- **L-023** `drift.hrm.fast_to_slow.weight` [65536]: mean +0.0001, std 0.0363, |max| 0.076, near-zero 1.5%, kurtosis -1.2, skew +0.00
+- **L-024** `drift.hrm.fast_to_slow.bias` [256]: mean -0.0019, std 0.0358, |max| 0.064, near-zero 1.6%, kurtosis -1.2, skew +0.10
+- **L-025** `drift.hrm.slow_core.blocks.0.0.weight` [256]: mean +0.9982, std 0.0007, |max| 1.000, near-zero 0.0%, kurtosis +0.0, skew +0.15
+- **L-026** `drift.hrm.slow_core.blocks.0.0.bias` [256]: mean -0.0000, std 0.0009, |max| 0.003, near-zero 68.4%, kurtosis -0.7, skew -0.12
+- **L-027** `drift.hrm.slow_core.blocks.0.1.weight` [131072]: mean -0.0000, std 0.0360, |max| 0.067, near-zero 1.6%, kurtosis -1.2, skew +0.00
+- **L-028** `drift.hrm.slow_core.blocks.0.1.bias` [512]: mean +0.0008, std 0.0357, |max| 0.063, near-zero 1.2%, kurtosis -1.2, skew -0.01
+- **L-029** `drift.hrm.slow_core.blocks.0.3.weight` [131072]: mean +0.0001, std 0.0255, |max| 0.048, near-zero 2.3%, kurtosis -1.2, skew -0.00
+- **L-030** `drift.hrm.slow_core.blocks.0.3.bias` [256]: mean +0.0025, std 0.0257, |max| 0.048, near-zero 2.0%, kurtosis -1.1, skew -0.09
+- **L-031** `drift.hrm.slow_core.blocks.1.0.weight` [256]: mean +0.9983, std 0.0009, |max| 1.003, near-zero 0.0%, kurtosis +2.3, skew +0.60
+- **L-032** `drift.hrm.slow_core.blocks.1.0.bias` [256]: mean +0.0000, std 0.0009, |max| 0.003, near-zero 71.5%, kurtosis -0.2, skew +0.02
+- **L-033** `drift.hrm.slow_core.blocks.1.1.weight` [131072]: mean -0.0001, std 0.0361, |max| 0.065, near-zero 1.6%, kurtosis -1.2, skew +0.00
+- **L-034** `drift.hrm.slow_core.blocks.1.1.bias` [512]: mean -0.0003, std 0.0363, |max| 0.062, near-zero 1.4%, kurtosis -1.2, skew +0.00
+- **L-035** `drift.hrm.slow_core.blocks.1.3.weight` [131072]: mean -0.0001, std 0.0255, |max| 0.050, near-zero 2.2%, kurtosis -1.2, skew +0.00
+- **L-036** `drift.hrm.slow_core.blocks.1.3.bias` [256]: mean +0.0022, std 0.0237, |max| 0.047, near-zero 2.3%, kurtosis -1.0, skew -0.17
+- **L-037** `drift.hrm.slow_core.rate.weight` [65536]: mean -0.0001, std 0.0362, |max| 0.074, near-zero 1.7%, kurtosis -1.2, skew +0.00
+- **L-038** `drift.hrm.slow_core.rate.bias` [256]: mean +0.0023, std 0.0373, |max| 0.065, near-zero 0.8%, kurtosis -1.3, skew -0.09
+- **L-039** `drift.hrm.fast_in.weight` [262144]: mean -0.0000, std 0.0181, |max| 0.046, near-zero 3.2%, kurtosis -1.2, skew -0.00
+- **L-040** `drift.hrm.fast_in.bias` [256]: mean -0.0000, std 0.0179, |max| 0.038, near-zero 2.3%, kurtosis -1.1, skew -0.11
+- **L-041** `drift.hrm.eef_proj.weight` [1792]: mean -0.0001, std 0.2183, |max| 0.378, near-zero 0.3%, kurtosis -1.2, skew +0.01
+- **L-042** `drift.hrm.eef_proj.bias` [256]: mean +0.0130, std 0.2162, |max| 0.378, near-zero 0.0%, kurtosis -1.3, skew -0.15
+- **L-043** `drift.hrm.slow_to_fast.weight` [65536]: mean +0.0002, std 0.0363, |max| 0.079, near-zero 1.5%, kurtosis -1.2, skew -0.01
+- **L-044** `drift.hrm.slow_to_fast.bias` [256]: mean +0.0000, std 0.0368, |max| 0.065, near-zero 1.2%, kurtosis -1.2, skew +0.04
+- **L-045** `drift.hrm.fast_core.blocks.0.0.weight` [256]: mean +0.9983, std 0.0016, |max| 1.004, near-zero 0.0%, kurtosis +0.7, skew +0.41
+- **L-046** `drift.hrm.fast_core.blocks.0.0.bias` [256]: mean +0.0001, std 0.0019, |max| 0.005, near-zero 39.8%, kurtosis +0.1, skew -0.09
+- **L-047** `drift.hrm.fast_core.blocks.0.1.weight` [131072]: mean -0.0001, std 0.0361, |max| 0.070, near-zero 1.5%, kurtosis -1.2, skew +0.00
+- **L-048** `drift.hrm.fast_core.blocks.0.1.bias` [512]: mean +0.0012, std 0.0371, |max| 0.063, near-zero 0.8%, kurtosis -1.2, skew -0.05
+- **L-049** `drift.hrm.fast_core.blocks.0.3.weight` [131072]: mean +0.0001, std 0.0256, |max| 0.058, near-zero 2.2%, kurtosis -1.2, skew -0.01
+- **L-050** `drift.hrm.fast_core.blocks.0.3.bias` [256]: mean -0.0003, std 0.0255, |max| 0.050, near-zero 2.0%, kurtosis -1.1, skew -0.00
+- **L-051** `drift.hrm.fast_core.blocks.1.0.weight` [256]: mean +0.9983, std 0.0016, |max| 1.003, near-zero 0.0%, kurtosis +0.4, skew +0.25
+- **L-052** `drift.hrm.fast_core.blocks.1.0.bias` [256]: mean -0.0001, std 0.0018, |max| 0.005, near-zero 36.3%, kurtosis -0.5, skew -0.11
+- **L-053** `drift.hrm.fast_core.blocks.1.1.weight` [131072]: mean -0.0000, std 0.0361, |max| 0.071, near-zero 1.6%, kurtosis -1.2, skew -0.00
+- **L-054** `drift.hrm.fast_core.blocks.1.1.bias` [512]: mean +0.0008, std 0.0361, |max| 0.066, near-zero 1.4%, kurtosis -1.2, skew -0.05
+- **L-055** `drift.hrm.fast_core.blocks.1.3.weight` [131072]: mean +0.0001, std 0.0256, |max| 0.059, near-zero 2.3%, kurtosis -1.2, skew -0.01
+- **L-056** `drift.hrm.fast_core.blocks.1.3.bias` [256]: mean -0.0007, std 0.0243, |max| 0.048, near-zero 3.9%, kurtosis -1.1, skew -0.02
+- **L-057** `drift.hrm.fast_core.rate.weight` [65536]: mean +0.0000, std 0.0363, |max| 0.078, near-zero 1.6%, kurtosis -1.2, skew -0.00
+- **L-058** `drift.hrm.fast_core.rate.bias` [256]: mean +0.0012, std 0.0362, |max| 0.063, near-zero 2.7%, kurtosis -1.2, skew -0.05
+- **L-059** `drift.hrm.out_norm.weight` [256]: mean +0.9911, std 0.0044, |max| 1.001, near-zero 0.0%, kurtosis +0.8, skew -0.45
+- **L-060** `drift.hrm.out_norm.bias` [256]: mean -0.0003, std 0.0036, |max| 0.009, near-zero 16.0%, kurtosis -1.1, skew +0.14
+- **L-061** `drift.hrm.gain_head.weight` [768]: mean +0.0000, std 0.0000, |max| 0.000, near-zero 100.0%, kurtosis -3.0, skew +0.00
+- **L-062** `drift.hrm.gain_head.bias` [3]: mean +0.0000, std 0.0000, |max| 0.000, near-zero 100.0%, kurtosis -3.0, skew +0.00
+- **L-063** `trm.ctx_decay` [16]: mean -0.4992, std 0.6803, |max| 1.997, near-zero 37.5%, kurtosis -0.5, skew -1.01
+- **L-064** `trm.pos` [32768]: mean +0.0000, std 0.0105, |max| 0.045, near-zero 7.5%, kurtosis -0.0, skew -0.01
+- **L-065** `trm.y_init` [1024]: mean +0.0007, std 0.0099, |max| 0.033, near-zero 8.8%, kurtosis -0.1, skew -0.05
+- **L-066** `trm.z_init` [1024]: mean +0.0001, std 0.0100, |max| 0.031, near-zero 8.5%, kurtosis +0.1, skew -0.06
+- **L-067** `trm.embed.weight` [54272]: mean -0.0005, std 0.0792, |max| 0.146, near-zero 0.8%, kurtosis -1.2, skew +0.01
+- **L-068** `trm.embed.bias` [1024]: mean +0.0003, std 0.0782, |max| 0.143, near-zero 0.6%, kurtosis -1.2, skew +0.02
+- **L-069** `trm.film.weight` [524288]: mean +0.0001, std 0.0360, |max| 0.080, near-zero 1.6%, kurtosis -1.2, skew -0.00
+- **L-070** `trm.film.bias` [2048]: mean +0.0011, std 0.0365, |max| 0.069, near-zero 1.0%, kurtosis -1.2, skew -0.00
+- **L-071** `trm.net.norm1.weight` [1024]: mean +0.9987, std 0.0031, |max| 1.005, near-zero 0.0%, kurtosis -1.1, skew -0.28
+- **L-072** `trm.net.norm1.bias` [1024]: mean +0.0000, std 0.0032, |max| 0.008, near-zero 16.0%, kurtosis -1.1, skew +0.01
+- **L-073** `trm.net.token_mix.weight` [1024]: mean +0.0008, std 0.0997, |max| 0.181, near-zero 0.5%, kurtosis -1.1, skew -0.01
+- **L-074** `trm.net.token_mix.bias` [32]: mean -0.0201, std 0.1020, |max| 0.168, near-zero 0.0%, kurtosis -1.1, skew +0.26
+- **L-075** `trm.net.norm2.weight` [1024]: mean +1.0049, std 0.0048, |max| 1.021, near-zero 0.0%, kurtosis -0.3, skew +0.26
+- **L-076** `trm.net.norm2.bias` [1024]: mean -0.0000, std 0.0059, |max| 0.016, near-zero 11.1%, kurtosis -0.8, skew +0.00
+- **L-077** `trm.net.chan_mlp.0.weight` [4194304]: mean -0.0000, std 0.0184, |max| 0.044, near-zero 3.2%, kurtosis -1.1, skew +0.00
+- **L-078** `trm.net.chan_mlp.0.bias` [4096]: mean +0.0010, std 0.0184, |max| 0.038, near-zero 3.1%, kurtosis -1.1, skew +0.03
+- **L-079** `trm.net.chan_mlp.2.weight` [4194304]: mean +0.0000, std 0.0098, |max| 0.041, near-zero 6.4%, kurtosis -0.8, skew -0.00
+- **L-080** `trm.net.chan_mlp.2.bias` [1024]: mean -0.0002, std 0.0095, |max| 0.023, near-zero 6.8%, kurtosis -0.9, skew +0.03
+- **L-081** `trm.out_norm.weight` [1024]: mean +0.9832, std 0.0044, |max| 0.994, near-zero 0.0%, kurtosis -0.1, skew -0.46
+- **L-082** `trm.out_norm.bias` [1024]: mean +0.0001, std 0.0093, |max| 0.025, near-zero 7.6%, kurtosis -0.9, skew -0.08
+- **L-083** `trm.head.weight` [524288]: mean -0.0000, std 0.0177, |max| 0.040, near-zero 3.3%, kurtosis -1.2, skew +0.00
+- **L-084** `trm.head.bias` [512]: mean +0.0010, std 0.0177, |max| 0.033, near-zero 3.5%, kurtosis -1.2, skew -0.11
+- **L-085** `trm.box_head.0.weight` [262144]: mean -0.0000, std 0.0182, |max| 0.042, near-zero 3.2%, kurtosis -1.1, skew +0.00
+- **L-086** `trm.box_head.0.bias` [256]: mean -0.0018, std 0.0198, |max| 0.036, near-zero 3.5%, kurtosis -1.4, skew +0.05
+- **L-087** `trm.box_head.2.weight` [131072]: mean -0.0003, std 0.0360, |max| 0.093, near-zero 1.6%, kurtosis -1.2, skew +0.00
+- **L-088** `trm.box_head.2.bias` [512]: mean -0.0011, std 0.0361, |max| 0.069, near-zero 1.8%, kurtosis -1.2, skew -0.06
+- **L-089** `trm.msg_head.weight` [32768]: mean +0.0001, std 0.0188, |max| 0.057, near-zero 3.1%, kurtosis -1.0, skew +0.01
+- **L-090** `trm.msg_head.bias` [32]: mean +0.0003, std 0.0153, |max| 0.027, near-zero 3.1%, kurtosis -1.2, skew +0.10
+- **L-091** `planner.type_emb` [3584]: mean -0.0017, std 0.0621, |max| 0.254, near-zero 1.2%, kurtosis -0.0, skew -0.02
+- **L-092** `planner.time_queries` [1280]: mean -0.0001, std 0.0243, |max| 0.095, near-zero 3.1%, kurtosis +0.1, skew +0.17
+- **L-093** `planner.time_encoding` [1280]: mean +0.5136, std 0.4861, |max| 1.000, near-zero 16.5%, kurtosis -1.3, skew -0.29
+- **L-094** `planner.mem_proj.weight` [16384]: mean +0.0002, std 0.0722, |max| 0.149, near-zero 0.8%, kurtosis -1.2, skew -0.01
+- **L-095** `planner.mem_proj.bias` [256]: mean -0.0025, std 0.0724, |max| 0.130, near-zero 0.8%, kurtosis -1.1, skew +0.13
+- **L-096** `planner.wm_delta_proj.weight` [16384]: mean +0.0004, std 0.0721, |max| 0.141, near-zero 0.7%, kurtosis -1.2, skew -0.01
+- **L-097** `planner.wm_delta_proj.bias` [256]: mean -0.0057, std 0.0739, |max| 0.132, near-zero 1.6%, kurtosis -1.3, skew +0.07
+- **L-098** `planner.cur_proj.weight` [16384]: mean -0.0001, std 0.0722, |max| 0.173, near-zero 0.8%, kurtosis -1.2, skew -0.00
+- **L-099** `planner.cur_proj.bias` [256]: mean -0.0029, std 0.0723, |max| 0.127, near-zero 0.4%, kurtosis -1.3, skew +0.10
+- **L-100** `planner.state_proj.weight` [65536]: mean -0.0001, std 0.0377, |max| 0.126, near-zero 1.6%, kurtosis -1.0, skew +0.00
+- **L-101** `planner.state_proj.bias` [256]: mean -0.0001, std 0.0350, |max| 0.069, near-zero 1.6%, kurtosis -1.1, skew +0.01
+- **L-102** `planner.proprio_proj.weight` [2560]: mean +0.0038, std 0.1846, |max| 0.380, near-zero 0.4%, kurtosis -1.2, skew -0.03
+- **L-103** `planner.proprio_proj.bias` [256]: mean -0.0172, std 0.1804, |max| 0.318, near-zero 1.6%, kurtosis -1.2, skew +0.07
+- **L-104** `planner.spat_proj.weight` [32768]: mean +0.0004, std 0.0525, |max| 0.131, near-zero 1.1%, kurtosis -1.1, skew -0.01
+- **L-105** `planner.spat_proj.bias` [256]: mean -0.0028, std 0.0472, |max| 0.092, near-zero 0.8%, kurtosis -1.0, skew +0.08
+- **L-106** `planner.heat_proj.weight` [16384]: mean +0.0005, std 0.0721, |max| 0.145, near-zero 0.8%, kurtosis -1.2, skew -0.01
+- **L-107** `planner.heat_proj.bias` [256]: mean -0.0035, std 0.0704, |max| 0.128, near-zero 1.6%, kurtosis -1.2, skew -0.00
+- **L-108** `planner.msg_proj.weight` [8192]: mean -0.0012, std 0.1007, |max| 0.189, near-zero 0.6%, kurtosis -1.2, skew +0.02
+- **L-109** `planner.msg_proj.bias` [256]: mean +0.0046, std 0.1041, |max| 0.178, near-zero 1.2%, kurtosis -1.2, skew -0.01
+- **L-110** `planner.wm_latent_proj.weight` [32768]: mean +0.0001, std 0.0512, |max| 0.101, near-zero 1.1%, kurtosis -1.2, skew +0.00
+- **L-111** `planner.wm_latent_proj.bias` [256]: mean +0.0048, std 0.0500, |max| 0.092, near-zero 0.4%, kurtosis -1.1, skew -0.13
+- **L-112** `planner.rel_proj.weight` [98304]: mean +0.0001, std 0.0304, |max| 0.087, near-zero 1.9%, kurtosis -1.1, skew -0.00
+- **L-113** `planner.rel_proj.bias` [256]: mean -0.0013, std 0.0314, |max| 0.062, near-zero 1.6%, kurtosis -1.1, skew +0.11
+- **L-114** `planner.blocks.0.norm_q.weight` [256]: mean +0.9876, std 0.0213, |max| 1.119, near-zero 0.0%, kurtosis +12.5, skew +3.23
+- **L-115** `planner.blocks.0.norm_q.bias` [256]: mean -0.0007, std 0.0148, |max| 0.029, near-zero 2.0%, kurtosis -1.3, skew -0.07
+- **L-116** `planner.blocks.0.norm_mem.weight` [256]: mean +0.9930, std 0.0084, |max| 1.017, near-zero 0.0%, kurtosis +0.9, skew -0.41
+- **L-117** `planner.blocks.0.norm_mem.bias` [256]: mean -0.0002, std 0.0032, |max| 0.013, near-zero 29.7%, kurtosis +1.3, skew +0.41
+- **L-118** `planner.blocks.0.attn.in_proj_weight` [196608]: mean +0.0001, std 0.0452, |max| 0.214, near-zero 1.3%, kurtosis -1.1, skew +0.00
+- **L-119** `planner.blocks.0.attn.in_proj_bias` [768]: mean -0.0002, std 0.0028, |max| 0.014, near-zero 45.6%, kurtosis +3.1, skew -0.32
+- **L-120** `planner.blocks.0.attn.out_proj.weight` [65536]: mean +0.0001, std 0.0370, |max| 0.112, near-zero 1.6%, kurtosis -1.1, skew -0.00
+- **L-121** `planner.blocks.0.attn.out_proj.bias` [256]: mean +0.0000, std 0.0036, |max| 0.013, near-zero 28.5%, kurtosis +1.6, skew -0.14
+- **L-122** `planner.blocks.0.norm_mlp.weight` [256]: mean +0.9934, std 0.0073, |max| 1.026, near-zero 0.0%, kurtosis +4.4, skew +1.63
+- **L-123** `planner.blocks.0.norm_mlp.bias` [256]: mean -0.0004, std 0.0052, |max| 0.021, near-zero 13.3%, kurtosis +0.3, skew -0.33
+- **L-124** `planner.blocks.0.mlp.0.weight` [131072]: mean +0.0002, std 0.0366, |max| 0.126, near-zero 1.6%, kurtosis -1.1, skew -0.00
+- **L-125** `planner.blocks.0.mlp.0.bias` [512]: mean -0.0017, std 0.0367, |max| 0.075, near-zero 1.4%, kurtosis -1.2, skew +0.01
+- **L-126** `planner.blocks.0.mlp.2.weight` [131072]: mean +0.0001, std 0.0258, |max| 0.070, near-zero 2.3%, kurtosis -1.1, skew -0.00
+- **L-127** `planner.blocks.0.mlp.2.bias` [256]: mean -0.0013, std 0.0270, |max| 0.053, near-zero 1.2%, kurtosis -1.2, skew +0.10
+- **L-128** `planner.blocks.1.norm_q.weight` [256]: mean +0.9977, std 0.0164, |max| 1.063, near-zero 0.0%, kurtosis +2.3, skew +1.15
+- **L-129** `planner.blocks.1.norm_q.bias` [256]: mean -0.0004, std 0.0096, |max| 0.024, near-zero 7.4%, kurtosis -0.2, skew +0.19
+- **L-130** `planner.blocks.1.norm_mem.weight` [256]: mean +0.9944, std 0.0081, |max| 1.020, near-zero 0.0%, kurtosis +0.1, skew +0.08
+- **L-131** `planner.blocks.1.norm_mem.bias` [256]: mean +0.0004, std 0.0033, |max| 0.012, near-zero 25.4%, kurtosis +0.5, skew +0.15
+- **L-132** `planner.blocks.1.attn.in_proj_weight` [196608]: mean +0.0001, std 0.0451, |max| 0.142, near-zero 1.3%, kurtosis -1.1, skew -0.01
+- **L-133** `planner.blocks.1.attn.in_proj_bias` [768]: mean -0.0001, std 0.0039, |max| 0.016, near-zero 40.4%, kurtosis +2.4, skew -0.27
+- **L-134** `planner.blocks.1.attn.out_proj.weight` [65536]: mean -0.0001, std 0.0366, |max| 0.099, near-zero 1.5%, kurtosis -1.1, skew +0.01
+- **L-135** `planner.blocks.1.attn.out_proj.bias` [256]: mean -0.0000, std 0.0044, |max| 0.017, near-zero 30.5%, kurtosis +2.0, skew -0.15
+- **L-136** `planner.blocks.1.norm_mlp.weight` [256]: mean +0.9929, std 0.0059, |max| 1.009, near-zero 0.0%, kurtosis +0.6, skew -0.26
+- **L-137** `planner.blocks.1.norm_mlp.bias` [256]: mean +0.0002, std 0.0041, |max| 0.015, near-zero 18.0%, kurtosis +1.5, skew -0.14
+- **L-138** `planner.blocks.1.mlp.0.weight` [131072]: mean +0.0001, std 0.0365, |max| 0.114, near-zero 1.6%, kurtosis -1.1, skew -0.00
+- **L-139** `planner.blocks.1.mlp.0.bias` [512]: mean -0.0032, std 0.0366, |max| 0.074, near-zero 2.3%, kurtosis -1.2, skew -0.02
+- **L-140** `planner.blocks.1.mlp.2.weight` [131072]: mean +0.0000, std 0.0258, |max| 0.078, near-zero 2.4%, kurtosis -1.1, skew -0.00
+- **L-141** `planner.blocks.1.mlp.2.bias` [256]: mean +0.0012, std 0.0278, |max| 0.055, near-zero 2.3%, kurtosis -1.2, skew -0.10
+- **L-142** `planner.blocks.2.norm_q.weight` [256]: mean +0.9968, std 0.0123, |max| 1.050, near-zero 0.0%, kurtosis +1.6, skew +0.86
+- **L-143** `planner.blocks.2.norm_q.bias` [256]: mean -0.0005, std 0.0075, |max| 0.021, near-zero 10.9%, kurtosis -0.1, skew -0.16
+- **L-144** `planner.blocks.2.norm_mem.weight` [256]: mean +0.9934, std 0.0079, |max| 1.016, near-zero 0.0%, kurtosis +0.0, skew +0.25
+- **L-145** `planner.blocks.2.norm_mem.bias` [256]: mean +0.0004, std 0.0033, |max| 0.011, near-zero 30.1%, kurtosis +0.4, skew +0.14
+- **L-146** `planner.blocks.2.attn.in_proj_weight` [196608]: mean -0.0000, std 0.0446, |max| 0.124, near-zero 1.3%, kurtosis -1.1, skew +0.00
+- **L-147** `planner.blocks.2.attn.in_proj_bias` [768]: mean -0.0000, std 0.0035, |max| 0.021, near-zero 45.4%, kurtosis +5.7, skew +0.21
+- **L-148** `planner.blocks.2.attn.out_proj.weight` [65536]: mean -0.0001, std 0.0364, |max| 0.090, near-zero 1.5%, kurtosis -1.1, skew +0.01
+- **L-149** `planner.blocks.2.attn.out_proj.bias` [256]: mean +0.0000, std 0.0046, |max| 0.023, near-zero 26.2%, kurtosis +2.9, skew -0.30
+- **L-150** `planner.blocks.2.norm_mlp.weight` [256]: mean +0.9935, std 0.0071, |max| 1.025, near-zero 0.0%, kurtosis +1.9, skew +0.17
+- **L-151** `planner.blocks.2.norm_mlp.bias` [256]: mean -0.0001, std 0.0039, |max| 0.011, near-zero 17.2%, kurtosis +0.2, skew +0.01
+- **L-152** `planner.blocks.2.mlp.0.weight` [131072]: mean +0.0000, std 0.0363, |max| 0.097, near-zero 1.7%, kurtosis -1.1, skew +0.00
+- **L-153** `planner.blocks.2.mlp.0.bias` [512]: mean -0.0014, std 0.0361, |max| 0.066, near-zero 2.7%, kurtosis -1.2, skew -0.06
+- **L-154** `planner.blocks.2.mlp.2.weight` [131072]: mean +0.0001, std 0.0258, |max| 0.077, near-zero 2.3%, kurtosis -1.1, skew -0.00
+- **L-155** `planner.blocks.2.mlp.2.bias` [256]: mean -0.0021, std 0.0255, |max| 0.047, near-zero 3.9%, kurtosis -1.2, skew +0.11
+- **L-156** `planner.final_norm.weight` [256]: mean +0.9845, std 0.0069, |max| 0.998, near-zero 0.0%, kurtosis +2.4, skew -1.43
+- **L-157** `planner.final_norm.bias` [256]: mean -0.0001, std 0.0016, |max| 0.005, near-zero 48.0%, kurtosis -0.5, skew +0.09
+- **L-158** `planner.waypoint_head.weight` [768]: mean +0.0005, std 0.0304, |max| 0.065, near-zero 1.7%, kurtosis -1.1, skew -0.01
+- **L-159** `planner.waypoint_head.bias` [3]: mean -0.0379, std 0.0048, |max| 0.043, near-zero 0.0%, kurtosis -1.5, skew +0.43
+- **L-160** `planner.wp_proj.weight` [768]: mean -0.0028, std 0.3332, |max| 0.577, near-zero 0.1%, kurtosis -1.2, skew +0.02
+- **L-161** `planner.wp_proj.bias` [256]: mean +0.0276, std 0.3356, |max| 0.572, near-zero 0.0%, kurtosis -1.2, skew -0.15
+- **L-162** `planner.orient_head.weight` [768]: mean -0.0022, std 0.0320, |max| 0.063, near-zero 2.7%, kurtosis -1.1, skew +0.06
+- **L-163** `planner.orient_head.bias` [3]: mean +0.0072, std 0.0322, |max| 0.049, near-zero 0.0%, kurtosis -1.5, skew +0.21
+- **L-164** `planner.grip_head.weight` [256]: mean -0.0025, std 0.0426, |max| 0.090, near-zero 0.8%, kurtosis -1.1, skew +0.07
+- **L-165** `planner.grip_head.bias` [1]: mean -0.0192, std 0.0000, |max| 0.019, near-zero 0.0%, kurtosis -3.0, skew +0.00
+- **L-166** `tqsa.v_proj.weight` [65536]: mean -0.0001, std 0.0291, |max| 0.115, near-zero 2.2%, kurtosis -0.6, skew +0.01
+- **L-167** `tqsa.v_proj.bias` [128]: mean -0.0006, std 0.0264, |max| 0.047, near-zero 4.7%, kurtosis -1.1, skew +0.10
+- **L-168** `tqsa.t_proj.weight` [65536]: mean +0.0001, std 0.0395, |max| 0.185, near-zero 1.9%, kurtosis -0.0, skew +0.01
+- **L-169** `tqsa.t_proj.bias` [128]: mean -0.0041, std 0.0358, |max| 0.107, near-zero 1.6%, kurtosis -0.1, skew -0.06
+- **L-170** `tqsa.v_norm.weight` [128]: mean +0.9949, std 0.0136, |max| 1.031, near-zero 0.0%, kurtosis +0.2, skew -0.16
+- **L-171** `tqsa.v_norm.bias` [128]: mean -0.0001, std 0.0025, |max| 0.007, near-zero 26.6%, kurtosis -0.5, skew +0.08
+- **L-172** `tqsa.out_norm.weight` [128]: mean +0.9941, std 0.0136, |max| 1.028, near-zero 0.0%, kurtosis +0.1, skew -0.18
+- **L-173** `tqsa.out_norm.bias` [128]: mean -0.0003, std 0.0036, |max| 0.010, near-zero 26.6%, kurtosis +0.2, skew +0.18
+- **L-174** `relational.type_emb` [2304]: mean -0.0024, std 0.0513, |max| 0.174, near-zero 1.7%, kurtosis +0.1, skew +0.09
+- **L-175** `relational.queries` [4608]: mean -0.0009, std 0.0525, |max| 0.226, near-zero 1.8%, kurtosis +0.0, skew -0.00
+- **L-176** `relational.visual_proj.weight` [196608]: mean +0.0000, std 0.0273, |max| 0.111, near-zero 2.3%, kurtosis -0.9, skew +0.00
+- **L-177** `relational.visual_proj.bias` [384]: mean +0.0011, std 0.0268, |max| 0.062, near-zero 1.8%, kurtosis -1.0, skew -0.02
+- **L-178** `relational.text_proj.weight` [196608]: mean +0.0000, std 0.0287, |max| 0.108, near-zero 2.2%, kurtosis -0.7, skew -0.00
+- **L-179** `relational.text_proj.bias` [384]: mean +0.0020, std 0.0269, |max| 0.062, near-zero 2.1%, kurtosis -1.1, skew -0.13
+- **L-180** `relational.action_proj.weight` [2688]: mean +0.0002, std 0.2231, |max| 0.434, near-zero 0.3%, kurtosis -1.1, skew +0.01
+- **L-181** `relational.action_proj.bias` [384]: mean -0.0081, std 0.2065, |max| 0.373, near-zero 0.3%, kurtosis -1.1, skew +0.08
+- **L-182** `relational.geom_proj.weight` [24960]: mean +0.0001, std 0.0751, |max| 0.200, near-zero 0.8%, kurtosis -1.0, skew +0.00
+- **L-183** `relational.geom_proj.bias` [384]: mean +0.0006, std 0.0692, |max| 0.146, near-zero 0.5%, kurtosis -1.0, skew -0.03
+- **L-184** `relational.rel_bias.weight` [512]: mean +0.0006, std 0.0723, |max| 0.150, near-zero 0.6%, kurtosis -1.1, skew +0.18
+- **L-185** `relational.rel_bias.bias` [8]: mean +0.0270, std 0.0565, |max| 0.097, near-zero 0.0%, kurtosis -1.2, skew -0.42
+- **L-186** `relational.attn_norms.0.weight` [384]: mean +0.9914, std 0.0135, |max| 1.043, near-zero 0.0%, kurtosis +1.3, skew +0.68
+- **L-187** `relational.attn_norms.0.bias` [384]: mean +0.0002, std 0.0100, |max| 0.041, near-zero 6.0%, kurtosis +0.3, skew -0.01
+- **L-188** `relational.attn_norms.1.weight` [384]: mean +0.9956, std 0.0069, |max| 1.020, near-zero 0.0%, kurtosis +0.2, skew +0.04
+- **L-189** `relational.attn_norms.1.bias` [384]: mean +0.0002, std 0.0037, |max| 0.013, near-zero 23.4%, kurtosis +0.7, skew -0.20
+- **L-190** `relational.attns.0.in_proj_weight` [442368]: mean -0.0000, std 0.0373, |max| 0.153, near-zero 1.6%, kurtosis -1.0, skew +0.00
+- **L-191** `relational.attns.0.in_proj_bias` [1152]: mean +0.0001, std 0.0047, |max| 0.027, near-zero 45.3%, kurtosis +5.2, skew +0.08
+- **L-192** `relational.attns.0.out_proj.weight` [147456]: mean -0.0000, std 0.0305, |max| 0.115, near-zero 2.0%, kurtosis -1.0, skew +0.01
+- **L-193** `relational.attns.0.out_proj.bias` [384]: mean +0.0000, std 0.0038, |max| 0.013, near-zero 22.7%, kurtosis +0.1, skew -0.30
+- **L-194** `relational.attns.1.in_proj_weight` [442368]: mean -0.0000, std 0.0371, |max| 0.109, near-zero 1.6%, kurtosis -1.1, skew +0.00
+- **L-195** `relational.attns.1.in_proj_bias` [1152]: mean -0.0003, std 0.0057, |max| 0.027, near-zero 45.4%, kurtosis +4.0, skew -0.02
+- **L-196** `relational.attns.1.out_proj.weight` [147456]: mean +0.0000, std 0.0304, |max| 0.089, near-zero 2.0%, kurtosis -1.1, skew -0.00
+- **L-197** `relational.attns.1.out_proj.bias` [384]: mean +0.0000, std 0.0041, |max| 0.013, near-zero 17.2%, kurtosis +0.2, skew -0.22
+- **L-198** `relational.mlp_norms.0.weight` [384]: mean +0.9894, std 0.0074, |max| 1.014, near-zero 0.0%, kurtosis +0.5, skew -0.06
+- **L-199** `relational.mlp_norms.0.bias` [384]: mean -0.0003, std 0.0062, |max| 0.021, near-zero 15.6%, kurtosis +0.3, skew -0.16
+- **L-200** `relational.mlp_norms.1.weight` [384]: mean +0.9899, std 0.0069, |max| 1.008, near-zero 0.0%, kurtosis +0.0, skew -0.24
+- **L-201** `relational.mlp_norms.1.bias` [384]: mean -0.0000, std 0.0057, |max| 0.018, near-zero 16.4%, kurtosis +0.2, skew -0.04
+- **L-202** `relational.mlps.0.0.weight` [184320]: mean +0.0001, std 0.0302, |max| 0.090, near-zero 2.0%, kurtosis -1.1, skew -0.00
+- **L-203** `relational.mlps.0.0.bias` [480]: mean -0.0065, std 0.0290, |max| 0.062, near-zero 2.9%, kurtosis -1.1, skew +0.02
+- **L-204** `relational.mlps.0.2.weight` [184320]: mean +0.0001, std 0.0268, |max| 0.078, near-zero 2.2%, kurtosis -1.1, skew -0.01
+- **L-205** `relational.mlps.0.2.bias` [384]: mean +0.0014, std 0.0261, |max| 0.052, near-zero 2.3%, kurtosis -1.1, skew -0.01
+- **L-206** `relational.mlps.1.0.weight` [184320]: mean +0.0000, std 0.0299, |max| 0.094, near-zero 1.9%, kurtosis -1.1, skew +0.00
+- **L-207** `relational.mlps.1.0.bias` [480]: mean -0.0062, std 0.0291, |max| 0.064, near-zero 2.5%, kurtosis -1.2, skew +0.03
+- **L-208** `relational.mlps.1.2.weight` [184320]: mean +0.0000, std 0.0266, |max| 0.082, near-zero 2.2%, kurtosis -1.1, skew -0.00
+- **L-209** `relational.mlps.1.2.bias` [384]: mean -0.0020, std 0.0268, |max| 0.053, near-zero 2.6%, kurtosis -1.1, skew +0.09
+- **L-210** `relational.out_norm.weight` [384]: mean +0.9939, std 0.0068, |max| 1.014, near-zero 0.0%, kurtosis +0.1, skew -0.17
+- **L-211** `relational.out_norm.bias` [384]: mean -0.0007, std 0.0055, |max| 0.015, near-zero 13.8%, kurtosis -0.2, skew -0.13
+
+## L2. Spectral diagnostics (effective rank / stable rank / conditioning / tail)
+- **L-212** `fusion.encoder.obj_proj.weight` [32, 514]: σmax 0.725, eff-rank 30.9/32 (97%), stable-rank 20.4, cond 1.6e+00, Hill α 9.43
+- **L-213** `fusion.encoder.frame_proj.weight` [32, 512]: σmax 0.718, eff-rank 31.0/32 (97%), stable-rank 20.7, cond 1.6e+00, Hill α 9.95
+- **L-214** `fusion.encoder.text_proj.weight` [32, 512]: σmax 0.714, eff-rank 31.0/32 (97%), stable-rank 20.8, cond 1.6e+00, Hill α 11.87
+- **L-215** `fusion.encoder.assemble.weight` [160, 416]: σmax 0.939, eff-rank 132.0/160 (83%), stable-rank 60.7, cond 4.0e+00, Hill α 4.67
+- **L-216** `drift.hrm.drift_proj.weight` [256, 1024]: σmax 0.852, eff-rank 225.9/256 (88%), stable-rank 117.1, cond 3.0e+00, Hill α 6.96
+- **L-217** `drift.hrm.ctx_attn.in_proj_weight` [768, 256]: σmax 1.921, eff-rank 216.8/256 (85%), stable-rank 103.6, cond 3.6e+00, Hill α 5.93
+- **L-218** `drift.hrm.ctx_attn.out_proj.weight` [256, 256]: σmax 1.181, eff-rank 155.0/256 (61%), stable-rank 61.4, cond 2.0e+03, Hill α 4.27
+- **L-219** `drift.hrm.fast_to_slow.weight` [256, 256]: σmax 1.200, eff-rank 154.0/256 (60%), stable-rank 60.1, cond 2.9e+03, Hill α 4.16
+- **L-220** `drift.hrm.slow_core.blocks.0.1.weight` [512, 256]: σmax 1.371, eff-rank 199.7/256 (78%), stable-rank 90.2, cond 5.6e+00, Hill α 5.41
+- **L-221** `drift.hrm.slow_core.blocks.0.3.weight` [256, 512]: σmax 0.977, eff-rank 199.1/256 (78%), stable-rank 89.2, cond 5.7e+00, Hill α 5.18
+- **L-222** `drift.hrm.slow_core.blocks.1.1.weight` [512, 256]: σmax 1.399, eff-rank 199.1/256 (78%), stable-rank 87.1, cond 5.6e+00, Hill α 5.14
+- **L-223** `drift.hrm.slow_core.blocks.1.3.weight` [256, 512]: σmax 0.975, eff-rank 200.5/256 (78%), stable-rank 89.7, cond 5.7e+00, Hill α 5.40
+- **L-224** `drift.hrm.slow_core.rate.weight` [256, 256]: σmax 1.162, eff-rank 155.1/256 (61%), stable-rank 63.7, cond 1.2e+03, Hill α 4.19
+- **L-225** `drift.hrm.fast_in.weight` [256, 1024]: σmax 1.125, eff-rank 224.5/256 (88%), stable-rank 67.9, cond 3.9e+00, Hill α 6.35
+- **L-226** `drift.hrm.slow_to_fast.weight` [256, 256]: σmax 1.187, eff-rank 155.5/256 (61%), stable-rank 61.3, cond 1.1e+03, Hill α 4.20
+- **L-227** `drift.hrm.fast_core.blocks.0.1.weight` [512, 256]: σmax 1.382, eff-rank 199.0/256 (78%), stable-rank 89.2, cond 5.8e+00, Hill α 5.32
+- **L-228** `drift.hrm.fast_core.blocks.0.3.weight` [256, 512]: σmax 1.061, eff-rank 199.1/256 (78%), stable-rank 76.1, cond 6.1e+00, Hill α 5.31
+- **L-229** `drift.hrm.fast_core.blocks.1.1.weight` [512, 256]: σmax 1.389, eff-rank 199.2/256 (78%), stable-rank 88.5, cond 5.6e+00, Hill α 5.39
+- **L-230** `drift.hrm.fast_core.blocks.1.3.weight` [256, 512]: σmax 1.033, eff-rank 199.3/256 (78%), stable-rank 80.6, cond 6.1e+00, Hill α 5.19
+- **L-231** `drift.hrm.fast_core.rate.weight` [256, 256]: σmax 1.203, eff-rank 154.8/256 (60%), stable-rank 59.7, cond 5.3e+02, Hill α 4.00
+- **L-232** `trm.pos` [32, 1024]: σmax 0.661, eff-rank 29.2/32 (91%), stable-rank 8.3, cond 2.5e+00, Hill α 5.49
+- **L-233** `trm.embed.weight` [1024, 53]: σmax 3.068, eff-rank 51.7/53 (98%), stable-rank 36.2, cond 1.5e+00, Hill α 10.37
+- **L-234** `trm.film.weight` [2048, 256]: σmax 2.237, eff-rank 240.3/256 (94%), stable-rank 135.9, cond 2.1e+00, Hill α 8.65
+- **L-235** `trm.net.token_mix.weight` [32, 32]: σmax 1.032, eff-rank 20.5/32 (64%), stable-rank 9.6, cond 3.2e+01, Hill α 4.06
+- **L-236** `trm.net.chan_mlp.0.weight` [4096, 1024]: σmax 6.352, eff-rank 840.7/1024 (82%), stable-rank 35.3, cond 1.1e+01, Hill α 7.16
+- **L-237** `trm.net.chan_mlp.2.weight` [1024, 4096]: σmax 7.096, eff-rank 541.9/1024 (53%), stable-rank 8.0, cond 2.5e+01, Hill α 4.77
+- **L-238** `trm.head.weight` [512, 1024]: σmax 0.968, eff-rank 396.7/512 (77%), stable-rank 175.2, cond 6.0e+00, Hill α 8.70
+- **L-239** `trm.box_head.0.weight` [256, 1024]: σmax 1.551, eff-rank 219.7/256 (86%), stable-rank 36.2, cond 5.3e+00, Hill α 5.82
+- **L-240** `trm.box_head.2.weight` [512, 256]: σmax 1.615, eff-rank 197.8/256 (77%), stable-rank 65.3, cond 6.8e+00, Hill α 5.15
+- **L-241** `trm.msg_head.weight` [32, 1024]: σmax 0.893, eff-rank 30.6/32 (96%), stable-rank 14.5, cond 1.8e+00, Hill α 5.79
+- **L-242** `planner.type_emb` [14, 256]: σmax 1.215, eff-rank 13.6/14 (97%), stable-rank 9.4, cond 1.5e+00, Hill α 11.83
+- **L-243** `planner.mem_proj.weight` [256, 64]: σmax 1.664, eff-rank 56.5/64 (88%), stable-rank 30.8, cond 2.7e+00, Hill α 5.94
+- **L-244** `planner.wm_delta_proj.weight` [256, 64]: σmax 1.685, eff-rank 56.5/64 (88%), stable-rank 30.0, cond 2.9e+00, Hill α 6.53
+- **L-245** `planner.cur_proj.weight` [256, 64]: σmax 1.700, eff-rank 56.6/64 (88%), stable-rank 29.6, cond 2.9e+00, Hill α 5.97
+- **L-246** `planner.state_proj.weight` [256, 256]: σmax 2.124, eff-rank 141.5/256 (55%), stable-rank 20.6, cond 1.8e+04, Hill α 3.66
+- **L-247** `planner.proprio_proj.weight` [256, 10]: σmax 3.450, eff-rank 9.8/10 (98%), stable-rank 7.3, cond 1.4e+00, Hill α 11.17
+- **L-248** `planner.spat_proj.weight` [256, 128]: σmax 1.588, eff-rank 97.4/128 (76%), stable-rank 35.8, cond 6.3e+00, Hill α 4.10
+- **L-249** `planner.heat_proj.weight` [256, 64]: σmax 1.716, eff-rank 56.6/64 (88%), stable-rank 28.9, cond 2.8e+00, Hill α 5.84
+- **L-250** `planner.msg_proj.weight` [256, 32]: σmax 2.128, eff-rank 30.1/32 (94%), stable-rank 18.3, cond 2.0e+00, Hill α 8.20
+- **L-251** `planner.wm_latent_proj.weight` [256, 128]: σmax 1.365, eff-rank 99.9/128 (78%), stable-rank 46.1, cond 5.4e+00, Hill α 4.58
+- **L-252** `planner.rel_proj.weight` [256, 384]: σmax 1.722, eff-rank 172.8/256 (68%), stable-rank 30.6, cond 1.6e+01, Hill α 4.10
+- **L-253** `planner.blocks.0.attn.in_proj_weight` [768, 256]: σmax 2.657, eff-rank 212.8/256 (83%), stable-rank 56.9, cond 5.0e+00, Hill α 5.28
+- **L-254** `planner.blocks.0.attn.out_proj.weight` [256, 256]: σmax 1.535, eff-rank 151.0/256 (59%), stable-rank 38.1, cond 4.9e+02, Hill α 3.87
+- **L-255** `planner.blocks.0.mlp.0.weight` [512, 256]: σmax 1.795, eff-rank 196.3/256 (77%), stable-rank 54.6, cond 7.2e+00, Hill α 4.93
+- **L-256** `planner.blocks.0.mlp.2.weight` [256, 512]: σmax 1.570, eff-rank 192.1/256 (75%), stable-rank 35.4, cond 9.6e+00, Hill α 4.54
+- **L-257** `planner.blocks.1.attn.in_proj_weight` [768, 256]: σmax 2.248, eff-rank 213.7/256 (83%), stable-rank 79.0, cond 4.3e+00, Hill α 5.37
+- **L-258** `planner.blocks.1.attn.out_proj.weight` [256, 256]: σmax 1.651, eff-rank 149.2/256 (58%), stable-rank 32.1, cond 2.9e+03, Hill α 3.87
+- **L-259** `planner.blocks.1.mlp.0.weight` [512, 256]: σmax 1.706, eff-rank 197.1/256 (77%), stable-rank 59.9, cond 6.8e+00, Hill α 4.89
+- **L-260** `planner.blocks.1.mlp.2.weight` [256, 512]: σmax 1.731, eff-rank 191.9/256 (75%), stable-rank 29.1, cond 1.0e+01, Hill α 4.78
+- **L-261** `planner.blocks.2.attn.in_proj_weight` [768, 256]: σmax 2.042, eff-rank 215.5/256 (84%), stable-rank 94.0, cond 3.8e+00, Hill α 5.75
+- **L-262** `planner.blocks.2.attn.out_proj.weight` [256, 256]: σmax 1.530, eff-rank 151.2/256 (59%), stable-rank 37.0, cond 1.2e+03, Hill α 4.04
+- **L-263** `planner.blocks.2.mlp.0.weight` [512, 256]: σmax 1.662, eff-rank 197.2/256 (77%), stable-rank 62.7, cond 7.0e+00, Hill α 5.12
+- **L-264** `planner.blocks.2.mlp.2.weight` [256, 512]: σmax 1.766, eff-rank 191.0/256 (75%), stable-rank 27.9, cond 1.0e+01, Hill α 4.70
+- **L-265** `tqsa.t_proj.weight` [128, 512]: σmax 5.884, eff-rank 28.5/128 (22%), stable-rank 3.0, cond 1.9e+01, Hill α 2.55
+- **L-266** `relational.queries` [12, 384]: σmax 1.231, eff-rank 11.7/12 (97%), stable-rank 8.4, cond 1.5e+00, Hill α 11.84
+- **L-267** `relational.visual_proj.weight` [384, 512]: σmax 2.762, eff-rank 222.9/384 (58%), stable-rank 19.2, cond 3.4e+01, Hill α 4.14
+- **L-268** `relational.text_proj.weight` [384, 512]: σmax 4.393, eff-rank 177.3/384 (46%), stable-rank 8.4, cond 5.5e+01, Hill α 3.61
+- **L-269** `relational.geom_proj.weight` [384, 65]: σmax 3.018, eff-rank 56.7/65 (87%), stable-rank 15.5, cond 3.4e+00, Hill α 4.68
+- **L-270** `relational.rel_bias.weight` [8, 64]: σmax 0.711, eff-rank 7.5/8 (94%), stable-rank 5.3, cond 1.9e+00, Hill α 7.81
+- **L-271** `relational.attns.0.in_proj_weight` [1152, 384]: σmax 3.312, eff-rank 308.3/384 (80%), stable-rank 56.1, cond 6.3e+00, Hill α 4.94
+- **L-272** `relational.attns.0.out_proj.weight` [384, 384]: σmax 1.579, eff-rank 223.1/384 (58%), stable-rank 55.0, cond 3.7e+03, Hill α 4.39
+- **L-273** `relational.attns.1.in_proj_weight` [1152, 384]: σmax 3.646, eff-rank 311.2/384 (81%), stable-rank 45.8, cond 6.9e+00, Hill α 5.48
+- **L-274** `relational.attns.1.out_proj.weight` [384, 384]: σmax 1.679, eff-rank 222.5/384 (58%), stable-rank 48.4, cond 2.0e+03, Hill α 4.48
+- **L-275** `relational.mlps.0.0.weight` [480, 384]: σmax 1.583, eff-rank 251.8/384 (66%), stable-rank 66.9, cond 2.0e+01, Hill α 5.08
+- **L-276** `relational.mlps.0.2.weight` [384, 480]: σmax 1.391, eff-rank 252.8/384 (66%), stable-rank 68.6, cond 2.0e+01, Hill α 5.20
+- **L-277** `relational.mlps.1.0.weight` [480, 384]: σmax 1.619, eff-rank 253.2/384 (66%), stable-rank 62.8, cond 2.1e+01, Hill α 5.29
+- **L-278** `relational.mlps.1.2.weight` [384, 480]: σmax 1.436, eff-rank 253.6/384 (66%), stable-rank 63.3, cond 2.1e+01, Hill α 5.38
+
+## L3. Neuron utilization (output-row norms)
+- **L-279** `fusion.encoder.obj_proj.weight`: 32 rows, dead 0, weak 0, norm CV 0.02, max/median 1.04
+- **L-280** `fusion.encoder.frame_proj.weight`: 32 rows, dead 0, weak 0, norm CV 0.02, max/median 1.04
+- **L-281** `fusion.encoder.text_proj.weight`: 32 rows, dead 0, weak 0, norm CV 0.02, max/median 1.05
+- **L-282** `fusion.encoder.action_proj.weight`: 32 rows, dead 0, weak 0, norm CV 0.16, max/median 1.25
+- **L-283** `fusion.encoder.assemble.weight`: 160 rows, dead 0, weak 0, norm CV 0.02, max/median 1.07
+- **L-284** `drift.hrm.drift_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.01, max/median 1.04
+- **L-285** `drift.hrm.ctx_attn.in_proj_weight`: 768 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-286** `drift.hrm.ctx_attn.out_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.10
+- **L-287** `drift.hrm.fast_to_slow.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.08
+- **L-288** `drift.hrm.slow_core.blocks.0.1.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-289** `drift.hrm.slow_core.blocks.0.3.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.04
+- **L-290** `drift.hrm.slow_core.blocks.1.1.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-291** `drift.hrm.slow_core.blocks.1.3.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.05
+- **L-292** `drift.hrm.slow_core.rate.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-293** `drift.hrm.fast_in.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.05
+- **L-294** `drift.hrm.eef_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.16, max/median 1.47
+- **L-295** `drift.hrm.slow_to_fast.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.08
+- **L-296** `drift.hrm.fast_core.blocks.0.1.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.08
+- **L-297** `drift.hrm.fast_core.blocks.0.3.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.06
+- **L-298** `drift.hrm.fast_core.blocks.1.1.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-299** `drift.hrm.fast_core.blocks.1.3.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.06
+- **L-300** `drift.hrm.fast_core.rate.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.07
+- **L-301** `trm.pos`: 32 rows, dead 0, weak 0, norm CV 0.02, max/median 1.06
+- **L-302** `trm.embed.weight`: 1024 rows, dead 0, weak 0, norm CV 0.06, max/median 1.16
+- **L-303** `trm.film.weight`: 2048 rows, dead 0, weak 0, norm CV 0.03, max/median 1.10
+- **L-304** `trm.net.token_mix.weight`: 32 rows, dead 0, weak 0, norm CV 0.07, max/median 1.17
+- **L-305** `trm.net.chan_mlp.0.weight`: 4096 rows, dead 0, weak 0, norm CV 0.02, max/median 1.09
+- **L-306** `trm.net.chan_mlp.2.weight`: 1024 rows, dead 0, weak 0, norm CV 0.11, max/median 2.02
+- **L-307** `trm.head.weight`: 512 rows, dead 0, weak 0, norm CV 0.02, max/median 1.05
+- **L-308** `trm.box_head.0.weight`: 256 rows, dead 0, weak 0, norm CV 0.02, max/median 1.06
+- **L-309** `trm.box_head.2.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.28
+- **L-310** `trm.msg_head.weight`: 32 rows, dead 0, weak 0, norm CV 0.03, max/median 1.08
+- **L-311** `planner.mem_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.05, max/median 1.17
+- **L-312** `planner.wm_delta_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.05, max/median 1.13
+- **L-313** `planner.cur_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.05, max/median 1.13
+- **L-314** `planner.state_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.04, max/median 1.12
+- **L-315** `planner.proprio_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.14, max/median 1.36
+- **L-316** `planner.spat_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.05, max/median 1.12
+- **L-317** `planner.heat_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.06, max/median 1.15
+- **L-318** `planner.msg_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.09, max/median 1.17
+- **L-319** `planner.wm_latent_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.04, max/median 1.11
+- **L-320** `planner.rel_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.04, max/median 1.16
+- **L-321** `planner.blocks.0.attn.in_proj_weight`: 768 rows, dead 0, weak 0, norm CV 0.04, max/median 1.19
+- **L-322** `planner.blocks.0.attn.out_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.10
+- **L-323** `planner.blocks.0.mlp.0.weight`: 512 rows, dead 0, weak 0, norm CV 0.04, max/median 1.18
+- **L-324** `planner.blocks.0.mlp.2.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.14
+- **L-325** `planner.blocks.1.attn.in_proj_weight`: 768 rows, dead 0, weak 0, norm CV 0.04, max/median 1.14
+- **L-326** `planner.blocks.1.attn.out_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.04, max/median 1.13
+- **L-327** `planner.blocks.1.mlp.0.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.21
+- **L-328** `planner.blocks.1.mlp.2.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.22
+- **L-329** `planner.blocks.2.attn.in_proj_weight`: 768 rows, dead 0, weak 0, norm CV 0.03, max/median 1.14
+- **L-330** `planner.blocks.2.attn.out_proj.weight`: 256 rows, dead 0, weak 0, norm CV 0.03, max/median 1.15
+- **L-331** `planner.blocks.2.mlp.0.weight`: 512 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-332** `planner.blocks.2.mlp.2.weight`: 256 rows, dead 0, weak 0, norm CV 0.04, max/median 1.26
+- **L-333** `planner.wp_proj.weight`: 256 rows, dead 0, weak 1, norm CV 0.28, max/median 1.63
+- **L-334** `tqsa.t_proj.weight`: 128 rows, dead 0, weak 0, norm CV 0.20, max/median 1.90
+- **L-335** `relational.visual_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.05, max/median 1.23
+- **L-336** `relational.text_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.07, max/median 1.25
+- **L-337** `relational.action_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.18, max/median 1.44
+- **L-338** `relational.geom_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.06, max/median 1.19
+- **L-339** `relational.attns.0.in_proj_weight`: 1152 rows, dead 0, weak 0, norm CV 0.04, max/median 1.26
+- **L-340** `relational.attns.0.out_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.03, max/median 1.10
+- **L-341** `relational.attns.1.in_proj_weight`: 1152 rows, dead 0, weak 0, norm CV 0.03, max/median 1.13
+- **L-342** `relational.attns.1.out_proj.weight`: 384 rows, dead 0, weak 0, norm CV 0.03, max/median 1.09
+- **L-343** `relational.mlps.0.0.weight`: 480 rows, dead 0, weak 0, norm CV 0.03, max/median 1.12
+- **L-344** `relational.mlps.0.2.weight`: 384 rows, dead 0, weak 0, norm CV 0.02, max/median 1.08
+- **L-345** `relational.mlps.1.0.weight`: 480 rows, dead 0, weak 0, norm CV 0.03, max/median 1.13
+- **L-346** `relational.mlps.1.2.weight`: 384 rows, dead 0, weak 0, norm CV 0.02, max/median 1.08
+
+## L4. Symmetric int8 quantization error (relative Frobenius)
+- **L-347** `trm.pos`: 0.0097
+- **L-348** `trm.net.chan_mlp.2.weight`: 0.0094
+- **L-349** `planner.type_emb`: 0.0093
+- **L-350** `planner.time_queries`: 0.0088
+- **L-351** `drift.hrm.horizon_emb`: 0.0079
+- **L-352** `planner.state_proj.weight`: 0.0076
+- **L-353** `trm.msg_head.weight`: 0.0070
+- **L-354** `trm.box_head.2.weight`: 0.0059
+- **L-355** `drift.hrm.fast_in.weight`: 0.0058
+- **L-356** `trm.net.chan_mlp.0.weight`: 0.0055
+- **L-357** `planner.cur_proj.weight`: 0.0054
+- **L-358** `trm.box_head.0.weight`: 0.0052
+- **L-359** `drift.hrm.fast_core.blocks.1.3.weight`: 0.0052
+- **L-360** `trm.head.weight`: 0.0052
+- **L-361** `drift.hrm.fast_core.blocks.0.3.weight`: 0.0051
+- **L-362** `trm.film.weight`: 0.0051
+- **L-363** `drift.hrm.slow_to_fast.weight`: 0.0050
+- **L-364** `drift.hrm.drift_proj.weight`: 0.0049
+- **L-365** `drift.hrm.fast_core.rate.weight`: 0.0049
+- **L-366** `drift.hrm.fast_to_slow.weight`: 0.0048
+- **L-367** `planner.mem_proj.weight`: 0.0047
+- **L-368** `drift.hrm.slow_core.rate.weight`: 0.0046
+- **L-369** `fusion.encoder.assemble.weight`: 0.0046
+- **L-370** `drift.hrm.fast_core.blocks.1.1.weight`: 0.0045
+- **L-371** `fusion.encoder.frame_proj.weight`: 0.0044
+- **L-372** `drift.hrm.ctx_attn.out_proj.weight`: 0.0044
+- **L-373** `drift.hrm.fast_core.blocks.0.1.weight`: 0.0044
+- **L-374** `planner.wm_delta_proj.weight`: 0.0044
+- **L-375** `drift.hrm.slow_core.blocks.1.3.weight`: 0.0044
+- **L-376** `fusion.encoder.obj_proj.weight`: 0.0043
+- **L-377** `drift.hrm.ctx_attn.in_proj_weight`: 0.0043
+- **L-378** `drift.hrm.slow_core.blocks.0.3.weight`: 0.0043
+- **L-379** `fusion.encoder.text_proj.weight`: 0.0043
+- **L-380** `drift.hrm.slow_core.blocks.0.1.weight`: 0.0042
+- **L-381** `trm.net.token_mix.weight`: 0.0042
+- **L-382** `trm.embed.weight`: 0.0042
+- **L-383** `drift.hrm.slow_core.blocks.1.1.weight`: 0.0041
+- **L-384** `drift.hrm.eef_proj.weight`: 0.0039
+- **L-385** `drift.hrm.gain_head.weight`: nan
+- **L-386** `planner.blocks.0.attn.in_proj_weight`: 0.0108
+- **L-387** `tqsa.t_proj.weight`: 0.0106
+- **L-388** `relational.queries`: 0.0098
+- **L-389** `relational.attns.0.in_proj_weight`: 0.0093
+- **L-390** `relational.visual_proj.weight`: 0.0093
+- **L-391** `tqsa.v_proj.weight`: 0.0090
+- **L-392** `relational.attns.0.out_proj.weight`: 0.0086
+- **L-393** `relational.text_proj.weight`: 0.0085
+- **L-394** `planner.blocks.0.mlp.0.weight`: 0.0078
+- **L-395** `relational.type_emb`: 0.0077
+- **L-396** `relational.mlps.1.0.weight`: 0.0072
+- **L-397** `planner.blocks.1.attn.in_proj_weight`: 0.0071
+- **L-398** `planner.blocks.1.mlp.0.weight`: 0.0071
+- **L-399** `relational.mlps.1.2.weight`: 0.0070
+- **L-400** `planner.blocks.0.attn.out_proj.weight`: 0.0069
+- **L-401** `planner.blocks.1.mlp.2.weight`: 0.0068
+- **L-402** `planner.blocks.2.mlp.2.weight`: 0.0068
+- **L-403** `relational.mlps.0.0.weight`: 0.0068
+- **L-404** `relational.attns.1.out_proj.weight`: 0.0066
+- **L-405** `relational.attns.1.in_proj_weight`: 0.0066
+- **L-406** `relational.mlps.0.2.weight`: 0.0066
+- **L-407** `planner.rel_proj.weight`: 0.0065
+- **L-408** `planner.blocks.2.attn.in_proj_weight`: 0.0063
+- **L-409** `planner.blocks.1.attn.out_proj.weight`: 0.0062
+- **L-410** `planner.blocks.0.mlp.2.weight`: 0.0062
+- **L-411** `planner.blocks.2.mlp.0.weight`: 0.0061
+- **L-412** `relational.geom_proj.weight`: 0.0060
+- **L-413** `planner.spat_proj.weight`: 0.0057
+- **L-414** `planner.blocks.2.attn.out_proj.weight`: 0.0056
+- **L-415** `planner.grip_head.weight`: 0.0049
+- **L-416** `planner.waypoint_head.weight`: 0.0049
+- **L-417** `planner.proprio_proj.weight`: 0.0046
+- **L-418** `planner.heat_proj.weight`: 0.0045
+- **L-419** `planner.orient_head.weight`: 0.0045
+- **L-420** `relational.action_proj.weight`: 0.0045
+- **L-421** `planner.wm_latent_proj.weight`: 0.0045
+- **L-422** `relational.rel_bias.weight`: 0.0045
+- **L-423** `planner.msg_proj.weight`: 0.0043
+- **L-424** `planner.wp_proj.weight`: 0.0040
+- **L-425** `planner.time_encoding`: 0.0023
+
+## L5. Cross-checkpoint deltas (rec_fix vs v8_s0, relative Frobenius)
+- **L-426** `fusion.encoder.obj_proj.weight`: Δ 0.576
+- **L-427** `fusion.encoder.obj_proj.bias`: Δ 0.218
+- **L-428** `fusion.encoder.frame_proj.weight`: Δ 0.797
+- **L-429** `fusion.encoder.frame_proj.bias`: Δ 0.186
+- **L-430** `fusion.encoder.text_proj.weight`: Δ 0.847
+- **L-431** `fusion.encoder.text_proj.bias`: Δ 0.236
+- **L-432** `fusion.encoder.action_proj.weight`: Δ 0.521
+- **L-433** `fusion.encoder.action_proj.bias`: Δ 0.028
+- **L-434** `fusion.encoder.assemble.weight`: Δ 0.761
+- **L-435** `fusion.encoder.assemble.bias`: Δ 0.131
+- **L-436** `drift.hrm.horizon_emb`: Δ 0.035
+- **L-437** `drift.hrm.log_gain_base`: Δ 0.000
+- **L-438** `drift.hrm.drift_proj.weight`: Δ 0.131
+- **L-439** `drift.hrm.drift_proj.bias`: Δ 0.168
+- **L-440** `drift.hrm.ctx_q_norm.weight`: Δ 0.004
+- **L-441** `drift.hrm.ctx_q_norm.bias`: Δ 1.002
+- **L-442** `drift.hrm.ctx_kv_norm.weight`: Δ 0.012
+- **L-443** `drift.hrm.ctx_kv_norm.bias`: Δ 1.038
+- **L-444** `drift.hrm.ctx_attn.in_proj_weight`: Δ 0.051
+- **L-445** `drift.hrm.ctx_attn.in_proj_bias`: Δ 1.265
+- **L-446** `drift.hrm.ctx_attn.out_proj.weight`: Δ 0.125
+- **L-447** `drift.hrm.ctx_attn.out_proj.bias`: Δ 1.168
+- **L-448** `drift.hrm.fast_to_slow.weight`: Δ 0.236
+- **L-449** `drift.hrm.fast_to_slow.bias`: Δ 0.132
+- **L-450** `drift.hrm.slow_core.blocks.0.0.weight`: Δ 0.009
+- **L-451** `drift.hrm.slow_core.blocks.0.0.bias`: Δ 0.995
+- **L-452** `drift.hrm.slow_core.blocks.0.1.weight`: Δ 0.140
+- **L-453** `drift.hrm.slow_core.blocks.0.1.bias`: Δ 0.108
+- **L-454** `drift.hrm.slow_core.blocks.0.3.weight`: Δ 0.185
+- **L-455** `drift.hrm.slow_core.blocks.0.3.bias`: Δ 0.146
+- **L-456** `drift.hrm.slow_core.blocks.1.0.weight`: Δ 0.009
+- **L-457** `drift.hrm.slow_core.blocks.1.0.bias`: Δ 1.008
+- **L-458** `drift.hrm.slow_core.blocks.1.1.weight`: Δ 0.135
+- **L-459** `drift.hrm.slow_core.blocks.1.1.bias`: Δ 0.110
+- **L-460** `drift.hrm.slow_core.blocks.1.3.weight`: Δ 0.176
+- **L-461** `drift.hrm.slow_core.blocks.1.3.bias`: Δ 0.136
+- **L-462** `drift.hrm.slow_core.rate.weight`: Δ 0.231
+- **L-463** `drift.hrm.slow_core.rate.bias`: Δ 0.195
+- **L-464** `drift.hrm.fast_in.weight`: Δ 0.593
+- **L-465** `drift.hrm.fast_in.bias`: Δ 0.230
+- **L-466** `drift.hrm.eef_proj.weight`: Δ 0.009
+- **L-467** `drift.hrm.eef_proj.bias`: Δ 0.020
+- **L-468** `drift.hrm.slow_to_fast.weight`: Δ 0.207
+- **L-469** `drift.hrm.slow_to_fast.bias`: Δ 0.112
+- **L-470** `drift.hrm.fast_core.blocks.0.0.weight`: Δ 0.011
+- **L-471** `drift.hrm.fast_core.blocks.0.0.bias`: Δ 1.063
+- **L-472** `drift.hrm.fast_core.blocks.0.1.weight`: Δ 0.174
+- **L-473** `drift.hrm.fast_core.blocks.0.1.bias`: Δ 0.104
+- **L-474** `drift.hrm.fast_core.blocks.0.3.weight`: Δ 0.230
+- **L-475** `drift.hrm.fast_core.blocks.0.3.bias`: Δ 0.174
+- **L-476** `drift.hrm.fast_core.blocks.1.0.weight`: Δ 0.010
+- **L-477** `drift.hrm.fast_core.blocks.1.0.bias`: Δ 1.044
+- **L-478** `drift.hrm.fast_core.blocks.1.1.weight`: Δ 0.158
+- **L-479** `drift.hrm.fast_core.blocks.1.1.bias`: Δ 0.112
+- **L-480** `drift.hrm.fast_core.blocks.1.3.weight`: Δ 0.221
+- **L-481** `drift.hrm.fast_core.blocks.1.3.bias`: Δ 0.201
+- **L-482** `drift.hrm.fast_core.rate.weight`: Δ 0.246
+- **L-483** `drift.hrm.fast_core.rate.bias`: Δ 0.211
+- **L-484** `drift.hrm.out_norm.weight`: Δ 0.012
+- **L-485** `drift.hrm.out_norm.bias`: Δ 0.905
+- **L-486** `drift.hrm.gain_head.weight`: Δ 0.000
+- **L-487** `drift.hrm.gain_head.bias`: Δ 0.000
+- **L-488** `trm.ctx_decay`: Δ 0.069
+- **L-489** `trm.pos`: Δ 0.435
+- **L-490** `trm.y_init`: Δ 0.000
+- **L-491** `trm.z_init`: Δ 0.000
+- **L-492** `trm.embed.weight`: Δ 0.251
+- **L-493** `trm.embed.bias`: Δ 0.077
+- **L-494** `trm.film.weight`: Δ 0.296
+- **L-495** `trm.film.bias`: Δ 0.586
+- **L-496** `trm.net.norm1.weight`: Δ 0.006
+- **L-497** `trm.net.norm1.bias`: Δ 0.779
+- **L-498** `trm.net.token_mix.weight`: Δ 0.048
+- **L-499** `trm.net.token_mix.bias`: Δ 0.004
+- **L-500** `trm.net.norm2.weight`: Δ 0.016
+- **L-501** `trm.net.norm2.bias`: Δ 1.385
+- **L-502** `trm.net.chan_mlp.0.weight`: Δ 0.253
+- **L-503** `trm.net.chan_mlp.0.bias`: Δ 0.185
+- **L-504** `trm.net.chan_mlp.2.weight`: Δ 0.527
+- **L-505** `trm.net.chan_mlp.2.bias`: Δ 0.390
+- **L-506** `trm.out_norm.weight`: Δ 0.027
+- **L-507** `trm.out_norm.bias`: Δ 0.819
+- **L-508** `trm.head.weight`: Δ 0.298
+- **L-509** `trm.head.bias`: Δ 0.121
+- **L-510** `trm.box_head.0.weight`: Δ 0.411
+- **L-511** `trm.box_head.0.bias`: Δ 0.163
+- **L-512** `trm.box_head.2.weight`: Δ 0.190
+- **L-513** `trm.box_head.2.bias`: Δ 0.067
+- **L-514** `trm.msg_head.weight`: Δ 0.294
+- **L-515** `trm.msg_head.bias`: Δ 0.216
+
+## L6. Curated findings (static)
+- **L-516** (F-001) Deployed trainable state: 16.584M parameters across 211 tensors in 6 modules; TRM holds 60.1% of them.
+- **L-517** (F-002) `drift.hrm.ctx_attn.in_proj_bias` is 78% near-zero (|w|<1e-3, n=768) — under-used capacity or heavy regularization.
+- **L-518** (F-003) `drift.hrm.gain_head.weight` is 100% near-zero (|w|<1e-3, n=768) — under-used capacity or heavy regularization.
+- **L-519** (F-004) `trm.net.norm1.weight` has |w|max 1.005 at 325σ — outlier weights that will dominate int8 ranges.
+- **L-520** (F-005) `trm.net.norm2.weight` has |w|max 1.021 at 212σ — outlier weights that will dominate int8 ranges.
+- **L-521** (F-006) `trm.out_norm.weight` has |w|max 0.994 at 224σ — outlier weights that will dominate int8 ranges.
+- **L-522** (F-007) `relational.attn_norms.0.weight` has |w|max 1.043 at 77σ — outlier weights that will dominate int8 ranges.
+- **L-523** (F-008) `relational.attn_norms.1.weight` has |w|max 1.020 at 147σ — outlier weights that will dominate int8 ranges.
+- **L-524** (F-009) `relational.mlp_norms.0.weight` has |w|max 1.014 at 138σ — outlier weights that will dominate int8 ranges.
+- **L-525** (F-010) `relational.mlp_norms.1.weight` has |w|max 1.008 at 146σ — outlier weights that will dominate int8 ranges.
+- **L-526** (F-011) `relational.out_norm.weight` has |w|max 1.014 at 148σ — outlier weights that will dominate int8 ranges.
+- **L-527** (F-012) `tqsa.t_proj.weight` [128, 512] uses an effective rank of 28.5/128 (22%) — severe rank collapse; this layer is nearly a low-rank bottleneck.
+- **L-528** (F-013) `relational.text_proj.weight` [384, 512] uses an effective rank of 177.3/384 (46%) — compressible; a low-rank factorization would keep behavior.
+- **L-529** (F-014) `trm.net.chan_mlp.2.weight` [1024, 4096] uses an effective rank of 541.9/1024 (53%) — compressible; a low-rank factorization would keep behavior.
+- **L-530** (F-015) `planner.state_proj.weight` [256, 256] uses an effective rank of 141.5/256 (55%) — compressible; a low-rank factorization would keep behavior.
+- **L-531** (F-016) `relational.attns.1.out_proj.weight` [384, 384] uses an effective rank of 222.5/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **L-532** (F-017) `relational.visual_proj.weight` [384, 512] uses an effective rank of 222.9/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **L-533** (F-018) `relational.attns.0.out_proj.weight` [384, 384] uses an effective rank of 223.1/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **L-534** (F-019) `planner.blocks.1.attn.out_proj.weight` [256, 256] uses an effective rank of 149.2/256 (58%) — compressible; a low-rank factorization would keep behavior.
+- **L-535** (F-020) `planner.blocks.0.attn.out_proj.weight` [256, 256] uses an effective rank of 151.0/256 (59%) — compressible; a low-rank factorization would keep behavior.
+- **L-536** (F-021) `planner.blocks.2.attn.out_proj.weight` [256, 256] uses an effective rank of 151.2/256 (59%) — compressible; a low-rank factorization would keep behavior.
+- **L-537** (F-022) `drift.hrm.fast_to_slow.weight` [256, 256] uses an effective rank of 154.0/256 (60%) — compressible; a low-rank factorization would keep behavior.
+- **L-538** (F-023) `drift.hrm.fast_core.rate.weight` [256, 256] uses an effective rank of 154.8/256 (60%) — compressible; a low-rank factorization would keep behavior.
+- **L-539** (F-024) `planner.state_proj.weight` condition number 1.8e+04 — gradient flow through this map is anisotropic by 4.3 orders of magnitude.
+- **L-540** (F-025) `relational.attns.0.out_proj.weight` condition number 3.7e+03 — gradient flow through this map is anisotropic by 3.6 orders of magnitude.
+- **L-541** (F-026) `planner.blocks.1.attn.out_proj.weight` condition number 2.9e+03 — gradient flow through this map is anisotropic by 3.5 orders of magnitude.
+- **L-542** (F-027) `drift.hrm.fast_to_slow.weight` condition number 2.9e+03 — gradient flow through this map is anisotropic by 3.5 orders of magnitude.
+- **L-543** (F-028) `relational.attns.1.out_proj.weight` condition number 2.0e+03 — gradient flow through this map is anisotropic by 3.3 orders of magnitude.
+- **L-544** (F-029) `drift.hrm.ctx_attn.out_proj.weight` condition number 2.0e+03 — gradient flow through this map is anisotropic by 3.3 orders of magnitude.
+- **L-545** (F-030) Heavy-tail (Hill) exponents span 2.55–11.87; 52/67 matrices sit in the 2–6 'well-trained' band reported for converged networks.
+- **L-546** (F-031) `planner.wp_proj.weight`: 0 dead and 1/256 weak output rows (<10% median norm); row-norm CV 0.28.
+- **L-547** (F-032) Cross-checkpoint relative Frobenius distance (rec_fix vs v8_s0 stage A), mean per module: fusion=0.430, drift=0.288, trm=0.283. Near-zero means shared lineage/frozen; O(1) means independently trained tensors.
+- **L-548** (F-033) Simulated per-tensor symmetric int8: median relative error 0.0054; worst layers: trm.pos=0.010, trm.net.chan_mlp.2.weight=0.009, planner.type_emb=0.009, planner.time_queries=0.009. Outlier-dominated ranges (see outlier findings) are the Pi-deployment quantization risk.
+
+## L7. Curated findings (dynamic)
+- **L-549** (D-001) 30-step closed dream rollout (re-standardized each tick, evidence held): per-step update norm settles to 0.562 (first step 1.165); distance from the start plateaus at 24.23 — the recursion is a bounded orbit, not a divergence: dreaming is stable without the corrector on synthetic evidence.
+- **L-550** (D-002) Five dream rollouts from independent starts end in a shared attractor basin: final-state separation is 0.42× the initial separation.
+- **L-551** (D-003) Power iteration on the TRM input-output Jacobian at a standardized operating point converges to a leading singular value of 1.000 — an expansive map tamed only by re-standardization (the residual convention guarantees a unit eigendirection; values near 1 mean the delta head is a small perturbation).
+- **L-552** (D-004) Deployment-path ablation attribution (zero one planner input channel inside the live loop, 16 deterministic mock ticks each; mean |Δaction| vs baseline): relational=0.3615, current_emb=0.0120, proprio=0.0024, state_delta=0.0011, wm_msg=0.0008, fused=0.0000, spatial=0.0000, pred_box_emb=0.0000, geometry=0.0000. This is the §4h 'where vision dies' question re-asked of rec_fix on the exact deployment composition: channels with near-zero impact are dead inputs the planner has learned to ignore.
+- **L-553** (D-005) Activation probe over 24 policy ticks (12 nonlinearity sites): worst tanh/GELU saturation 1=50%, 1=29%, act=7%; max dead fraction 0%. Saturation >50% at the plan tanh would mean bang-bang actions; the measured levels say the tanh operates in its linear regime — consistent with the §4p magnitude-shrink diagnosis.
+- **L-554** (D-006) Live mock-loop action magnitude: mean |pose action| 0.056 over 30 ticks (LIBERO's passing band is ~1.0±0.05 of demo scale, §4p). The conditional-mean shrink survives in rec_fix on out-of-distribution mock inputs.

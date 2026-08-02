@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MicroVLA — Activation Observatory</title>
+  <link rel="stylesheet" href="static/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="mark">μ</div>
+      <div>
+        <h1>MicroVLA Activation Observatory</h1>
+        <p id="metaLine">Loading trace… · <a href="soup.html" style="color:#d6a45a">Soup 1080p player →</a></p>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="btnPlay" type="button">Play</button>
+      <button id="btnStep" type="button">Step</button>
+      <label class="speed">Speed
+        <select id="speed">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="4">4×</option>
+          <option value="15">15×</option>
+        </select>
+      </label>
+      <input id="scrub" type="range" min="0" max="899" value="0" />
+      <span id="clock">0.00s</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel sim-panel">
+      <div class="panel-head">
+        <h2>LIBERO-like tabletop</h2>
+        <span id="simBadge" class="badge">sim</span>
+      </div>
+      <canvas id="sim"></canvas>
+      <div class="sim-readout" id="simReadout"></div>
+    </section>
+
+    <section class="panel dag-panel">
+      <div class="panel-head">
+        <h2>Architecture flow</h2>
+        <span class="badge">energy · attribution edges</span>
+      </div>
+      <canvas id="flowDag" width="720" height="110"></canvas>
+      <div class="panel-head sub">
+        <h2>Every micro-module</h2>
+        <input id="modFilter" type="search" placeholder="filter modules…" />
+      </div>
+      <div id="dag" class="dag"></div>
+    </section>
+
+    <section class="panel inspect-panel">
+      <div class="panel-head">
+        <h2 id="inspectTitle">Layer inspector</h2>
+        <span id="inspectType" class="badge">—</span>
+      </div>
+      <canvas id="spark" width="640" height="120"></canvas>
+      <div class="bars" id="topBars"></div>
+      <pre id="inspectStats" class="stats"></pre>
+      <div class="heat-row">
+        <div>
+          <h3>Plan 5×7</h3>
+          <canvas id="planHeat" width="210" height="150"></canvas>
+        </div>
+        <div>
+          <h3>Fused slots</h3>
+          <canvas id="fusedHeat" width="210" height="150"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel contrib-panel">
+      <div class="panel-head">
+        <h2>Plan attribution</h2>
+        <span class="badge warn">not task success</span>
+      </div>
+      <canvas id="contrib" width="640" height="220"></canvas>
+      <p class="footnote" id="contribNote"></p>
+      <div id="groupEnergy" class="group-energy"></div>
+    </section>
+  </main>
+
+  <script type="module" src="static/app.js"></script>
+</body>
+</html>

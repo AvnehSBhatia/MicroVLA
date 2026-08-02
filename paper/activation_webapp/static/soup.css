@@ -1,0 +1,91 @@
+:root {
+  --bg: #f3efe6;
+  --ink: #1c1a16;
+  --muted: #5c564c;
+  --panel: #fffdf8;
+  --line: #d9d0c0;
+  --accent: #b45309;
+  --ok: #3f6b4a;
+  --sans: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; min-height: 100%;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #fff8e8 0%, transparent 55%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+header {
+  display: flex; justify-content: space-between; align-items: end;
+  gap: 1rem; padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.eyebrow {
+  margin: 0; text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: 0.72rem; color: var(--muted); font-family: var(--mono);
+}
+h1 { margin: 0.25rem 0 0.35rem; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 600; }
+.status { margin: 0; color: var(--ok); font-family: var(--mono); font-size: 0.85rem; }
+.quiet { color: var(--muted); font-size: 0.85rem; }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 1.25rem; padding: 1.25rem 1.75rem 2rem;
+}
+
+.video-panel, .flow-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  padding: 0.85rem;
+}
+
+.angles { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.7rem; }
+.angles button {
+  border: 1px solid var(--line); background: #fff;
+  color: var(--ink); padding: 0.4rem 0.75rem; border-radius: 999px;
+  cursor: pointer; font: inherit; font-size: 0.9rem;
+}
+.angles button.active, .angles button:hover {
+  border-color: var(--accent); color: var(--accent);
+}
+
+#player {
+  width: 100%; aspect-ratio: 16 / 9; background: #111;
+  border-radius: 0.25rem; display: block;
+}
+
+.flow-panel h2 { margin: 0.2rem 0 0.2rem; font-size: 1.25rem; }
+.lede { margin: 0 0 1rem; color: var(--muted); }
+
+.flow-node {
+  display: grid; grid-template-columns: 2rem 1fr; gap: 0.7rem;
+  padding: 0.65rem 0.4rem; border-top: 1px solid var(--line);
+}
+.flow-node:first-of-type { border-top: none; }
+.flow-node .num {
+  width: 1.7rem; height: 1.7rem; border-radius: 999px;
+  display: grid; place-items: center;
+  background: var(--ink); color: var(--panel);
+  font-family: var(--mono); font-size: 0.8rem;
+}
+.flow-node h3 { margin: 0 0 0.15rem; font-size: 1.05rem; }
+.flow-node p { margin: 0; color: var(--muted); line-height: 1.35; font-size: 0.95rem; }
+.flow-arrow {
+  text-align: center; color: var(--accent); font-size: 1.1rem; line-height: 1;
+  padding: 0.1rem 0;
+}
+.flow-note {
+  margin: 1rem 0 0; padding-top: 0.8rem; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 0.9rem; line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}

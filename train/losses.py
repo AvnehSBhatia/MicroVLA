@@ -199,6 +199,7 @@ def centering_loss(
     sign: tuple[float, float] = (1.0, -1.0),
     gain: float = 0.5,
     conf_floor: float = 0.1,
+    err_weight: bool = False,
 ) -> torch.Tensor:
     """IBVS-shaped grasp/place centering aux on plan row 0 xy.
 
@@ -213,12 +214,17 @@ def centering_loss(
     the residual is zero and this term is an exact no-op (still connected to
     ``plan`` so it never silently drops out of the graph).
 
+    With ``err_weight=True`` the sample weight scales by image error
+    ``max(|eu|,|ev|)`` — bigger in-frame offset ⇒ stronger pull (dynamic
+    loss conditioned on what's in the camera).
+
     Args:
         plan / target: ``[..., plan_steps, num_servos]`` (flattened ``[B*T,…]``
             is fine — leading dims must match ``*_centers`` / masks).
         source_centers / target_centers: ``[..., 2]`` in ``[0, 1]``.
         grasp_mask / place_mask: ``[...]`` in ``[0, 1]`` from
-            ``microvla.utils.phase.grasp_place_masks``.
+            ``microvla.utils.phase.grasp_place_masks``, or detection masks
+            when ``--centering-in-frame`` is on.
         box_weights: Optional ``[..., 2]`` (source, target) confidences; when
             omitted every detection is treated as fully trusted.
         grasp_uv: Desired object location in the camera frame at contact.
@@ -227,6 +233,7 @@ def centering_loss(
         sign: Per-axis map from image error to delta-action (camera convention).
         gain: Residual scale in action units (match eval ``--ibvs-gain`` order).
         conf_floor: Ignore detections weaker than this.
+        err_weight: Scale each sample's weight by its image error.
 
     Returns:
         Scalar mean squared error over weighted xy entries; exact zero tensor
@@ -254,11 +261,18 @@ def centering_loss(
         tgt_w = (box_weights[..., 1] >= conf_floor).to(plan.dtype) * box_weights[..., 1]
 
     # Image error → action residual (same linear map as eval IBVS).
+    src_err = (source_centers - uv).abs().amax(dim=-1)   # [...,]
+    tgt_err = (target_centers - uv).abs().amax(dim=-1)
     src_res = gain * sg * (source_centers - uv)          # [..., 2]
     tgt_res = gain * sg * (target_centers - uv)
-    w = grasp_mask * src_w + place_mask * tgt_w          # [...,]
-    residual = (grasp_mask * src_w).unsqueeze(-1) * src_res \
-        + (place_mask * tgt_w).unsqueeze(-1) * tgt_res
+    src_term = grasp_mask * src_w
+    tgt_term = place_mask * tgt_w
+    if err_weight:
+        # Dynamic: far-off-center frames dominate; already-centred are near-noop.
+        src_term = src_term * src_err
+        tgt_term = tgt_term * tgt_err
+    w = src_term + tgt_term
+    residual = src_term.unsqueeze(-1) * src_res + tgt_term.unsqueeze(-1) * tgt_res
 
     pred_xy = plan[..., 0, :2]
     want_xy = target[..., 0, :2] + residual

@@ -89,3 +89,46 @@ def test_depth_loss_engages_when_centred():
     assert float(loss) > 0.0
     loss.backward()
     assert plan.grad[:, 0, 2].abs().sum() > 0
+
+
+def test_err_weight_scales_with_image_offset():
+    """Farther in-frame offsets must dominate when err_weight=True."""
+    pwm, src, tgt, bw = _toy_batch()
+    g = torch.ones(2, 8)   # in-frame mask: all ticks
+    p = torch.zeros(2, 8)
+    plan = torch.zeros(2 * 8, 5, 7)
+    target = torch.zeros_like(plan)
+    src_near = src.clone(); src_near[:] = torch.tensor([0.55, 0.55])  # err 0.05
+    src_far = src.clone(); src_far[:] = torch.tensor([0.90, 0.55])    # err 0.40
+    lo = float(centering_loss(
+        plan, target, src_near.reshape(-1, 2), tgt.reshape(-1, 2),
+        g.reshape(-1), p.reshape(-1), box_weights=bw.reshape(-1, 2),
+        grasp_uv=(0.5, 0.55), gain=0.5, err_weight=True))
+    hi = float(centering_loss(
+        plan, target, src_far.reshape(-1, 2), tgt.reshape(-1, 2),
+        g.reshape(-1), p.reshape(-1), box_weights=bw.reshape(-1, 2),
+        grasp_uv=(0.5, 0.55), gain=0.5, err_weight=True))
+    assert hi > lo
+
+
+def test_in_frame_mask_fires_outside_grasp_window():
+    pwm, src, tgt, bw = _toy_batch()
+    # Off-center only at t=0 (outside grasp window around t=3).
+    src[:] = torch.tensor([0.5, 0.55])
+    src[0, 0] = torch.tensor([0.8, 0.55])
+    g_win, p_win = grasp_place_masks(pwm, half_window=1)
+    plan = torch.zeros(2 * 8, 5, 7)
+    target = torch.zeros_like(plan)
+    # Grasp-window only → silent (offset not in window).
+    loss_win = float(centering_loss(
+        plan, target, src.reshape(-1, 2), tgt.reshape(-1, 2),
+        g_win.reshape(-1), p_win.reshape(-1), box_weights=bw.reshape(-1, 2),
+        gain=0.5))
+    # In-frame mask → fires on the approach tick.
+    g_frame = (bw[..., 0] >= 0.1).float()
+    loss_frame = float(centering_loss(
+        plan, target, src.reshape(-1, 2), tgt.reshape(-1, 2),
+        g_frame.reshape(-1), torch.zeros_like(g_frame).reshape(-1),
+        box_weights=bw.reshape(-1, 2), gain=0.5))
+    assert loss_win == 0.0
+    assert loss_frame > 0.0

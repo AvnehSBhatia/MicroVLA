@@ -1,0 +1,35 @@
+# Static weight forensics — machine-generated ledger
+
+- **F-001** [all/census] Deployed trainable state: 16.584M parameters across 211 tensors in 6 modules; TRM holds 60.1% of them.
+- **F-002** [drift/sparsity] `drift.hrm.ctx_attn.in_proj_bias` is 78% near-zero (|w|<1e-3, n=768) — under-used capacity or heavy regularization.
+- **F-003** [drift/sparsity] `drift.hrm.gain_head.weight` is 100% near-zero (|w|<1e-3, n=768) — under-used capacity or heavy regularization.
+- **F-004** [trm/outlier] `trm.net.norm1.weight` has |w|max 1.005 at 325σ — outlier weights that will dominate int8 ranges.
+- **F-005** [trm/outlier] `trm.net.norm2.weight` has |w|max 1.021 at 212σ — outlier weights that will dominate int8 ranges.
+- **F-006** [trm/outlier] `trm.out_norm.weight` has |w|max 0.994 at 224σ — outlier weights that will dominate int8 ranges.
+- **F-007** [relational/outlier] `relational.attn_norms.0.weight` has |w|max 1.043 at 77σ — outlier weights that will dominate int8 ranges.
+- **F-008** [relational/outlier] `relational.attn_norms.1.weight` has |w|max 1.020 at 147σ — outlier weights that will dominate int8 ranges.
+- **F-009** [relational/outlier] `relational.mlp_norms.0.weight` has |w|max 1.014 at 138σ — outlier weights that will dominate int8 ranges.
+- **F-010** [relational/outlier] `relational.mlp_norms.1.weight` has |w|max 1.008 at 146σ — outlier weights that will dominate int8 ranges.
+- **F-011** [relational/outlier] `relational.out_norm.weight` has |w|max 1.014 at 148σ — outlier weights that will dominate int8 ranges.
+- **F-012** [tqsa/rank] `tqsa.t_proj.weight` [128, 512] uses an effective rank of 28.5/128 (22%) — severe rank collapse; this layer is nearly a low-rank bottleneck.
+- **F-013** [relational/rank] `relational.text_proj.weight` [384, 512] uses an effective rank of 177.3/384 (46%) — compressible; a low-rank factorization would keep behavior.
+- **F-014** [trm/rank] `trm.net.chan_mlp.2.weight` [1024, 4096] uses an effective rank of 541.9/1024 (53%) — compressible; a low-rank factorization would keep behavior.
+- **F-015** [planner/rank] `planner.state_proj.weight` [256, 256] uses an effective rank of 141.5/256 (55%) — compressible; a low-rank factorization would keep behavior.
+- **F-016** [relational/rank] `relational.attns.1.out_proj.weight` [384, 384] uses an effective rank of 222.5/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **F-017** [relational/rank] `relational.visual_proj.weight` [384, 512] uses an effective rank of 222.9/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **F-018** [relational/rank] `relational.attns.0.out_proj.weight` [384, 384] uses an effective rank of 223.1/384 (58%) — compressible; a low-rank factorization would keep behavior.
+- **F-019** [planner/rank] `planner.blocks.1.attn.out_proj.weight` [256, 256] uses an effective rank of 149.2/256 (58%) — compressible; a low-rank factorization would keep behavior.
+- **F-020** [planner/rank] `planner.blocks.0.attn.out_proj.weight` [256, 256] uses an effective rank of 151.0/256 (59%) — compressible; a low-rank factorization would keep behavior.
+- **F-021** [planner/rank] `planner.blocks.2.attn.out_proj.weight` [256, 256] uses an effective rank of 151.2/256 (59%) — compressible; a low-rank factorization would keep behavior.
+- **F-022** [drift/rank] `drift.hrm.fast_to_slow.weight` [256, 256] uses an effective rank of 154.0/256 (60%) — compressible; a low-rank factorization would keep behavior.
+- **F-023** [drift/rank] `drift.hrm.fast_core.rate.weight` [256, 256] uses an effective rank of 154.8/256 (60%) — compressible; a low-rank factorization would keep behavior.
+- **F-024** [planner/conditioning] `planner.state_proj.weight` condition number 1.8e+04 — gradient flow through this map is anisotropic by 4.3 orders of magnitude.
+- **F-025** [relational/conditioning] `relational.attns.0.out_proj.weight` condition number 3.7e+03 — gradient flow through this map is anisotropic by 3.6 orders of magnitude.
+- **F-026** [planner/conditioning] `planner.blocks.1.attn.out_proj.weight` condition number 2.9e+03 — gradient flow through this map is anisotropic by 3.5 orders of magnitude.
+- **F-027** [drift/conditioning] `drift.hrm.fast_to_slow.weight` condition number 2.9e+03 — gradient flow through this map is anisotropic by 3.5 orders of magnitude.
+- **F-028** [relational/conditioning] `relational.attns.1.out_proj.weight` condition number 2.0e+03 — gradient flow through this map is anisotropic by 3.3 orders of magnitude.
+- **F-029** [drift/conditioning] `drift.hrm.ctx_attn.out_proj.weight` condition number 2.0e+03 — gradient flow through this map is anisotropic by 3.3 orders of magnitude.
+- **F-030** [all/esd] Heavy-tail (Hill) exponents span 2.55–11.87; 52/67 matrices sit in the 2–6 'well-trained' band reported for converged networks.
+- **F-031** [planner/neurons] `planner.wp_proj.weight`: 0 dead and 1/256 weak output rows (<10% median norm); row-norm CV 0.28.
+- **F-032** [all/lineage] Cross-checkpoint relative Frobenius distance (rec_fix vs v8_s0 stage A), mean per module: fusion=0.430, drift=0.288, trm=0.283. Near-zero means shared lineage/frozen; O(1) means independently trained tensors.
+- **F-033** [all/quant] Simulated per-tensor symmetric int8: median relative error 0.0054; worst layers: trm.pos=0.010, trm.net.chan_mlp.2.weight=0.009, planner.type_emb=0.009, planner.time_queries=0.009. Outlier-dominated ranges (see outlier findings) are the Pi-deployment quantization risk.

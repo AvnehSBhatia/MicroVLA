@@ -113,3 +113,29 @@ def grasp_place_masks(
     grasp = ((idx - t_close.unsqueeze(1)).abs() <= hw) & usable_grasp.unsqueeze(1)
     place = ((idx - t_place.unsqueeze(1)).abs() <= hw) & usable_place.unsqueeze(1)
     return grasp.float(), place.float()
+
+
+def in_frame_masks(
+    box_weights: torch.Tensor,
+    conf_floor: float = 0.1,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Detection-gated masks: supervise whenever the role is visible in frame.
+
+    The grasp/place window of :func:`grasp_place_masks` only fires for a few
+    timesteps around the gripper transition. Lateral near-misses are baked in
+    earlier — the arm approaches *beside* the object for many frames. This
+    mask is the dynamic alternative: any timestep whose SOURCE (resp. TARGET)
+    confidence clears ``conf_floor`` is a centering sample.
+
+    Args:
+        box_weights: ``[B, T, 2]`` (source, target) confidences from the bake.
+        conf_floor: Same floor as ``centering_loss`` / eval IBVS.
+
+    Returns:
+        ``(source_mask, target_mask)`` each ``[B, T]`` float in ``{0, 1}``.
+    """
+    if box_weights.dim() != 3 or box_weights.shape[-1] != 2:
+        raise ValueError(f"expected [B, T, 2], got {tuple(box_weights.shape)}")
+    src = (box_weights[..., 0] >= conf_floor).to(box_weights.dtype)
+    tgt = (box_weights[..., 1] >= conf_floor).to(box_weights.dtype)
+    return src, tgt

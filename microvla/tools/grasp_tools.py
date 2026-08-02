@@ -43,8 +43,11 @@ def _eef_z(proprio: np.ndarray) -> float:
 
 
 def _jaws(proprio: np.ndarray) -> float:
+    # ABS before the mean: the panda finger joints are mirrored (+q, -q), so
+    # the signed mean is identically zero in every jaw state (defect 29,
+    # paper.md 5s) — the unsigned mean is the actual half-width signal.
     p = np.asarray(proprio, dtype=np.float64).reshape(-1)
-    return float(p[7:9].mean()) if p.shape[0] >= 9 else 0.0
+    return float(np.abs(p[7:9]).mean()) if p.shape[0] >= 9 else 0.0
 
 
 def reach_center(
@@ -153,7 +156,7 @@ class GraspToolController:
         i_gain: float = 0.35,
         i_clamp: float = 0.25,
         settle_persist: int = 8,
-        grasp_z: float = 0.10,
+        grasp_z: float = 0.06,
     ) -> None:
         self.gain = float(gain)
         self.sign = (float(sign[0]), float(sign[1]))

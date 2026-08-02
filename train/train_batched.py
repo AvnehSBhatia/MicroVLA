@@ -57,7 +57,7 @@ from microvla.critic import (
     ProgressCritic, frozen_value, progress_targets, progress_targets_eef,
 )
 from microvla.utils.embedding import standardize
-from microvla.utils.phase import pre_grasp_weights, grasp_place_masks
+from microvla.utils.phase import pre_grasp_weights, grasp_place_masks, in_frame_masks
 from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
@@ -137,12 +137,14 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="stage B: weight on the IBVS-shaped grasp/place centering "
                         "aux (train.losses.centering_loss). Closed-loop lateral "
                         "misses close/release beside the object; this reshapes "
-                        "row-0 xy toward canceling (center - grasp_uv) on those "
-                        "windows. 0 = off; 0.5-1.0 to match eval --ibvs-gain order.")
+                        "row-0 xy toward canceling (center - grasp_uv). 0 = off; "
+                        "0.5-1.0 matches eval --ibvs-gain. Best assisted "
+                        "proximity so far: aim60+hyst50 (eef~0.08 m).")
     p.add_argument("--centering-gain", type=float, default=0.5,
                    help="action-unit scale of the centering residual (like --ibvs-gain).")
-    p.add_argument("--centering-uv", type=str, default="0.5,0.55",
-                   help="desired object UV at contact (x,y) in [0,1].")
+    p.add_argument("--centering-uv", type=str, default="0.5,0.60",
+                   help="desired object UV at contact (x,y) in [0,1]. Default "
+                        "matches best hyst aim (cream cheese V=0.60).")
     p.add_argument("--centering-sign", type=str, default="1,-1",
                    help="image-error → delta-action signs (x,y). Wrist/eye-in-hand "
                         "default 1,-1; agentview IBVS falsifier uses 1,1.")
@@ -150,6 +152,15 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="half-window (timesteps) around grasp close / place open.")
     p.add_argument("--centering-conf-floor", type=float, default=0.1,
                    help="ignore role detections weaker than this for centering.")
+    p.add_argument("--centering-in-frame", action="store_true",
+                   help="dynamic centering: supervise EVERY timestep where the "
+                        "role is detected in-frame (box_weights >= conf-floor), "
+                        "not just the grasp/place window. This is the fix for "
+                        "'every video ends beside the object' — the offset is "
+                        "baked in during approach, not only at the close.")
+    p.add_argument("--centering-err-weight", action="store_true",
+                   help="scale each centering sample by its image error "
+                        "max(|eu|,|ev|) so far-off-center frames dominate.")
     p.add_argument("--depth-weight", type=float, default=0.0,
                    help="stage B: weight on the IBVS-shaped depth/descend aux "
                         "(train.losses.depth_loss). Engages only once the object "
@@ -1555,11 +1566,19 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                 tc = batch["target_centers"].reshape(-1, 2)
                 bw = batch["box_weights"].reshape(-1, 2)
                 gm, pm = gmask.reshape(-1), pmask.reshape(-1)
+                if args.centering_in_frame:
+                    # What's-in-frame: supervise whenever the role is detected
+                    # (hyst50 near-miss is baked in during approach, not only
+                    # at the grasp close).
+                    gmask, pmask = in_frame_masks(
+                        batch["box_weights"], conf_floor=args.centering_conf_floor)
+                    gm, pm = gmask.reshape(-1), pmask.reshape(-1)
                 if args.centering_weight > 0:
                     loss = loss + args.centering_weight * centering_loss(
                         P, Y, sc, tc, gm, pm, box_weights=bw,
                         grasp_uv=uv, sign=sg, gain=args.centering_gain,
-                        conf_floor=args.centering_conf_floor)
+                        conf_floor=args.centering_conf_floor,
+                        err_weight=bool(args.centering_err_weight))
                 if args.depth_weight > 0:
                     loss = loss + args.depth_weight * depth_loss(
                         P, Y, sc, tc, gm, pm, box_weights=bw,
