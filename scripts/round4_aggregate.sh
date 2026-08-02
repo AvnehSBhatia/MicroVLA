@@ -6,7 +6,7 @@ trap "" TERM HUP
 
 echo "[r4] train teacher_bc4 (AGGREGATE 100 teacher + 40 dagger) $(date -u)"
 python -u train/train_batched.py \
-  --data-dir data/teacher_grid2 data/teacher_dagger_soup_grid --v8 --tqsa --seed 0 \
+  --data-dir data/teacher_grid2 --data-dir data/teacher_dagger_soup_grid --v8 --tqsa --seed 0 \
   --batch-size 8 --device cuda --lr 2e-4 --reserve-vram-gb 0 --max-vram-gb 0 \
   --no-cache-spatial \
   --load-stage-a checkpoints/full_stageB_rec_fix.pt --resume-stage-b \
