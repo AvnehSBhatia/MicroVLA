@@ -336,6 +336,16 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "shrinks under you — a co-tenant was measured growing "
                         "60 -> 83 GB mid-run — so asking first is the only reliable "
                         "way to keep it. 0 disables.")
+    p.add_argument("--gram-hrm", action="store_true",
+                   help="enable GRAM stochastic guidance on HRM slow updates "
+                        "(cfg.gram_hrm). Loads non-strict so older stage-B "
+                        "checkpoints still resume.")
+    p.add_argument("--gram-planner", action="store_true",
+                   help="enable GRAM stochastic guidance on planner features "
+                        "before waypoint/orient/grip heads (cfg.gram_planner).")
+    p.add_argument("--gram-n-samples", type=int, default=1,
+                   help="GRAM inference width written into cfg (train uses "
+                        "posterior when targets are wired; default 1).")
     p.add_argument("--v8", action="store_true",
                    help="build the v8 stack (DESIGN.md 'v8 plan'): HRMBackbone in "
                         "place of AnchoredDriftEncoder, RelationalHead in place of "
@@ -1801,6 +1811,15 @@ def main(argv=None) -> None:
     args = parse_args(argv)
     ignore_sigterm()
     cfg = DEFAULT_CONFIG
+    if getattr(args, "gram_hrm", False) or getattr(args, "gram_planner", False):
+        cfg = dataclasses.replace(
+            cfg,
+            gram_hrm=bool(args.gram_hrm),
+            gram_planner=bool(args.gram_planner),
+            gram_n_samples=max(1, int(args.gram_n_samples)),
+        )
+        print(f"GRAM enabled: hrm={cfg.gram_hrm} planner={cfg.gram_planner} "
+              f"n_samples={cfg.gram_n_samples}", flush=True)
     if args.planner_drop:
         drop = {s.strip() for s in args.planner_drop.split(",") if s.strip()}
         unknown = sorted(drop - set(ChronoQueryPlanner.INPUT_NAMES))
@@ -1911,8 +1930,15 @@ def main(argv=None) -> None:
     if args.load_stage_a:
         # Retrain ONLY the policy: load the trained world model, skip stage A.
         st = torch.load(args.load_stage_a, map_location=device, weights_only=True)
-        fusion.load_state_dict(st["fusion"]); drift.load_state_dict(st["drift"]); trm.load_state_dict(st["trm"])
-        print(f"loaded world model from {args.load_stage_a}; skipping stage A", flush=True)
+        # GRAM adds new submodules; older stage-B ckpts lack those keys.
+        _strict = not (getattr(args, "gram_hrm", False) or getattr(args, "gram_planner", False))
+        fusion.load_state_dict(st["fusion"])
+        drift.load_state_dict(st["drift"], strict=_strict)
+        trm.load_state_dict(st["trm"])
+        if "relational" in st and relational is not None:
+            relational.load_state_dict(st["relational"], strict=False)
+        print(f"loaded world model from {args.load_stage_a}; skipping stage A "
+              f"(strict={_strict})", flush=True)
         args.stage_a_epochs = 0
         if args.resume_stage_b:
             # Continue the POLICY too (planner + tqsa) instead of fresh init —
@@ -1921,8 +1947,12 @@ def main(argv=None) -> None:
             if "planner" not in st:
                 raise SystemExit("--resume-stage-b needs a stage-B checkpoint "
                                  f"(no 'planner' key in {args.load_stage_a})")
-            planner.load_state_dict(st["planner"])
-            print("resumed planner from stage-B checkpoint", flush=True)
+            miss = planner.load_state_dict(st["planner"], strict=_strict)
+            if _strict:
+                print("resumed planner from stage-B checkpoint", flush=True)
+            else:
+                print(f"resumed planner (non-strict); missing={list(miss.missing_keys)[:8]}",
+                      flush=True)
             resume_state = st
 
     if args.stage_a_epochs > 0:

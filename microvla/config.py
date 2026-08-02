@@ -237,6 +237,15 @@ class MicroVLAConfig:
     hrm_slow_layers: int = 2
     hrm_fast_layers: int = 2
     hrm_gain_dim: int = 3           # learned per-axis control gains (x, y, z)
+    # ---- GRAM (Baek et al. 2026): stochastic guidance on HRM + planner heads ----
+    # NOT on the TRM. Slow HRM update = high-level recursive state; planner
+    # features before waypoint/orient/grip/wp_disp = multi-hypothesis decode.
+    # Off by default so existing checkpoints stay bit-identical.
+    gram_hrm: bool = False          # ε after slow_core (high-level only)
+    gram_planner: bool = False      # ε on plan feats before output heads
+    gram_noise_dim: int = 32        # bottleneck width of μ/σ
+    gram_n_samples: int = 1         # inference width (parallel trajectories)
+    gram_kl_weight: float = 0.1     # ELBO KL weight when posterior is used
     trainable_param_budget: int = 9_000_000
 
     @property

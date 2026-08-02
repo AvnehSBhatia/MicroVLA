@@ -308,6 +308,18 @@ class ChronoQueryPlanner(nn.Module):
         # decouples commanded magnitude from the regression's amplitude.
         self.wp_disp_head = (nn.Linear(cfg.d_plan, self.waypoint_dim)
                              if cfg.waypoint_action else None)
+        # GRAM on the plan features BEFORE the output heads (not on the TRM).
+        # Width scaling = sample N feat residuals → N plans; default decode
+        # uses the mean path in eval.
+        if cfg.gram_planner:
+            from microvla.utils.gram import StochasticGuidance
+            self.gram_feat = StochasticGuidance(
+                cfg.d_plan, noise_dim=cfg.gram_noise_dim,
+                # Flattened plan target for posterior ELBO: T * num_servos.
+                target_dim=cfg.plan_steps * cfg.num_servos,
+            )
+        else:
+            self.gram_feat = None
 
     def forward(self, next_emb: torch.Tensor, current_emb: torch.Tensor | None = None,
                 state_delta: torch.Tensor | None = None,
@@ -322,7 +334,9 @@ class ChronoQueryPlanner(nn.Module):
                 wm_delta: torch.Tensor | None = None,
                 fade: dict | None = None,
                 return_aux: bool = False,
-                return_wp: bool = False):
+                return_wp: bool = False,
+                n_samples: int | None = None,
+                gram_target: torch.Tensor | None = None):
         """Plans a servo trajectory from the prediction + current observation.
 
         Any argument whose memory group is not in ``cfg.planner_inputs`` is
@@ -376,12 +390,19 @@ class ChronoQueryPlanner(nn.Module):
                 ``[-1, 1]`` (x ``cfg.waypoint_range`` for metres), or ``None``
                 when ``cfg.waypoint_action`` is off. Takes precedence over
                 ``return_aux``.
+            n_samples: GRAM width. When ``cfg.gram_planner`` and ``> 1``,
+                draw this many latent plan trajectories and aggregate
+                (mean pose, majority grip). ``None`` uses ``cfg.gram_n_samples``.
+            gram_target: Optional ``[B, plan_steps, num_servos]`` for the
+                GRAM posterior during training; returns an extra KL scalar
+                when given with ``return_aux`` / ``return_wp``.
 
         Returns:
             ``plan``: ``[B, plan_steps, num_servos]`` in ``[-1, 1]`` — pose dims
             are ``tanh(cumsum(deltas))`` (smooth, sequential), the gripper dim
             is a hard ``+/-1`` decision. If ``return_aux``, returns
             ``(plan, grip_logits)``; if ``return_wp``, ``(plan, grip_logits, wp)``.
+            With ``gram_target`` and aux/wp, appends the KL scalar.
         """
         if next_emb.dim() != 2 or next_emb.shape[1] != self.cfg.vis_dim:
             raise ValueError(f"expected next_emb of shape [B, {self.cfg.vis_dim}], got {tuple(next_emb.shape)}")
@@ -467,39 +488,74 @@ class ChronoQueryPlanner(nn.Module):
             queries = block(queries, memory)
 
         feats = self.final_norm(queries)  # [B, plan_steps, d_plan]
+        kl = None
+        n = int(self.cfg.gram_n_samples if n_samples is None else n_samples)
 
-        # STAGE 1: the next `plan_steps` 3D end-effector coordinates, as a
-        # cumulative relative-position trajectory (per-step deltas -> cumsum ->
-        # tanh, so it is smooth, strictly sequential, and bounded to the
-        # normalized action space). These waypoints are the translation part of
-        # the plan (dims 0..waypoint_dim-1).
-        waypoints = torch.tanh(torch.cumsum(self.waypoint_head(feats), dim=1))  # [B, T, 3]
+        if self.gram_feat is not None and gram_target is not None:
+            # Posterior path (training): one sample conditioned on the BC target.
+            flat = gram_target.reshape(batch, -1)
+            # Guidance is per-token; broadcast the same flat target to each step
+            # by conditioning on the mean-pooled feat + target once, then add
+            # the residual to every step (shared trajectory noise).
+            pooled = feats.mean(dim=1)
+            z, kl = self.gram_feat.sample_posterior(pooled, flat)
+            feats = feats + (z - pooled).unsqueeze(1)
+            plan, grip_logit, wp = self._decode_heads(feats)
+            return self._pack(plan, grip_logit, wp, return_aux, return_wp, kl)
 
-        # STAGE 2: derive the rest of the servo move FROM the waypoints. Inject
-        # the predicted 3D path into the features so orientation and the gripper
-        # are conditioned on where the hand is planned to go (e.g. close as the
-        # waypoint arrives at the grasp point).
+        if self.gram_feat is not None and n > 1:
+            pooled = feats.mean(dim=1)
+            z_all, _ = self.gram_feat.sample_prior(pooled, n_samples=n, deterministic=False)
+            plans, grips, wps = [], [], []
+            for i in range(n):
+                fi = feats + (z_all[i] - pooled).unsqueeze(1)
+                p, g, w = self._decode_heads(fi)
+                plans.append(p); grips.append(g); wps.append(w)
+            plan = torch.stack(plans, 0).mean(0)
+            grip_logit = torch.stack(grips, 0).mean(0)
+            # Majority vote on the hard sign, then rebuild the plan grip col.
+            hard = torch.stack(
+                [torch.where(g > 0, torch.ones_like(g), -torch.ones_like(g)) for g in grips],
+                0)
+            grip = torch.where(hard.sum(0) >= 0, torch.ones_like(grip_logit),
+                               -torch.ones_like(grip_logit))
+            plan = torch.cat([plan[..., :-1], grip.unsqueeze(-1)], dim=-1)
+            wp = (torch.stack([w for w in wps if w is not None], 0).mean(0)
+                  if wps[0] is not None else None)
+            return self._pack(plan, grip_logit, wp, return_aux, return_wp, None)
+
+        if self.gram_feat is not None:
+            pooled = feats.mean(dim=1)
+            z = self.gram_feat(pooled, deterministic=not self.training)
+            feats = feats + (z - pooled).unsqueeze(1)
+
+        plan, grip_logit, wp = self._decode_heads(feats)
+        return self._pack(plan, grip_logit, wp, return_aux, return_wp, None)
+
+    def _decode_heads(self, feats: torch.Tensor):
+        """Stage-1 waypoints + stage-2 orient/grip (+ optional wp_disp)."""
+        waypoints = torch.tanh(torch.cumsum(self.waypoint_head(feats), dim=1))
         h = feats + self.wp_proj(waypoints)
         if self.orient_head is not None:
-            orient = torch.tanh(torch.cumsum(self.orient_head(h), dim=1))  # [B, T, n_orient]
-            pose = torch.cat([waypoints, orient], dim=-1)                  # [B, T, n_pose]
+            orient = torch.tanh(torch.cumsum(self.orient_head(h), dim=1))
+            pose = torch.cat([waypoints, orient], dim=-1)
         else:
             pose = waypoints
-
-        # Gripper: per-step open/close logit -> hard +/-1 decision at inference
-        # (BCE-trained via the returned logits). Hard decision is what makes
-        # the hand actually close instead of hedging toward "open".
-        grip_logit = self.grip_head(h).squeeze(-1)              # [B, T]
+        grip_logit = self.grip_head(h).squeeze(-1)
         grip = torch.where(grip_logit > 0, torch.ones_like(grip_logit),
-                           -torch.ones_like(grip_logit))         # [B, T] in {-1,+1}
+                           -torch.ones_like(grip_logit))
+        plan = torch.cat([pose, grip.unsqueeze(-1)], dim=-1)
+        wp = (torch.tanh(torch.cumsum(self.wp_disp_head(h), dim=1))
+              if self.wp_disp_head is not None else None)
+        return plan, grip_logit, wp
 
-        plan = torch.cat([pose, grip.unsqueeze(-1)], dim=-1)     # [B, T, num_servos]
+    @staticmethod
+    def _pack(plan, grip_logit, wp, return_aux, return_wp, kl):
         if return_wp:
-            wp = (torch.tanh(torch.cumsum(self.wp_disp_head(h), dim=1))
-                  if self.wp_disp_head is not None else None)   # [B, T, 3] in [-1, 1]
-            return plan, grip_logit, wp
+            out = (plan, grip_logit, wp) if kl is None else (plan, grip_logit, wp, kl)
+            return out
         if return_aux:
-            return plan, grip_logit
+            return (plan, grip_logit) if kl is None else (plan, grip_logit, kl)
         return plan
 
 

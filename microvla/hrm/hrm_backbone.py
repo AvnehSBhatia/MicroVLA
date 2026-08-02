@@ -144,6 +144,7 @@ _SLOW_MODULE_NAMES = (
     "ctx_attn",
     "fast_to_slow",
     "slow_core",
+    "gram_slow",  # optional; skipped when cfg.gram_hrm is False
 )
 _SLOW_PARAM_NAMES = ("horizon_emb",)
 
@@ -326,6 +327,14 @@ class HRMBackbone(nn.Module):
         self.fast_to_slow = nn.Linear(d, d)
         self.slow_core = _DampedCore(d, cfg.hrm_slow_layers)
         self.act = nn.GELU()
+        # GRAM stochastic guidance on the SLOW (high-level) update only — the
+        # fast module stays a deterministic local relaxation, matching the
+        # paper's hierarchical split (stochastic h, deterministic l).
+        if cfg.gram_hrm:
+            from microvla.utils.gram import StochasticGuidance
+            self.gram_slow = StochasticGuidance(d, noise_dim=cfg.gram_noise_dim)
+        else:
+            self.gram_slow = None
 
         # --- FAST module (steps every tick, cfg.tick_hz) ---------------------
         # Anchor-relative drift at 30 Hz: the fast module gets the raw latent
@@ -387,7 +396,10 @@ class HRMBackbone(nn.Module):
         step on imagination", and ``tests/test_hrm.py`` asserts it.
         """
         for name in _SLOW_MODULE_NAMES:
-            yield from getattr(self, name).parameters()
+            mod = getattr(self, name, None)
+            if mod is None:
+                continue
+            yield from mod.parameters()
         for name in _SLOW_PARAM_NAMES:
             yield getattr(self, name)
 
@@ -556,6 +568,11 @@ class HRMBackbone(nn.Module):
         if is_real:
             slow_drive = self._context_read(frame_emb) + self.fast_to_slow(self._fast)
             slow = self.slow_core(self._slow, slow_drive)
+            if self.gram_slow is not None:
+                # Deterministic mean path in eval (width scaling is a planner
+                # concern); train samples ε so the slow belief sees multiple
+                # trajectories across the batch.
+                slow = self.gram_slow(slow, deterministic=not self.training)
             self._slow = slow.detach()  # local BPTT
             self._window.append(frame_emb.detach())
         else:

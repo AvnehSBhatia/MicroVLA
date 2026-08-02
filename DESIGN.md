@@ -783,6 +783,13 @@ magnitude shrink and the first thing the next training run must fix.
 Runtime state (anchor, window deque, hidden) lives in plain attributes;
 first forward after `reset()` returns an exact-zero code (anchor tick).
 
+**GRAM experiment (opt-in, `cfg.gram_hrm` / `cfg.gram_planner`).** Baek et al.
+2026 stochastic residual guidance — **on the HRM slow update and on planner
+features before the waypoint/orient/grip/wp_disp heads, never on the TRM.**
+Shared primitive: `microvla/utils/gram.py::StochasticGuidance`. Off by
+default (zero-init → deterministic identity until trained). Inference width:
+`cfg.gram_n_samples` parallel trajectories, mean pose + majority grip.
+
 #### 2.3 RecursiveTRM — root `TRM.py` (9.969M, d=1024, T=3, n_inner=6)
 ```
 embed      Linear(5+3·16 → 1024)   # per-slot: [fused row | current chunk |

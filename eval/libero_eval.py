@@ -239,6 +239,8 @@ def _run_mock_trial(
 def _run_real_trial(
     policy, task: _TaskSpec, trial_seed: int, max_steps: int, camera: str,
     render_size: int = 256,
+    grip_close_dist: float = 0.0,
+    grip_close_lift: float = 0.0,
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
 
@@ -246,6 +248,11 @@ def _run_real_trial(
     short sides to 512, but cubic upscaling from 128 invents texture that the
     region-text head cannot ground — measured source detection ~20% on wrist
     frames. 256 is the cheapest resolution that still carries usable edges.
+
+    ``grip_close_dist`` / ``grip_close_lift`` are DIAGNOSTIC assists only: when
+    the EEF is within ``grip_close_dist`` of the sim object, force gripper
+    close (+1) and optionally replace the z residual with ``grip_close_lift``.
+    Never count these runs as unaided success.
     """
     from eval._libero_compat import prepare_libero
     prepare_libero()
@@ -303,7 +310,8 @@ def _run_real_trial(
             # to hold a private copy of this convention again.
             frame = upright(obs[camera], camera)
             # v6: arm state every step (None on envs that don't expose it).
-            action = policy.act(frame, proprio=proprio_from_obs(obs))
+            proprio = proprio_from_obs(obs)
+            action = policy.act(frame, proprio=proprio)
             # A NON-FINITE ACTION DOES NOT RAISE. The env accepts it, the
             # episode runs to max_steps, and the harness reports 0.000 -- which
             # is indistinguishable from a policy that simply never succeeds.
@@ -314,6 +322,21 @@ def _run_real_trial(
             if not np.isfinite(action).all():
                 nonfinite_steps += 1
                 action = np.nan_to_num(action, nan=0.0, posinf=0.0, neginf=0.0)
+            # Diagnostic proximity grasp: prove whether approach geometry alone
+            # is enough to pick if the jaw fires. Assisted — not unaided.
+            if grip_close_dist > 0.0 and proprio is not None:
+                try:
+                    eef = np.asarray(proprio, dtype=np.float64).reshape(-1)[:3]
+                    obj = _sim_object_pos(env)
+                    if obj is not None:
+                        dist = float(np.linalg.norm(eef - np.asarray(obj, dtype=np.float64)[:3]))
+                        if dist < grip_close_dist:
+                            action = np.asarray(action, dtype=np.float64).copy()
+                            action[-1] = 1.0
+                            if grip_close_lift != 0.0:
+                                action[2] = float(grip_close_lift)
+                except Exception:
+                    pass
             obs, _reward, done, info = env.step(action)
             step_telemetry = policy.telemetry[-1] if policy.telemetry else {}
             # Intermediate diagnostics: binary success alone collapses approach
@@ -482,6 +505,8 @@ def run_eval(
     run_tag: str = "",
     tasks: list[_TaskSpec] | None = None,
     render_size: int = 256,
+    grip_close_dist: float = 0.0,
+    grip_close_lift: float = 0.0,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -524,8 +549,12 @@ def run_eval(
         run_trial = _run_mock_trial
     else:
         def run_trial(policy, task, trial_seed, max_steps, camera):
-            return _run_real_trial(policy, task, trial_seed, max_steps, camera,
-                                   render_size=render_size)
+            return _run_real_trial(
+                policy, task, trial_seed, max_steps, camera,
+                render_size=render_size,
+                grip_close_dist=grip_close_dist,
+                grip_close_lift=grip_close_lift,
+            )
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}{run_tag}"
@@ -946,6 +975,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "the 15:1 schedule the d=1024 TRM — not the detector — dominates "
                         "wall-clock. Try matching --device on a box with GPU headroom.")
     p.add_argument("--out-dir", default="eval_results")
+    p.add_argument("--grip-close-dist", type=float, default=0.0,
+                   help="DIAGNOSTIC assist: when EEF-object distance is below this "
+                        "(meters), force gripper close (+1). 0 = off. Never count "
+                        "these runs as unaided — they only ask whether approach "
+                        "geometry is already good enough to pick if the jaw fired.")
+    p.add_argument("--grip-close-lift", type=float, default=0.0,
+                   help="with --grip-close-dist: replace the z residual with this "
+                        "value while the proximity gate is active (e.g. 0.2 to lift "
+                        "instead of grinding into the table). Assisted.")
     p.add_argument("--zero-center-actions", action="store_true",
                    help="denormalize actions zero-centered (x=0 -> no motion) so a "
                         "collapsed/neutral policy stays still instead of drifting into a "
@@ -1064,6 +1102,8 @@ def _parallel_worker(payload: dict) -> dict:
         run_tag=f"_w{w}",
         tasks=payload["tasks"],
         render_size=getattr(args, "render_size", 256),
+        grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
+        grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
     )
 
 
@@ -1269,6 +1309,8 @@ def main(argv: list[str] | None = None) -> None:
             out_dir=args.out_dir,
             tasks=tasks,
             render_size=getattr(args, "render_size", 256),
+            grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
+            grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
         )
     # Carried in the results file, not only the log: a scored number whose
     # deployment did not match its corpus must stay self-identifying after the
