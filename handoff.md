@@ -104,14 +104,31 @@ TRM dreaming is intrinsically stable (shared attractor, Jacobian σ₁=1.000);
 tqsa text path is rank-28 (task-ID lookup). matplotlib was added to .venv
 for this (documented deviation from the torch+numpy+pytest-only rule).
 
-## 7. The distillation path to UNAIDED success (recommended next campaign)
+## 7. The distillation campaign (UNDERWAY — see UNAIDED_PLAN.md)
 
-The calibrated machine is now a working teacher on the real eval
-distribution. Record N successful episodes (libero_eval writes telemetry;
-record actions + frames), then stage-B BC on those rollouts (optionally
-DAgger-style mixing). This converts today's assisted 0.2 into an unaided
-policy number the MANUSCRIPT can headline. Also fix the gain_head gradient
-path first (§6) — it is the cheapest possible training win.
+Four rounds run as of 2026-08-02 (recorder: `preprocess/teacher_rollouts.py`,
+record + convert + DAgger mode; tests in `tests/test_teacher_rollouts.py`):
+
+1. BC on 23 teacher successes → hover at 0.24 m, 0/3.
+2. BC on 100 successes (`teacher_bc2`) → approach to 0.16 m then stall,
+   0/10. Quantified: student |xy| 4–8× under teacher scale (mean-collapse
+   under the teacher's hidden `_base_tgt`; `gain_head` still zero — its
+   only gradient path is the actuation loss, which the proven recipe runs
+   at weight 0).
+3. DAgger (40 eps, student drives, β=0.3, teacher labels; NEW
+   `--dagger-student-flags` in teacher_rollouts.py) + magnitude losses
+   (`train/losses.py::pose_magnitude_loss`), but trained dagger-ONLY
+   (`teacher_bc3`) → approach FIXED (0.061 m, stays at object) but
+   grasping unlearned (labels ~all open), 0/10. Predicted in advance —
+   see POD_COORDINATION.md.
+4. `teacher_bc4` = aggregate (100 + 40) + magnitude losses
+   (`scripts/round4_aggregate.sh`) → unaided_v4: IN FLIGHT at the last
+   pod contact (launched 14:17 UTC; pod ssh then went down — chain is
+   setsid-detached and survives blips; if the pod was RESTARTED, relaunch
+   the script).
+
+NOTE two Claude sessions share this pod — check POD_COORDINATION.md and
+running processes before launching trainers/recorders.
 
 ## 8. Honesty rules (binding, unchanged)
 

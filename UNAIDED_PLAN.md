@@ -64,3 +64,22 @@ Unaided `mean_success` table (cream/soup/dressing, flags listed off) +
 same-ckpt with-handeye ceiling ablation + the sentence: "the assisted stack
 shows frozen geometry + calibration suffice; the unaided numbers are the
 learned policy after distilling / supervising that geometry."
+
+## Status 2026-08-03 — free-regression ladder CLOSED; v10 structured control in flight
+
+Row C's sixth variant (`teacher_phase1`: LoRA'd embedding + phase-progress
+objective, exact-coord BC demoted) evaluated **0/10** — with bc2/bc3/bc4/
+bc5b/lora1 that is six attacks (capacity, aggregation, DAgger, input
+adaptation, objective redesign) on the same zero. Per the directed redesign,
+the ladder is closed as the ablation arm.
+
+**v10 (DESIGN.md): structured control.** `microvla/control/` — GraspPointHead
++ PlaceHead (learned task content) driving `GoalServoMachine` (the teacher's
+latch / P-law / one-way phases / abs() hold check / probe search as
+structure). Trained offline on the existing corpus in minutes:
+val grasp xy median **1.27 cm** (p90 2.70) uniform across altitude bands,
+z 0.30 cm, sigma calibrated to 1.34 cm after the lv-only refinement pass;
+place head **0.85 cm** and its mean prediction recovered the hand-calibrated
+basket constant to ~6 mm. `eval_results/unaided_goal1` (n=10, task 0, NO
+assist flags) + films in flight — the unaided goal metric now rides on this
+arm.

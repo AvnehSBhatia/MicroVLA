@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MicroVLA — Model vs demo (local sim)</title>
+  <link rel="stylesheet" href="static/compare.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">MicroVLA · local tabletop sim</p>
+      <h1>Model moves vs cream demo</h1>
+      <p id="status" class="status">Loading…</p>
+    </div>
+    <nav class="nav">
+      <a href="demo.html">mechinterp</a>
+      <a href="soup.html">soup film</a>
+    </nav>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnPlay" type="button">Play</button>
+    <button id="btnStep" type="button">Step</button>
+    <input id="scrub" type="range" min="0" max="127" value="0" />
+    <span id="clock" class="mono">0.00s</span>
+    <label class="mono"><input id="lockVideo" type="checkbox" checked /> sync video</label>
+  </div>
+
+  <main>
+    <section class="panel">
+      <h2>Demo (recorded)</h2>
+      <p class="lede">Ground-truth cream pick film — agentview | wrist.</p>
+      <video id="player" controls playsinline preload="auto"></video>
+      <p id="demoReadout" class="readout mono"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Model (integrated actions)</h2>
+      <p class="lede">Orange = teacher_bc3 open-loop on wrist frames. Blue ghost = demo UV proxy.</p>
+      <canvas id="sim"></canvas>
+      <p id="simReadout" class="readout mono"></p>
+    </section>
+
+    <section class="panel side">
+      <h2>This tick</h2>
+      <div id="tickMeta" class="live-meta">—</div>
+      <div id="servo-bars" class="servo-bars"></div>
+      <h3 class="subhead">Paths</h3>
+      <p class="hint">Model eef is action_xyz × gain (clipped). Demo path is cream-cheese UV tracked in the wrist pane — not logged proprio.</p>
+      <canvas id="xyPlot" width="320" height="320"></canvas>
+    </section>
+  </main>
+
+  <script type="module" src="static/compare.js"></script>
+</body>
+</html>

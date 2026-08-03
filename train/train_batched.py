@@ -62,6 +62,7 @@ from microvla.utils.signals import ignore_sigterm
 from microvla.utils.waypoint import long_horizon_targets, waypoint_targets
 from train.dataset import EPISODE_KEYS, OPTIONAL_KEYS, EpisodeDataset
 from train.losses import (planner_bc_loss, smoothness_loss, split_planner_loss,
+                          phase_progress_loss,
                           pose_magnitude_loss, gain_magnitude_loss,
                           total_planner_loss, waypoint_loss, centering_loss,
                           depth_loss)
@@ -398,6 +399,40 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "in stage B. Requires wrist_frames in the baked npz (re-bake with "
                         "the v7 converter) and ultralytics (frozen backbone map extractor). "
                         "Buckets without frames train planner-only (spatial=None).")
+    p.add_argument("--phase-progress-weight", type=float, default=0.0,
+                   help="> 0 supervises PHASE PROGRESS instead of exact "
+                        "coordinates: approach direction toward the episode's "
+                        "grasp point + magnitude floor, grip timing windows, "
+                        "carry direction toward the release point, release "
+                        "timing (train/losses.py::phase_progress_loss). Scale "
+                        "the exact-coordinate BC anchor down with "
+                        "--phase-bc-anchor when using this.")
+    p.add_argument("--phase-bc-anchor", type=float, default=1.0,
+                   help="multiplier on the exact-coordinate BC loss when "
+                        "--phase-progress-weight > 0 (e.g. 0.2: BC becomes a "
+                        "regularizer, phase progress carries the objective).")
+    p.add_argument("--yolo-lora-r", type=int, default=0,
+                   help="stage B: > 0 enables LoRA adapters on a CLONE of the "
+                        "backbone SPPF stage and retrains the FRAME EMBEDDING "
+                        "through them (frame_embs recomputed per batch from "
+                        "cached SPPF inputs; requires wrist_frames in the npz "
+                        "and the real backbone). Detection, box embeddings and "
+                        "the spatial grid stay frozen — only what the frame "
+                        "embedding ENCODES adapts. Zero-init: starts exactly "
+                        "at the baked embeddings.")
+    p.add_argument("--yolo-lora-alpha", type=float, default=8.0,
+                   help="LoRA scale numerator (effective scale alpha/r).")
+    p.add_argument("--yolo-lora-lr", type=float, default=0.0,
+                   help="ABSOLUTE adapter LR (e.g. 1e-3). 0 = --lr * "
+                        "--yolo-lora-lr-scale.")
+    p.add_argument("--yolo-lora-lr-scale", type=float, default=1.0,
+                   help="adapter LR = --lr * this (when --yolo-lora-lr is 0).")
+    p.add_argument("--yolo-base-lr", type=float, default=0.0,
+                   help="> 0 ALSO unfreezes the embedding stage's BASE (main "
+                        "YOLO SPPF) weights in the adapted clone at this "
+                        "absolute LR (e.g. 1e-6). The live detector and the "
+                        "upstream backbone stay frozen regardless — detection "
+                        "and the cached prefix are untouched.")
     p.add_argument("--no-cache-spatial", dest="cache_spatial", action="store_false",
                    help="recompute the frozen backbone's feature maps every epoch instead of "
                         "caching them after the first pass. The cache is ~40x less compute for "
@@ -1090,6 +1125,53 @@ def _batch_spatial(batch, t, tqsa, backbone, device):
     return tqsa(maps, batch["text_tokens"])
 
 
+def precompute_sppf_inputs(buckets, backbone, batch_size, label="", dtype=torch.float16):
+    """Caches the frozen backbone's SPPF INPUT map for every framed timestep.
+
+    The LoRA path trains only the SPPF-stage clone, so everything before it
+    is constant across epochs and cacheable — the same argument as
+    :func:`precompute_spatial_maps`, one stage earlier. fp16 cache on CPU;
+    each (batch, timestep) slice moves to the training device on demand.
+    """
+    framed = [b for b in buckets.values() if "wrist_frames" in b]
+    if not framed:
+        raise SystemExit(
+            "--yolo-lora-r needs wrist_frames in the baked npz (teacher/demo "
+            "shards store them; re-bake with store_frames=True otherwise).")
+    total = sum(int(b["wrist_frames"].shape[0]) * int(b["wrist_frames"].shape[1])
+                for b in framed)
+    print(f"[lora cache] {label}: {total} frames through the frozen prefix "
+          f"(once — the prefix never trains)", flush=True)
+    nbytes = 0
+    for b in framed:
+        frames = b["wrist_frames"]                    # [N, T, H, W, 3] uint8 CPU
+        N, T = int(frames.shape[0]), int(frames.shape[1])
+        maps = None
+        for t in range(T):
+            for s in range(0, N, batch_size):
+                chunk = frames[s:s + batch_size, t].numpy()
+                m = backbone.sppf_inputs([f[..., ::-1] for f in chunk])
+                if maps is None:
+                    maps = torch.empty((N, T) + tuple(m.shape[1:]), dtype=dtype)
+                maps[s:s + batch_size, t] = m.to("cpu", dtype)
+        b["sppf_in"] = maps
+        nbytes += maps.numel() * maps.element_size()
+    print(f"[lora cache] {label}: {nbytes / 1e9:.2f} GB", flush=True)
+    return nbytes
+
+
+def _lora_frame_embs(batch, backbone, device):
+    """Recomputes ``frame_embs`` for a batch through the LoRA'd SPPF clone.
+
+    Returns a grad-carrying ``[B, T, vis_dim]`` tensor (grad flows into the
+    adapters only). Caller overwrites ``batch["frame_embs"]``.
+    """
+    si = batch["sppf_in"].to(device=device, dtype=torch.float32)
+    Bn, Tn = si.shape[:2]
+    emb = backbone.frame_emb_from_sppf_input(si.flatten(0, 1))
+    return emb.reshape(Bn, Tn, -1)
+
+
 def precompute_spatial_maps(buckets, backbone, batch_size, label="", dtype=torch.float16):
     """Runs the FROZEN backbone once over every framed timestep and caches it.
 
@@ -1208,6 +1290,13 @@ def _stage_b_val(args, cfg, val_b, fusion, drift, trm, planner, device,
     tot = ga = wp_tot = 0.0
     nb = 0
     for T, batch in iter_batches(val_b, 1, args.batch_size, rng, need=1):
+        if (int(getattr(args, "yolo_lora_r", 0) or 0) > 0
+                and "sppf_in" in batch
+                and getattr(backbone, "sppf_lora", None) is not None):
+            # Score validation in the ADAPTED embedding space — selection must
+            # measure the policy that will deploy, not the baked one.
+            with torch.no_grad():
+                batch["frame_embs"] = _lora_frame_embs(batch, backbone, device)
         fused_all, delta_all = real_paths(batch, fusion, drift, cfg, args.ablate_grounding)
         preds, grips, wps = [], [], []
         for t in range(T):
@@ -1339,7 +1428,37 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             "--progress-weight/--dream-weight require --critic-weight > 0, "
             "otherwise the critic is never fit and the actor term maximizes an "
             "untrained network.")
+    lora_on = int(getattr(args, "yolo_lora_r", 0) or 0) > 0
+    lora_params = []
+    if lora_on:
+        if backbone is None:
+            raise SystemExit("--yolo-lora-r needs the real backbone (run with "
+                             "--tqsa on a machine with ultralytics, or a "
+                             "checkpoint whose cfg builds it).")
+        from microvla.perception.lora import base_parameters, lora_parameters
+        sppf_lora = backbone.enable_lora(args.yolo_lora_r, args.yolo_lora_alpha)
+        lora_params = list(lora_parameters(sppf_lora))
+        n_lora = sum(p.numel() for p in lora_params)
+        lora_lr = (args.yolo_lora_lr if args.yolo_lora_lr > 0
+                   else args.lr * args.yolo_lora_lr_scale)
+        base_params = []
+        if args.yolo_base_lr > 0:
+            base_params = list(base_parameters(sppf_lora))
+            for p in base_params:
+                p.requires_grad_(True)
+        print(f"[stage B] YOLO LoRA ON: r={args.yolo_lora_r} "
+              f"alpha={args.yolo_lora_alpha} | {n_lora:,} adapter params @ lr "
+              f"{lora_lr:g} | base SPPF weights "
+              f"{'@ lr %g' % args.yolo_base_lr if base_params else 'FROZEN'} "
+              f"({sum(p.numel() for p in base_params):,} params) | "
+              f"detection/boxes/grid stay frozen", flush=True)
+        precompute_sppf_inputs(train_b, backbone, args.batch_size, label="train")
+        precompute_sppf_inputs(val_b, backbone, args.batch_size, label="val")
     groups = [{"params": params, "lr": args.lr}]
+    if lora_params:
+        groups.append({"params": lora_params, "lr": lora_lr})
+    if lora_on and base_params:
+        groups.append({"params": base_params, "lr": args.yolo_base_lr})
     trm_trainable = [p for p in trm.parameters() if p.requires_grad]
     if trm_trainable:
         groups.append({"params": trm_trainable,
@@ -1367,6 +1486,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
             tqsa.train()
         run = 0.0; grip_acc = 0.0; nb = 0; n_skipped = 0; n_nan_loss = 0; t0 = last_beat = time.time()
         for T, batch in iter_batches(train_b, 1, args.batch_size, rng, need=1):
+            if lora_on and "sppf_in" in batch:
+                # Overwrite the baked embeddings with grad-carrying adapted
+                # ones. Every consumer below (fusion/drift builds, TRM
+                # current_emb, planner current_emb) then reads the adapted
+                # space; the graph reaches only the LoRA weights.
+                batch["frame_embs"] = _lora_frame_embs(batch, backbone, device)
             # NOT under no_grad: every parameter in fusion/drift is frozen
             # except the HRM's gain head, and that head needs a graph or it gets
             # no gradient at all — which is exactly what happened in the first
@@ -1440,6 +1565,12 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                             fused_t = fusion(batch["text_tokens"], cur, sbe, tbe,
                                              sc, tc, box_weight=bw,
                                              last_action=prev_action)
+                if lora_on and not dream:
+                    # Re-slice OUTSIDE the no_grad block above: it snapped the
+                    # graph, and this slice is the LoRA adapters' gradient path
+                    # (TRM current_emb + planner current_emb are consumed with
+                    # grad below).
+                    cur = batch["frame_embs"][:, t]
                 # forward_full OUTSIDE no_grad: msg_head (and, under
                 # --unfreeze-trm, the core) needs planner-loss gradient; frozen
                 # params accumulate none regardless.
@@ -1586,6 +1717,14 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
                                       grip_weight=args.grip_weight,
                                       step_weight=None if step_w is None
                                       else step_w.reshape(-1))
+            if args.phase_progress_weight > 0:
+                # Phase progress carries the objective; exact-coordinate BC
+                # becomes an anchor (see --phase-bc-anchor).
+                loss = args.phase_bc_anchor * loss
+                if "eef_pos_chunk" in batch:
+                    loss = loss + args.phase_progress_weight * phase_progress_loss(
+                        preds, grips, batch["pwm_targets"],
+                        batch["eef_pos_chunk"][:, :, 0, :])
             if args.magnitude_weight > 0:
                 loss = loss + args.magnitude_weight * pose_magnitude_loss(P, Y)
             if (args.gain_magnitude_weight > 0 and act_scale is not None
@@ -1769,6 +1908,11 @@ def stage_b(args, cfg, train_b, val_b, fusion, drift, trm, planner, device,
         extra = {"tqsa": tqsa} if tqsa is not None else {}
         if relational is not None:
             extra["relational"] = relational
+        if lora_on:
+            # Full clone state (base may be drifting under --yolo-base-lr, so
+            # adapter-only is not enough); meta lets eval rebuild the clone.
+            extra["yolo_lora"] = backbone.sppf_lora
+            extra["yolo_lora_meta"] = dict(backbone.lora_meta)
         if args.stage_b_patience > 0:
             val_bc, val_ga, val_wp = _stage_b_val(args, cfg, val_b, fusion, drift, trm,
                                                   planner, device, tqsa, backbone, rng,
@@ -1972,7 +2116,9 @@ def main(argv=None) -> None:
             # pooled once at bake time. Only build the (heavy, ultralytics-
             # importing) extractor when we actually have to re-run it on frames.
             backbone = None
-            if n_grid == 0:
+            # LoRA re-runs the embedding stage, so it needs the real backbone
+            # even when every bucket carries a baked grid.
+            if n_grid == 0 or int(getattr(args, "yolo_lora_r", 0) or 0) > 0:
                 backbone = YoloWorldPerception(device=str(device))
             print(f"TQSA stage B: {n_grid}/{len(train_b)} buckets carry a BAKED "
                   f"spatial grid, {n_frames}/{len(train_b)} carry raw frames",

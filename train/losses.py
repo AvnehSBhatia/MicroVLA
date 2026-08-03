@@ -23,6 +23,108 @@ import torch
 import torch.nn.functional as F
 
 
+def _first_true(mask: torch.Tensor) -> int:
+    """Index of the first True in a 1-D bool tensor, or -1."""
+    nz = mask.nonzero(as_tuple=False)
+    return int(nz[0]) if len(nz) else -1
+
+
+def phase_progress_loss(
+    preds: torch.Tensor,
+    grip_logits: torch.Tensor,
+    target: torch.Tensor,
+    eef: torch.Tensor,
+    w_dir: float = 1.0,
+    w_mag: float = 0.3,
+    w_event: float = 2.0,
+    event_window: int = 3,
+    mag_floor: float = 0.15,
+    far_thresh: float = 0.02,
+) -> torch.Tensor:
+    """Phase-structured objective: supervise WHAT each phase achieves, not the
+    teacher's exact 3-D command.
+
+    Motivation (unaided rounds 2–5, paper §6.4d): exact-coordinate BC
+    mean-collapses under the teacher's partially observable internal target —
+    the student reproduces the *average* approach and parks near, not on, the
+    object. The task itself only needs four things, all derivable from the
+    teacher episode without any simulator state:
+
+    1. **Approach**: move TOWARD the eventual grasp point (the episode's EEF
+       position at gripper close) — a direction (cosine) loss on the row-0
+       pose, scale-free, plus a magnitude FLOOR (hinge) so "don't move" is
+       penalized but any decisive speed is accepted.
+    2. **Close there**: gripper classification, extra-weighted in a window
+       around the teacher's close (the ~5% of ticks uniform BC underweights).
+    3. **Carry**: direction toward the release point (EEF at gripper open),
+       gripper held closed.
+    4. **Release there**: gripper-open classification around the open event.
+
+    Magnitudes, path shapes and speeds are otherwise unconstrained — this is
+    deliberately "open": the loss measures phase progress, not mimicry.
+
+    Args:
+        preds: ``[B, T, rows, 7]`` predicted plans (normalized space).
+        grip_logits: ``[B, T, rows]`` gripper logits (``> 0`` = close).
+        target: ``[B, T, rows, 7]`` teacher targets (grip col = last).
+        eef: ``[B, T, 3]`` absolute EEF positions at each tick.
+
+    Returns:
+        Scalar loss (0 for batches with no gripper-close episode).
+    """
+    B, T = preds.shape[:2]
+    total = preds.new_zeros(())
+    n_terms = 0
+    closed = target[:, :, 0, -1] > 0                       # [B, T]
+    for b in range(B):
+        cb = closed[b]
+        t_close = _first_true(cb)
+        if t_close <= 0:
+            continue  # no close event (or closes at t=0): nothing to phase
+        t_open = _first_true(~cb & (torch.arange(T, device=cb.device) > t_close))
+        grasp_pos = eef[b, t_close]
+        pose0 = preds[b, :, 0, :3]                          # [T, 3]
+
+        # 1. approach direction + magnitude floor
+        appr = torch.arange(T, device=cb.device) < t_close
+        v = grasp_pos.unsqueeze(0) - eef[b]                 # [T, 3]
+        far = v.norm(dim=-1) > far_thresh
+        m = appr & far
+        if m.any():
+            cos = F.cosine_similarity(pose0[m], v[m], dim=-1)
+            total = total + w_dir * (1.0 - cos).mean()
+            total = total + w_mag * F.relu(
+                mag_floor - pose0[m].norm(dim=-1)).mean()
+            n_terms += 1
+
+        # 2. close event window (timing-critical grip supervision)
+        lo, hi = max(0, t_close - event_window), min(T, t_close + event_window + 1)
+        total = total + w_event * F.binary_cross_entropy_with_logits(
+            grip_logits[b, lo:hi, 0], cb[lo:hi].float())
+        n_terms += 1
+
+        if t_open > t_close:
+            drop_pos = eef[b, t_open]
+            # 3. carry: direction toward the drop point, gripper held
+            carry = ((torch.arange(T, device=cb.device) > t_close)
+                     & (torch.arange(T, device=cb.device) < t_open))
+            vc = drop_pos.unsqueeze(0) - eef[b]
+            mc = carry & (vc.norm(dim=-1) > far_thresh)
+            if mc.any():
+                cos = F.cosine_similarity(pose0[mc], vc[mc], dim=-1)
+                total = total + w_dir * (1.0 - cos).mean()
+                total = total + w_event * F.binary_cross_entropy_with_logits(
+                    grip_logits[b, mc.nonzero(as_tuple=True)[0], 0],
+                    torch.ones(int(mc.sum()), device=preds.device))
+                n_terms += 1
+            # 4. release event window
+            lo, hi = max(0, t_open - event_window), min(T, t_open + event_window + 1)
+            total = total + w_event * F.binary_cross_entropy_with_logits(
+                grip_logits[b, lo:hi, 0], cb[lo:hi].float())
+            n_terms += 1
+    return total / max(n_terms, 1)
+
+
 def planner_bc_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """Behavior-cloning loss: MSE between predicted plans and PWM targets.
 

@@ -340,6 +340,84 @@ competence and is never aggregated with policy numbers. Its value to the
 architecture claim is indirect but real: it certifies the perception stack
 and exposes the exact constants a learned policy would have to encode.
 
+### 6.4d Distilling the machine back into the policy: the unaided track
+
+The assisted stack is also a *teacher* on the true eval distribution. We
+recorded its successful rollouts (init states disjoint from all eval
+trials), converted them through the standard shard pipeline, and
+behavior-cloned stage B from them. Four rounds, each diagnosing the next
+(soup task, wrist camera, NO assist flags at eval — vision → JEPA loop →
+planner → actions):
+
+| round | corpus | val BC | min eef→obj (m) | final (m) | grip fires | success (n) |
+|---|---|---|---|---|---|---|
+| BC-23 | 23 teacher successes | 0.045 | ~0.24 (hover) | — | no | 0/3 |
+| BC-100 | 100 teacher successes | 0.045 | 0.155–0.198 | 0.45–1.17 | 2–26% | 0/10 |
+| DAgger-only | 40 student-driven eps, teacher labels (β=0.3) | 0.043 | **0.061** | **0.110** | 0.0% | 0/10 |
+| Aggregate | 100 + 40 + magnitude losses | — | 0.078–0.146 | 0.14–0.28 | ~1% | 0/7* |
+| Grasp-weighted | aggregate + close-window upweighting | — | ~0.15 | — | 12–42% | 0/10 |
+| LoRA input | + trainable SPPF subspace (r=8) | — | 0.127 | holds | 10–18% | 0/6† |
+| Phase objective | + phase-progress loss, BC demoted 0.2× | — | — | — | — | 0/10 |
+
+*Interrupted by a host restart at 7 of 10 trials; all completed trials
+fail identically. †User-stopped after 6 trials; approach best-on-film
+(object at the jaws), no close commitment.
+
+Each zero is *located*, not mysterious. BC-100's stall was quantified
+against live telemetry: the student's lateral commands average |xy| =
+0.025 raw units vs the teacher's 0.094–0.207 — a 4–8× undershoot whose
+mechanism is mean-collapse under partial observability (the teacher's
+final approach steers to a stored internal target invisible in the
+per-tick observation, precisely where the detector is unreliable). The
+DAgger round fixed the approach — the policy closes to 6.1 cm and *stays*
+(final 0.11 m vs drifting to a metre) — while cleanly ablating the two
+skills: trained on the DAgger corpus alone (whose labels never reach the
+grasp phase and are therefore ~always gripper-open), the policy unlearned
+closing entirely, a failure predicted in writing at episode 12 of 40.
+Approach lives in the on-student-distribution corrections; grasp lives in
+the teacher's completed episodes; the aggregate round trains on both.
+
+The aggregate round then sharpened the residual to a single mechanism:
+approach and station-keeping are retained (the policy reaches 8–15 cm and
+stays), but the grasp *trigger* — closing at the right instant — fires on
+~1% of ticks. The close event occupies ~5% of corpus ticks, so uniform BC
+underweights precisely the decision that completes the task: a class-
+imbalance problem on an event, not a geometry problem. The unaided ladder
+after seven rounds reads: descend ✓, lateral magnitude ✓, stay-on-target ✓,
+close-at-the-right-instant ✗ — invariant under capacity, data aggregation,
+DAgger, input adaptation (LoRA), and objective redesign. We take the
+invariance itself as the finding: the residual is not a training deficiency
+but a *policy-class* deficiency, and it motivates §6.4e.
+
+### 6.4e Structured decoding: the mechanisms become architecture, and the zero breaks
+
+The teacher's measured mechanisms (§6.4–6.4c; the seven-item analysis in
+the supplement) prescribe a different decoding head, not a better
+regression. In the v10 structured policy the network stops emitting
+per-tick actions entirely. Two small heads learn the *task content*: a
+grasp-point head (0.17 M) regresses the world grasp point from (source box
+uv/confidence/embedding, frame embedding, proprio) — supervised by the eef
+position at each teacher episode's final close onset, a label that contains
+the hand-eye lever arm by construction — and a place head (0.07 M) reads
+the basket point off the command embedding. A parameter-free servo shell
+(`GoalServoMachine`) supplies the *control*: sigma-gated goal latching,
+a P-law `clip(12·(goal − eef), 0.6)`, one-way phases with a debounced
+retry cycle, the abs() jaw hold check, a radius-ordered 2D probe search,
+and a proprio-only place leg. Trust gates evidence admission, never action
+magnitude — parking is impossible in this policy class.
+
+Trained offline in minutes on the existing corpus (111 episodes, 1 703
+supervised ticks, no re-recording): val median grasp error **1.27 cm**
+(p90 2.70) uniform across altitude bands; place error **0.85 cm**, the
+head's mean prediction recovering the hand-calibrated basket constant to
+~6 mm. First closed-loop eval (task 0, n=10, no assist flags):
+**mean_success 0.10 — the first unaided success of the project** — with
+every failure isolating via phase telemetry to two named, structural
+defects (hover-altitude latching; an x-only probe against isotropic error),
+both fixed without retraining. The free-regression arm (§6.4d) becomes the
+ablation: same trunk, same corpus, same eval — the decoding structure is
+the difference in kind.
+
 ### 6.5 Efficiency
 
 Full test suite (537 tests, CPU, mocks): ~15 s. Wind-tunnel eval: < 0.1 s.

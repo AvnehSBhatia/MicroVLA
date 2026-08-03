@@ -941,3 +941,60 @@ distillation path (record the machine's successful rollouts, stage-B BC on
 them, fix the dead `gain_head` gradient first) is the sanctioned route to
 converting these numbers into UNAIDED policy success. Do not blur the two
 tracks in any claim.
+
+## v10 — Structured control: goal-latch servo policy (`microvla/control/`, BINDING once built)
+
+The unaided track's architecture answer (2026-08-03, directed redesign): the
+seven measured mechanisms of the assisted machine's success
+(`paper/WHY_THE_TEACHER_WORKS.md`) become STRUCTURE; only task content is
+learned. Free per-tick action regression (rounds bc2–bc5b, lora1, phase1)
+stays as the ablation arm.
+
+```
+# microvla/control/goal_head.py
+build_grasp_features(uv, conf, proprio, box_emb, frame_emb) -> dict
+    # ONE builder for trainer and policy (train/deploy feature symmetry is a
+    # hard requirement; version-stamped FEATURE_VERSION, checked at load).
+GraspPointHead()(feats) -> {"xy" [B,2], "z" [B,1], "log_var" [B,3]}
+    # xy = eef_xy + mean_head(trunk) + lever_bias (nn.Parameter[2], init 0 —
+    # the hand-eye constant gets an addressable place to live).
+    # lv_head reads DETACHED trunk features: sigma is calibration, never
+    # allowed to shape the representation (heteroscedastic collapse is
+    # impossible by construction). Loss: Huber(mean) + NLL(detached err).
+PlaceHead()(command_emb [B,512]) -> {"xy" [B,2], "log_var" [B,2]}
+    # The basket constant, learned per task from the command embedding.
+
+# microvla/control/machine.py — pure numpy runtime, NO parameters
+GoalServoMachine(...calibrated-arm defaults...)
+    .observe(xy, z, sigma)   # REAL ticks, approach phase only — evidence
+                             # admission; sigma-gated; IGNORED once latched
+    .set_place(xy)           # once per episode (reset time)
+    .step(proprio, action_dim) -> np action   # EVERY tick, proprio-only
+    # Phases (one-way; sole cycle is the probe retry):
+    #   approach -> descend -> grasp -> lift -> transport -> release -> done
+    #                  ^          |
+    #                  +-- rise <-+   (abs() jaw hold-check failure)
+    # approach: P-servo to the median estimate at hover_z; LATCH when the
+    #   estimate window is stable + centered (or force_latch_ticks timeout —
+    #   the descend-hyst deadlock lesson). descend: teacher align verbatim
+    #   toward base_tgt + probe[attempt]. Trust gates goal ADMISSION, never
+    #   action magnitude — parking cannot exist in this policy class.
+```
+
+Deployment (`eval/policy.py --goal-ckpt`): same replace-wholesale action slot
+as the assisted machines, mutually exclusive with them. On real ticks the
+grasp head turns (source box uv/conf/emb, frame emb, proprio) into a world
+goal estimate; every tick the machine servos on proprio alone. The JEPA loop
+keeps running (features, telemetry, trust trace) — the planner's [5,7] plan
+is not executed in this mode.
+
+Training (`train/train_goal.py`): component-wise supervised regression over
+the EXISTING teacher corpus — no re-recording. Labels derived per episode
+from npz keys alone: final close onset (last open→close whose closed run
+persists ≥ min_hold samples) → grasp label = eef there (contains the lever
+arm BY CONSTRUCTION); first reopen after it → place label. Offline go/no-go:
+val median xy error ≲ 3 cm at altitude (the ±6 cm probe schedule converts
+that into grasps).
+
+Param ledger: control heads ≈ 0.23 M (grasp ~0.17 M + place ~0.07 M), inside
+the existing 9 M trainable budget alongside fusion/drift/planner (7.0 M).

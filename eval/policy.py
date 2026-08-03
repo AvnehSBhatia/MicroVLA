@@ -291,6 +291,8 @@ class MicroVLAPolicy:
         role_disjoint_iou: float = DEFAULT_CONFIG.role_disjoint_iou,
         source_max_area: float = DEFAULT_CONFIG.source_max_area,
         source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect,
+        goal_ckpt: Optional[str] = None,
+        goal_kwargs: Optional[dict] = None,
     ) -> None:
         """Builds the policy.
 
@@ -379,6 +381,25 @@ class MicroVLAPolicy:
         self.ibvs_machine = None
         self.tool_machine = None
         self._phase_action = None
+        # Structured control (microvla/control): learned world goals + the
+        # teacher's servo shell. UNAIDED — no calibrated constants beyond arm
+        # physics; the task content (where to grasp / place) comes from the
+        # trained goal heads. Takes the same replace-wholesale action slot as
+        # the assisted machines and is mutually exclusive with them.
+        self.goal_machine = None
+        self.goal_grasp_head = None
+        self.goal_place_head = None
+        if goal_ckpt:
+            if tool_phase or ibvs_phase:
+                raise ValueError(
+                    "goal_ckpt (structured control) is mutually exclusive "
+                    "with --ibvs-phase/--tool-phase assist modes")
+            from microvla.control import GoalServoMachine, load_goal_heads
+            self.goal_grasp_head, self.goal_place_head, _meta = \
+                load_goal_heads(goal_ckpt)
+            self.goal_machine = GoalServoMachine(**(goal_kwargs or {}))
+            logger.info("MicroVLAPolicy: structured goal-servo control ON "
+                        "(heads: %s)", goal_ckpt)
         if tool_phase:
             # Accuracy tools OWN the action (reach_center → descend → grasp…).
             # Prefer this over residual IBVS when the miss is "almost centred".
@@ -548,6 +569,18 @@ class MicroVLAPolicy:
             perception = perception if perception is not None else real_perception
             task_encoder = task_encoder if task_encoder is not None else real_task_encoder
 
+        # LoRA-adapted frame-embedding stage (paper §6.4d, capacity probe):
+        # rebuild the adapted SPPF clone from the checkpoint and let
+        # perceive() route frame_emb through it. Only applies to the real
+        # backbone — mocks have no SPPF and ignore the state.
+        if state is not None and "yolo_lora" in state and hasattr(perception, "enable_lora"):
+            meta = state.get("yolo_lora_meta", {"r": 8, "alpha": 8.0})
+            adapted = perception.enable_lora(int(meta["r"]), float(meta["alpha"]))
+            adapted.load_state_dict(state["yolo_lora"])
+            adapted.eval()
+            logger.info("MicroVLAPolicy: YOLO LoRA frame-embedding stage loaded "
+                        "(r=%s alpha=%s)", meta["r"], meta["alpha"])
+
         self.loop = JEPALoop(
             cfg=cfg,
             task_encoder=task_encoder,
@@ -617,6 +650,16 @@ class MicroVLAPolicy:
             self.ibvs_machine.reset()
         if self.tool_machine is not None:
             self.tool_machine.reset()
+        if self.goal_machine is not None:
+            self.goal_machine.reset()
+            # The place point is a per-task constant: latch it once, now.
+            task = getattr(self.loop, "_task", None)
+            cmd = getattr(task, "command_emb", None) if task is not None else None
+            if cmd is not None:
+                with torch.no_grad():
+                    pred = self.goal_place_head(
+                        torch.as_tensor(cmd, dtype=torch.float32).reshape(1, -1))
+                self.goal_machine.set_place(pred["xy"][0].cpu().numpy())
 
     def _emit(self, result, row: int, proprio, fresh: bool) -> np.ndarray:
         """Turns plan ``row`` of ``result`` into a raw action for this step.
@@ -701,7 +744,37 @@ class MicroVLAPolicy:
                     action = action.copy()
                     action[:3] = action[:3] + clr[:3]
                     ibvs_cmd = clr if ibvs_cmd is None else (ibvs_cmd + clr)
-        if self.tool_machine is not None:
+        if self.goal_machine is not None:
+            # Structured control: on REAL ticks feed the grasp head's world-
+            # goal estimate to the machine (evidence admission); EVERY tick
+            # the machine servos on proprio alone — vision never steers
+            # directly, exactly the teacher's information diet.
+            if result.perception is not None and proprio is not None:
+                src = result.perception.source
+                conf = float(src.confidence)
+                pvec = np.asarray(proprio, dtype=np.float64).reshape(-1)
+                if (conf >= self.ibvs_conf_floor and pvec.shape[0] >= 10
+                        and pvec[-1] > 0.5):
+                    from microvla.control import (GraspPointHead,
+                                                  build_grasp_features)
+
+                    def _npv(x):
+                        return (x.detach().cpu().numpy() if torch.is_tensor(x)
+                                else np.asarray(x))
+
+                    feats = build_grasp_features(
+                        uv=_npv(src.center), conf=conf, proprio=pvec,
+                        box_emb=_npv(src.emb),
+                        frame_emb=_npv(result.perception.frame_emb))
+                    with torch.no_grad():
+                        pred = self.goal_grasp_head(feats)
+                    self.goal_machine.observe(
+                        pred["xy"][0].cpu().numpy(), float(pred["z"][0, 0]),
+                        float(GraspPointHead.sigma(pred)[0, :2].max()))
+            action = self.goal_machine.step(
+                proprio, action_dim=int(action.shape[0]))
+            ibvs_cmd = [float(v) for v in action[:3]]
+        elif self.tool_machine is not None:
             if result.perception is not None:
                 action = self.tool_machine.step(
                     result.perception.source, result.perception.target,
@@ -749,6 +822,12 @@ class MicroVLAPolicy:
             **({} if self.tool_machine is None
                else {"phase": self.tool_machine.phase,
                      "tool": self.tool_machine.last_tool}),
+            **({} if self.goal_machine is None
+               else {"phase": self.goal_machine.phase,
+                     "attempt": self.goal_machine.attempt,
+                     "base_tgt": (None if self.goal_machine.base_tgt is None
+                                  else [float(v)
+                                        for v in self.goal_machine.base_tgt])}),
         })
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1

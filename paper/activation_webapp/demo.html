@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MicroVLA — Demo cream mechinterp</title>
+  <link rel="stylesheet" href="static/demo.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">MicroVLA · open-loop on demo obs</p>
+      <h1>Cream demo → model choices</h1>
+      <p id="status" class="status">Loading pack…</p>
+    </div>
+    <nav class="nav">
+      <a href="compare.html">model vs demo sim</a>
+      <a href="soup.html">soup film</a>
+      <a href="index.html">mock observatory</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="video-panel">
+      <video id="player" controls playsinline preload="auto"></video>
+      <p class="hint">Left = agentview DEMO · right = wrist (fed to the policy). Scrub to sync mechinterp.</p>
+      <canvas id="grip-spark" width="640" height="72" aria-label="grip timeline"></canvas>
+      <p id="spark-caption" class="hint"></p>
+    </section>
+
+    <section class="choice-panel">
+      <h2>Choices this tick</h2>
+      <p class="lede">Emitted Δ-action (denormalized). Compare = rec_fix on the same frame.</p>
+      <div id="choice-meta" class="live-meta">—</div>
+      <div id="servo-bars" class="servo-bars"></div>
+      <h3 class="subhead">Grip</h3>
+      <div id="grip-compare" class="grip-compare"></div>
+    </section>
+
+    <section class="live-panel">
+      <h2>Mechinterp</h2>
+      <p class="lede">Primary checkpoint activations (hook ℓ₂).</p>
+      <div id="live-meta" class="live-meta">No trace yet.</div>
+      <div id="group-bars" class="group-bars"></div>
+      <h3 class="subhead">Hottest modules</h3>
+      <ol id="hot-list" class="hot-list"></ol>
+    </section>
+  </main>
+
+  <script type="module" src="static/demo.js"></script>
+</body>
+</html>

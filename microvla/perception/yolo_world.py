@@ -165,7 +165,14 @@ class YoloWorldPerception:
 
         # Runtime capture slots filled by the hooks on every forward pass.
         self._feat: Optional[torch.Tensor] = None  # [1, C, Hf, Wf] SPPF map
+        self._feat_in: Optional[torch.Tensor] = None  # [1, C_in, Hf, Wf] SPPF INPUT
         self._input_hw: Optional[Tuple[int, int]] = None  # network (H_in, W_in)
+        # Optional LoRA-adapted CLONE of the SPPF stage (see enable_lora):
+        # re-reads the frozen backbone's SPPF input to produce an ADAPTED
+        # frame embedding. The live detector never sees it — boxes,
+        # confidences and role binding stay bit-identical to the frozen model.
+        self.sppf_lora: Optional[torch.nn.Module] = None
+        self.lora_meta: dict = {}
         # Ordered ACTIVE detection classes; role i == class id i.
         self._active_classes: list[str] = []
         # Optional role -> ordered class-id preference (set by set_role_prompts).
@@ -197,12 +204,51 @@ class YoloWorldPerception:
         def _capture_feat(_module, _inputs, output) -> None:
             self._feat = output.detach()
 
+        def _capture_sppf_in(_module, inputs) -> None:
+            if inputs and torch.is_tensor(inputs[0]):
+                self._feat_in = inputs[0].detach()
+
         def _capture_input(_module, inputs) -> None:
             if inputs and torch.is_tensor(inputs[0]) and inputs[0].dim() == 4:
                 self._input_hw = (int(inputs[0].shape[-2]), int(inputs[0].shape[-1]))
 
         sppf.register_forward_hook(_capture_feat)
+        sppf.register_forward_pre_hook(_capture_sppf_in)
         detection_model.register_forward_pre_hook(_capture_input)
+        self._sppf = sppf
+
+    def enable_lora(self, r: int, alpha: float = 1.0) -> torch.nn.Module:
+        """Creates the LoRA-adapted SPPF clone for the frame-embedding path.
+
+        The clone starts as an exact copy (zero-init ``up``) and is fed the
+        frozen backbone's captured SPPF input, so at init the adapted frame
+        embedding equals the frozen one and the whole stack starts exactly
+        in-distribution. Detection is untouched by construction — the live
+        SPPF keeps its frozen weights and the neck never sees the clone.
+
+        Returns the adapted module (its LoRA params are the only trainables).
+        """
+        from microvla.perception.lora import clone_with_lora
+
+        self.sppf_lora = clone_with_lora(self._sppf, r=r, alpha=alpha).to(self.device)
+        self.lora_meta = {"r": int(r), "alpha": float(alpha), "stage": "sppf"}
+        return self.sppf_lora
+
+    def frame_emb_from_sppf_input(self, sppf_in: torch.Tensor) -> torch.Tensor:
+        """Differentiable adapted frame embedding from a cached SPPF input.
+
+        Args:
+            sppf_in: ``[B, C_in, Hf, Wf]`` float tensor (the frozen backbone's
+                SPPF input, e.g. from :meth:`sppf_inputs` or the live capture).
+
+        Returns:
+            ``[B, vis_dim]`` standardized adapted frame embeddings, with grad
+            flowing into the LoRA adapters only.
+        """
+        if self.sppf_lora is None:
+            raise RuntimeError("enable_lora() has not been called")
+        feat = self.sppf_lora(sppf_in)
+        return standardize(feat.mean(dim=(2, 3)))
 
     def set_classes(self, classes: list[str]) -> None:
         """Sets the ordered ACTIVE open-vocabulary detection classes.
@@ -311,9 +357,19 @@ class YoloWorldPerception:
             # live in the canonical zero-mean/unit-std space (see
             # microvla/utils/embedding.py) so TRM feedback stays in-distribution
             # and losses/innovations are scale-honest.
-            frame_emb = standardize(
-                feat.mean(dim=(2, 3)).squeeze(0).detach().cpu().float()
-            )
+            if self.sppf_lora is not None and self._feat_in is not None:
+                # Adapted embedding path (LoRA distillation): same GAP +
+                # standardize, but through the adapted SPPF clone. Spatial
+                # grid and box embeddings stay on the FROZEN map — matching
+                # training, where only frame_embs are recomputed.
+                with torch.no_grad():
+                    frame_emb = self.frame_emb_from_sppf_input(
+                        self._feat_in.float()
+                    ).squeeze(0).detach().cpu()
+            else:
+                frame_emb = standardize(
+                    feat.mean(dim=(2, 3)).squeeze(0).detach().cpu().float()
+                )
             # Same map, pooled to a coarse grid instead of collapsed. Each cell
             # is standardized on its own so every token lives in the canonical
             # space the rest of the stack assumes.
@@ -556,6 +612,41 @@ class YoloWorldPerception:
             # for backward when the (trainable) TQSA consumes it. clone()
             # outside inference mode yields a normal constant tensor.
             return self._feat.float().clone()
+
+    def sppf_inputs(self, frames_bgr: list) -> torch.Tensor:
+        """Batched SPPF INPUT maps for LoRA training (frozen prefix forward).
+
+        Same preprocessing contract as :meth:`feature_maps` (``min_side``
+        upscale), but returns the frozen backbone's map ENTERING the SPPF
+        stage — the tensor :meth:`frame_emb_from_sppf_input` consumes. The
+        frozen prefix never trains, so these are cacheable once per dataset.
+
+        Returns:
+            ``[B, C_in, Hf, Wf]`` float32 tensor on the model's device.
+        """
+        import cv2  # lazy: present wherever the real detector runs
+
+        ups = []
+        for f in frames_bgr:
+            short = min(f.shape[0], f.shape[1])
+            if short < self.min_side:
+                scale = self.min_side / short
+                f = cv2.resize(
+                    f, (round(f.shape[1] * scale), round(f.shape[0] * scale)),
+                    interpolation=cv2.INTER_CUBIC,
+                )
+            ups.append(f)
+        with torch.no_grad():
+            self._feat_in = None
+            self.model.predict(ups, device=self.device,
+                               conf=self.det_conf, half=False, verbose=False)
+            if self._feat_in is None:
+                raise RuntimeError("SPPF pre-hook captured no input map (batched).")
+            if self._feat_in.shape[0] != len(ups):
+                raise RuntimeError(
+                    f"SPPF input batch {self._feat_in.shape[0]} != frames {len(ups)}; "
+                    "refusing to broadcast one frame across the chunk.")
+            return self._feat_in.float().clone()
 
     def _map_box_to_feature(
         self,

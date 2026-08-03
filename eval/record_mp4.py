@@ -21,6 +21,7 @@ the policy sees). Agentview is rotated 180° so it renders right-side up
 from __future__ import annotations
 
 import argparse
+import json
 import random
 from pathlib import Path
 
@@ -157,6 +158,11 @@ def main(argv=None) -> None:
                     help="prefer tall SOURCE boxes (bottles over basket).")
     ap.add_argument("--task-ids", default=None,
                     help="comma-separated task ids; overrides the random pick")
+    ap.add_argument("--goal-ckpt", default=None,
+                    help="structured control: goal_heads.pt from "
+                         "train/train_goal.py (see eval/libero_eval.py).")
+    ap.add_argument("--goal-kwargs", default="",
+                    help="JSON GoalServoMachine overrides for --goal-ckpt.")
     args = ap.parse_args(argv)
     ignore_sigterm()
 
@@ -228,7 +234,10 @@ def main(argv=None) -> None:
                             tool_i_gain=args.tool_i_gain,
                             role_disjoint_iou=args.role_disjoint_iou,
                             source_max_area=args.source_max_area,
-                            source_min_aspect=args.source_min_aspect)
+                            source_min_aspect=args.source_min_aspect,
+                            goal_ckpt=args.goal_ckpt,
+                            goal_kwargs=(json.loads(args.goal_kwargs)
+                                         if args.goal_kwargs else None))
     from libero.libero.envs import OffScreenRenderEnv
 
     out_dir = Path(args.out_dir)

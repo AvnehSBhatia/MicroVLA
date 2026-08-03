@@ -5275,3 +5275,311 @@ scaling applies. Overnight: n=10 honest rerun (unaided_v1b) + teacher
 recording scaled to ~100 soup / ~30 cream episodes on fresh init ranges
 (50+/60+), then retrain and re-eval. The teacher costs ~100 s per success;
 data is the cheap axis on this stack.
+
+### unaided_v2 (distilled, 100-episode corpus) — the stall moves 10 cm closer, and the defect is now quantified (2026-08-02)
+
+Round-2 distillation: 100 successful soup teacher episodes (init indices
+50–149+, disjoint from eval trials 0–19; ~90% teacher hit rate during
+recording), converted through the standard two-pass shard pipeline (fresh
+`norm_stats` paired to the checkpoint), stage-B BC from `rec_fix` (TRM
+frozen, 24 epochs, val bc 0.0445, val grip agreement 0.998). First run was
+host-killed at 5/10 trials; all five completed trials failed with one
+consistent signature:
+
+| trial | steps | eef_min | eef@20 | eef_final | grip close rate |
+|---|---|---|---|---|---|
+| 0 | 600 | 0.159 | 0.276 | 0.713 | 0.150 |
+| 1 | 600 | 0.169 | 0.290 | 0.598 | 0.203 |
+| 2 | 600 | 0.179 | 0.297 | 1.174 | 0.257 |
+| 3 | 600 | 0.155 | 0.291 | 0.642 | 0.113 |
+| 4 | 600 | 0.198 | 0.304 | 0.447 | 0.018 |
+
+Read against round 1 (eef_min ~0.24, grip ~0.0): the 4× data scale-up
+bought a real approach phase (0.29 → 0.16 m) and intermittent grip
+commitment. The policy now walks most of the teacher's path and stalls
+~16 cm short of the object.
+
+**The stall is quantified, not mysterious.** Comparing the student's live
+telemetry against the teacher corpus statistics:
+
+- Teacher (row-0 actions, raw units): mean |x|,|y| = 0.094, 0.207;
+  p90 saturates the ±0.6 quantile clip. Mean |z| ≈ 0.22.
+- Student (3 000 live ticks): mean |x|,|y| = **0.025, 0.025** — a 4–8×
+  lateral undershoot. p95 = 0.06. The z axis is nearly calibrated
+  (0.14 vs 0.22).
+
+Two causes, both previously flagged:
+
+1. **Partial observability of the teacher's target.** The teacher's align
+   phase steers to `_base_tgt` — an internal stored coordinate, invisible
+   in (frame, proprio) at the tick level, and the detector is unreliable at
+   table height precisely where align runs. BC's conditional mean over
+   episodes with different hidden targets regresses lateral commands toward
+   zero: classic mean-collapse under unobserved conditioning. The z axis
+   survives because "descend" is nearly unconditional in the corpus.
+2. **`gain_head` never trains** (forensics F-003). Verified again on
+   `teacher_bc2`: `drift.hrm.gain_head.weight` is bit-identical zero — the
+   stage-B resume freezes the drift module, so the learned action-magnitude
+   mechanism has never fired in any checkpoint to date.
+
+Diagnostic in flight (`diag_gain3`, labeled diagnostic-only, NOT a
+headline config): the same checkpoint with a global 3× action gain. If
+lateral scale is the binding constraint it should reach the object; if the
+stall is covariate shift it will fail the same way, and the next round is
+DAgger (teacher labels on student-visited states) rather than magnitude
+calibration.
+
+### unaided_v3 (DAgger round, dagger-only training) — 0/10, but the stall is BROKEN (2026-08-02)
+
+Round 3: 40 DAgger episodes (student `teacher_bc2` drives 70% of ticks,
+calibrated soup teacher labels every state, β=0.3 recovery mixing; inits
+50–89; all 40 episodes fail to complete — expected, the student is the
+staller — label sanity verified: teacher-label mean |xyz| =
+0.103/0.193/0.268 raw units, matching the round-2 teacher distribution;
+teacher-driven tick fraction 0.294 ≈ β). Trained `teacher_bc3` on the
+DAgger corpus ALONE (24 epochs, val bc 0.0433) plus the new magnitude
+losses (`train/losses.py::pose_magnitude_loss`, weight 0.8;
+`gain_magnitude_loss` 0.3) targeting the measured 4–8× lateral undershoot.
+
+unaided_v4 eval, n=10, no assist flags: **mean_success 0.000** — but the
+intermediates tell a different story than every previous zero:
+
+| metric | rec_fix | bc (23 eps) | bc2 (100 eps) | **bc3 (DAgger)** |
+|---|---|---|---|---|
+| eef_obj_dist_min | — (drifts) | ~0.24 | 0.155–0.198 | **0.061** |
+| eef_obj_dist_final | ~1.0 | — | 0.45–1.17 | **0.110** |
+| grip_close_rate | ~0 | 0.00 | 0.02–0.26 | **0.000** |
+| src_detect_rate | — | 0.98 | 0.53–0.78 | 0.92 |
+
+The approach defect is FIXED: the policy now closes to 6 cm and STAYS at
+the object (final 0.11 m vs 0.6–1.2 before — no more drift-away). But
+grip_close_rate is exactly 0.000: training on the DAgger corpus alone —
+whose labels are ~always gripper-open because the mixed rollouts never
+reach the grasp phase (episode grip-label mean −0.976) — unlearned
+closing entirely. This failure was predicted BEFORE the run (see
+POD_COORDINATION.md note, written at episode 12/40) and is standard
+DAgger theory: train on the AGGREGATE of all rounds, not the newest
+round. The dagger-only run turned into a clean ablation that isolates
+the two skills: approach lives in the DAgger data, grasp lives in the
+teacher-success data.
+
+Round 4 (in flight): `teacher_bc4` on the aggregate (100 teacher-success
++ 40 DAgger episodes), same magnitude losses → unaided_v4, n=10.
+
+### unaided_v4 (aggregate + magnitude losses) — 0/7 (pod restart), the residual isolates to the GRASP TRIGGER (2026-08-02)
+
+`teacher_bc4`: aggregate corpus (100 teacher successes + 40 DAgger) with
+`pose_magnitude_loss` 0.8 / `gain_magnitude_loss` 0.3. Eval killed at 7/10
+by a pod restart; all seven completed trials fail one way:
+
+| trial | eef_min | eef_final | grip close rate |
+|---|---|---|---|
+| 0 | 0.135 | 0.142 | 0.003 |
+| 1 | 0.078 | 0.141 | 0.013 |
+| 2 | 0.128 | 0.218 | 0.018 |
+| 3 | 0.104 | 0.148 | 0.007 |
+| 4 | 0.146 | 0.284 | 0.003 |
+| 5 | 0.116 | 0.167 | 0.017 |
+| 6 | 0.143 | 0.263 | 0.007 |
+
+Read against the ladder: approach is retained from the DAgger round
+(min 8–15 cm and the policy STAYS — final 0.14–0.28 m, no drift-away),
+magnitude is healthy, but grip commitment collapsed back to ~1% of ticks
+(bc2 had 2–26%). The aggregate diluted the DAgger set's all-open labels,
+yet the close event remains ~5% of corpus ticks — a class-imbalance
+problem on the grasp *trigger*, not a geometry problem. The skill ladder
+after four rounds: descend ✓ (round 2), lateral magnitude ✓ (round 3),
+stay-on-target ✓ (round 3), close-at-the-right-instant ✗ — the last
+locked door. Round 5 (parallel session, rev eccbfea): `teacher_bc5b` =
+2× teacher-success corpus weight + fresh DAgger set + GRAM heads on
+HRM/planner, from bc3.
+
+Watch-item: the same session's `ceiling_ibvs3` assisted re-check opened
+0/2 with grips firing 31% — if the TEACHER degraded on the restarted pod,
+ceiling comparisons after this point need re-baselining.
+
+### unaided_lora1 (LoRA'd embedding, BC objective) — 0/6 partial, user-stopped (2026-08-03)
+
+First run with trainable perception: rank-8 LoRA on a CLONE of the SPPF
+stage (18.4K adapter params @ 1e-3) + base SPPF weights @ 1e-6, detection
+bit-frozen (microvla/perception/lora.py; frame_embs recomputed per batch
+from cached SPPF inputs; val scored in the adapted space). Train: 24
+epochs, val bc 0.0755 (vs 0.043 frozen — not comparable: the space is
+moving under the policy; still descending at cutoff). Eval stopped at 6
+trials by user call to prioritize the phase-loss round: all fails; best
+trial eef_min 0.127 m, grip 10–18%, holds position (final == min on
+trial 2). Read: LoRA-alone under the SAME mimicry objective reproduces the
+bc4-class behavior — input capacity without an objective that rewards
+decisive approach does not break the stall. Consistent with the loss
+being the binding constraint, which is the phase-progress bet
+(teacher_phase1, in flight: exact-coord BC ×0.2 anchor +
+direction-to-grasp-point + magnitude floor + grip timing windows,
+train/losses.py::phase_progress_loss).
+
+Films: watch_videos/unaided_bc5c (bc5c regression: parks over empty table
+near basket, wrist camera starved; wrong-object descend onto a distractor
+carton on task 6) — the two failure modes the phase objective + LoRA
+target at mechanism level.
+
+### unaided_phase1 (LoRA + phase-progress objective) — 0/10; the free-regression ladder closes at six rungs (2026-08-03)
+
+teacher_phase1 = stage-B from rec_fix, aggregate corpus (teacher_grid2 +
+dagger), YOLO LoRA (r8, lora lr 1e-3, base 1e-6) + the phase-progress loss
+(`train/losses.py::phase_progress_loss`: direction-to-grasp cosine +
+magnitude floor + close/open BCE windows; exact-coord BC demoted to 0.2×).
+`eval_results/unaided_goal1`-style flags, n=10 task 0: **mean_success
+0.000**. Six free-regression variants (bc2, bc3, bc4, bc5b, lora1, phase1)
+have now attacked the same zero with capacity, data aggregation, DAgger,
+input adaptation, and objective redesign — the ladder's residual (goal
+persistence + trigger timing + magnitude under noise) is invariant to all
+of them. This is the measured motivation for the v10 structured redesign
+(below), not a shortfall to iterate past with a seventh variant.
+
+### v10 structured control — the seven mechanisms become architecture (2026-08-03)
+
+Directed redesign ("redesign the architecture to directly mirror these
+facts"): `paper/WHY_THE_TEACHER_WORKS.md` § prescriptions implemented as
+`microvla/control/` (DESIGN.md v10). The policy class changes — the network
+no longer emits per-tick actions at all:
+
+* **Learned (task content):** `GraspPointHead` (~0.17M) regresses the world
+  grasp point from (source box uv/conf/emb, frame emb, proprio), labels =
+  eef at the FINAL close onset of teacher episodes (the lever arm is in the
+  mapping by construction); `PlaceHead` (~0.07M) regresses the basket point
+  from the command embedding. Heteroscedastic sigma via a detached-trunk
+  lv-head (joint-NLL collapse measured and designed out: mean stalled at
+  ~5 cm while sigma inflated; Huber-mean + detached-residual NLL fixed it).
+* **Structure (control):** `GoalServoMachine` — latch (evidence admission,
+  sigma-gated, one-way), P-law `clip(12·(goal−eef), 0.6)`, one-way phases
+  with the probe-retry cycle, abs() jaw hold check, proprio-only place.
+  Calibrated arm constants keep their teacher values; no task content.
+
+Offline go/no-go on the existing corpus (111 usable episodes, 1703 grasp
+ticks, no re-recording needed): **val median xy error 1.30 cm, p90 2.62 cm
+by epoch 100** (bar: ≤3 cm; probe envelope ±6 cm). Chain in flight:
+train → `eval_results/unaided_goal1` (n=10, task 0, NO assist flags) →
+films. The unaided claim under test: goals from trained heads + structure
+≈ teacher's 0.75, with failures isolating to a measurable head.
+
+### unaided_goal1 — FIRST UNAIDED SUCCESS: mean_success 0.100, n=10 (2026-08-03)
+
+`eval_results/unaided_goal1`, task 0 (soup), NO assist flags — the first
+nonzero unaided number in project history, on the v10 structured policy's
+first closed-loop attempt. Aggregates: src_detect 0.968, grip_close_rate
+0.221, eef_obj_min 0.041 m. The success (trial 3) is textbook: latch error
+2.3 cm, attempt 0, approach→descend→grasp→lift→transport→release→done in
+282 ticks — the teacher's signature, executed from learned goals.
+
+Per-trial phase forensics (telemetry logs phase/attempt/base_tgt per tick,
+with ground-truth obj_pos for diagnosis): EVERY trial latches, descends and
+closes — no never-latched or parked failures, the free-regression ladder's
+signature modes are gone. The 9 failures isolate to exactly two named
+defects:
+
+1. **Deployed latch error 2.2–5.3 cm** (median ~3.4) vs 1.27 cm offline —
+   the latch admits hover-altitude estimates; the head's low-altitude band
+   (median 1.23 cm) is never exploited because the goal freezes at latch.
+2. **The probe search was x-only** (teacher's table; ITS error source was
+   x-distributed) while the head's error is isotropic: trials 2/5/6/7/8
+   burned 9–12 attempts re-closing at the same wrong y. A 3 cm y-error was
+   unreachable BY CONSTRUCTION. Three trials also lift→drop (edge grasps
+   from wrong-spot closes, same root cause).
+
+Fixes (v10.1, both structural, no retraining): radius-ordered 2D probe
+table (±2/±4/±6 cm over both axes, 15 entries), and first-descent goal
+REFINEMENT — on attempt 0, confident estimates keep correcting the stored
+goal until the eef crosses z_freeze 0.10 m (one-way), so the machine
+consults vision exactly as long as the teacher did (down to its gate
+height) and probes proprio-only after. `unaided_goal2` in flight; the y-
+offset recovery and refinement-freeze contracts are pinned by unit tests
+(tests/test_goal_control.py, 23 passing).
+
+### unaided_goal2 (v10.1: 2D probe + first-descent refinement) — 0.300, n=10; every mechanism now validated individually (2026-08-03)
+
+mean_success **0.300** (3× goal1), eef_obj_final 0.104→0.066. The three
+successes exhibit the three designed mechanisms separately, on the record:
+trial 0 = refinement (goal error **1.2 cm** at grasp, attempt 0, 271
+ticks); trials 4/5 = 2D probe recovery (goal error 3.8–4.0 cm, converted
+on attempt 2). The teacher-signature run shape
+(approach→descend→grasp→lift→transport→release→done, ~270–330 ticks)
+now appears in every success.
+
+The 7 failures decompose into two NEW signatures, both structural, both
+self-inflicted, both fixed as v10.2 without retraining:
+
+1. **Refinement deadlock** (trials 2/6/7, stuck approach→descend, eo_min
+   ~7 cm): raw per-tick refinement jitters the stored goal; the strict
+   1.5 cm align gate then never opens and the arm hovers above z_freeze
+   indefinitely. This is the descend-hyst deadlock RE-LEARNED: v10.2
+   EMA-blends refinements (0.5) and descends inside a wide band
+   (descend_band 0.05) while unfrozen, strict tolerance reserved for the
+   grasp transition; freeze also fires on a tick budget (150) as backstop.
+2. **Probe exhaustion around a bad latch** (trials 1/8/9, attempts 5–10 at
+   goal error 2.9–4.5 cm): re-probing a mislatched target forever. v10.2:
+   after `probe_restart` (8) failed attempts, FULL unlatch and re-approach
+   — a fresh vantage + refinement beats searching around a bad anchor.
+
+Ladder so far: free-regression 0/10 ×6 → v10 0.100 → v10.1 0.300 → v10.2
+in flight (`unaided_goal3`). Contracts pinned by 25 unit tests.
+
+### unaided_goal3 (v10.2: EMA refinement, wide band, probe-restart) — 0.400, n=10; failure mass reaches the LAST stage (2026-08-03)
+
+mean_success **0.400** (ladder: 0.100 → 0.300 → 0.400), grip_close_rate
+0.221→0.367, eef_obj_min 0.029. All four successes are attempt-2 probe
+recoveries (goal error 2.4–3.2 cm), ~310–330 ticks, full teacher-signature
+runs. Both goal2 defects converted (no refinement deadlocks except one
+boundary case below; restarts fire and re-latch — trial 4 restarted twice).
+
+The remaining six failures have moved DOWNSTREAM to the final stages —
+grasp geometry and the drop — plus one gate defect:
+
+* **Edge grasps** (trials 2/6/9, the "done-but-scored-0" signature): the
+  full cycle completes, the object is held SOLIDLY through 63–64 transport
+  ticks (jaw 0.46–0.63), released over the learned basket point — but the
+  can hangs 2.6–4.5 cm off gripper center (closed on its edge), so it
+  lands on the rim (obj final z ≈ 0.17) or slips during lowering (trial 9,
+  floor). The eef is exactly where it should be; the OBJECT is not.
+* **Align-gate chatter** (trial 1): lateral error oscillating at exactly
+  the 0.015 gate flicked descend on/off; each steer tick reset the contact
+  window, so the machine sat ON the object at z 0.041–0.044 with contact
+  detection starved for 400+ ticks — measured in the action trace as
+  alternating [−0.4, 0.0] z-commands.
+* Transport drops with working restarts, out of clock (trials 4/7).
+
+v10.3 (no retraining): alignment HYSTERESIS (enter 0.015 / exit 0.025;
+contact evidence accumulates through boundary chatter) and drop_z
+0.18→0.12 (release below the rim, into the liner). Contracts pinned by 27
+unit tests. `unaided_goal4` in flight. The residual after v10.3 —
+grasp-centering (the 2–4 cm goal-error tail) — is the LoRA'd-embedding
+goal head's job, the next sanctioned lever.
+
+### unaided_goal4 (v10.3: align hysteresis + drop_z 0.12) — 0.200, n=10; the hang offset is a CONSTANT (2026-08-03)
+
+mean_success **0.200** (2/10) — nominally a regression from goal3's 0.400,
+but the forensics dissolve the noise into one number: **8/10 trials now
+complete grasp+carry+release over the learned basket point** (front end
+essentially solved; goal3 had 6). The successes landed IN the liner (obj
+final z 0.117/0.128 — drop_z 0.12 doing its job); the failures rest ON the
+rim (z 0.163–0.173) or slipped during lowering (one, floor). Align
+hysteresis removed the goal3 trial-1 contact-starvation signature (no
+stuck-on-object trials).
+
+The decisive measurement: fitting (obj − eef) during transport across ALL
+goal3+goal4 telemetry (390 detected ticks) — the held object hangs at a
+**near-constant (−2.8, +1.4) cm from the eef, residual 3.3 mm**, with the
+image-space terms carrying ~zero signal (no variance: the can always hangs
+the same way). The "random bounce" read was wrong; the grasp pipeline has
+a SYSTEMATIC bias (goal-head deployment shift + the probe schedule's
+geometry), and success-vs-rim in goal3/goal4 was decided by which side of
+the basket wall that fixed offset landed on.
+
+v10.4: `hang_comp` — the traverse aims the eef at place − hang so the
+OBJECT arrives over the basket center. Honest bookkeeping: this is a
+2-parameter place-side hand-eye constant calibrated OFFLINE from logged
+rollouts (the same category as the P-gains, and the same method that
+produced the teacher's lever arm — logged as such, and kept OUT of the
+"zero calibrated constants" claim). The principled fix that drives it to
+zero — a more accurate goal head (LoRA'd embedding) — is the sanctioned
+next lever; goal3's 0.400 stands as the best *constant-free* number.
+`unaided_goal5` (hang_comp + per-success wrist videos via
+`--success-video-dir`, now standing) in flight.

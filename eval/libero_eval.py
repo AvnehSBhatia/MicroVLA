@@ -236,11 +236,27 @@ def _run_mock_trial(
     return success, telemetry
 
 
+def _write_success_mp4(path: str, frames_rgb: list, fps: int = 20) -> None:
+    """Best-effort mp4 of the policy's own wrist view. Never fails the eval."""
+    try:
+        import cv2
+
+        h, w = frames_rgb[0].shape[:2]
+        vw = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+        for f in frames_rgb:
+            vw.write(np.ascontiguousarray(f[..., ::-1]))
+        vw.release()
+        logger.info("success video written: %s (%d frames)", path, len(frames_rgb))
+    except Exception as e:  # codec/headless quirks must not kill a scored run
+        logger.warning("success video FAILED (%s): %s", path, e)
+
+
 def _run_real_trial(
     policy, task: _TaskSpec, trial_seed: int, max_steps: int, camera: str,
     render_size: int = 256,
     grip_close_dist: float = 0.0,
     grip_close_lift: float = 0.0,
+    video_path: str | None = None,
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
 
@@ -304,11 +320,17 @@ def _run_real_trial(
         telemetry: list[dict] = []
         success = False
         nonfinite_steps = 0
+        # Success filming: the wrist frame is already rendered every step for
+        # the policy, so buffering it is free; the mp4 is written ONLY when
+        # the trial succeeds (every unaided success stays on the record).
+        vframes: list[np.ndarray] = []
         for step in range(max_steps):
             # Same row flip the bake applies (microvla/utils/camera.py). The
             # detector is not rotation invariant and neither side was allowed
             # to hold a private copy of this convention again.
             frame = upright(obs[camera], camera)
+            if video_path is not None:
+                vframes.append(np.ascontiguousarray(frame))
             # v6: arm state every step (None on envs that don't expose it).
             proprio = proprio_from_obs(obs)
             action = policy.act(frame, proprio=proprio)
@@ -367,6 +389,8 @@ def _run_real_trial(
                 "NON-FINITE ACTIONS on %d/%d steps of this episode (zeroed before "
                 "env.step). The reported success rate does NOT measure this "
                 "policy -- see paper.md 5e.", nonfinite_steps, max_steps)
+        if success and video_path is not None and vframes:
+            _write_success_mp4(video_path, vframes)
         return success, telemetry
     finally:
         if hasattr(env, "close"):
@@ -507,6 +531,7 @@ def run_eval(
     render_size: int = 256,
     grip_close_dist: float = 0.0,
     grip_close_lift: float = 0.0,
+    success_video_dir: str | Path | None = None,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -546,15 +571,21 @@ def run_eval(
         "n_trials", "telemetry_path", "intermediates"}``.
     """
     if mock_env:
-        run_trial = _run_mock_trial
+        def run_trial(policy, task, trial_seed, max_steps, camera,
+                      video_path=None):
+            return _run_mock_trial(policy, task, trial_seed, max_steps, camera)
     else:
-        def run_trial(policy, task, trial_seed, max_steps, camera):
+        def run_trial(policy, task, trial_seed, max_steps, camera,
+                      video_path=None):
             return _run_real_trial(
                 policy, task, trial_seed, max_steps, camera,
                 render_size=render_size,
                 grip_close_dist=grip_close_dist,
                 grip_close_lift=grip_close_lift,
+                video_path=video_path,
             )
+    if success_video_dir:
+        Path(success_video_dir).mkdir(parents=True, exist_ok=True)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     run_id = f"{suite}_{'mock' if mock_env else 'real'}_{int(time.time() * 1000)}{run_tag}"
@@ -587,7 +618,12 @@ def run_eval(
                 trial_seed = seed * 1_000_003 + trial
                 print(f"[{wtag}] START {task.name} trial {trial}", flush=True)
                 t_start = time.time()
-                success, telemetry = run_trial(policy, task, trial_seed, max_steps, camera)
+                vp = None
+                if success_video_dir:
+                    safe = "".join(c if c.isalnum() else "_" for c in task.name)[:48]
+                    vp = str(Path(success_video_dir) / f"succ_{safe}_trial{trial}.mp4")
+                success, telemetry = run_trial(
+                    policy, task, trial_seed, max_steps, camera, video_path=vp)
                 successes += int(success)
                 inter = _episode_intermediates(telemetry)
                 for k, v in inter.items():
@@ -703,6 +739,9 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
                                     DEFAULT_CONFIG.source_max_area),
             source_min_aspect=getattr(args, "source_min_aspect",
                                       DEFAULT_CONFIG.source_min_aspect),
+            goal_ckpt=getattr(args, "goal_ckpt", None),
+            goal_kwargs=(json.loads(args.goal_kwargs)
+                         if getattr(args, "goal_kwargs", "") else None),
         )
 
     return factory
@@ -857,6 +896,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "with default 0.10 — drop this to force a deeper reach.")
     p.add_argument("--tool-i-gain", type=float, default=0.35,
                    help="integral gain on image error for tool-phase settle.")
+    p.add_argument("--goal-ckpt", default=None,
+                   help="structured control (microvla/control): path to the "
+                        "goal_heads.pt trained by train/train_goal.py. The "
+                        "learned grasp/place world goals drive the teacher's "
+                        "servo shell — UNAIDED (no calibrated task constants), "
+                        "mutually exclusive with --ibvs-phase/--tool-phase.")
+    p.add_argument("--goal-kwargs", default="",
+                   help="JSON dict of GoalServoMachine ctor overrides for "
+                        "--goal-ckpt sweeps, e.g. '{\"latch_sigma\": 0.08}'.")
+    p.add_argument("--success-video-dir", default="",
+                   help="save an mp4 of the policy's wrist view for EVERY "
+                        "successful trial (frames are already rendered, so "
+                        "this is free; written only on success).")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
@@ -1104,6 +1156,7 @@ def _parallel_worker(payload: dict) -> dict:
         render_size=getattr(args, "render_size", 256),
         grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
         grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
+        success_video_dir=getattr(args, "success_video_dir", "") or None,
     )
 
 
@@ -1311,6 +1364,7 @@ def main(argv: list[str] | None = None) -> None:
             render_size=getattr(args, "render_size", 256),
             grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
             grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
+            success_video_dir=getattr(args, "success_video_dir", "") or None,
         )
     # Carried in the results file, not only the log: a scored number whose
     # deployment did not match its corpus must stay self-identifying after the
