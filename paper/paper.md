@@ -6350,3 +6350,25 @@ averages to a phantom. The repo's `--ibvs-clip-rerank` (crop-level CLIP
 rebinding, built for exactly this, a wash on soup) is the lever — chain
 relaunched with it (one sed-deadlock caught and fixed by file-indirect
 kill + new script, per the ops discipline).
+
+### Config landscape declared FINAL; cream binding fixed by rerank (2026-08-05, cycle 15)
+
+**v11: butter 6/10, soup 4/10 — identical to v9.** The spread-adjudication
+refinement adds nothing at n=10; the config family (v9/v10/v11 + the
+confirmation) is statistically one blob: butter 5–9, soup 3–4 under one
+config, per-object ceilings 10/10 and 9/10 under split configs. By this
+paper's own selection discipline, config iteration STOPS here: the
+landscape is the result, the seed-77 confirmation is the reported
+number, and v10/v11 are logged as two additional disclosed looks
+(selection ledger updated to six config looks on the seed-20 band).
+
+**Cream cheese: binding confusion fixed by `--ibvs-clip-rerank`** — the
+calibration that never reached a grasp phase without it converged in two
+iterations WITH it (full success, at-close residual 8 mm, offset
+(0.156, −0.064): the composite offset differs per object again, as the
+paper predicts). Smoke 1/3 sat a hair under the 0.34 gate; teacher is
+workable (cal trial + 1/3 smoke), so the corpus segment launched
+directly: 25-target randomized cream corpus → three-object v8 head
+(soup + butter + cream) → three-object eval n=10 each under the anchor
+band. Binding — not grasping — was the third object's boundary, and the
+crop-level CLIP rebinding the repo already carried is what crossed it.
