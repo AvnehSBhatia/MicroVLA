@@ -524,6 +524,13 @@ in the release, and never headline. All cells k/10 with Wilson 95% CIs; task
 | randomized ±4 cm (pod, identical draws) | **1/10 [0.02, 0.40]** ‡ | **4/10 [0.17, 0.69]** | 5/10 [0.24, 0.76] | 3/10 [0.11, 0.60] |
 | randomized ±4 cm (audit stack) | 6/10 [0.31, 0.83] † | 0/10 [0.00, 0.28] † | — | — |
 
+Row provenance: memorized and sibling cells predate the 2026-08-04 pod
+stack rebuild; flagship cells are post-rebuild (held-out additionally
+confirmed at n=50, and the randomized cell's draw sequence replicated
+exactly the night of the control run). Post-rebuild re-measures of both
+heads' dev cells are dated App-D cells, kept out of this table by the
+same rule that keeps audit-stack cells out.
+
 ‡ Pod-stack control cell, run 2026-08-05
 (`libero_object_real_1785905093901`): the memorized head under the same
 seed as the flagship's randomized cell, which drives the identical
@@ -564,11 +571,14 @@ own 0.300 held-out rate, 0/3 occurs 34% of the time), and treated the
 column as the behavioural certificate of de-memorization. The two controls
 sharpen that reading rather than settling it one way. On the deployment
 stack, under the flagship's own shift draws, the memorized policy scores
-1/10 against its own 7/10 unshifted dev rate on the same states —
-randomization costs it −0.6 while costing the flagship nothing detectable
-(4/10 dev, 4/10 randomized) — and its single success is the draw that
-barely moved the object (norm 1.4 cm): there, the behavioural column reads
-exactly as a de-memorization certificate. On the audit stack — where the
+1/10 where the flagship's cell on the identical draws is 4/10, and its
+single success is the draw that barely moved the object (norm 1.4 cm):
+there, the behavioural column reads as a de-memorization certificate. (We
+state the deployment-stack contrast head-vs-head on identical draws only:
+the unshifted dev baselines in the table predate the 2026-08-04 stack
+rebuild, and §6 forbids charging a cross-stack difference to
+randomization — both heads' post-rebuild dev re-measures are dated App-D
+cells.) On the audit stack — where the
 detector rebuild disables the flagship's visual goals (0/10) — the same
 memorized policy scores 6/10 randomized against its own 3/10 unshifted
 (per-trial pairing over the same states: discordants b=1, c=4, exact sign
