@@ -5934,3 +5934,16 @@ alignment, with per-tick proprio added to future sidecars. The machine
 accepts the learned gates per-key (each swap independently ablatable);
 the first ablation row — held-out protocol, both gates learned, vs the
 0.700 threshold baseline — is running.
+
+### De-skeletonization stage 1 ABLATION — learned gates at exact parity: 0.700 held-out (2026-08-05)
+
+Held-out protocol, v5 heads, with BOTH stage-1 gates learned (close
+trigger 88% acc / hold check 76%, trained on 30 self-play scaffold
+traces): **0.700 (7/10, filmed) — identical to the threshold baseline.**
+Two hand-set decision rules of the servo shell are now trained weights
+with a measured zero-cost swap. Remaining hand-set surface, in planned
+replacement order: latch stability parameters, P-law gains, probe
+schedule, place descent — each with the same trace-supervised recipe and
+its own ablation row. The de-skeletonization ledger now reads: task
+content LEARNED (goal heads), close trigger LEARNED, hold check LEARNED,
+control shell remainder engineered-but-task-free.
