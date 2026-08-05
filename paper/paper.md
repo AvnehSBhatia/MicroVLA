@@ -6165,3 +6165,16 @@ omitted the flag. Chain relaunched as `scripts/butter_v6b.sh`: smoke n=3
 with place-at (gate ≥1/3) → 25-ep randomized butter corpus → v6
 multi-object head (soup + butter) → unaided butter n=10 + soup
 regression n=10.
+
+### Butter teacher COMPLETE EPISODES: smoke 2/3 (2026-08-05, cycle 4)
+
+With `--ibvs-place-at=-0.010,0.255` (the same calibrated place point every
+task-0 recording chain used — the basket is benchmark-pinned, so one
+constant serves both tasks), the butter teacher goes end-to-end:
+**smoke 2/3** (eval_results/bv6b_smoke). Full arc: centered close → jaws
+blocked → lift → proprio transport to the constant → lower → release in
+basket. The multi-object corpus is now RECORDING: 25-target randomized
+(±3 cm) butter episodes, 20 attempts in (~2 min/attempt, successes at
+~35–40% under teleports — the probe-retry machinery earns its keep on the
+misses). Next in chain: convert → train goal_heads_v6 on soup+butter →
+unaided butter n=10 + soup regression n=10.
