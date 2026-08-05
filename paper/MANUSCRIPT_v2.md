@@ -1339,11 +1339,16 @@ stable far-view median) — butter **6/10**
 (`libero_object_real_1785941132389`), soup **4/10**, one config, no
 per-object constants.
 
-Selection ledger for this addendum: v6/v7/v8/v9 all scored the seed-20
-band — four config looks on one state band. Pre-registration, written
-before any further look: v7 head + `anchor_band 0.04`, seed 77 (never
-scored by any student run), n=10 butter + n=10 soup, single shot, no
-post-hoc adjustment. The confirmation returned butter **5/10
+Selection ledger for this addendum: v6/v7/v8/v9 scored the seed-20 band
+before the pre-registration (four config looks), and two post-confirmation
+refinement attempts (a rejection-count freeze and a spread-adjudicated
+re-anchor) scored it after — six looks total, all disclosed; both
+refinements landed inside noise of the plain band (9/10–3/10 and
+6/10–4/10 respectively) and the config family was declared final at that
+point, per §3's own selection discipline. Pre-registration, written
+before either refinement look: v7 head + `anchor_band 0.04`, seed 77
+(never scored by any student run), n=10 butter + n=10 soup, single shot,
+no post-hoc adjustment. The confirmation returned butter **5/10
 [0.24, 0.76]** (`libero_object_real_1785944538678`) and soup **3/10
 [0.11, 0.60]** (`libero_object_real_1785945668035`) — both consistent
 with their selection-band cells (6/10, 4/10): the one-config
