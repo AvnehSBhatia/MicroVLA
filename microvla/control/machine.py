@@ -197,7 +197,7 @@ class GoalServoMachine:
         self._est: list[tuple[float, float, float]] = []  # sigma-passed window
         self._est_sig: list[float] = []                    # their sigmas
         self._anchor: tuple[float, float] | None = None    # first stable median
-        self._reject_n = 0                                 # consecutive band rejections
+        self._rejects: list[tuple[float, float]] = []      # consecutive out-of-band ests
         self._weak: list[tuple[float, float, float]] = []  # all in-bounds ests
         self._base_tgt: tuple[float, float] | None = None
         self._base_yaw = 0.0
@@ -266,12 +266,9 @@ class GoalServoMachine:
             if (self.anchor_band > 0.0 and self._anchor is not None
                     and max(abs(x - self._anchor[0]),
                             abs(y - self._anchor[1])) > self.anchor_band):
-                self._reject_n += 1
-                if (self.freeze_rejects and not self._goal_frozen
-                        and self._reject_n >= self.freeze_rejects):
-                    self._goal_frozen = True   # chase detected: stop refining
-                return                 # outside the far-view trust region: chase
-            self._reject_n = 0
+                self._count_reject(x, y)
+                return                 # outside the far-view trust region
+            self._rejects = []
             self._est.append((x, y, float(z)))
             self._est_sig.append(float(sigma))
             if len(self._est) > self.latch_k:
@@ -297,18 +294,35 @@ class GoalServoMachine:
                     and max(abs(float(xy[0]) - self._anchor[0]),
                             abs(float(xy[1]) - self._anchor[1]))
                     > self.anchor_band):
-                self._reject_n += 1
-                if (self.freeze_rejects
-                        and self._reject_n >= self.freeze_rejects):
-                    self._goal_frozen = True   # chase during descent: freeze
+                self._count_reject(float(xy[0]), float(xy[1]))
                 return                 # refinement outside the trust region
-            self._reject_n = 0
+            self._rejects = []
             bx, by = self._base_tgt
             nx, ny = 0.5 * bx + 0.5 * x, 0.5 * by + 0.5 * y
             self._base_tgt = (nx, ny)
             self._align_tgt = (nx, ny)
             zc = float(np.clip(z, self.close_z_min, self.close_z_max))
             self._close_z = 0.5 * self._close_z + 0.5 * zc
+
+    def _count_reject(self, x: float, y: float) -> None:
+        """v11: adjudicate a run of out-of-band estimates by THEIR OWN spread.
+        A chase walks — consecutive rejections land apart (freeze refinement;
+        pure proprio to the anchor). A biased anchor with accurate
+        refinements produces rejections that AGREE with each other (tight
+        cluster beyond the band) — re-anchor to their median and keep
+        refining. Freezing on mere same-sidedness would lock in anchor bias;
+        this rule trusts stable dissent and distrusts motion."""
+        self._rejects.append((x, y))
+        if len(self._rejects) < self.freeze_rejects:
+            return
+        arr = np.asarray(self._rejects[-self.freeze_rejects:], dtype=np.float64)
+        spread = float((arr.max(axis=0) - arr.min(axis=0)).max())
+        if spread <= self.latch_spread:
+            m = np.median(arr, axis=0)
+            self._anchor = (float(m[0]), float(m[1]))   # stable dissent: move
+        elif not self._goal_frozen:
+            self._goal_frozen = True                    # walking stream: freeze
+        self._rejects = []
 
     def set_place(self, xy) -> None:
         if xy is not None:
@@ -541,7 +555,7 @@ class GoalServoMachine:
         self._est = []
         self._est_sig = []
         self._anchor = None
-        self._reject_n = 0
+        self._rejects = []
         self._weak = []
         self._base_tgt = None
         self._align_tgt = None
