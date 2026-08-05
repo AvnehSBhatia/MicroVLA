@@ -661,12 +661,28 @@ chains never passed the teacher's calibrated place point, so every
 otherwise-sound episode timed out hunting an undetectable basket —
 tgt detection duty 0.0 through entire transports on both stacks, object
 held to z = 0.7. With the same place constant every soup chain used, the
-butter teacher goes end-to-end at 2/3.) The repair recipe is demonstrated
-on one object; the multi-object corpus campaign this re-diagnosis
-unblocks is under way and reports as dated App-D addendum cells (first
-iteration: butter 0/10 from a 16-episode corpus with 3–13 cm goal error —
-data-starved, not strategy-blocked — while the joint corpus *raises* soup
-to 9/10 on the held-out protocol), not amended into this paper's numbers.
+butter teacher goes end-to-end at 2/3.) The multi-object campaign this
+re-diagnosis unblocked then ran to a mechanism-complete result the same
+day, reported as dated App-D addendum cells and not amended into this
+paper's numbers. Its short arc is this paper's thesis in miniature: a
+26-episode butter corpus trains a head that is *clean on every offline
+instrument* (labels tight, on-manifold error 1.3 cm, no proprio leaning,
+hover estimates accurate) and deploys at 0/10 with 5–15 cm goal error —
+live instrumentation then catches the estimate stream *walking* +10 cm as
+the approach controller chases it, because the teacher pins the object at
+a fixed image position during approach and the machine does not, so the
+machine's own motion drives uv off the training manifold (§6's
+on-manifold probe limit, with a feedback loop attached). Latching from
+the far-view estimates and freezing flips butter 0/10 → 10/10 with no
+retraining — and drops soup to 1/10, whose coarse hover estimates need
+exactly the refinement that poisons butter; the head's calibrated sigma
+cannot arbitrate (0.007–0.017 live in both regimes). One config serves
+both: an anchor trust-region (admit estimates only within 4 cm of the
+first stable far-view median — refinement passes, the chase is rejected)
+scores butter 6/10 and soup 4/10 under a single policy bundle with no
+per-object constants. Config looks accumulated on one state band are
+disclosed in App D, and the config is pre-registered for a single-shot
+confirmation on a never-scored seed whose dated result lands in App D.
 
 **Negatives and calibration honesty.** Joint LoRA adaptation of the
 embedding stage hurts at this corpus scale (val 3.08 vs 0.99 cm). A
@@ -859,15 +875,16 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   stack on which vision is live — on the deployment stack it does separate
   the heads (1/10 vs 4/10), and §6–7 carry the stack-independent claim via
   attributions and varied-label validation.
-* Object-level generalization: one object in every claimed cell. The
-  butter boundary is measured and re-diagnosed (§7): a place-leg flag
-  omission and a calibration residual, not a grasp-strategy limit. The
-  first multi-object iteration exists as dated App-D addendum cells —
-  teacher end-to-end on butter 2/3; a 16-episode butter corpus joined to
-  the soup corpus trains a v6 head that scores 0/10 on butter (goal error
-  3–13 cm, data-starved) while *raising* soup to 9/10 on the held-out
-  protocol — but no multi-object success number is claimed in this
-  paper's body, and iteration continues in the addendum.
+* Object-level generalization: one object in every claimed cell of the
+  body. The butter boundary is measured, re-diagnosed, and — in the dated
+  App-D addendum — crossed: the same-day campaign runs from teacher
+  end-to-end (2/3), through a head clean on every offline instrument yet
+  0/10 deployed, to the live-caught estimate-chase mechanism, to
+  10/10 butter under early latch (config-split), to 6/10 butter + 4/10
+  soup under one anchor-band config with no per-object constants, with a
+  pre-registered single-shot confirmation on a fresh seed (dated result
+  in App D). No multi-object number is claimed in the body; the addendum
+  carries them with their selection ledger.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
   LIBERO scores (§3, §9).
@@ -1284,9 +1301,37 @@ butter **0/10** (`libero_object_real_1785926557527`; detection duty
 0.999, closest approach 0.027–0.133 m across trials: goal error, data-
 starved at 16 episodes) and soup **9/10** on the held-out protocol
 (`libero_object_real_1785927804554`) — two points above the flagship's
-own cell: the joint corpus helped soup. Iteration continues (corpus
-extension + butter-oversampled retrain); no multi-object success number
-is claimed in the body.
+own cell: the joint corpus helped soup.
+
+v7 (26 butter episodes, 2× oversampled): butter still **0/10**
+(`libero_object_real_1785934999759`) with every offline instrument clean
+— labels tight in the same table region as soup's, on-manifold error
+1.3 cm butter / 0.8 cm soup, eef+5 cm substitution moves predictions by
+−0.1 cm, hover-tick error 1.4 cm — while deployed goal error runs
+5–15 cm at the correct z. A live-instrumented episode caught the
+mechanism: first ~10 estimates accurate to ~1 cm, then the stream walks
++10 cm as the approach controller chases it — the teacher pins the
+object at a fixed image position during approach (target-uv servo) and
+the machine does not, so the machine's own motion drives uv off the
+training manifold and the head extrapolates. Soup v7: **7/10**
+(`unaided_v7_soup`).
+
+Latch-policy cells, same head (v7), seed-20 band: early latch + freeze
+(`latch_tol 9.0, z_freeze 1.0`) — butter **10/10**
+(`eval_results/unaided_v8_butter`, closest approach 0.013 m), soup
+**1/10** (coarse hover estimates need the refinement that poisons
+butter; the head's calibrated sigma cannot arbitrate — live sigmas
+0.007–0.017 in both regimes). Anchor trust-region
+(`anchor_band 0.04`: admit estimates only within 4 cm of the first
+stable far-view median) — butter **6/10**
+(`libero_object_real_1785941132389`), soup **4/10**, one config, no
+per-object constants.
+
+Selection ledger for this addendum: v6/v7/v8/v9 all scored the seed-20
+band — four config looks on one state band. Pre-registration, written
+before any further look: v7 head + `anchor_band 0.04`, seed 77 (never
+scored by any student run), n=10 butter + n=10 soup, single shot, no
+post-hoc adjustment; the dated result lands here.
 
 ## E. Defect catalog (unified count: 29)
 
