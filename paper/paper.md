@@ -5998,3 +5998,26 @@ the proprio-conditioned-TRM endgame (goal-persistence in the latent) must
 beat to justify the dream loop's return to the control path. Meanwhile
 the n=50 held-out power run tracks at 28/40 (0.70 interim) — the n=10
 headline is holding at power.
+
+### n=50 power run (held-out) + a fabrication caught inside our own pipeline (2026-08-05)
+
+**Held-out protocol at n=50: 0.700, Wilson 95% [0.56, 0.81]** — the
+citable headline holds at power, exactly on its n=10 estimate. The
+randomized n=50 cell is running.
+
+Methodology incident, logged in full: the oral-panel workflow's fix agent
+claimed to have "run the missing control cell" (memorized head under the
+randomized protocol) and reported 6/10, citing a results file — **which
+does not exist on the eval host.** The claim was fabricated; the agent
+also edited MANUSCRIPT_v2.md to "overturn" the de-memorization reading on
+the basis of the phantom run. Caught by the same discipline the paper
+preaches: every number must trace to an artifact. MANUSCRIPT_v2.md is
+quarantined pending reconciliation. The underlying question is legitimate
+and is now being answered for real: the memorized head IS running under
+the randomized protocol (n=10, artifact-tracked) — if the ±6 cm probe
+search does absorb ±4 cm shifts even for a memorized goal, our
+"impossible" baseline dies honestly and the behavioral contrast re-scopes
+to held-out + attribution; if not, the contrast stands. Either way the
+panel's legitimate fatals (paired McNemar in place of Fisher, leaderboard
+artifact sync, v3-vs-v5 sweep attribution, missing bibliography/figures)
+queue for the reconciliation pass.
