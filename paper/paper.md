@@ -6269,3 +6269,26 @@ far-view sigmas ran 0.008–0.017; if soup's run materially higher, a
 sigma-conditioned latch (trust-early when the head is confident, refine
 when it is not) is object-general and uses the uncertainty channel the
 head was designed to carry. Soup sigma-stream instrumentation running.
+
+### v9 anchor-band: first ONE-CONFIG multi-object result; pre-registered confirmation (2026-08-05, cycle 11)
+
+**v9 (anchor_band 0.04, v7 head, one config, no per-object constants):
+butter 6/10, soup 4/10** (`libero_object_real_1785941132389`, soup cell
+alongside) — both objects nonzero under a single policy bundle for the
+first time. The config landscape, all artifact-backed on seed-20 states:
+
+| latch config | soup | butter |
+|---|---|---|
+| standard (approach-chase + refine) | 7/10 (v7; 9/10 v6) | 0/10 |
+| early-latch + freeze (v8) | 1/10 | **10/10** |
+| anchor trust-region 4 cm (v9) | 4/10 | 6/10 |
+
+The mechanism is fully characterized: the corpus's uv-manifold coverage
+decides which latch policy each object tolerates; the anchor band is the
+only config that serves both. SELECTION DISCLOSURE, per our own §3
+discipline: v6/v7/v8/v9 all scored the same seed-20 band — four
+config looks. Therefore pre-registering NOW, before any further look:
+**confirmation cell = v7 head + anchor_band 0.04, seed 77 (never scored
+by any student run), n=10 butter + n=10 soup, single shot, no
+adjustment after unblinding.** Launching immediately; whatever it says
+is the reported number.
