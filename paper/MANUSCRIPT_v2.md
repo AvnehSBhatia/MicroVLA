@@ -1,8 +1,11 @@
 # Learning Location, Not Looking: A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale (MicroVLA)
 
-**Manuscript draft v2 (2026-08-04; same-date revision adds the memorized
-head's randomized control cell, its two audit-stack anchors, Table D.1, the
-rendered figures, and references — App D).** Distilled from the full
+**Manuscript draft v2 (2026-08-04; revised 2026-08-05: adds the
+deployment-stack control cell, the audit-stack control trio, the n=50
+dated addendum for both non-dev protocols, the post-rebuild re-measure
+matrix, the released head's zero-shot sweep, the multi-object addendum
+with its pre-registered fresh-seed confirmation, Table D.1, the rendered
+figures, and references — App D).** Distilled from the full
 experimental record
 in `paper.md` (cited as log §*n*); every number is measured and traceable to that
 log, `results/`, or `eval_results/`. Section 10 lists what this paper does *not*
@@ -41,7 +44,9 @@ engineered pick-and-place shell; free per-tick regression scored 0/56. All
 results are simulation (LIBERO/MuJoCo), one task and one object (task 0,
 alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
-released head itself; §7).
+released head itself; §7); a dated addendum carries the first
+multi-object iteration, mechanism-diagnosed and confirmed on a fresh
+seed (App D).
 
 ---
 
@@ -213,7 +218,9 @@ an RNG seeded `777_000 + trial_seed`. Reruns with identical code, weights,
 flags, and seed reproduce trajectories on a fixed software stack (§6 shows
 determinism does *not* survive a stack rebuild). Init-state bands: dev =
 states 0–9 (seed 0), held-out = states 10–19 (seed 20), teacher calibration =
-states 20–29 (seed 40); states 30–49 were never scored by any run.
+states 20–29 (seed 40); states 30–49 were never scored by any run until the
+addendum's pre-registered confirmation drew from them (seed 77 → states
+31–40; App D).
 
 **Held-out reuse, disclosed.** The ten held-out states were never used in
 training or constant-fitting, but they have been *scored* on five
@@ -626,9 +633,9 @@ bought detector-version dependence, which the proprio-shortcut head never
 had.
 
 **Transfer boundary.** Placement generalization repaired; object
-generalization open. Under the all-tasks sweep — run with sibling v3, not
-the released v5, which was never swept; protocol as in §6 (n=3 per task,
-seed 20, otherwise §3) — a
+generalization measured at its boundary, then crossed in the dated
+addendum. Under the all-tasks sweep — run first with sibling v3
+(protocol as in §6: n=3 per task, seed 20, otherwise §3) — a
 variance-trained head scores 0.67 on task 0 (2/3 [0.21, 0.94], consistent
 with held-out) and 0.00 on tasks 1–9 (n=3 each) — the corpus is soup-only.
 The released flagship's own sweep (run 2026-08-05, n=3 per task, seed 20,
@@ -683,7 +690,7 @@ scores butter 6/10 and soup 4/10 under a single policy bundle with no
 per-object constants. Config looks accumulated on one state band are
 disclosed in App D; the pre-registered single-shot confirmation on a
 never-scored seed returned 5/10 butter + 3/10 soup — consistent with the
-selection-band cells, at the modest rates the small n states (App D).
+selection-band cells, at the modest rates its small n states (App D).
 
 **Negatives and calibration honesty.** Joint LoRA adaptation of the
 embedding stage hurts at this corpus scale (val 3.08 vs 0.99 cm). A
@@ -790,9 +797,10 @@ probes are standard in that literature; what we add is the audited
 counterexample (near-identical attributions on the jointly logged channels,
 0.000 vs 0.700 deployed — §6 discloses the one unlogged channel), the
 resulting probe-plus-behavioural-randomization pairing for fixed-placement
-benchmarks, and the control-cell result that scopes the pairing itself:
-behavioural randomization certifies the head only beyond the controller's
-own local search envelope (§7).
+benchmarks, and the twin control cells that scope the pairing itself:
+behavioural randomization separates memorized from grounded heads only on
+a stack where visual goals are live; where they are not, the controller's
+own search envelope absorbs the randomization (§7).
 
 **Structured action interfaces.** Predicting *where* rather than *how* is the
 Transporter Networks (Zeng et al. 2020) and CLIPort (Shridhar et al. 2021)
@@ -918,15 +926,18 @@ diagnostic telemetry offline (§5); single benchmark, single simulator.
 One repo; every dimension flows from one config object; 606 tests (CPU-only,
 mock-only, no network) cover the deployment path; parameter and disk budgets
 are asserted by the build. Shipped: `models/full_stageB_rec_fix.pt` (trunk),
-`models/goal_heads_v5.pt` (flagship), `models/gates_v1.pt` (learned gates),
+`models/goal_heads_v5.pt` (flagship), `models/goal_heads_v7.pt` (the
+addendum's multi-object head), `models/gates_v1.pt` (learned gates),
 `data/libero_object_grid/norm_stats.json`,
 `scripts/measure_placement_pinning.py` with its emitted
 `results/placement_pinning.{md,json}` (Table D.1),
-`results/UNAIDED_LEADERBOARD.md` (a historical artifact: its boards stop at
-sibling v2.1 and at six of the seven free-regression rounds, and it carries a
-603-test-era build note — §7 and App D supersede it wherever they disagree;
-regeneration is queued, and until then the §7 table is authoritative for
-every trio/flagship cell),
+`results/UNAIDED_LEADERBOARD.md` (regenerated 2026-08-05 to the full
+record — flagship n=50 confirmations, both control cells, the rebuild
+matrix, and the multi-object addendum; where any residual disagreement
+surfaces, the §7 table and App D are authoritative),
+`paper/render_results_figs.py` (re-renders F3 from the table) and
+`scripts/collect_tonight.py` (re-verifies every addendum cell against its
+results JSON),
 sibling weights and per-round results/telemetry under `results_backup/`,
 three representative films plus the App G manifest, and the full experimental
 log `paper.md` including every negative result and retraction. Canonical
