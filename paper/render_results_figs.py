@@ -76,6 +76,12 @@ axes[2].annotate("rebuilt detector stack:\nseparation inverts; never\n"
                  "compared to pod bars",
                  xy=(0.99, 0.99), xycoords="axes fraction", fontsize=6.5,
                  va="top", ha="right")
+axes[2].annotate("n=50 addendum: 26/50 [0.39, 0.65]",
+                 xy=(1.35, 0.545), xycoords="data", fontsize=6.5,
+                 ha="center", color="#1f77b4")
+axes[1].annotate("n=50 addendum: 35/50 [0.56, 0.81]",
+                 xy=(1.0, 0.93), xycoords="data", fontsize=6.5,
+                 ha="center", color="#1f77b4")
 
 # pooled panel (variance-trained heads, pod-stack cells only)
 axp = fig.add_subplot(gs[0, 3])

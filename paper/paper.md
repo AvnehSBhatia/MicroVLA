@@ -6111,3 +6111,29 @@ is trial 6 (unshifted-only; b=1, c=0 — the head is near-floor on this
 stack with or without shifts; the de-memorization contrast on this stack
 is carried by flagship 4/10 vs memorized 1/10 on identical draws).
 Flag-dev re-measure running; p50-rand at 20/36.
+
+### n=50 randomized lands + full stack-coupling matrix complete (2026-08-05, cycle 2)
+
+**Randomized ±4 cm at n=50: 26/50 = 0.520, Wilson [0.39, 0.65]**
+(`libero_object_real_1785904148049`, verified) — above the n=10 estimate
+(0.400), first ten draws reproduce the n=10 cell exactly. Held-out n=50
+anchor re-verified from its artifact: 35/50 = 0.700 [0.56, 0.81]
+(`libero_object_real_1785899388619`). Protocol deviation disclosed in the
+addendum: the held-out leg drew the standard seed-20 stream (10 states
+coincide with the five-look band, 40 never previously scored).
+
+**Flag-dev post-rebuild: 4/10 FINAL** (`libero_object_real_1785911307413`,
+successes trials 4–7) — exactly its pre-rebuild cell. The rebuild matrix
+is complete and one-sided: flagship reproduces in ALL THREE protocols
+(dev 4/10→4/10, held-out 7/10→35/50, randomized 4/10→4/10 identical
+draws); memorized head collapses (dev 7/10→2/10, its held-out floor).
+Layer-2 iteration coupling is now a measured behavioural fact, not an
+inference. Manuscript updated: App-D addendum written with both n=50
+results + run ids, abstract/§9/limitations confirmation clauses,
+post-rebuild paragraph completed, F3 annotated with n=50 CIs.
+
+Scoreboard (all one stack unless labeled, all artifact-verified):
+flagship held-out 0.700 (n=10 and 35/50), randomized 0.400 n=10 / 0.520
+n=50, dev 0.400 (pre+post rebuild); memorized control 1/10 randomized,
+2/10 dev post-rebuild (vs 7/10 pre); audit-stack trio 6/10-3/10-0/10.
+v5 all-tasks zero-shot sweep running (task 3/10); butter v6 queued.
