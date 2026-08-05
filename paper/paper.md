@@ -5947,3 +5947,25 @@ schedule, place descent — each with the same trace-supervised recipe and
 its own ablation row. The de-skeletonization ledger now reads: task
 content LEARNED (goal heads), close trigger LEARNED, hold check LEARNED,
 control shell remainder engineered-but-task-free.
+
+### Adversarial review pass — internal red-team, findings fixed (2026-08-05)
+
+A fresh-context adversarial reviewer (hostile-NeurIPS framing) read the
+manuscript cold. Verdict: the audit/repair methodology publishable; the
+selling half contained contradictions. All confirmed findings fixed in the
+same pass: (1) abstract's "7.0 M trained" vs the tables' ~17.2 M total-ever-
+trained — abstract now reports both, ledgers merged; (2) headline restated
+on the citable number (held-out, post-repair) with the hang_comp constant
+DISCLOSED in abstract + §6.4f and the T0 0.400 figure alongside; (3) the
+"same trunk" ablation claim corrected to "same frozen perception and
+corpus" with an explicit statement that the world model is causally inert
+in every nonzero number (its value confined to §6.1, now with wm_margin
+numbers and the agentview sign-flip scoping); (4) round-count unified
+(seven rounds), repair-corpus size corrected (ten episodes, consolidations
+credited); (5) the 0.200 regression step restored to the ladder; (6)
+Octo-small named as the honest nearest neighbor with the class boundary
+made explicit; (7) probe novelty narrowed to the pairing-with-protocol;
+(8) place-leg memorization-by-design disclosed; (9) §6.1's zero scoped to
+free-regression. Remaining review items logged as future work: n=50
+reruns with Wilson intervals on the load-bearing cells; place-head
+randomization; the structured-heads-without-JEPA-loop ablation.

@@ -11,9 +11,11 @@ read them before quoting the abstract.
 ## Abstract
 
 We present MicroVLA, a language-conditioned vision-language-action (VLA) stack
-whose deployed footprint is ~30 M parameters — 13 M of it a frozen
-open-vocabulary detector reused as the *only* vision **and** text encoder, and
-just **7.0 M trained parameters** — targeting CPU-class robot hardware
+whose deployed footprint is ~30 M parameters — a 13 M frozen open-vocabulary
+detector reused as the *only* vision **and** text encoder, a ~10 M world model
+trained once and frozen at deployment, and **7.2 M trained head parameters**
+(7.0 M trunk heads + 0.24 M structured-decoding heads) — targeting CPU-class
+robot hardware
 (Raspberry Pi 5, 7 servos). Three design decisions carry the size: (1) frozen
 YOLO-World-S supplies frame embeddings, per-role object embeddings, and its own
 CLIP text tower, so no separate language model exists anywhere in the stack;
@@ -35,15 +37,24 @@ commitment, and a control law from single noisy frames regresses to
 hovering. Replacing the free [5×7] action head with **structured decoding**
 — two small learned heads (0.24 M) that predict *where* to grasp and place,
 driving a task-content-free servo shell (latch, P-law, one-way phases,
-2D probe search) — takes the same trunk from 0.000 to **0.700 unaided**
-on the benchmark protocol. We then audit our own number the way a reviewer
+2D probe search) — replaces free per-tick regression over the same frozen
+perception and corpus, taking unaided success from 0.000 to **0.700 on
+held-out init states** after the de-memorization repair (n=10 per cell;
+0.400 with zero calibrated task constants; 0.500 under ±4 cm placement
+randomization; the best fixed-placement configuration retains one
+offline-calibrated place-side offset, disclosed in §6.4e). We then audit
+our own number the way a reviewer
 would, and find *three layers of placement memorization*: the benchmark
 pins object poses (identical across all 50 init states), our grasp head
-scored 0.700 while provably ignoring the image (an input-sensitivity probe
-we introduce), and even the hand-calibrated expert encodes pose in its
-"lever-arm" constant — which flips sign under a software-stack rebuild.
-The repair is small and reproducible: ~50 teacher episodes recorded under
-source-pose teleportation plus one nuisance-input augmentation. The
+scored 0.700 while provably ignoring the image (shown with a
+substitution-attribution probe; the probe technique is standard — the
+pairing with a randomized-placement repair protocol for manipulation
+benchmarks is what we propose as practice), and even the hand-calibrated
+expert encodes pose in its "lever-arm" constant — which flips sign under
+a software-stack rebuild (§6.4f). The repair is small and reproducible:
+**ten** teacher episodes recorded under source-pose teleportation plus one
+nuisance-input augmentation (corpus later consolidated at 27 and 49
+episodes; the attribution profile quoted below is the 49-episode head's). The
 resulting head is certifiably visual (attribution: vision channels
 1.1–1.8 cm, proprio parasitism 0.1 cm), closes the dev/held-out gap
 (0.300 → 0.700), and produces the first successes on displaced objects
@@ -179,18 +190,17 @@ mid-range, low trust *hold-blends* toward the last emitted plan and must never
 scale toward zero. One corrector, two semantics, chosen by config — this
 distinction was itself the product of an eval failure, not foresight.
 
-**Parameter ledger** (audited, `microvla.utils.param_audit`):
+(The single audited ledger is the table above; total parameters ever
+trained across stages ≈ 17.2 M — trunk heads 7.0 M + TRM ~10 M in stage A,
+frozen thereafter + 0.24 M structured-decoding heads. We report both
+numbers because "trained" is stage-dependent and a smaller-sounding figure
+would be the kind of agreement-without-correctness §7 catalogues.)
 
-| component | params | trained |
-|---|---|---|
-| YOLO-World-S + CLIP text tower | 13.0 M | frozen |
-| RecursiveTRM (world model) | ~9.5 M | yes (stage A) |
-| Fusion + drift + planner (heads) | 7.0 M (< 9 M cap) | yes |
-| **deployed total** | **~30 M** | |
-
-For calibration: OpenVLA is ~235× this deployed size; Octo-small (27 M) is the
-only comparably sized generalist we know of, and it carries no open-vocabulary
-detection grounding. "Smallest in its class" is claimed *as of this writing,
+For calibration: OpenVLA is ~235× this deployed size; Octo-small (27 M) is
+smaller than our deployed total and is the honest nearest neighbor — the
+class boundary we claim ("with open-vocabulary detection grounding and no
+separate language model") excludes it, and we say so explicitly rather
+than let the scoping do silent work. "Smallest in its class" is claimed *as of this writing,
 for language-conditioned manipulation stacks with open-vocabulary perception*,
 and we would welcome a counterexample.
 
@@ -258,12 +268,17 @@ proximity claim below is stated against that reference.
 ### 6.1 The world model works; the policy's last centimetres do not
 
 Under deployment-exact rollout conditions the trained TRM beats persistence
-and linear extrapolation on held-out episodes (§4q, `eval_results/bench*`),
+and linear extrapolation on held-out episodes (wm_margin +43.3% on the
+wrist camera; the margin flips to −7.3% on agentview, where slower image
+dynamics favor persistence — the claim is camera-scoped) (§4q,
+`eval_results/bench*`),
 and the v8 architecture recovered the action head from magnitude collapse
 (§4o–4s). Open-loop agreement is high (gripper agreement 0.944 under teacher
 forcing). Unaided closed-loop success on LIBERO object tasks is **0.000**
-across every configuration ever run (n > 300 real evaluations, scorecard in
-`results/`). The remainder of this section is the anatomy of that zero.
+across every *free-regression* configuration ever run (n > 300 real
+evaluations, scorecard in `results/`); §6.4e breaks that zero with a
+different decoding structure. The remainder of this section is the
+anatomy of the zero.
 
 ### 6.2 What the zero is not
 
@@ -388,7 +403,9 @@ and exposes the exact constants a learned policy would have to encode.
 The assisted stack is also a *teacher* on the true eval distribution. We
 recorded its successful rollouts (init states disjoint from all eval
 trials), converted them through the standard shard pipeline, and
-behavior-cloned stage B from them. Four rounds, each diagnosing the next
+behavior-cloned stage B from them. Seven rounds — a 23→100-episode corpus
+scale pair, DAgger, aggregation, grasp-event reweighting, LoRA input
+adaptation, and a phase-progress objective — each diagnosing the next
 (soup task, wrist camera, NO assist flags at eval — vision → JEPA loop →
 planner → actions):
 
@@ -458,13 +475,18 @@ head's mean prediction recovering the hand-calibrated basket constant to
 every failure isolating via phase telemetry to two named, structural
 defects (hover-altitude latching; an x-only probe against isotropic error),
 both fixed without retraining. The free-regression arm (§6.4d) becomes the
-ablation: same trunk, same corpus, same eval — the decoding structure is
+baseline: same frozen perception, same corpus, same eval (the trunk's
+[5×7] plan is not executed in structured mode — the goal heads read the
+frozen detector's outputs directly, and we state plainly that the world
+model is causally inert in every nonzero number of this paper; its
+measured value is confined to §6.1) — the decoding structure is
 the difference in kind.
 
 ### 6.4f The generalization audit: catching every layer's memorization
 
 Structured decoding broke the unaided zero and climbed to 0.700 on the
-benchmark protocol (§6.4e ladder: 0.100 → 0.300 → 0.400 → 0.700, each
+benchmark protocol (§6.4e ladder: 0.100 → 0.300 → 0.400 → 0.200 (a
+hysteresis regression, diagnosed and reverted) → 0.700, each
 step a named, structural fix diagnosed from phase telemetry). We then
 audited that number the way a skeptical reviewer would, and report the
 audit as a result in its own right — because every layer of the system,
@@ -490,7 +512,17 @@ machine's own knobs. (3) The teacher: under ±6 cm placement teleports its
 visual approach still reaches 5–7 cm of the object (detection ≈1.0), but
 its calibrated composite offset — a −18.6 cm y-term that encodes approach
 geometry, not hand-eye physics — misses by the shift, and its
-x-distributed probe cannot recover an isotropic error. Vision, in every
+x-distributed probe cannot recover an isotropic error. The same constant
+also fails to survive a *software-stack rebuild*: after a full environment
+reconstruction (identical code, weights, flags, seed) the previously 2/2
+configuration scores 0/2, converging 8 cm off, and the re-measured offset's
+x-term flips sign (+0.09 → −0.01) — the constant encodes the detector
+version too. Two disclosures for symmetry: the place leg's learned head
+regresses a basket position that the benchmark holds fixed — layer-1
+memorization by design, not probed or randomized here, and stated as such;
+and the best fixed-placement configuration (0.700 dev) carries one
+offline-calibrated place-side offset (`hang_comp`, tiered separately in
+the released scoreboard, with 0.400 the zero-constant figure). Vision, in every
 layer of this system's history, gated the approach; a memorized constant
 finished the job.
 
