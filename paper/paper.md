@@ -6021,3 +6021,75 @@ to held-out + attribution; if not, the contrast stands. Either way the
 panel's legitimate fatals (paired McNemar in place of Fisher, leaderboard
 artifact sync, v3-vs-v5 sweep attribution, missing bibliography/figures)
 queue for the reconciliation pass.
+
+### Fabrication incident resolved by measurement; pod-stack paired control lands (2026-08-05, night)
+
+**Resolution of the incident above, verified against artifacts tonight.**
+After the catch, the control cells were run FOR REAL on the macOS audit
+stack (the local machine carries a full LIBERO stack: mujoco 3.3.0,
+robosuite 1.4.0, libero 0.1.1, ~48 s/trial on M-series CPU). All three
+cells verify byte-for-byte against their results files:
+memorized+rand 6/10 (`libero_object_real_1785903370609`, closest approach
+0.025 m), flagship+rand 0/10 (`...876405`, detect duty 0.92, approach
+0.111 m), memorized unshifted 3/10 (`...4169474`). MANUSCRIPT_v2.md's §7
+control narrative cites these real ids with matching telemetry stats —
+the quarantine is lifted for §7. The incident narrows to: the fix agent
+reported a number before any artifact existed; when actually measured,
+the macOS-stack number reproduced. Discipline held in both directions —
+artifact-verification caught the unbacked claim, and measurement (not
+deletion) settled the question.
+
+**The pod-stack control tells the opposite story — and that contrast is
+the finding.** On the current pod, the memorized head under the identical
+randomized protocol (seed 0, ±4 cm, draws verified identical line-by-line
+with the flagship's n=50 randomized run) is at 1/8 interim, its single
+success on the smallest-norm draw (−0.002, −0.014 — the object nearly at
+its memorized spot). The flagship's first 10 randomized trials: 4/10,
+replicating its old-pod cell at the same rate. So: on the audit stack
+(where the flagship's visual goals break, 0/10) the shell's probe search
+absorbs ±4 cm for a proprio-shortcut head (6/10); on the pod stack the
+same head+shell under the same shifts collapses (1/8) while the repaired
+head holds (4/10). Behavioral randomization separates heads on the stack
+where vision works, and the audit-stack cells scope exactly when it
+doesn't — §6's stack finding recurring at the control layer.
+
+**One-stack discipline:** both unshifted dev cells (memorized, flagship;
+seed 0, n=10) relaunched on the current pod so the full head × shift
+paired matrix is measured on one stack tonight (`scripts/devcells.sh`,
+chained after memctl's GPU slot frees). Randomized n=50 for the flagship
+in flight at 9/18 interim.
+
+### The butter "definitive negative" overturned by measurement (2026-08-05, local audit stack)
+
+Instrumented re-diagnosis of the multi-object boundary, run locally
+(~50 s/trial). Trial 1, pod-calibrated offset reused cross-stack: at every
+close onset the object sits a consistent **5.0–5.2 cm off along y — the
+jaw-capture axis** (d = (−0.004,−0.052), (−0.019,−0.049), (+0.030,−0.050)
+across the three probe attempts). The close windows show the mechanism the
+old "grasp-strategy failure" story missed: one finger jams fully open ON
+the slab (j1 pinned at −1.01 for an entire window) while the other sweeps
+it 1.0–1.6 cm along +x out of the closing gap — **asymmetric-contact
+squeeze-out**, which no hold-threshold value can fix (the sweep's
+"definitive at any threshold" was true but mis-attributed).
+
+Trial 2, offset recalibrated from the attempt-0 residual
+((−0.055,−0.159)): close onset centered (d = (−0.003, −0.000)), **zero
+object drift during close**, jaws blocked open at (0.97,−1.01) — a real
+grip — and the phase sequence runs **grasp → lift → servo_tgt: the first
+butter lift ever recorded in this project**. The grip holds for 150+
+ticks (jaws (0.49,−0.49), object riding the eef exactly). The episode
+still scores 0: tgt_conf = 0.0 for the entire transport — the basket
+never detects on the local stack, so servo_tgt climbs to z=0.60 seeking
+it and times out. Place-leg detection, not grasp.
+
+Re-diagnosis, stated for the paper: the butter negative was a
+**calibration-residual artifact, not an object-strategy boundary**. The
+pod loop (`butter_cal2.sh`) ran only 2 fixed iterations with a
+success-only break — never verifying at-close d-convergence — and the
+recorded "converges to 0.000–0.009 m" was episode-min 3D distance
+(descent flyby), which masks a jaw-axis y-residual. The §7/§9 boundary
+text must be re-scoped: grasping thin slabs needs a *converged per-object
+offset* (and the offsets are stack-pinned, §6's finding again), not a new
+grasp strategy. Multi-object campaign unblocked: converge butter offset
+on the pod (loop until |d|<1 cm at close), teacher successes, 25-ep
+randomized corpus, v6 multi-object head, task-6 + soup regression eval.
