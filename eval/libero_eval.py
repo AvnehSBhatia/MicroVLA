@@ -738,9 +738,17 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             perception = MockYoloWorldPerception()
             task_encoder = MockTaskEncoder()
 
+        trm_override = None
+        tb = getattr(args, "trm_baseline", "")
+        if tb:
+            from eval.baselines import LinearExtrapolationTRM, PersistenceTRM
+            from microvla.config import DEFAULT_CONFIG as _dc
+            trm_override = (PersistenceTRM(_dc) if tb == "persistence"
+                            else LinearExtrapolationTRM(_dc))
         return MicroVLAPolicy(
             checkpoint=checkpoint,
             norm_stats=norm_stats,
+            trm=trm_override,
             perception_period=args.perception_period,
             device=args.device,
             perception=perception,
@@ -788,6 +796,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             ibvs_approach_z=getattr(args, "ibvs_approach_z", 0.0),
             ibvs_gate_verify=getattr(args, "ibvs_gate_verify", False),
             ibvs_body_v=getattr(args, "ibvs_body_v", 1.0),
+            ibvs_held_jaw_min=getattr(args, "ibvs_held_jaw_min", 0.2),
             tool_phase=getattr(args, "tool_phase", False),
             tool_center_tol=getattr(args, "tool_center_tol", 0.05),
             tool_gain=getattr(args, "tool_gain", 1.0),
@@ -971,6 +980,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="learned close-trigger + hold gates (train_gates) "
                         "replacing the machine thresholds — de-skeletonization "
                         "stage 1, requires --goal-ckpt.")
+    p.add_argument("--trm-baseline", default="",
+                   choices=["", "persistence", "linear"],
+                   help="replace the checkpoint's TRM with a zero-parameter "
+                        "baseline (eval/baselines.py) — the world-model "
+                        "causal-inertness ablation for structured mode.")
     p.add_argument("--success-video-dir", default="",
                    help="save an mp4 of the policy's wrist view for EVERY "
                         "successful trial (frames are already rendered, so "
@@ -1034,6 +1048,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="align flies lateral corrections ABOVE this height "
                         "so standing objects are not bulldozed (0 = off; "
                         "soup 0.12, bottle 0.20).")
+    p.add_argument("--ibvs-held-jaw-min", type=float, default=0.2,
+                   help="jaw-width floor for the hold check. Object-THICKNESS"
+                        " dependent: thin objects (butter) stall the jaws "
+                        "below the can-calibrated 0.2 and every perfect close "
+                        "reads as air (butter grid, 2026-08-05).")
     p.add_argument("--ibvs-body-v", type=float, default=1.0,
                    help="self-body mask: ignore source fixes with image v "
                         "beyond this (the wrist camera's own finger tabs "

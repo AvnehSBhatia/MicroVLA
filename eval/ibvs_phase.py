@@ -212,7 +212,8 @@ class PhasedIBVS:
                  gate_z: float = GRASP_Z,
                  approach_z: float = 0.0,
                  gate_verify: bool = False,
-                 body_v: float = 1.0) -> None:
+                 body_v: float = 1.0,
+                 held_jaw_min: float = HELD_JAW_MIN) -> None:
         self.gain = float(gain)
         self.sign = tuple(float(v) for v in sign)
         self.descend = float(descend)
@@ -278,6 +279,12 @@ class PhasedIBVS:
         # bottom-center during descent (aim V 0.60) and was masked with the
         # fingers. 1.0 = off; 0.72 recommended.
         self.body_v = float(body_v)
+        # Object-thickness constant (butter grid, 2026-08-05): a thin object
+        # stalls the jaws BELOW the can-calibrated 0.2, so every perfect
+        # close reads as air and the machine retries at the correct spot
+        # forever (measured: eef_obj 0.000-0.009 with grip duty 0.67 and
+        # zero lifts). One more per-object constant for the ledger.
+        self.held_jaw_min = float(held_jaw_min)
         # Probe entries are (dx, dy, dyaw). Historically x-only ((dx, 0, 0)):
         # the offset's variance was x-distributed at the benchmark's FIXED
         # placement. Under placement randomization the residual miss is
@@ -648,7 +655,7 @@ class PhasedIBVS:
                 out[2] = -abs(self.press)
             self._close_ticks += 1
             if self._close_ticks >= 12:
-                if proprio is not None and self._jaws(proprio) >= HELD_JAW_MIN:
+                if proprio is not None and self._jaws(proprio) >= self.held_jaw_min:
                     self.phase = "lift"
                 else:  # closed on air: reopen, rise, retry the servo
                     self._retry()
@@ -667,7 +674,7 @@ class PhasedIBVS:
         if self.phase == "transport":
             # Proprio-only traverse to the calibrated basket point.
             out[grip] = 1.0
-            if proprio is not None and self._jaws(proprio) < HELD_JAW_MIN:
+            if proprio is not None and self._jaws(proprio) < self.held_jaw_min:
                 self.phase = ("center_src" if self.center_first else "servo_src")
                 return out
             p = np.asarray(proprio, dtype=np.float64).reshape(-1)
@@ -684,7 +691,7 @@ class PhasedIBVS:
 
         if self.phase == "servo_tgt":
             out[grip] = 1.0
-            if proprio is not None and self._jaws(proprio) < HELD_JAW_MIN:
+            if proprio is not None and self._jaws(proprio) < self.held_jaw_min:
                 # Dropped it mid-traverse: start over.
                 self.phase = ("center_src" if self.center_first else "servo_src")
                 return self.step(source, target, proprio, action_dim,
@@ -708,7 +715,7 @@ class PhasedIBVS:
         # visual place) open immediately and hold clear of the drop.
         if (self.place_at is not None and proprio is not None
                 and self._release_ticks == 0 and z > self.drop_z
-                and self._jaws(proprio) >= HELD_JAW_MIN):
+                and self._jaws(proprio) >= self.held_jaw_min):
             out[grip] = 1.0
             out[2] = -0.35
             return out

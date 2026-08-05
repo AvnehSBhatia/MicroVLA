@@ -282,6 +282,7 @@ class MicroVLAPolicy:
         ibvs_approach_z: float = 0.0,
         ibvs_gate_verify: bool = False,
         ibvs_body_v: float = 1.0,
+        ibvs_held_jaw_min: float = 0.2,
         tool_phase: bool = False,
         tool_center_tol: float = 0.05,
         tool_gain: float = 1.0,
@@ -450,7 +451,8 @@ class MicroVLAPolicy:
                 gate_z=float(ibvs_gate_z),
                 approach_z=float(ibvs_approach_z),
                 gate_verify=bool(ibvs_gate_verify),
-                body_v=float(ibvs_body_v))
+                body_v=float(ibvs_body_v),
+                held_jaw_min=float(ibvs_held_jaw_min))
         self.device = device
         # Perception runs on `device` and detaches its outputs to CPU. The heads
         # used to be pinned to CPU with them, which was right when they were

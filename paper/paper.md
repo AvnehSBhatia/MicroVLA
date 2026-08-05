@@ -5969,3 +5969,32 @@ made explicit; (7) probe novelty narrowed to the pairing-with-protocol;
 free-regression. Remaining review items logged as future work: n=50
 reruns with Wilson intervals on the load-bearing cells; place-head
 randomization; the structured-heads-without-JEPA-loop ablation.
+
+### Butter: the definitive negative for this stack (2026-08-05)
+
+Grid + jaw-threshold experiments close the butter question honestly. The
+teacher converges to eef_obj 0.000–0.009 (ON the object, detection duty
+1.0) and closes at 0.67 duty — but never lifts, at ANY hold threshold
+(0.2 → 0.06 unchanged, byte-identical episodes). Interpretation: the
+close is not a failed READ of a good grasp but a failed GRASP — the jaws
+close above/around the thin slab without capturing it (close_z 0.005 +
+press drives the fingers onto the top face; the yaw probe didn't rescue
+it either). Object generalization for the teacher needs per-object grasp
+STRATEGY (edge approach, different close height family), not per-object
+constants — logged as the paper's honest scope boundary and the strongest
+form of its own argument: every layer of hand engineering is
+object-specific; only the learned path scales. GPU redirected to the
+review's top demand: n=50 statistical power on the two citable cells.
+
+### World-model causal-inertness — MEASURED at exact parity (2026-08-05)
+
+The reviewer-demanded ablation: v5 structured policy, held-out protocol,
+with the RecursiveTRM replaced by the zero-parameter PersistenceTRM
+baseline (--trm-baseline persistence): **0.700 (7/10, filmed) — identical
+to the real-TRM cell.** The world model's contribution to task success in
+structured mode is now measured at zero (its value remains the §6.1
+prediction benchmarks, wrist-camera-scoped). This is the honest baseline
+the proprio-conditioned-TRM endgame (goal-persistence in the latent) must
+beat to justify the dream loop's return to the control path. Meanwhile
+the n=50 held-out power run tracks at 28/40 (0.70 interim) — the n=10
+headline is holding at power.
