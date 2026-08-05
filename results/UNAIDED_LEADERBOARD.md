@@ -63,9 +63,12 @@ Tier definitions:
 | unaided_goal1 | 0.100 dev | v10.0 |
 
 Boundary rows (kept honest): all-tasks zero-shot 0.067 (soup 2/3, tasks
-1–9 = 0.00 at n=3, sibling v3 + memorized head — soup-only corpus); butter
-= grasp-strategy failure at any hold threshold (definitive negative); LoRA
-joint training negative at 27 ep (val 3.08 vs 0.99 cm).
+1–9 = 0.00 at n=3, sibling v3 + memorized head — soup-only corpus; v5
+sweep in flight); butter re-diagnosed 2026-08-05 — the "grasp-strategy
+negative" was a jaw-axis calibration residual (squeeze-out mechanism
+measured; centered offset → first butter lift, audit stack) and the v6
+multi-object campaign is unblocked; LoRA joint training negative at 27 ep
+(val 3.08 vs 0.99 cm).
 
 Post-rebuild re-measures (2026-08-05): memorized dev 7/10 -> 2/10 across
 the stack rebuild; flagship dev 4/10 -> 4/10 (reproduces in all three
