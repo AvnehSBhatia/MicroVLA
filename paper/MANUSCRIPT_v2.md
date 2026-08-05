@@ -40,8 +40,8 @@ policy class that made this reachable is goal-structured decoding driving an
 engineered pick-and-place shell; free per-tick regression scored 0/56. All
 results are simulation (LIBERO/MuJoCo), one task and one object (task 0,
 alphabet soup), n=10 per cell and final at that n; zero-shot on the other
-nine tasks is 0.00 (n=3 each, measured with the memorized head and sibling
-v3 — the released head was not swept; §7).
+nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
+released head itself; §7).
 
 ---
 
@@ -631,8 +631,11 @@ the released v5, which was never swept; protocol as in §6 (n=3 per task,
 seed 20, otherwise §3) — a
 variance-trained head scores 0.67 on task 0 (2/3 [0.21, 0.94], consistent
 with held-out) and 0.00 on tasks 1–9 (n=3 each) — the corpus is soup-only.
-Every zero-shot 0.00 in this paper attaches to sibling v3 or to the
-memorized head (§6); no zero-shot number exists for the released flagship.
+The released flagship's own sweep (run 2026-08-05, n=3 per task, seed 20,
+`libero_object_real_1785913852707`) reproduces the sibling's shape
+exactly: task 0 at 2/3, tasks 1–9 all 0/3 — 0.067 overall, detection duty
+0.997 with mean closest approach 0.140 m on the misses: the detector sees
+the novel objects; the grasp head has no goals for them.
 The boundary's mechanism was itself worth auditing, and the audit
 overturned our first reading of it. The butter teacher converges to
 0.000–0.009 m of the object at detection duty 1.0, closes at 0.67 duty,
@@ -814,9 +817,10 @@ additionally stack-pinned: on the audit stack the flagship's randomized
 cell does not reproduce (0/10, healthy detection duty — §7, App D), so
 claim (2) holds on the §11-pinned stack and is not claimed to transfer
 across detector-stack rebuilds. Zero-shot on the other nine tasks is 0.00
-(n=3 each), measured with
-the memorized head (§6) and sibling v3 (§7); the released v5 was never
-swept, and no zero-shot number is claimed for it. (3)
+(n=3 each), measured with the memorized head (§6), sibling v3 (§7), and —
+added in this revision — the released v5 itself (task 0 at 2/3, tasks 1–9
+all 0/3; App D): the soup-only corpus bounds the head, not the detector.
+(3)
 Free per-tick regression under the same frozen perception and corpus regime:
 0/56 (upper bound 6.4%). (4) The de-memorization mechanism at the head
 level: the attribution shift and label-space evidence of §6–7, and the

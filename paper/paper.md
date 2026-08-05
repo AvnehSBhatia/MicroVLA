@@ -6137,3 +6137,31 @@ flagship held-out 0.700 (n=10 and 35/50), randomized 0.400 n=10 / 0.520
 n=50, dev 0.400 (pre+post rebuild); memorized control 1/10 randomized,
 2/10 dev post-rebuild (vs 7/10 pre); audit-stack trio 6/10-3/10-0/10.
 v5 all-tasks zero-shot sweep running (task 3/10); butter v6 queued.
+
+### Cycle 3: released-flagship zero-shot row lands; pod butter LIFTS; place-leg root cause found (2026-08-05)
+
+**v5 zero-shot sweep (released head, n=3/task, seed 20,
+`libero_object_real_1785913852707`): soup 2/3, tasks 1–9 all 0/3 — 0.067.**
+Reproduces the sibling sweep's exact shape. Telling intermediates:
+detection duty 0.997, closest approach 0.140 m on misses — the detector
+sees every novel object; the soup-only grasp head has no goals for them.
+The "released head was never swept" disclosure is closed; manuscript
+abstract/§7/§9 updated with the measured row.
+
+**The pod teacher lifted the butter** — bv6 calibration iter 1: at-close
+residual (0.000, 0.000) with the original offset (it was calibrated on
+this stack), zero drift during close, jaws blocked at (0.97, −1.01),
+phase sequence grasp → lift → servo_tgt, object carried to z = 0.71.
+The historical "converges 0.000–0.009 m and never lifts" is now fully
+explained and dead on both stacks.
+
+**Place-leg root cause, embarrassingly simple:** tgt_conf = 0.0 for the
+entire transport on BOTH stacks — the wrist camera never detects the
+basket in task-6 scenes, so servo_tgt climbs seeking it and times out.
+The teacher has had the fix built in all along: `--ibvs-place-at`
+(calibrated place point, used by every task-0 recording chain:
+−0.010, 0.255 + drop-z 0.18). Every butter script in the campaign simply
+omitted the flag. Chain relaunched as `scripts/butter_v6b.sh`: smoke n=3
+with place-at (gate ≥1/3) → 25-ep randomized butter corpus → v6
+multi-object head (soup + butter) → unaided butter n=10 + soup
+regression n=10.
