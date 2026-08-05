@@ -11,7 +11,7 @@ Cells are n=10 unless marked; Wilson 95% CIs as in MANUSCRIPT_v2.md §7.
 
 | rank | head / cell | dev | held-out | randomized ±4 cm | provenance |
 |---|---|---|---|---|---|
-| 1 | **flagship v5 (released, 49 ep)** | 4/10 | **7/10 [0.40, 0.89]** — confirmed at n=50: **35/50 = 0.700 [0.56, 0.81]** | 4/10 [0.17, 0.69] (n=50 cell in flight) | `models/goal_heads_v5.pt`; p50 runs on pod |
+| 1 | **flagship v5 (released, 49 ep)** | 4/10 | **7/10 [0.40, 0.89]** — confirmed at n=50: **35/50 = 0.700 [0.56, 0.81]** | 4/10 [0.17, 0.69] — confirmed at n=50: **26/50 = 0.520 [0.39, 0.65]** | `models/goal_heads_v5.pt`; p50 runs on pod |
 | 2 | sibling v2.1 (10 ep) | 7/10 | 7/10 | 5/10 | `goal_heads_v21.pt` |
 | 3 | sibling v3 (27 ep) | 7/10 | 6/10 | 3/10 | `goal_heads_v3.pt` |
 | — | memorized v1 (111 ep fixed corpus) | 7/10 | 3/10 | **1/10** (pod control, identical draws) | audited baseline |
@@ -49,7 +49,7 @@ Tier definitions:
 |---|---|---|---|
 | T0 | unaided_goal3 (v10.2 machine, no hang_comp) | 0.400 | claim-safe fully-learned-goals number |
 | T1 | **flagship v5** | **0.700 held-out (n=10 and n=50)** | hang_comp disclosed; the citable headline |
-| T1 | flagship v5, randomized ±4 cm | 0.400 (n=10; n=50 in flight) | moved-object protocol; memorized control 1/10 on identical draws |
+| T1 | flagship v5, randomized ±4 cm | **0.520 (26/50, n=50)**; 0.400 at n=10 | moved-object protocol; memorized control 1/10 on identical draws |
 | T2 | ceiling_soup_v1 (teacher) | 1.000 (n=4) / 0.750 (n=8) | calibrated PhasedIBVS |
 
 ## History (v10 ladder, structured-control era, single-object)
@@ -67,5 +67,9 @@ Boundary rows (kept honest): all-tasks zero-shot 0.067 (soup 2/3, tasks
 = grasp-strategy failure at any hold threshold (definitive negative); LoRA
 joint training negative at 27 ep (val 3.08 vs 0.99 cm).
 
-Updated: 2026-08-05 (pod control landed; n=50 randomized + post-rebuild
-dev re-measures in flight — `scripts/power50.sh`, `scripts/devcells.sh`).
+Post-rebuild re-measures (2026-08-05): memorized dev 7/10 -> 2/10 across
+the stack rebuild; flagship dev 4/10 -> 4/10 (reproduces in all three
+protocols). Memorization is stack-coupled; grounding survived.
+
+Updated: 2026-08-05 cycle 2 (n=50 randomized landed 26/50; v5 zero-shot
+sweep + butter v6 multi-object campaign in flight).
