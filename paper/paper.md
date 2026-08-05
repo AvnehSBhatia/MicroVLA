@@ -6093,3 +6093,21 @@ offset* (and the offsets are stack-pinned, §6's finding again), not a new
 grasp strategy. Multi-object campaign unblocked: converge butter offset
 on the pod (loop until |d|<1 cm at close), teacher successes, 25-ep
 randomized corpus, v6 multi-object head, task-6 + soup regression eval.
+
+### Post-rebuild dev re-measure: memorization is stack-coupled (2026-08-05)
+
+**Memorized head, dev states unshifted, current pod stack: 2/10 FINAL**
+(`libero_object_real_1785908164575`; successes trials 4, 6; detect duty
+0.98, closest approach 0.035 m — the shell finds the object, the goals
+don't track it). Against 7/10 on the pre-rebuild stack, and landing at
+its own held-out floor (3/10). Meanwhile the repaired flagship's cells
+reproduce across the same rebuild: held-out 0.70 re-confirmed at n=50,
+randomized 4/10 replicated on identical draws. The cleanest behavioural
+statement of §6/layer-2 yet: the memorized head's 0.700 dev never
+belonged to the head — it belonged to the (head, stack, selection-loop)
+tuple, and died with the stack. Grounding is what survived the rebuild.
+Paired vs its own randomized control on the same states: only discordant
+is trial 6 (unshifted-only; b=1, c=0 — the head is near-floor on this
+stack with or without shifts; the de-memorization contrast on this stack
+is carried by flagship 4/10 vs memorized 1/10 on identical draws).
+Flag-dev re-measure running; p50-rand at 20/36.

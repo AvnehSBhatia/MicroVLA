@@ -527,9 +527,11 @@ in the release, and never headline. All cells k/10 with Wilson 95% CIs; task
 Row provenance: memorized and sibling cells predate the 2026-08-04 pod
 stack rebuild; flagship cells are post-rebuild (held-out additionally
 confirmed at n=50, and the randomized cell's draw sequence replicated
-exactly the night of the control run). Post-rebuild re-measures of both
-heads' dev cells are dated App-D cells, kept out of this table by the
-same rule that keeps audit-stack cells out.
+exactly the night of the control run). Post-rebuild re-measures are dated
+App-D cells, kept out of this table by the same rule that keeps
+audit-stack cells out — and they carry §6's sharpest behavioural fact:
+the memorized head's dev cell collapses across the rebuild (7/10 → 2/10,
+its held-out floor) while the repaired head's cells reproduce.
 
 ‡ Pod-stack control cell, run 2026-08-05
 (`libero_object_real_1785905093901`): the memorized head under the same
@@ -577,8 +579,17 @@ there, the behavioural column reads as a de-memorization certificate. (We
 state the deployment-stack contrast head-vs-head on identical draws only:
 the unshifted dev baselines in the table predate the 2026-08-04 stack
 rebuild, and §6 forbids charging a cross-stack difference to
-randomization — both heads' post-rebuild dev re-measures are dated App-D
-cells.) On the audit stack — where the
+randomization. The post-rebuild re-measure makes that discipline pay: the
+memorized head's dev cell does not survive the rebuild — **2/10**
+unshifted on the current stack (`libero_object_real_1785908164575`,
+App D; detection duty 0.98, closest approach 0.035 m — the shell still
+finds the object) against 7/10 pre-rebuild, landing at its own held-out
+floor (3/10) — while the repaired head's cells reproduce across the same
+rebuild (held-out 0.70 re-confirmed at n=50; randomized 4/10 replicated
+on identical draws). The 7/10 dev number was never the head's; it
+belonged to the (head, stack, selection-loop) tuple — §3's layer-2
+iteration coupling, measured behaviourally. Memorization is
+stack-coupled; grounding is what survived the rebuild.) On the audit stack — where the
 detector rebuild disables the flagship's visual goals (0/10) — the same
 memorized policy scores 6/10 randomized against its own 3/10 unshifted
 (per-trial pairing over the same states: discordants b=1, c=4, exact sign
@@ -1216,6 +1227,14 @@ approach 0.035 m — the shell finds the object; the goal it serves does
 not move with it). The lone success is the smallest-norm draw
 (−0.2, −1.4 cm). Pairing against the flagship on the identical draws:
 b=3, c=0, exact sign p=0.25.
+
+Post-rebuild dev re-measures (deployment stack, 2026-08-05, seed 0
+unshifted, n=10 each): memorized head **2/10**
+(`libero_object_real_1785908164575`; successes trials 4 and 6; detection
+duty 0.98, closest approach 0.035 m) — down from 7/10 pre-rebuild,
+landing at its held-out floor; paired against its own randomized control
+on the same states, the only discordant is trial 6 (unshifted-only,
+b=1, c=0). The flagship's re-measure follows in the same chain.
 
 ## E. Defect catalog (unified count: 29)
 
