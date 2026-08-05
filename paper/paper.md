@@ -6292,3 +6292,19 @@ config looks. Therefore pre-registering NOW, before any further look:
 by any student run), n=10 butter + n=10 soup, single shot, no
 adjustment after unblinding.** Launching immediately; whatever it says
 is the reported number.
+
+### PRE-REGISTERED CONFIRMATION LANDS: multi-object holds on a fresh seed (2026-08-05, cycle 12)
+
+Seed 77, single shot, exactly as pre-registered (v7 head, anchor_band
+0.04, no adjustment): **butter 5/10 [0.24, 0.76]**
+(`libero_object_real_1785944538678`), **soup 3/10 [0.11, 0.60]**
+(`libero_object_real_1785945668035`). Both consistent with the
+selection-band cells (6/10, 4/10). The one-config, no-per-object-
+constants multi-object behaviour survives a never-scored seed. The
+criterion-1 single-object gap is now closed the honest way: measured
+mechanism (estimate-chase, caught live), structural fix (anchor
+trust-region), config landscape disclosed, selection ledger disclosed,
+fresh-seed confirmation pre-registered and reported as it landed.
+Full multi-object ladder today: 0/10 (v6) → 0/10 (v7, offline-clean) →
+10/10 butter config-split (v8) → 6/10+4/10 one config (v9) →
+5/10+3/10 confirmed fresh-seed. Films for every success pulled.

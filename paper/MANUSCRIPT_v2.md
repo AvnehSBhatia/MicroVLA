@@ -681,8 +681,9 @@ both: an anchor trust-region (admit estimates only within 4 cm of the
 first stable far-view median — refinement passes, the chase is rejected)
 scores butter 6/10 and soup 4/10 under a single policy bundle with no
 per-object constants. Config looks accumulated on one state band are
-disclosed in App D, and the config is pre-registered for a single-shot
-confirmation on a never-scored seed whose dated result lands in App D.
+disclosed in App D; the pre-registered single-shot confirmation on a
+never-scored seed returned 5/10 butter + 3/10 soup — consistent with the
+selection-band cells, at the modest rates the small n states (App D).
 
 **Negatives and calibration honesty.** Joint LoRA adaptation of the
 embedding stage hurts at this corpus scale (val 3.08 vs 0.99 cm). A
@@ -881,10 +882,10 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   end-to-end (2/3), through a head clean on every offline instrument yet
   0/10 deployed, to the live-caught estimate-chase mechanism, to
   10/10 butter under early latch (config-split), to 6/10 butter + 4/10
-  soup under one anchor-band config with no per-object constants, with a
-  pre-registered single-shot confirmation on a fresh seed (dated result
-  in App D). No multi-object number is claimed in the body; the addendum
-  carries them with their selection ledger.
+  soup under one anchor-band config with no per-object constants — and
+  the pre-registered single-shot fresh-seed confirmation returned 5/10
+  butter + 3/10 soup (App D). No multi-object number is claimed in the
+  body; the addendum carries them with their selection ledger.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
   LIBERO scores (§3, §9).
@@ -1331,7 +1332,12 @@ Selection ledger for this addendum: v6/v7/v8/v9 all scored the seed-20
 band — four config looks on one state band. Pre-registration, written
 before any further look: v7 head + `anchor_band 0.04`, seed 77 (never
 scored by any student run), n=10 butter + n=10 soup, single shot, no
-post-hoc adjustment; the dated result lands here.
+post-hoc adjustment. The confirmation returned butter **5/10
+[0.24, 0.76]** (`libero_object_real_1785944538678`) and soup **3/10
+[0.11, 0.60]** (`libero_object_real_1785945668035`) — both consistent
+with their selection-band cells (6/10, 4/10): the one-config
+multi-object behaviour survives the fresh seed, at the modest rates the
+n=10 cells state.
 
 ## E. Defect catalog (unified count: 29)
 

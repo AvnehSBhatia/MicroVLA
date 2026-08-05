@@ -74,5 +74,18 @@ Post-rebuild re-measures (2026-08-05): memorized dev 7/10 -> 2/10 across
 the stack rebuild; flagship dev 4/10 -> 4/10 (reproduces in all three
 protocols). Memorization is stack-coupled; grounding survived.
 
+## Multi-object addendum (2026-08-05, dated cells, v7 head = soup+butter corpus)
+
+| cell | soup | butter | note |
+|---|---|---|---|
+| standard latch | 7/10 (v7) / 9/10 (v6) | 0/10 | offline-clean head, live estimate-chase |
+| early latch + freeze (v8) | 1/10 | **10/10** | chase causally confirmed |
+| anchor trust-region 4 cm (v9) | 4/10 | 6/10 | one config, no per-object constants |
+| **seed-77 confirmation (pre-registered, single shot)** | **3/10** | **5/10** | fresh seed; consistent with band |
+
+Selection ledger: v6-v9 scored the seed-20 band (4 config looks) before
+the pre-registration; the confirmation seed was never scored by any
+student run.
+
 Updated: 2026-08-05 cycle 2 (n=50 randomized landed 26/50; v5 zero-shot
 sweep + butter v6 multi-object campaign in flight).
