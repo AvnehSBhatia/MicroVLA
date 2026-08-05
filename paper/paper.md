@@ -6327,3 +6327,26 @@ narrow class"):
    head (soup+butter+cream), three-object eval n=10 each under the
    anchor-band config. Three objects with one policy bundle is the class
    breadth the multi-object claim wants.
+
+### v10 split verdict; v11 spread-adjudication; cream binding confusion (2026-08-05, cycle 14)
+
+**v10 (rejection-count freeze): butter 9/10, soup 3/10** — the freeze
+recovers butter's ceiling but soup's benign hover scatter also trips it,
+freezing away the refinement soup needs. Design flaw in the v11 same-sign
+idea caught before shipping: accurate refinements against a biased anchor
+are ALSO same-sided — freezing there locks in the bias. The correct
+discriminator is the rejected estimates' OWN spread: a chase walks apart;
+a refinement cluster agrees with itself. **v11: three consecutive
+out-of-band estimates → tight cluster ⇒ re-anchor to their median (trust
+stable dissent); spread ⇒ freeze (kill the walk).** Shipped, 605 tests
+green, n=10 x 2 validation running.
+
+**Cream cheese (task 1) failed upstream of everything: binding
+confusion.** Teacher cal ran 5 iters with NO grasp phase ever reached —
+detection duty 1.0 yet eef parks at (−0.184, −0.038), 25 cm from the true
+cream cheese at (0.052, −0.101), with source uv std (0.30, 0.24): the
+"cream cheese" CLIP match flickers between look-alike boxes and the servo
+averages to a phantom. The repo's `--ibvs-clip-rerank` (crop-level CLIP
+rebinding, built for exactly this, a wash on soup) is the lever — chain
+relaunched with it (one sed-deadlock caught and fixed by file-indirect
+kill + new script, per the ops discipline).
