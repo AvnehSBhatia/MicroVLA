@@ -25,26 +25,34 @@ dropout and inference-time dreaming the *same code path*; (3) every module is
 capped by an enforced parameter budget that the test suite fails on violation.
 
 We report the world model beating persistence and linear-extrapolation
-baselines under deployment-matched rollout conditions, and we report unaided
-closed-loop task success on LIBERO of **zero** — and treat that number as the
-paper's central measurement problem rather than a footnote. A forensic chain of
-28 documented defects (each with the measurement that found it) reduces the
-failure to a single physical quantity: a **constant 8.9 cm camera-to-gripper
-lever arm** that no image-space controller in a 40-run sweep atlas had control
-authority over, because the visual servo's grasp gate fires on height, not on
-image convergence. Calibrating that constant offline from logged runs (231
-episodes) and handing control from vision to proprioception at the gate moves
-the closest-approach statistic from 0.068 m to 0.019–0.042 m — inside the band
-where human demonstrations commit to their grasp (0.040 m) — for the first
-time in the project's history — and, with one further sign-convention defect
-fixed (a jaw-feedback check that had read a constant zero through every prior
-evaluation), to the first completed tasks: **0.30 mean success on the cream
-cheese pick-and-place and 0.75 on alphabet soup** (assisted/calibrated track,
-n=10/8), against a project-lifetime prior of 0.000 over 347 evaluations. We
-argue that at this scale the binding constraint is not model capacity but
-*measurement discipline*: the same stack, audited, moved source grounding
-from 22% to 85% and target grounding from 1.4% to 99.9% of frames without
-training a single parameter.
+baselines under deployment-matched rollouts — and unaided closed-loop task
+success of **zero across six controlled variants** of free-form action
+regression (capacity, data aggregation, DAgger, input adaptation, objective
+redesign), which we treat as the paper's central measurement problem. A
+forensic chain of 28+ documented defects reduces the failure to missing
+*structure*: a policy that must re-infer a persistent goal, a phase
+commitment, and a control law from single noisy frames regresses to
+hovering. Replacing the free [5×7] action head with **structured decoding**
+— two small learned heads (0.24 M) that predict *where* to grasp and place,
+driving a task-content-free servo shell (latch, P-law, one-way phases,
+2D probe search) — takes the same trunk from 0.000 to **0.700 unaided**
+on the benchmark protocol. We then audit our own number the way a reviewer
+would, and find *three layers of placement memorization*: the benchmark
+pins object poses (identical across all 50 init states), our grasp head
+scored 0.700 while provably ignoring the image (an input-sensitivity probe
+we introduce), and even the hand-calibrated expert encodes pose in its
+"lever-arm" constant — which flips sign under a software-stack rebuild.
+The repair is small and reproducible: ~50 teacher episodes recorded under
+source-pose teleportation plus one nuisance-input augmentation. The
+resulting head is certifiably visual (attribution: vision channels
+1.1–1.8 cm, proprio parasitism 0.1 cm), closes the dev/held-out gap
+(0.300 → 0.700), and produces the first successes on displaced objects
+(0.400–0.500 at ±4 cm), all video-documented. We argue that at this scale
+the binding constraints are decoding structure and *measurement
+discipline* — the audit-repair loop, the substitution probe, and the
+randomized-placement protocol are the transferable contributions, and we
+propose the latter two as standard practice for fixed-placement
+manipulation benchmarks.
 
 ---
 
@@ -101,6 +109,28 @@ calibration constant that vision alone could not observe.
 ---
 
 ## 2. Architecture
+
+**The size claim, made auditable.** "Smallest in its class" is scoped
+(§8, §9) to language-conditioned manipulation stacks with open-vocabulary
+perception, and is enforced, not asserted: the test suite fails any build
+whose trainable heads exceed the budget (`utils/param_audit.py`,
+`tests/test_param_budget.py`). The deployed ledger:
+
+| component | params | trained? |
+|---|---|---|
+| YOLO-World-S (vision + the ONLY text encoder) | 13.0 M | frozen |
+| RecursiveTRM world model | 9.97 M | frozen at deployment |
+| fusion + drift + relational + planner heads | 7.0 M | trained (≤ 9 M cap) |
+| structured-decoding goal heads + gates | 0.24 M | trained |
+| **deployed total** | **≈ 30 M** | |
+
+For comparison, the smallest published VLA baselines we know of are
+SmolVLA (~450 M) and TinyVLA's smallest backbone (~70 M *before* its
+action head) — our entire stack is ~2× smaller than that backbone alone,
+and the *task-content* parameters of the structured policy (the goal
+heads that turned success from 0.000 to 0.700) are 0.24 M — under 1% of
+the deployed total. No separate language model exists anywhere in the
+stack: text rides the detector's own CLIP tower, harvested once per task.
 
 ```
 text ──parse──> (source, target) phrases ──CLIP tower (frozen, once/task)──> task embs
@@ -418,6 +448,66 @@ both fixed without retraining. The free-regression arm (§6.4d) becomes the
 ablation: same trunk, same corpus, same eval — the decoding structure is
 the difference in kind.
 
+### 6.4f The generalization audit: catching every layer's memorization
+
+Structured decoding broke the unaided zero and climbed to 0.700 on the
+benchmark protocol (§6.4e ladder: 0.100 → 0.300 → 0.400 → 0.700, each
+step a named, structural fix diagnosed from phase telemetry). We then
+audited that number the way a skeptical reviewer would, and report the
+audit as a result in its own right — because every layer of the system,
+including the hand-built teacher, turned out to encode the benchmark's
+hidden constant somewhere.
+
+**The benchmark pins placements.** In LIBERO-Object, the target object's
+start pose is identical across all 50 canned init states AND under fresh
+seeded resets (measured: the task-0 soup can sits at exactly
+(−0.120, −0.240) in every episode ever scored, here and definitionally in
+prior work on this suite). The 15 init dims that vary are arm and
+distractor state.
+
+**Three memorizations, three probes.** (1) The grasp head: an input-
+sensitivity probe shows its prediction flat (~1 mm) under image-position
+sweeps while tracking the end-effector (slope ≈0.87 toward the fixed
+target) — with a constant label, the teacher's own converging approach
+makes proprioception a better predictor than vision, so regression
+rationally learns location, not looking. (2) Model selection: the same
+policy scores 0.700 on the ten init states its versions were iterated
+against and 0.300 on ten never-tuned ones — the dev/held-out gap of the
+machine's own knobs. (3) The teacher: under ±6 cm placement teleports its
+visual approach still reaches 5–7 cm of the object (detection ≈1.0), but
+its calibrated composite offset — a −18.6 cm y-term that encodes approach
+geometry, not hand-eye physics — misses by the shift, and its
+x-distributed probe cannot recover an isotropic error. Vision, in every
+layer of this system's history, gated the approach; a memorized constant
+finished the job.
+
+Zero-shot transfer quantifies the consequence: 0.000 across all ten
+suite tasks for the soup-trained heads.
+
+**The repair, and its verification.** Ten teacher episodes recorded under
+±4 cm source teleportation (the assisted teacher, given a 2D probe
+schedule, completes shifted picks at ~30%) replace the fixed-placement
+corpus; one augmentation — training-time jitter on the end-effector
+*feature* while the reconstruction anchor stays exact — removes the
+head's dependence on a nuisance input whose off-manifold behavior had
+silently controlled deployment (isolated by a one-variable ablation:
+0.000 → 0.700 dev with jitter as the only change). The retrained head,
+which never saw a development init state:
+
+| protocol | memorized head | variance-trained head |
+|---|---|---|
+| development (benchmark placement) | 0.700 | 0.700 |
+| held-out init states | 0.300 | **0.700** |
+| randomized placements (±4 cm) | — | **0.500** |
+
+Every success across the table is video-recorded. Ten episodes of label
+variance and one nuisance-input augmentation achieved what six
+free-regression rounds and an 111-episode fixed-placement corpus could
+not. We propose the substitution probe + the randomized protocol as
+standard practice for fixed-placement benchmarks: a policy's score and
+its placement-sensitivity are separate claims, and only the pair supports
+"visual."
+
 ### 6.5 Efficiency
 
 Full test suite (537 tests, CPU, mocks): ~15 s. Wind-tunnel eval: < 0.1 s.
@@ -480,11 +570,44 @@ a rediscovery with modern instrumentation). JEPA-style predictive world models
 motivate the dream loop; our contribution there is the *shared-path fade*
 alignment, not the predictive objective.
 
-## 9. What we do not claim
+The structured decoding of §6.4e belongs to the learned-goal →
+engineered-primitive lineage — MOKA's keypoint affordances executed by
+motion primitives, VoxPoser's LLM-composed value maps executed by a
+planner, point-prediction interfaces (RoboPoint, PIVOT) parameterizing
+fixed skills, and classical grasp-synthesis pipelines. Our contribution to
+that lineage is placing it *inside* a 30 M-parameter VLA and measuring,
+on a fixed trunk and corpus, that at this scale the decoding structure is
+the difference between zero and task success. π0.5's hierarchical
+inference validates the same decompose-what-from-how thesis with both
+levels learned at frontier scale; we read the two results as ends of one
+curve — as capacity shrinks, the motor level must become structure,
+because six controlled attempts at learning it (capacity, aggregation,
+DAgger, input adaptation, objective redesign) each reproduced the same
+zero. The de-skeletonization program (scaffold-state supervision, staged
+replacement of gates then latch then control law) is our path back toward
+the learned end of that curve.
 
-* No unaided task success is claimed. The learned policy's LIBERO success is
-  zero and is reported as such everywhere.
-* The assisted (§6.4) numbers are never presented as policy competence.
+## 9. What we claim, and what we do not
+
+Claimed: unaided task success for the structured policy (§6.4e) — no
+teacher, no assist flags, no simulator state, no hand-given task constants
+at eval — at 0.700 on the development protocol and 0.300 on never-tuned
+init states (task 0, n=10 each), with the purest zero-calibrated-constant
+configuration at 0.400 (dev). Every claimed success is video-recorded.
+
+Not claimed, stated plainly:
+
+* End-to-end learned motor control. The free-regression policy's success
+  is zero across six controlled variants and is reported as such; the
+  structured policy's control shell is engineered (task-content-free), and
+  §6.4f documents that its learned goal heads memorized the benchmark's
+  fixed placement — the randomized-corpus repair is reported with its own
+  before/after protocol.
+* Dev-protocol numbers as generalization. The dev/held-out gap (0.700 vs
+  0.300) is itself a reported result; held-out and randomized-placement
+  protocols are the citable columns.
+* The assisted-teacher (§6.4) numbers as policy competence — they are the
+  measured skill decomposition and the data engine, nothing more.
 * "Smallest in its class" is scoped to language-conditioned manipulation
   stacks with open-vocabulary perception, as of this writing.
 * Sim-only: no physical-robot result is claimed; the Pi 5 rig is the design

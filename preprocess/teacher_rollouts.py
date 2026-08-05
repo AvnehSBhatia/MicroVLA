@@ -78,6 +78,14 @@ def record(argv: list[str]) -> None:
                    help="save failed episodes too (default ON in DAgger mode: "
                         "off-distribution states with teacher labels are the "
                         "point; success-only for plain teacher recording)")
+    p.add_argument("--tag", default="teacher",
+                   help="filename prefix (use e.g. 'selfplay' when the "
+                        "driving policy is the structured goal policy).")
+    p.add_argument("--randomize-source-xy", type=float, default=0.0,
+                   help="teleport the source object by ±R metres at episode "
+                        "start (eval.libero_eval.randomize_source_xy): "
+                        "de-memorization data — LIBERO pins placements, so "
+                        "labels are constant unless the recorder varies them.")
     args, teacher_flags = p.parse_known_args(argv)
     dagger = args.dagger_student_flags is not None
     keep_failures = args.keep_failures or dagger
@@ -133,12 +141,25 @@ def record(argv: list[str]) -> None:
             if task.init_states is not None and len(task.init_states) > 0:
                 obs = env.set_init_state(
                     task.init_states[idx % len(task.init_states)])
+            if args.randomize_source_xy > 0.0:
+                LE.randomize_source_xy(
+                    env, np.random.default_rng(555_000 + idx),
+                    float(args.randomize_source_xy))
+                try:
+                    inner = LE._unwrap_libero(env)
+                    getter = (getattr(inner, "_get_observations", None)
+                              or getattr(env, "_get_observations", None))
+                    if callable(getter):
+                        obs = getter()
+                except Exception:
+                    pass
             policy.reset(task.instruction)
             if student is not None:
                 student.reset(task.instruction)
             mix_rng = np.random.default_rng(10_000 + idx)
 
             frames, actions, proprios, executed = [], [], [], []
+            mstates = []
             success = False
             for _step in range(args.max_steps):
                 frame = upright(obs[camera], camera)
@@ -147,6 +168,12 @@ def record(argv: list[str]) -> None:
                 # trajectory; its output is the label regardless of who drives.
                 label = policy.act(frame, proprio=pro)
                 label = np.nan_to_num(label, nan=0.0, posinf=0.0, neginf=0.0)
+                # Scaffold-state dump (de-skeletonization supervision): the
+                # goal machine's internal state per tick — the exact latent
+                # the original BC rounds could never observe.
+                gm = getattr(policy, "goal_machine", None)
+                if gm is not None and hasattr(gm, "state_row"):
+                    mstates.append(gm.state_row())
                 if student is not None:
                     s_act = student.act(frame, proprio=pro)
                     s_act = np.nan_to_num(s_act, nan=0.0, posinf=0.0,
@@ -171,8 +198,10 @@ def record(argv: list[str]) -> None:
             if not success and not keep_failures:
                 continue
             n_ok += 1
+            extra_keys = ({"machine_state": np.stack(mstates)}
+                          if len(mstates) == len(actions) and mstates else {})
             np.savez_compressed(
-                out / f"teacher_{args.suite}_t{args.task_id}_i{idx:04d}.npz",
+                out / f"{args.tag}_{args.suite}_t{args.task_id}_i{idx:04d}.npz",
                 frames=np.stack(frames),
                 actions=np.stack(actions),
                 proprio=np.stack(proprios),
@@ -182,6 +211,7 @@ def record(argv: list[str]) -> None:
                 instruction=np.array(task.instruction),
                 init_index=np.array(idx),
                 camera=np.array(camera),
+                **extra_keys,
             )
             logger.info("saved episode %d/%d (success=%s)",
                         n_ok, args.n_success, success)
@@ -195,7 +225,9 @@ def record(argv: list[str]) -> None:
 def _iter_raw(raw_dir: Path):
     from preprocess.common import SourceEpisode
 
-    for f in sorted(raw_dir.glob("teacher_*.npz")):
+    for f in sorted(raw_dir.glob("*.npz")):
+        if f.stem.endswith("_state"):
+            continue                    # sidecars are not episodes
         d = np.load(f, allow_pickle=False)
         frames = d["frames"]
         proprio = d["proprio"]
@@ -252,6 +284,24 @@ def convert(argv: list[str]) -> None:
                     "eval_camera": {"eye_in_hand_rgb": "robot0_eye_in_hand_image",
                                     "agentview_rgb": "agentview_image"}[args.camera]},
     )
+    # Sidecars: keep the scaffold-state supervision (machine_state) and the
+    # success flag next to the baked shards — the bake schema doesn't carry
+    # them and the raw dir is about to be purged. KB-scale per episode.
+    out_dir = Path(args.out)
+    n_side = 0
+    for f in sorted(raw.glob("*.npz")):
+        if f.stem.endswith("_state"):
+            continue
+        with np.load(f, allow_pickle=False) as d:
+            side = {k: d[k] for k in ("machine_state", "success",
+                                      "executed_actions", "init_index",
+                                      "proprio")
+                    if k in d}
+        if side:
+            np.savez_compressed(out_dir / f"{f.stem}_state.npz", **side)
+            n_side += 1
+    if n_side:
+        logger.info("wrote %d state sidecars -> %s", n_side, out_dir)
     if args.purge_raw:
         import shutil
         shutil.rmtree(raw)

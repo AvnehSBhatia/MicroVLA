@@ -34,7 +34,7 @@ def test_convert_dry_run_produces_training_schema(tmp_path):
     convert(["--raw-dir", str(raw), "--out", str(out), "--dry-run",
              "--spatial-grid", "4"])
 
-    eps = sorted(out.glob("*.npz"))
+    eps = sorted(f for f in out.glob("*.npz") if not f.stem.endswith("_state"))
     assert len(eps) == 2
     d = np.load(eps[0])
     for key in ("frame_embs", "source_centers", "target_centers", "box_weights",
@@ -83,8 +83,10 @@ def test_convert_tolerates_dagger_keys(tmp_path):
     from preprocess.teacher_rollouts import convert
     convert(["--raw-dir", str(raw), "--out", str(out), "--dry-run",
              "--spatial-grid", "4"])
-    eps = sorted(out.glob("*.npz"))
+    eps = sorted(f for f in out.glob("*.npz") if not f.stem.endswith("_state"))
     assert len(eps) == 1
+    # dagger raw carries executed_actions/success -> a state sidecar appears
+    assert any(f.stem.endswith("_state") for f in out.glob("*.npz"))
     d = np.load(eps[0])
     assert d["pwm_targets"].shape[1:] == (5, 7)
 

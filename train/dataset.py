@@ -83,7 +83,10 @@ class EpisodeDataset(Dataset):
         """
         self.root = Path(root)
         self.load_frames = load_frames
-        self.files: list[Path] = sorted(self.root.glob("*.npz"))
+        # *_state.npz are scaffold-state SIDECARS (teacher_rollouts convert),
+        # not episodes — same directory, different schema.
+        self.files: list[Path] = sorted(
+            f for f in self.root.glob("*.npz") if not f.stem.endswith("_state"))
         if not self.files:
             raise FileNotFoundError(f"No .npz episode files found in {self.root}")
 

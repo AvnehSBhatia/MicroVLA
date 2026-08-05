@@ -183,14 +183,21 @@ class PlaceHead(nn.Module):
 
 
 def save_goal_heads(path, grasp: GraspPointHead, place: PlaceHead,
-                    meta: dict | None = None) -> None:
+                    meta: dict | None = None,
+                    extra: dict | None = None) -> None:
+    """``extra`` carries optional non-head state (e.g. ``yolo_lora`` adapter
+    weights + ``yolo_lora_meta``) that the policy re-applies at load time."""
     payload = {"grasp": grasp.state_dict(), "place": place.state_dict(),
                "feature_version": FEATURE_VERSION, "meta": meta or {}}
+    payload.update(extra or {})
     torch.save(payload, path)
 
 
 def load_goal_heads(path, map_location: str = "cpu"
                     ) -> tuple[GraspPointHead, PlaceHead, dict]:
+    """Returns ``(grasp, place, extra)`` — ``extra`` is the full payload minus
+    the head states (``meta``, plus ``yolo_lora``/``yolo_lora_meta`` when the
+    checkpoint was trained with an adapted frame-embedding stage)."""
     state = torch.load(path, map_location=map_location, weights_only=False)
     if state.get("feature_version") != FEATURE_VERSION:
         raise RuntimeError(
@@ -202,4 +209,5 @@ def load_goal_heads(path, map_location: str = "cpu"
     place.load_state_dict(state["place"])
     grasp.eval()
     place.eval()
-    return grasp, place, state.get("meta", {})
+    extra = {k: v for k, v in state.items() if k not in ("grasp", "place")}
+    return grasp, place, extra

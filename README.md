@@ -1,3 +1,74 @@
+# MicroVLA
+
+**A ~30M-parameter vision-language-action stack with unaided pick-and-place
+success on LIBERO — and a reproducible audit showing how fixed-placement
+benchmarks let non-visual policies score, plus the small repair that fixes it.**
+
+## Release: structured-decoding policy + de-memorization results (2026-08)
+
+| protocol (task 0, n=10, no assist flags, all successes filmed) | memorized head | **released head (v5)** |
+|---|---|---|
+| held-out init states (never used in tuning) | 0.300 | **0.700** |
+| randomized placements (±4 cm teleports) | impossible | **0.400** (best sibling: 0.500) |
+| input attribution | eef-tracking, image-flat | **visual** (vision 1.1–1.8 cm, proprio 0.1 cm) |
+
+The free-regression baseline (same trunk, six controlled variants) is 0.000;
+structured decoding — two learned goal heads (0.24M) driving a task-content-free
+servo shell — is the difference in kind. Full evidence chain in
+[`paper/MANUSCRIPT.md`](paper/MANUSCRIPT.md) (results §6.4d–f), the complete lab
+log in [`paper/paper.md`](paper/paper.md), scoreboard in
+[`results/UNAIDED_LEADERBOARD.md`](results/UNAIDED_LEADERBOARD.md), and demo
+films in [`demo/`](demo/).
+
+### Model files (`models/`)
+
+| file | role | params |
+|---|---|---|
+| `full_stageB_rec_fix.pt` | trunk: fusion/drift/relational/planner + TRM (frozen at deploy) | ~17M trained-side |
+| `goal_heads_v5.pt` | structured-decoding goal heads (grasp + place), variance-trained + jitter | 0.24M |
+| `gates_v1.pt` | stage-1 learned gates (close trigger + hold check) | <3K |
+
+(The frozen YOLO-World-S detector downloads automatically via `ultralytics`.)
+
+### Run it
+
+Environment (Linux + CUDA; python 3.10 venv — 3.12 cannot run the sim stack):
+
+```bash
+python3.10 -m venv .venv310 && . .venv310/bin/activate
+pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu128
+pip install numpy ultralytics opencv-python-headless h5py easydict cloudpickle \
+    "gym==0.26.2" imageio termcolor hydra-core bddl future transformers pytest \
+    einops matplotlib pillow robosuite==1.4.1 mujoco==2.3.7
+git clone https://github.com/Lifelong-Robot-Learning/LIBERO .libero_src   # full clone
+export PYTHONPATH=$PWD/.libero_src:$PWD  MUJOCO_GL=osmesa
+```
+
+Unaided eval (held-out protocol, per-success videos):
+
+```bash
+python -m eval.libero_eval --suite libero_object --task-ids 0 --n-trials 10 \
+  --max-steps 600 --seed 20 \
+  --checkpoint models/full_stageB_rec_fix.pt --norm-stats eval/identity_norm_stats.json \
+  --camera robot0_eye_in_hand_image --render-size 256 --perception-period 2 \
+  --det-conf 0.02 --no-brake --role-disjoint-iou 0.1 --source-max-area 0.12 \
+  --device cuda:0 --heads-device cpu --workers 1 \
+  --goal-ckpt models/goal_heads_v5.pt \
+  --success-video-dir out_videos --out-dir out_results
+```
+
+Add `--randomize-source-xy 0.04` for the randomized-placement protocol,
+`--gates-ckpt models/gates_v1.pt` for the learned-gates variant, and
+`--mock-env --checkpoint none` for a no-sim smoke test. CPU-only unit tests:
+`python -m pytest tests -q` (600+, no sim required).
+
+**Honest scope** (details in MANUSCRIPT §9): task content (where to grasp/place)
+is fully learned; the control shell is engineered and task-free; results are
+single-object (soup) — the per-object teacher campaign for multi-object
+generalization is documented ongoing work.
+
+---
+
 # MicroVLA v2
 
 A micro vision-language-action (VLA) pipeline: a single frozen off-the-shelf

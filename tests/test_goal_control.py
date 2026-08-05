@@ -383,8 +383,8 @@ class TestGoalHeads:
         g, p = GraspPointHead(), PlaceHead()
         path = tmp_path / "goal.pt"
         save_goal_heads(path, g, p, meta={"k": 1})
-        g2, p2, meta = load_goal_heads(path)
-        assert meta == {"k": 1}
+        g2, p2, extra = load_goal_heads(path)
+        assert extra["meta"] == {"k": 1}     # extra also carries LoRA keys later
         rng = np.random.default_rng(1)
         f = build_grasp_features(uv=(0.4, 0.6), conf=0.3,
                                  proprio=_proprio((0.1, 0.0, 0.3)),
@@ -429,3 +429,58 @@ class TestDeriveLabels:
 
     def test_airborne_grasp_rejected(self):
         assert derive_labels(_episode(grasp_z=0.30)) is None
+
+
+# ------------------------------------------------------------- learned gates
+class TestGates:
+    def test_machine_uses_learned_gates(self):
+        from microvla.control.gate_heads import CloseTriggerGate, HoldCheckGate
+
+        class AlwaysFire(CloseTriggerGate):
+            def fire(self, z, close_z, lateral, descend_n):
+                return True
+
+        class NeverHeld(HoldCheckGate):
+            def held(self, j0, j1, close_n):
+                return False
+
+        m = GoalServoMachine(latch_k=1,
+                             gates={"close": AlwaysFire(), "hold": NeverHeld()})
+        m.observe((0.0, 0.0), 0.015, sigma=0.01)
+        m.step(_proprio((0.0, 0.0, 0.25)), 7)
+        assert m.phase == "descend"
+        m.step(_proprio((0.0, 0.0, 0.20)), 7)   # gate fires despite z >> close_z
+        assert m.phase == "grasp"
+        for _ in range(m.close_ticks):
+            m.step(_proprio((0.0, 0.0, 0.20), jaw=0.5), 7)
+        assert m.phase == "rise"                # learned hold says NOT held
+
+    def test_gate_training_from_sidecars(self, tmp_path):
+        import numpy as np
+        from train.train_gates import episode_samples
+        from microvla.control.machine import PHASES
+        T = 30
+        ms = np.zeros((T, 8), dtype=np.float32)
+        ms[:, 0] = PHASES.index("approach")
+        ms[5:20, 0] = PHASES.index("descend")
+        ms[5:20, 2] = 1.0
+        ms[20:26, 0] = PHASES.index("grasp")
+        ms[26:, 0] = PHASES.index("lift")
+        ms[5:, 3] = 0.1
+        ms[5:, 4] = -0.2
+        ms[5:, 5] = 0.03
+        pro = np.zeros((T, 10), dtype=np.float32)
+        pro[:, 0] = 0.1
+        pro[:, 1] = -0.2
+        pro[:, 2] = np.linspace(0.3, 0.02, T)
+        pro[:, 7] = 0.4
+        pro[:, 8] = -0.4
+        pro[:, 9] = 1.0
+        np.savez_compressed(tmp_path / "ep1.npz", proprio=pro,
+                            pwm_targets=np.zeros((T, 5, 7), np.float32))
+        np.savez_compressed(tmp_path / "ep1_state.npz", machine_state=ms)
+        s = episode_samples(tmp_path / "ep1.npz")
+        assert s is not None
+        cX, cy, hX, hy = s
+        assert cy.sum() == 1.0            # exactly one descend->grasp fire
+        assert len(hy) == 1 and hy[0] == 1.0   # grasp->lift = held

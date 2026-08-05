@@ -257,6 +257,7 @@ def _run_real_trial(
     grip_close_dist: float = 0.0,
     grip_close_lift: float = 0.0,
     video_path: str | None = None,
+    randomize_source: float = 0.0,
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
 
@@ -313,6 +314,18 @@ def _run_real_trial(
                 except Exception:
                     pass
                 logger.info("clear_distractors: removed %d bodies; keep=%s", n_clr, keep)
+        if randomize_source > 0.0:
+            randomize_source_xy(
+                env, np.random.default_rng(777_000 + trial_seed),
+                float(randomize_source))
+            try:
+                inner = _unwrap_libero(env)
+                getter = (getattr(inner, "_get_observations", None)
+                          or getattr(env, "_get_observations", None))
+                if callable(getter):
+                    obs = getter()      # first policy frame sees the shift
+            except Exception:
+                pass
         policy.reset(task.instruction)
 
         from microvla.utils.proprio import proprio_from_obs
@@ -467,6 +480,52 @@ def clear_distractors(env, keep_substrings: tuple[str, ...] | list[str]) -> int:
     return n_cleared
 
 
+def randomize_source_xy(env, rng, radius: float) -> list[float] | None:
+    """Teleport the source object by a uniform xy shift within ±``radius``.
+
+    Beyond-benchmark placement randomization. LIBERO-Object pins each task's
+    target placement (measured 2026-08-03: identical soup xy across all 50
+    canned init states AND fresh seeded resets), which lets a non-visual
+    head MEMORIZE the location — caught by a direct probe (prediction flat
+    under uv sweeps, tracking the eef instead). Shifting the source at
+    episode start creates the placement variance the benchmark lacks, for
+    both randomized EVAL and randomized teacher DATA recording. Returns the
+    applied [dx, dy] or ``None`` when the env exposes no bodies.
+    """
+    inner = _unwrap_libero(env)
+    if inner is None:
+        return None
+    sim = getattr(inner, "sim", None)
+    body_ids = getattr(inner, "obj_body_id", None) or {}
+    if sim is None or not body_ids:
+        return None
+    names = list(body_ids.keys())
+    pick = next((n for n in names
+                 if not any(t in n.lower() for t in ("basket", "bin", "plate", "tray"))),
+                names[0])
+    model, data = sim.model, sim.data
+    jname = f"{pick}_joint0"
+    try:
+        jid = model.joint_name2id(jname)
+    except Exception:
+        try:
+            jid = model.joint_names.index(jname)
+        except Exception:
+            return None
+    if hasattr(model, "jnt_type") and int(model.jnt_type[jid]) != 0:
+        return None                     # free joints only
+    adr = int(model.jnt_qposadr[jid])
+    dx, dy = (float(v) for v in rng.uniform(-radius, radius, size=2))
+    data.qpos[adr] += dx
+    data.qpos[adr + 1] += dy
+    try:
+        sim.forward()
+    except Exception:
+        pass
+    logger.info("randomize_source_xy: %s shifted by (%+.3f, %+.3f)", pick, dx, dy)
+    return [dx, dy]
+
+
 def _sim_object_pos(env) -> list[float] | None:
     """Best-effort source-object position from the live robosuite/LIBERO sim.
 
@@ -532,6 +591,7 @@ def run_eval(
     grip_close_dist: float = 0.0,
     grip_close_lift: float = 0.0,
     success_video_dir: str | Path | None = None,
+    randomize_source: float = 0.0,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -583,6 +643,7 @@ def run_eval(
                 grip_close_dist=grip_close_dist,
                 grip_close_lift=grip_close_lift,
                 video_path=video_path,
+                randomize_source=randomize_source,
             )
     if success_video_dir:
         Path(success_video_dir).mkdir(parents=True, exist_ok=True)
@@ -742,6 +803,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             goal_ckpt=getattr(args, "goal_ckpt", None),
             goal_kwargs=(json.loads(args.goal_kwargs)
                          if getattr(args, "goal_kwargs", "") else None),
+            gates_ckpt=getattr(args, "gates_ckpt", None),
         )
 
     return factory
@@ -905,10 +967,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--goal-kwargs", default="",
                    help="JSON dict of GoalServoMachine ctor overrides for "
                         "--goal-ckpt sweeps, e.g. '{\"latch_sigma\": 0.08}'.")
+    p.add_argument("--gates-ckpt", default=None,
+                   help="learned close-trigger + hold gates (train_gates) "
+                        "replacing the machine thresholds — de-skeletonization "
+                        "stage 1, requires --goal-ckpt.")
     p.add_argument("--success-video-dir", default="",
                    help="save an mp4 of the policy's wrist view for EVERY "
                         "successful trial (frames are already rendered, so "
                         "this is free; written only on success).")
+    p.add_argument("--randomize-source-xy", type=float, default=0.0,
+                   help="teleport the source object by a uniform xy shift "
+                        "within ±R metres at episode start — beyond-benchmark "
+                        "placement randomization (LIBERO pins target "
+                        "placements, which permits location memorization).")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
@@ -1157,6 +1228,7 @@ def _parallel_worker(payload: dict) -> dict:
         grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
         grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
         success_video_dir=getattr(args, "success_video_dir", "") or None,
+        randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
     )
 
 
@@ -1365,6 +1437,7 @@ def main(argv: list[str] | None = None) -> None:
             grip_close_dist=float(getattr(args, "grip_close_dist", 0.0) or 0.0),
             grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
             success_video_dir=getattr(args, "success_video_dir", "") or None,
+            randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
         )
     # Carried in the results file, not only the log: a scored number whose
     # deployment did not match its corpus must stay self-identifying after the

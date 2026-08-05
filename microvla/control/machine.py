@@ -29,6 +29,11 @@ from __future__ import annotations
 
 import numpy as np
 
+#: Stable phase indexing for recorded machine-state dumps (self-play
+#: supervision: the scaffold's internal state becomes labels).
+PHASES: tuple[str, ...] = ("approach", "descend", "grasp", "rise", "lift",
+                           "transport", "release", "done")
+
 #: Default probe schedule (dx, dy, dyaw): radius-ordered 2D search around the
 #: latched goal. The teacher's table was x-only because ITS error source (the
 #: calibrated lever arm) varied along x; the learned head's error is
@@ -111,7 +116,8 @@ class GoalServoMachine:
                  probe_restart: int = 8,
                  hang_comp: tuple[float, float] = (0.0, 0.0),
                  yaw_probe: bool = False,
-                 yaw_sign: float = 1.0) -> None:
+                 yaw_sign: float = 1.0,
+                 gates: dict | None = None) -> None:
         self.p_gain = float(p_gain)
         self.clip = float(clip)
         self.descend = float(descend)
@@ -147,6 +153,10 @@ class GoalServoMachine:
         # as such in the paper; the learned-head accuracy track is the
         # principled fix that drives it to zero.
         self.hang_comp = (float(hang_comp[0]), float(hang_comp[1]))
+        # De-skeletonization stage 1: optional LEARNED gates replace their
+        # thresholds per-key ("close", "hold"); absent keys keep the
+        # threshold path, so each swap is independently ablatable.
+        self.gates = gates or {}
         self.yaw_probe = bool(yaw_probe)
         self.yaw_sign = float(yaw_sign)
         self.probe = PROBE_YAW if self.yaw_probe else PROBE_XY
@@ -181,6 +191,27 @@ class GoalServoMachine:
     @property
     def attempt(self) -> int:
         return self._attempt
+
+    def state_row(self) -> np.ndarray:
+        """One float32 row of the machine's internal state, for recording.
+
+        Layout: [phase_idx, attempt, latched, base_x, base_y, close_z,
+        aligned, frozen] — base_x/y are NaN pre-latch. This is the state the
+        original BC rounds could never see (the invisible ``_base_tgt``); a
+        student trained WITH it as auxiliary supervision is the
+        de-skeletonization bet.
+        """
+        bt = self._base_tgt
+        return np.array([
+            float(PHASES.index(self.phase)) if self.phase in PHASES else -1.0,
+            float(self._attempt),
+            0.0 if bt is None else 1.0,
+            np.nan if bt is None else float(bt[0]),
+            np.nan if bt is None else float(bt[1]),
+            float(self._close_z),
+            1.0 if self._aligned else 0.0,
+            1.0 if self._goal_frozen else 0.0,
+        ], dtype=np.float32)
 
     def observe(self, xy, z: float, sigma: float) -> None:
         """One goal estimate from the head. Pre-latch, approach phase only.
@@ -339,7 +370,13 @@ class GoalServoMachine:
                        and lateral < self.descend_band)
             if self._aligned and yaw_ok:
                 out[2] = self.descend
-                if z <= self._close_z or self._contact(z):
+                if "close" in self.gates:
+                    fire = self.gates["close"].fire(
+                        z, self._close_z, lateral, self._descend_n)
+                    self._contact(z)   # keep the window warm for telemetry
+                else:
+                    fire = z <= self._close_z or self._contact(z)
+                if fire:
                     self.phase = "grasp"
                     self._close_n = 0
             elif wide_ok and z > self._close_z + 0.02:
@@ -355,7 +392,12 @@ class GoalServoMachine:
                 out[2] = -abs(self.press)
             self._close_n += 1
             if self._close_n >= self.close_ticks:
-                if _jaws(proprio) >= self.held_jaw_min:
+                if "hold" in self.gates:
+                    held = self.gates["hold"].held(
+                        float(p[7]), float(p[8]), self._close_n)
+                else:
+                    held = _jaws(proprio) >= self.held_jaw_min
+                if held:
                     self.phase = "lift"
                 elif self._attempt + 1 >= self.probe_restart:
                     # Probe exhausted (unaided_goal2: attempts 5–10 around a

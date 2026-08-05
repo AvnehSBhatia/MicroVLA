@@ -293,6 +293,7 @@ class MicroVLAPolicy:
         source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect,
         goal_ckpt: Optional[str] = None,
         goal_kwargs: Optional[dict] = None,
+        gates_ckpt: Optional[str] = None,
     ) -> None:
         """Builds the policy.
 
@@ -397,7 +398,15 @@ class MicroVLAPolicy:
             from microvla.control import GoalServoMachine, load_goal_heads
             self.goal_grasp_head, self.goal_place_head, _meta = \
                 load_goal_heads(goal_ckpt)
-            self.goal_machine = GoalServoMachine(**(goal_kwargs or {}))
+            gkw = dict(goal_kwargs or {})
+            if gates_ckpt:
+                # De-skeletonization stage 1: learned close-trigger + hold
+                # gates replace their thresholds (per-gate ablatable).
+                from microvla.control.gate_heads import load_gates
+                close, hold, gmeta = load_gates(gates_ckpt)
+                gkw["gates"] = {"close": close, "hold": hold}
+                logger.info("MicroVLAPolicy: learned gates ON (%s)", gmeta)
+            self.goal_machine = GoalServoMachine(**gkw)
             logger.info("MicroVLAPolicy: structured goal-servo control ON "
                         "(heads: %s)", goal_ckpt)
         if tool_phase:
@@ -580,6 +589,22 @@ class MicroVLAPolicy:
             adapted.eval()
             logger.info("MicroVLAPolicy: YOLO LoRA frame-embedding stage loaded "
                         "(r=%s alpha=%s)", meta["r"], meta["alpha"])
+        # A goal-head checkpoint may carry its OWN adapted embedding stage
+        # (train_goal --yolo-lora-r): apply it the same way. Mutually
+        # exclusive with a main-checkpoint LoRA by precedence: the goal
+        # ckpt's adapter wins in structured mode (its head trained on it).
+        if (goal_ckpt and self.goal_grasp_head is not None
+                and hasattr(perception, "enable_lora")):
+            g_extra = torch.load(goal_ckpt, map_location="cpu",
+                                 weights_only=False)
+            if "yolo_lora" in g_extra:
+                gm = g_extra.get("yolo_lora_meta", {"r": 8, "alpha": 8.0})
+                adapted = perception.enable_lora(int(gm["r"]),
+                                                 float(gm["alpha"]))
+                adapted.load_state_dict(g_extra["yolo_lora"])
+                adapted.eval()
+                logger.info("MicroVLAPolicy: goal-ckpt LoRA embedding stage "
+                            "loaded (r=%s alpha=%s)", gm["r"], gm["alpha"])
 
         self.loop = JEPALoop(
             cfg=cfg,

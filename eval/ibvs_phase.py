@@ -278,13 +278,27 @@ class PhasedIBVS:
         # bottom-center during descent (aim V 0.60) and was masked with the
         # fingers. 1.0 = off; 0.72 recommended.
         self.body_v = float(body_v)
+        # Probe entries are (dx, dy, dyaw). Historically x-only ((dx, 0, 0)):
+        # the offset's variance was x-distributed at the benchmark's FIXED
+        # placement. Under placement randomization the residual miss is
+        # isotropic (measured: ±6 cm shifts leave the converged eef 5–7 cm
+        # off in ANY direction, unrecoverable by an x-only search), so the
+        # schedule is now radius-ordered 2D — the same lesson the learned
+        # machine's probe learned in unaided_goal1.
         if self.yaw_probe:
-            self.probe = ((0.0, 0.0), (0.0, 1.5708), (+0.02, 0.0),
-                          (+0.02, 1.5708), (-0.02, 0.0), (-0.02, 1.5708),
-                          (+0.04, 1.5708))
+            self.probe = ((0.0, 0.0, 0.0), (0.0, 0.0, 1.5708),
+                          (+0.02, 0.0, 0.0), (+0.02, 0.0, 1.5708),
+                          (0.0, +0.02, 0.0), (0.0, -0.02, 1.5708),
+                          (-0.02, 0.0, 0.0), (+0.04, 0.0, 1.5708))
         else:
-            self.probe = tuple((dx, 0.0) for dx in
-                               (0.0, +0.02, -0.02, +0.04, -0.04, +0.06))
+            self.probe = ((0.0, 0.0, 0.0),
+                          (+0.02, 0.0, 0.0), (-0.02, 0.0, 0.0),
+                          (0.0, +0.02, 0.0), (0.0, -0.02, 0.0),
+                          (+0.02, +0.02, 0.0), (-0.02, -0.02, 0.0),
+                          (+0.02, -0.02, 0.0), (-0.02, +0.02, 0.0),
+                          (+0.04, 0.0, 0.0), (-0.04, 0.0, 0.0),
+                          (0.0, +0.04, 0.0), (0.0, -0.04, 0.0),
+                          (+0.06, 0.0, 0.0), (-0.06, 0.0, 0.0))
         self.reset()
 
     @staticmethod
@@ -415,7 +429,7 @@ class PhasedIBVS:
     def _enter_grasp_or_align(self, proprio) -> None:
         """Gate crossing: with a calibrated offset, align in world first."""
         if (self.grasp_offset != (0.0, 0.0)) and proprio is not None:
-            dx, dyaw = self.probe[min(self._attempt, len(self.probe) - 1)]
+            dx, dy, dyaw = self.probe[min(self._attempt, len(self.probe) - 1)]
             if self._base_tgt is None:
                 # First gate crossing this episode: derive from the eef. The
                 # calibrated lever arm is only valid from the ALTITUDE
@@ -426,7 +440,7 @@ class PhasedIBVS:
                 self._base_tgt = (float(p[0]) + self.grasp_offset[0],
                                   float(p[1]) + self.grasp_offset[1])
                 self._base_yaw = self._yaw(proprio)
-            self._align_tgt = (self._base_tgt[0] + dx, self._base_tgt[1])
+            self._align_tgt = (self._base_tgt[0] + dx, self._base_tgt[1] + dy)
             self._tgt_yaw = self._base_yaw + dyaw
             self._z_hist = []
             self.phase = "align"
@@ -495,8 +509,9 @@ class PhasedIBVS:
                     # close to the table the detector is unreliable, so later
                     # attempts go straight back to the probe-shifted world
                     # target on proprio alone.
-                    dx, dyaw = self.probe[min(self._attempt, len(self.probe) - 1)]
-                    self._align_tgt = (self._base_tgt[0] + dx, self._base_tgt[1])
+                    dx, dy, dyaw = self.probe[min(self._attempt, len(self.probe) - 1)]
+                    self._align_tgt = (self._base_tgt[0] + dx,
+                                       self._base_tgt[1] + dy)
                     self._tgt_yaw = self._base_yaw + dyaw
                     self._z_hist = []
                     self.phase = "align"

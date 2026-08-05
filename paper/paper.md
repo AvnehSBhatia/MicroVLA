@@ -5583,3 +5583,354 @@ zero — a more accurate goal head (LoRA'd embedding) — is the sanctioned
 next lever; goal3's 0.400 stands as the best *constant-free* number.
 `unaided_goal5` (hang_comp + per-success wrist videos via
 `--success-video-dir`, now standing) in flight.
+
+### unaided_goal5 (v10.4: hang_comp place compensation) — 0.700, n=10 (2026-08-03)
+
+mean_success **0.700** — seven full unaided pick-and-places, every one
+auto-filmed from the wrist (`--success-video-dir`, standing). Trajectory:
+free-regression 0.000 ×6 → v10 0.100 → v10.1 0.300 → v10.2 0.400 →
+(v10.3 diagnostic round 0.200: exposed the constant hang) → v10.4
+**0.700** — statistically indistinguishable from the assisted teacher's
+0.75 (n=8). grip_close_rate 0.49, eef_obj_min 0.030.
+
+Tier bookkeeping (leaderboard): goal5 sits on the T1 board — it carries
+ONE offline-calibrated task-adjacent constant (hang_comp (−2.8, +1.4) cm,
+fitted from logged rollouts). The T0 (zero calibrated constants) leader
+remains goal3's 0.400.
+
+**The path from T1 0.7 to T0 0.7 is already recording** (selfplay_night
+chain): in self-play SUCCESS episodes recorded WITH hang_comp, the eef at
+release equals place − hang and the object verifiably landed in the basket
+— so retraining PlaceHead on self-play release positions absorbs the hang
+compensation into the learned head with NO privileged labels (success bit
++ proprio only). The calibrated constant becomes a learned weight by
+construction, the same maneuver that turned the teacher's lever arm into
+GraspPointHead labels.
+
+### The single-placement discovery — memorization caught by probe (2026-08-03, user-initiated)
+
+The user observed that all seven goal5 success videos "are the exact same
+setup." Verified: **LIBERO-Object pins the target placement** — the soup
+can starts at exactly (−0.120, −0.240) in ALL 50 canned init states AND
+under fresh seeded resets (the benchmark's placement regions are
+degenerate for the target; the 15 varying init dims are arm/distractor
+state). Every number in this project (assisted teacher included) and,
+definitionally, every published LIBERO-Object number, is single-placement
+per task.
+
+Direct consequence, caught by an input-sensitivity probe on the trained
+GraspPointHead: **the prediction is FLAT under uv sweeps (~1 mm across
+u 0.3→0.7) and tracks the eef instead (slope ≈0.87 toward the fixed
+target)** — with a constant label, the teacher's own converging approach
+makes proprio a better predictor than the image, and the regression
+rationally learned location memorization, not vision. The 0.700 remains
+real closed-loop behavior (latch/probe/refinement do the work), but the
+head's "1.3 cm visual accuracy" is not visual, and it cannot transfer to
+moved objects. This validates the free-regression rounds' failure from a
+new angle and is a general caution for single-placement benchmarks.
+
+Fix (in flight, `demem_night` chain): (1) `randomize_source_xy` — teleport
+the source ±6 cm at episode start (eval AND recorder); (2) record a
+randomized-placement teacher corpus (the assisted teacher is a true visual
+servo, so its labels VARY with placement); (3) retrain heads v2 on all
+corpora (multi-task selfplay incl. butter + randomized soup; PlaceHead
+labels from selfplay successes absorb hang_comp into learned weights);
+(4) goal6 scored three ways: dev (benchmark), held-out inits, and
+randomized placements; (5) the uv-sensitivity probe re-run as the
+memorized-vs-visual figure.
+
+### unaided_goal5_heldout — 0.300 on never-tuned inits: the dev/held-out gap, measured (2026-08-03)
+
+Same v10.4 policy, init states 10–19 (seed 20) — placements identical (the
+benchmark pins them), but arm-start/distractor state never touched by any
+tuning decision: **mean_success 0.300 vs 0.700 dev**. The v10.1→v10.4
+machine iteration (probe geometry, bands, hang_comp — all chosen against
+dev-init failures) overfit the dev configurations by roughly 2×. Honest
+task-0 estimate for the current stack: ~0.5 pooled (0.7 dev / 0.3
+held-out, n=10 each). Every leaderboard row is now annotated dev vs
+held-out, and held-out numbers are the citable ones going forward. The
+generalization repairs in flight (multi-task + randomized-placement corpus
+→ heads v2 → goal6 dev/heldout/randomized trio) target exactly this gap:
+constants fitted offline get replaced by learned, variance-trained heads.
+
+### unaided_goal5_alltasks — 0.00/10 tasks zero-shot: the memorization prediction confirmed (2026-08-03)
+
+All 10 libero_object tasks, n=3, seed 20, v10.4 heads (soup-only training):
+**mean_success 0.000 on every task** — including task 0 (0/3, within noise
+of its 0.300 held-out rate). This is the measured "before" column of the
+generalization table, and it is exactly what the uv-flat probe predicted:
+a head that memorized the soup location aims at the wrong place for every
+other object. Task-0 competence does not transfer BECAUSE it was never
+visual. The heads-v2 arc (multi-task selfplay + randomized-placement
+teacher corpus, recording now) is the "after" column; its success criteria
+are (a) uv-probe sensitivity restored, (b) task-0 held-out recovered,
+(c) nonzero zero-shot tasks.
+
+### Night note — randomized-teacher 0/20 was a per-task calibration bug, not the randomizer (2026-08-03)
+
+First randomized-teacher recording failed 0/20 including a 6 mm shift.
+Cause: the recorder was launched with the CREAM calibration (close_z 0.01,
+gate_z 0.06, approach_z 0) on the SOUP task — the handoff's example command
+is for task 1, and DESIGN.md's own table warns the 0.06 gate "can never
+fire" on a tall object; the align phase then corrects laterally AT can
+height and bulldozes it (the exact failure approach_z exists to prevent).
+The randomizer itself was verified live (correct body, correct shifts,
+soup teleporting cleanly). Relaunched with the grid2 soup calibration
+(close 0.045 / gate 0.10 / approach 0.12). Lesson recorded: per-task
+calibrated constants are per-task — one more argument for the learned-goal
+path where no such table exists to misapply.
+
+### A/B/C/D isolation — even the teacher is position-baked (2026-08-03, night)
+
+Eight pure-teacher trials from recording-band inits (seed 40) settle three
+tangled variables: **A** (this session's soup offsets (0.08,−0.05), drop
+0.18, unshifted) = 0/2, converging 13–15 cm off — the earlier randomized-
+recording failures were doubly caused by a wrong flag set. **B**
+(ceiling_soup_v1 flags: offset (0.09,−0.186), place (−0.006,0.260), drop
+0.25, unshifted) = **2/2**, eef_obj_min 5–7 mm. **C** (B + ±6 cm shifts) =
+0/2 — but reaching 5–7 cm of the can at detection ~1.0: the visual
+approach TRACKS the shifted can; the calibrated composite offset (a
+−18.6 cm y-term is approach geometry, not lever arm) then misses by
+~the shift, and the teacher's x-only probe cannot recover an isotropic
+miss. **D** (my flags + shifts) = 0/2.
+
+Finding worth stating plainly: **the assisted teacher's last centimetres
+were never visual either** — vision gates the approach; a position-baked
+constant finishes. Placement randomization exposes this in the teacher
+exactly as the uv-probe exposed it in the learned head. Fix applied: the
+teacher's probe schedule is now the radius-ordered 2D table (the machine's
+unaided_goal1 lesson, backported), and randomization is ±4 cm; demem3
+chain re-launched on the verified B config. Every system in this project
+that "worked" at the fixed placement — free-regression BC, the learned
+head, the hand teacher — encoded the placement somewhere; the paper's
+generalization table now measures each one's escape from it.
+
+### Pod-rebuild diagnostics — the constant breaks across STACKS too (2026-08-04)
+
+The pod wipe forced a full environment rebuild (fresh container; py3.10
+venv with torch 2.8/cu128 + torchvision 0.23 + mujoco 2.3.7 + robosuite
+1.4.1 + LIBERO source; 603/603 tests green). Two findings worth the log:
+
+1. **The teacher's calibrated offset did not survive the stack change.**
+   Identical code, flags, weights, and seed: pre-wipe B config = 2/2;
+   post-rebuild = 0/2 with detection duty 0.99 — the machine converged
+   8.1 cm off, deterministically. The rebuilt detector stack gates at a
+   pose ~10 cm different in x, and the composite offset (already shown
+   position-baked by the ABCD isolation) is additionally DETECTOR-VERSION-
+   baked. Recalibrated in one step from the failure telemetry itself
+   (residual (−0.102, +0.016) → corrected offset (−0.012, −0.170); the x
+   term flips sign). Smoke with the corrected constant: 0.5, clearing the
+   recording gate. A constant that changes sign under a dependency bump is
+   the strongest form of the paper's argument that these quantities must
+   be learned, not calibrated.
+
+2. Recording chain (gated on smoke ≥ 0.5) now producing the randomized-
+   placement teacher corpus: ±4 cm teleports, 2D probe, 80-success target
+   — the de-memorization corpus, rebuilt better than what the wipe took.
+
+### heads-v2 (10-episode randomized corpus) — partial de-memorization, measured by substitution attribution (2026-08-04)
+
+First verdict from the variance corpus (10 randomized-placement teacher
+successes, ±4 cm; converted with frames; trained 300 ep, val-frac 0.2):
+**val median xy 1.23 cm / p90 3.32 cm ON PLACEMENT-VARIED LABELS** — a
+metric the fixed-placement corpus could never even express (its val labels
+were all one point).
+
+The uv-sweep probe stayed flat — and exposed its own limitation: random-
+noise embeddings cannot distinguish "reads the frame embedding" from
+"memorized". The upgraded probe substitutes REAL features between the two
+most-separated episodes (labels 4.4 cm apart) and attributes the
+prediction shift per input:
+
+| input substituted | prediction moved |
+|---|---|
+| box-center uv | **0.0 cm** (learned to discard the noisy center) |
+| frame embedding | **2.1 cm** (real vision: GAP layout signal) |
+| box embedding | **2.7 cm** (real vision: ROIAlign content) |
+| proprio | **4.5 cm** (trajectory parasitism persists) |
+| all inputs | 3.3 cm (labels 4.4 apart) |
+
+Baseline v1 for the same experiment class: uv-flat AND embedding-inert —
+prediction tracked the eef alone (slope ≈0.87 toward the fixed point).
+Verdict: **vision has entered the head** (2–3 cm of the signal now comes
+from embeddings) but has not yet displaced the proprio shortcut; the
+shortcut only pays within-corpus while vision generalizes, so corpus
+growth (recorder still accumulating toward ~40 episodes) should shift the
+balance. The goal6 trio (dev/held-out/randomized, per-success film) is
+running against these heads now — the randomized column is the behavioral
+half of this verdict. Probe tooling fixed as `scripts/attr_probe.py`
+(substitution on real features; the noise-emb uv sweep is retired as
+inconclusive-by-design).
+
+### heads v2.1 (eef-jitter) — parasitism severed BEHAVIORALLY: dev 0.0 → 0.700 on the same 10 episodes (2026-08-04)
+
+One-variable ablation: identical 10-episode variance corpus, identical
+machine, only change = --eef-jitter 0.08 (training-time noise on the eef
+FEATURE the trunk sees; the reconstruction anchor stays exact — the trunk
+cannot read position from proprio, the anchor arithmetic stays honest).
+Result: **goal6.1 dev 0.700 (7/10, all filmed)** vs v2's 0.000. The
+un-jittered head's proprio shortcut is self-referential at deployment
+(its own approach errors feed back through the eef input); jitter forces
+the placement signal into the embedding channels, and deployment follows.
+
+Notes for the record: v2.1's heads never saw a dev init (trained on
+randomized 220+ recordings only), so this 0.700 is not head-level dev
+tuning — but the MACHINE constants are historically dev-tuned, so the
+citable columns (held-out seed 20, randomized ±4 cm) are running now.
+Probe caveat discovered: the substitution probe's "proprio" row conflates
+the reconstruction ANCHOR (mechanical shift) with trunk parasitism —
+being split into anchor-only vs feature-only rows; the v2→v2.1
+behavioral delta is the clean evidence regardless. sigma_med 1.07 cm
+(cover 0.644, mildly overconfident). Recorder at 24/30 toward the v3
+full-corpus retrain.
+
+### Probe decomposition — the jitter's true mechanism is off-manifold robustness (2026-08-04)
+
+Splitting the substitution probe's "proprio" row into trunk-FEATURE vs
+reconstruction-ANCHOR (scripts/attr_probe.py): the anchor accounts for
+5.0 cm of the old 4.5–4.6 (pure arithmetic); actual trunk parasitism was
+**0.6 cm in v2, 0.4 cm in v2.1** — small in both. Vision channels
+dominate the learned signal in BOTH heads (frame 2.1→2.3, box 2.7→2.9 cm
+on the 4.4 cm pair). The attribution structures are nearly identical, yet
+v2 deploys at 0.000 and v2.1 at 0.700.
+
+Resolution: substitution probes evaluate ON-manifold (both episodes are
+teacher trajectories). The deployed machine visits OFF-manifold states
+(hover, rise, probe cycles the teacher never produced from those poses);
+v2's eef-feature pathway extrapolates unstably there, corrupting
+estimates, while v2.1's jitter training made the head INSENSITIVE to
+eef-feature perturbation — domain randomization over a nuisance input.
+The mechanism was invisible to three successive probes and settled only
+by the one-variable behavioral ablation (0.000 → 0.700). Method lesson
+for the paper: input-sensitivity probes certify what a head reads, not
+how it fails off-manifold; pair every probe with a behavioral ablation.
+
+### v2.1 citable columns — held-out 0.700: the dev/held-out gap closes (2026-08-04)
+
+Held-out inits (seed 20, never used in any tuning decision): **0.700
+(7/10, all filmed)** — identical to dev. The v1 baseline's gap (0.700 dev
+/ 0.300 held-out) is eliminated by heads trained purely on randomized
+recordings from non-dev inits + eef-feature jitter. The scoreboard so
+far: v2.1 dev 0.700 / held-out 0.700 / randomized IN FLIGHT (5 success
+videos already written mid-run — the first moved-object successes in
+project history). Machine constants unchanged from the dev-tuned v10.4
+values; head-level generalization carried the gap closure.
+
+### THE DE-MEMORIZATION TABLE — v2.1 randomized 0.500: the evidence chain closes (2026-08-04)
+
+| protocol | v1 head (fixed-placement corpus) | v2.1 head (10-ep variance corpus + eef-jitter) |
+|---|---|---|
+| dev (benchmark placement, tuned inits) | 0.700 | 0.700 |
+| held-out inits (seed 20, never tuned) | 0.300 | **0.700** |
+| randomized placements (±4 cm) | — (memorized; probe uv-flat) | **0.500** |
+| all successes filmed | yes | yes (19 films across the trio) |
+
+Ten randomized episodes and one nuisance-input augmentation did what six
+free-regression rounds and 111 fixed-placement episodes could not: a head
+that reads the scene. The diagnosed failure (three-memorizations audit,
+§6.4f) is repaired by exactly the prescription the audit implied —
+placement variance in the labels + insensitivity to the parasitic input —
+and verified on the two protocols a skeptic would demand, with the
+one-variable jitter ablation (0.000 → 0.700 dev) isolating the mechanism.
+Remaining gaps, stated: randomized 0.500 has headroom (goal error tail +
+sigma calibration 0.644); all-tasks zero-shot not yet re-run with v2.1;
+machine constants still hand-set (de-skeletonization track). Next: v3
+full-corpus retrain (26+ episodes recorded), alltasks-v21 sweep, LoRA
+sharpening, learned gates.
+
+### heads v3 (27-episode full variance corpus) — sub-centimeter val; trio landing (2026-08-04)
+
+Full-corpus retrain (27 usable episodes, 748 grasp ticks, jitter on):
+**val median 0.99 cm / p90 2.06 cm on varied labels**; sigma 1.00 cm at
+cover 0.782. Decomposed probe: vision channels dominant (frame 1.4 + box
+1.9 cm on a 4.7 cm pair), trunk parasitism 0.4 cm, and the box-center uv
+— dead in every prior head — now contributes 0.5 cm. Trio so far:
+**dev 0.700, held-out 0.600** (pooled variance-head held-out 13/20 =
+0.65; the v1 gap remains closed); randomized + all-tasks in flight.
+
+### v3 full trio + alltasks — placement generalization holds; object generalization is the open front (2026-08-04)
+
+v3 (27-episode soup variance corpus): dev 0.700 / held-out 0.600 /
+randomized 0.300. Pooled across the two variance-trained heads (v2.1+v3):
+held-out **13/20 = 0.65**, randomized **8/20 = 0.40** — both categorically
+above the memorized baseline (0.300 held-out; randomized impossible).
+All-tasks zero-shot: 0.067 mean — task 0 scores 0.67 under the all-tasks
+protocol (consistent with held-out), tasks 1–9 remain 0.00: the variance
+corpus repaired PLACEMENT generalization but is soup-only, so OBJECT
+generalization awaits multi-object data. Response (butter_chain, running):
+auto-recalibrating teacher smoke for t6 (the stack-shift residual
+measurement is now scripted), 30-episode randomized butter recording,
+v4 = soup+butter joint retrain (jitter on), all-tasks re-sweep with v4.
+
+### Butter teacher — position converges, grasp does not; the axis lesson recurs (2026-08-04)
+
+The iterative auto-calibration CONVERGED positionally for t6 butter
+(offset stable to ~2 mm across iterations: −0.051, −0.107 on this stack)
+yet every grasp fails — including with --ibvs-yaw-probe (0/2 smoke). The
+cream-cheese axis mechanism (small box vs jaw span) explains the position-
+converged-but-no-hold signature, but the yaw probe alone did not rescue it
+on the rebuilt stack; the butter teacher needs its own calibration
+campaign (close_z / press / approach geometry), deferred. Honest scope for
+the morning: placement generalization is proven on soup; object-level
+generalization remains open pending multi-object teacher work. GPU
+redirected to the LoRA arm (v4_lora: adapted embeddings + jitter,
+init-from v3; probe + randomized + held-out evals queued) — attacking the
+randomized-protocol tail (0.300–0.500) via feature quality instead.
+
+### LoRA arm at 27 episodes — negative result, logged (2026-08-04)
+
+Joint LoRA(r8)+head training on the 27-episode corpus: val 3.08 cm vs the
+frozen-feature v3's 0.99 cm — adapting the embedding stage HURTS at this
+data scale (the adapters chase the tiny corpus; the frozen features were
+already sufficient for placement variance). The trainer also died
+silently post-epochs before checkpointing (suspected container-RAM peak
+from the frames-in-RAM loading path — noted as a scaling bug to fix
+before any 100+ episode LoRA attempt). Direction shelved until the corpus
+is 3–4× larger; the frozen-feature + jitter recipe remains the flagship.
+Night GPU redirected to corpus growth: recorder round 2 (soup, ±5 cm,
+fresh init residues, target +40 successes) → v5 retrain → full trio.
+
+### heads v5 (49-episode combined corpus) — full de-parasitization; the campaign asymptote (2026-08-04)
+
+Combined corpus (27 + 22 episodes, ±4–5 cm; 1295 grasp ticks): val 1.85 cm
+(wider shifts are harder; sigma cover 0.559). **The decomposed probe is
+the cleanest of the campaign: anchor arithmetic 0.3 cm, trunk parasitism
+0.1 cm, vision channels uv 1.1 + frame 1.8 + box 1.7 cm on a 4.4 cm pair
+— the head predicts near-absolute goal positions from the scene and
+barely consults the eef at all.** Even the box-center uv, dead in every
+prior head, now carries signal. Trio: dev 0.400 / held-out 0.700 /
+randomized 0.400 (15 films). Pooled across the three variance-trained
+heads: fixed-placement (dev+held-out) 24/40 = 0.60; randomized 12/30 =
+0.40 — stable, protocol-symmetric (dev no longer beats held-out:
+memorization gone), and every input-attribution metric now certifies
+"visual". The rand tail (~0.4) is bounded by goal error vs the ±6 cm
+probe envelope plus sigma calibration — the identified next levers, after
+the free-regression arm's 0.000 → this, on 49 self-recorded episodes.
+
+### Machine-parameter sweep on the randomized tail — flat; the structure is not knife-edge (2026-08-05)
+
+Three GoalServoMachine configs on the randomized protocol with v5 heads
+(baseline 0.400): stricter sigma admission 0.400, looser+more-votes 0.300,
+longer probe search 0.400. The tail is goal-ACCURACY-bound (val 1.85 cm on
+±5 cm variance; p90 beyond the probe envelope), not gate-tuning-bound —
+and the flatness doubles as a sensitivity result: the servo shell performs
+equivalently across a wide gate-parameter range. Night campaign asymptote
+on this axis; remaining fronts are data-scale (multi-object teacher
+campaign, corpus 3–4×) and the de-skeletonization tracks.
+
+### De-skeletonization stage 1 — the scaffold's decisions become learned classifiers (2026-08-05)
+
+30 self-play episodes recorded by the v5 structured policy with its
+internal state dumped per tick (phase, latched goal, alignment, attempt)
+supervise two tiny heads (<3K params total) that replace hand-set
+thresholds: the CLOSE TRIGGER (descend→grasp — the decision six
+free-regression rounds could never learn from pixels, now learned from
+scaffold traces at 88% accuracy / 89% fire-recall on 54 events) and the
+HOLD CHECK (replacing abs(jaws)≥0.2; 76% / 94% recall on 49 decisions).
+One capture bug found en route: sidecars are per-env-tick while baked
+episodes are 2 Hz-sampled — a min()-alignment silently truncated every
+episode to its approach phase (0 transitions visible); fixed by stride
+alignment, with per-tick proprio added to future sidecars. The machine
+accepts the learned gates per-key (each swap independently ablatable);
+the first ablation row — held-out protocol, both gates learned, vs the
+0.700 threshold baseline — is running.

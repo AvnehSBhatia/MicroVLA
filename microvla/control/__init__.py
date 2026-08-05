@@ -9,10 +9,11 @@ from microvla.control.goal_head import (FEATURE_VERSION, GraspPointHead,
                                         PlaceHead, build_grasp_features,
                                         load_goal_heads, save_goal_heads,
                                         yaw_from_quat)
-from microvla.control.machine import GoalServoMachine, PROBE_XY, PROBE_YAW
+from microvla.control.machine import (GoalServoMachine, PHASES, PROBE_XY,
+                                      PROBE_YAW)
 
 __all__ = [
     "FEATURE_VERSION", "GraspPointHead", "PlaceHead", "build_grasp_features",
     "load_goal_heads", "save_goal_heads", "yaw_from_quat",
-    "GoalServoMachine", "PROBE_XY", "PROBE_YAW",
+    "GoalServoMachine", "PHASES", "PROBE_XY", "PROBE_YAW",
 ]
