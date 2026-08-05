@@ -63,8 +63,9 @@ Tier definitions:
 | unaided_goal1 | 0.100 dev | v10.0 |
 
 Boundary rows (kept honest): all-tasks zero-shot 0.067 (soup 2/3, tasks
-1–9 = 0.00 at n=3, sibling v3 + memorized head — soup-only corpus; v5
-sweep in flight); butter re-diagnosed 2026-08-05 — the "grasp-strategy
+1–9 = 0.00 at n=3 — measured with sibling v3, the memorized head, AND
+the released v5 itself, `libero_object_real_1785913852707`: soup-only
+corpus bounds the head, not the detector); butter re-diagnosed 2026-08-05 — the "grasp-strategy
 negative" was a jaw-axis calibration residual (squeeze-out mechanism
 measured; centered offset → first butter lift, audit stack) and the v6
 multi-object campaign is unblocked; LoRA joint training negative at 27 ep
@@ -87,5 +88,6 @@ Selection ledger: v6-v9 scored the seed-20 band (4 config looks) before
 the pre-registration; the confirmation seed was never scored by any
 student run.
 
-Updated: 2026-08-05 cycle 2 (n=50 randomized landed 26/50; v5 zero-shot
-sweep + butter v6 multi-object campaign in flight).
+Updated: 2026-08-05 cycle 12 — n=50 cells landed (35/50 held-out,
+26/50 randomized), rebuild matrix complete, v5 zero-shot row measured,
+multi-object addendum confirmed on fresh seed (5/10 butter + 3/10 soup).
