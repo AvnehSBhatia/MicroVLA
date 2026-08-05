@@ -6178,3 +6178,23 @@ basket. The multi-object corpus is now RECORDING: 25-target randomized
 ~35–40% under teleports — the probe-retry machinery earns its keep on the
 misses). Next in chain: convert → train goal_heads_v6 on soup+butter →
 unaided butter n=10 + soup regression n=10.
+
+### v6 multi-object iteration: butter 0/10 (data-starved), soup RISES to 9/10 (2026-08-05, cycle 6)
+
+Chain completed end-to-end. Corpus: 16 randomized butter episodes (60
+attempts, ~31% teacher rate under ±3 cm teleports). **v6 butter: 0/10**
+(`libero_object_real_1785926557527`) — detection duty 0.999 but closest
+approach 0.027–0.133 m: the head's butter goals are 3–13 cm off (soup's
+run 1–2 cm); the machine probe-cycles around wrong goals. Classic
+underfit at 16-vs-49 episode imbalance. **v6 soup: 9/10 on seed-20
+held-out states** (`libero_object_real_1785927804554`) — TWO POINTS ABOVE
+the flagship's 7/10 on the same protocol, from the same training run that
+failed butter: the joint corpus didn't interfere, it helped. (v6 is
+selection-free — first and only eval of that checkpoint.)
+
+v7 iteration launched (`scripts/butter_v7.sh`): +15-episode butter corpus
+extension (fresh init band 300+), butter oversampled 2x in training, same
+eval pair. Manuscript updated: §7 transfer-boundary carries the place-leg
+omission + first-iteration cells; §9 bullet now cites the addendum cells
+(claims unchanged: no multi-object success number in the body); App-D
+addendum block written with all three run ids.

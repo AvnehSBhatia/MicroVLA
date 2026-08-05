@@ -655,10 +655,18 @@ close, zero object drift, and the campaign's first butter lift (grip held
 detects the *basket*, §6's stack finding at the place leg). The boundary
 therefore re-scopes from "needs a per-object grasp strategy" to "needs a
 *converged per-object offset*" — per-object constants after all, carrying
-the same stack-pinning §6 measured for the soup offset. The repair recipe
-is demonstrated on one object; the multi-object corpus campaign this
-re-diagnosis unblocks is reported, when it lands, as a dated addendum
-(App D), not amended into this paper's numbers.
+the same stack-pinning §6 measured for the soup offset. (A second omission
+completed the re-diagnosis on the deployment stack: the butter recording
+chains never passed the teacher's calibrated place point, so every
+otherwise-sound episode timed out hunting an undetectable basket —
+tgt detection duty 0.0 through entire transports on both stacks, object
+held to z = 0.7. With the same place constant every soup chain used, the
+butter teacher goes end-to-end at 2/3.) The repair recipe is demonstrated
+on one object; the multi-object corpus campaign this re-diagnosis
+unblocks is under way and reports as dated App-D addendum cells (first
+iteration: butter 0/10 from a 16-episode corpus with 3–13 cm goal error —
+data-starved, not strategy-blocked — while the joint corpus *raises* soup
+to 9/10 on the held-out protocol), not amended into this paper's numbers.
 
 **Negatives and calibration honesty.** Joint LoRA adaptation of the
 embedding stage hurts at this corpus scale (val 3.08 vs 0.99 cm). A
@@ -851,10 +859,15 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   stack on which vision is live — on the deployment stack it does separate
   the heads (1/10 vs 4/10), and §6–7 carry the stack-independent claim via
   attributions and varied-label validation.
-* Object-level generalization: one object. The butter boundary is measured
-  and re-diagnosed (§7): a jaw-axis calibration residual, not a grasp
-  strategy limit — the re-diagnosis unblocks a multi-object campaign but
-  this paper claims no multi-object number.
+* Object-level generalization: one object in every claimed cell. The
+  butter boundary is measured and re-diagnosed (§7): a place-leg flag
+  omission and a calibration residual, not a grasp-strategy limit. The
+  first multi-object iteration exists as dated App-D addendum cells —
+  teacher end-to-end on butter 2/3; a 16-episode butter corpus joined to
+  the soup corpus trains a v6 head that scores 0/10 on butter (goal error
+  3–13 cm, data-starved) while *raising* soup to 9/10 on the held-out
+  protocol — but no multi-object success number is claimed in this
+  paper's body, and iteration continues in the addendum.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
   LIBERO scores (§3, §9).
@@ -1260,6 +1273,20 @@ exactly its pre-rebuild cell. Across the rebuild the flagship reproduces
 in all three protocols (dev 4/10 → 4/10; held-out 7/10 → 35/50;
 randomized 4/10 → 4/10 on the identical first-ten draws of the n=50 run)
 while the memorized head's dev cell collapses 7/10 → 2/10.
+
+Multi-object iteration, dated cells (2026-08-05). Released-flagship
+zero-shot sweep: 0.067 overall (`libero_object_real_1785913852707`; task
+0 at 2/3, tasks 1–9 at 0/3; detection duty 0.997). Butter teacher
+end-to-end 2/3 once the calibrated place point every soup chain used was
+passed (`--ibvs-place-at`; eval_results/bv6b_smoke). v6 head — trained
+on the soup corpus plus a 16-episode ±3 cm-randomized butter corpus —
+butter **0/10** (`libero_object_real_1785926557527`; detection duty
+0.999, closest approach 0.027–0.133 m across trials: goal error, data-
+starved at 16 episodes) and soup **9/10** on the held-out protocol
+(`libero_object_real_1785927804554`) — two points above the flagship's
+own cell: the joint corpus helped soup. Iteration continues (corpus
+extension + butter-oversampled retrain); no multi-object success number
+is claimed in the body.
 
 ## E. Defect catalog (unified count: 29)
 
