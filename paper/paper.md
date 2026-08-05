@@ -6308,3 +6308,22 @@ fresh-seed confirmation pre-registered and reported as it landed.
 Full multi-object ladder today: 0/10 (v6) → 0/10 (v7, offline-clean) →
 10/10 butter config-split (v8) → 6/10+4/10 one config (v9) →
 5/10+3/10 confirmed fresh-seed. Films for every success pulled.
+
+### v10 adaptive freeze + third object queued (2026-08-05, cycle 13)
+
+Two levers launched at the reviewer gap ("modest multi-object rates,
+narrow class"):
+1. **Machine v10 — rejection-triggered freeze.** The anchor band's
+   rejections ARE the chase detector: a stream that keeps landing outside
+   the trust region is walking with the arm, not refining. After 3
+   consecutive rejections, refinement freezes entirely (pure proprio to
+   the anchor — butter-mode); a stream that refines inside the band never
+   trips it (soup keeps its approach-refinement). One config, adaptive
+   per-episode, no per-object constants; should recover butter's 10/10
+   ceiling without soup's v8 collapse. n=10 x 2 validation running.
+2. **Third object: cream cheese (task 1)** — the full measured recipe
+   chained behind v10: offset calibration to at-close convergence, place
+   constant, smoke gate, 25-episode randomized corpus, three-object v8
+   head (soup+butter+cream), three-object eval n=10 each under the
+   anchor-band config. Three objects with one policy bundle is the class
+   breadth the multi-object claim wants.
