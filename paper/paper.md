@@ -6246,3 +6246,26 @@ machine's global default, not a per-object constant).
 v7 soup FINAL: 7/10 (`unaided_v7_soup`) — the heavier butter oversampling
 gave back v6's +2; v6 (9/10) remains the soup peak. Ladder: v5 7/10,
 v6 9/10, v7 7/10, all seed-20 held-out protocol, all artifact-backed.
+
+### FIRST UNAIDED MULTI-OBJECT SUCCESSES — butter 10/10 (2026-08-05, cycle 10)
+
+**v8 config (early latch: latch_tol 9.0, z_freeze 1.0) on the v7 head:
+BUTTER 10/10** (`eval_results/unaided_v8_butter`, closest approach
+0.0126 m — the far-view estimates were always right; the machine just
+had to stop chasing them). Ten success films pulled to
+watch_videos/succ_tonight/succ_vids_v8_butter. The estimate-chase
+diagnosis is causally confirmed: change WHEN the machine latches — no
+retraining, no per-object constants in the head — and butter goes
+0/10 → 10/10.
+
+**The control cost: soup 1/10 under the same config** (was 7–9/10 with
+the standard latch). The two objects need opposite latch policies with
+this corpus: soup's hover estimates are coarse (the goal1 lesson — its
+success was built on approach-refinement), butter's are sharp and
+poisoned by the approach's own uv drift. Per-object switches would be
+task constants — the principled unification is already in the
+architecture: the heteroscedastic head's CALIBRATED SIGMA. Butter's live
+far-view sigmas ran 0.008–0.017; if soup's run materially higher, a
+sigma-conditioned latch (trust-early when the head is confident, refine
+when it is not) is object-general and uses the uncertainty channel the
+head was designed to carry. Soup sigma-stream instrumentation running.
