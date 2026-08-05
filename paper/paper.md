@@ -6219,3 +6219,30 @@ repair loop on the new object: the LIVE feature stream must differ from
 the corpus stream somewhere the offline probes can't see. Instrumented
 live episode running (machine observe/latch values printed) to catch the
 divergence in the act. Soup v7 interim: first 6/6 trials succeeded.
+
+### The live divergence, caught in the act: estimate-chase feedback (2026-08-05, cycle 9)
+
+Instrumented live butter episode (v7 head, machine observe/latch printed):
+the first ~10 estimates are dead-on — (−0.130, −0.250) vs truth
+(−0.120, −0.240), sigma 0.009–0.017 — then the stream WALKS: +10 cm in x
+over ~13 ticks as the approach controller chases its own drifting
+estimates; the latch gate (which requires the arm to be laterally close
+to the median) fires only after the chase, at (−0.017, −0.269); descend
+refinement drags further to (+0.04, −0.31). Root cause: the teacher
+pins the object at a fixed image position during approach (target-uv
+servo), so the corpus contains only centered-uv approach features — the
+machine's world-xy approach lets uv wander, the head extrapolates
+off-manifold as a function of the machine's own motion, and butter
+diverges where soup happens to converge. §6's on-manifold probe limit,
+now with a closed feedback loop attached.
+
+Fix under test, no retraining (config only): latch from the early
+far-view estimates (latch_tol 9.0 disables the approach-chase gate) and
+freeze immediately (z_freeze 1.0 disables descend refinement) — the early
+median was 1 cm accurate. `scripts/v8_earlylatch.sh`: butter n=10 + soup
+n=10 under the same config (if soup holds, the early-latch becomes the
+machine's global default, not a per-object constant).
+
+v7 soup FINAL: 7/10 (`unaided_v7_soup`) — the heavier butter oversampling
+gave back v6's +2; v6 (9/10) remains the soup peak. Ladder: v5 7/10,
+v6 9/10, v7 7/10, all seed-20 held-out protocol, all artifact-backed.
