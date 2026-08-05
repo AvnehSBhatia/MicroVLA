@@ -6198,3 +6198,24 @@ eval pair. Manuscript updated: §7 transfer-boundary carries the place-leg
 omission + first-iteration cells; §9 bullet now cites the addendum cells
 (claims unchanged: no multi-object success number in the body); App-D
 addendum block written with all three run ids.
+
+### v7 butter 0/10 — the on-manifold/deployed gap returns; three exonerations (2026-08-05, cycle 8)
+
+v7 (26 butter eps, oversampled 2x): butter **0/10**
+(`libero_object_real_1785934999759`) with goal error 4.6–14.9 cm deployed
+— yet every layer of the offline audit is CLEAN:
+1. **Labels**: butter grasp labels mean (−0.119, −0.226) z=0.009, tight
+   (σ ≈ 1.7 cm), same table region as soup — a constant-point head cannot
+   explain the miss.
+2. **On-manifold predictions**: v7 on its own corpus — butter 1.3 cm
+   median, soup 0.8 cm (v5 on butter: 7.6 cm — training worked).
+3. **Parasitism/altitude**: eef+5 cm substitution moves predictions
+   −0.1 cm (no proprio leaning); hover-tick error 1.4 cm (estimates fine
+   at latch altitude).
+Deployed z is RIGHT (descends to 0.009 every trial); xy is wrong by
+5–15 cm varying across near-fixed placements. The paper's §6 finding —
+substitution probes certify on-manifold only — is now biting our own
+repair loop on the new object: the LIVE feature stream must differ from
+the corpus stream somewhere the offline probes can't see. Instrumented
+live episode running (machine observe/latch values printed) to catch the
+divergence in the act. Soup v7 interim: first 6/6 trials succeeded.
