@@ -117,6 +117,8 @@ class GoalServoMachine:
                  hang_comp: tuple[float, float] = (0.0, 0.0),
                  yaw_probe: bool = False,
                  yaw_sign: float = 1.0,
+                 sigma_trust: float = 0.0,
+                 anchor_band: float = 0.0,
                  gates: dict | None = None) -> None:
         self.p_gain = float(p_gain)
         self.clip = float(clip)
@@ -159,6 +161,26 @@ class GoalServoMachine:
         self.gates = gates or {}
         self.yaw_probe = bool(yaw_probe)
         self.yaw_sign = float(yaw_sign)
+        # Sigma-conditioned latch (the v8 lesson, 2026-08-05): when the
+        # head's calibrated sigma says its FAR-VIEW estimates are already
+        # trustworthy, latch before the arm moves toward them and freeze the
+        # goal — the approach itself drives uv off the training manifold and
+        # the estimate stream walks (butter: accurate first estimates, then
+        # +10 cm of chase; 0/10 -> 10/10 under early latch). When sigma is
+        # loose (soup at hover: coarse estimates that NEED approach
+        # refinement — the goal1 lesson), keep the standard
+        # approach-then-refine path. 0.0 disables the early path.
+        self.sigma_trust = float(sigma_trust)
+        # Anchor trust-region (v9, 2026-08-05). Live instrumentation showed
+        # BOTH objects' first stable estimates are ~1-2 cm accurate, and the
+        # failure mode is what happens NEXT: soup's later estimates refine
+        # within ~2 cm of the early median, butter's walk +10 cm as the
+        # approach drives uv off the training manifold and the arm chases
+        # (the head's own sigma cannot arbitrate — measured 0.007-0.017 in
+        # both regimes). The invariant: anchor on the first stable median and
+        # admit later estimates only inside ``anchor_band`` of it — true
+        # refinement passes, the chase is rejected. 0.0 disables.
+        self.anchor_band = float(anchor_band)
         self.probe = PROBE_YAW if self.yaw_probe else PROBE_XY
         self.reset()
 
@@ -166,6 +188,8 @@ class GoalServoMachine:
     def reset(self) -> None:
         self.phase = "approach"
         self._est: list[tuple[float, float, float]] = []  # sigma-passed window
+        self._est_sig: list[float] = []                    # their sigmas
+        self._anchor: tuple[float, float] | None = None    # first stable median
         self._weak: list[tuple[float, float, float]] = []  # all in-bounds ests
         self._base_tgt: tuple[float, float] | None = None
         self._base_yaw = 0.0
@@ -231,9 +255,19 @@ class GoalServoMachine:
                 self._weak.pop(0)
             if float(sigma) > self.latch_sigma:
                 return                 # the head itself says "don't trust this"
+            if (self.anchor_band > 0.0 and self._anchor is not None
+                    and max(abs(x - self._anchor[0]),
+                            abs(y - self._anchor[1])) > self.anchor_band):
+                return                 # outside the far-view trust region: chase
             self._est.append((x, y, float(z)))
+            self._est_sig.append(float(sigma))
             if len(self._est) > self.latch_k:
                 self._est.pop(0)
+                self._est_sig.pop(0)
+            if (self.anchor_band > 0.0 and self._anchor is None
+                    and len(self._est) >= self.latch_k):
+                ax, ay, _ = self._median_est()
+                self._anchor = (ax, ay)
             return
         # First-descent refinement (unaided_goal1 lesson): the latch fires at
         # hover altitude where the head's error runs 2–5 cm deployed, but its
@@ -246,6 +280,11 @@ class GoalServoMachine:
         # teacher's "later attempts go straight back on proprio alone".
         if (self.phase == "descend" and self._attempt == 0
                 and not self._goal_frozen and float(sigma) <= self.latch_sigma):
+            if (self.anchor_band > 0.0 and self._anchor is not None
+                    and max(abs(float(xy[0]) - self._anchor[0]),
+                            abs(float(xy[1]) - self._anchor[1]))
+                    > self.anchor_band):
+                return                 # refinement outside the trust region
             bx, by = self._base_tgt
             nx, ny = 0.5 * bx + 0.5 * x, 0.5 * by + 0.5 * y
             self._base_tgt = (nx, ny)
@@ -326,10 +365,20 @@ class GoalServoMachine:
             ready = (len(self._est) >= self.latch_k
                      and self._est_spread() <= self.latch_spread
                      and lateral < self.latch_tol)
+            # Confident-early path: a stable window the head itself marks as
+            # tight latches from the FAR view and freezes — no approach-chase,
+            # no descend refinement (see sigma_trust note in __init__).
+            confident = (self.sigma_trust > 0.0
+                         and len(self._est) >= self.latch_k
+                         and self._est_spread() <= self.latch_spread
+                         and float(np.median(self._est_sig)) < self.sigma_trust)
             # Deadlock-breaker (the descend-hyst lesson): a noisy-but-present
             # estimate beats hovering forever — latch on timeout regardless,
             # from the weak pool if sigma gating admitted nothing.
-            if ready or self._approach_n >= self.force_latch_ticks:
+            if confident:
+                self._latch(proprio, self._est)
+                self._goal_frozen = True
+            elif ready or self._approach_n >= self.force_latch_ticks:
                 self._latch(proprio, pool)
             return out
 
@@ -472,6 +521,8 @@ class GoalServoMachine:
     def _unlatch(self) -> None:
         self.phase = "approach"
         self._est = []
+        self._est_sig = []
+        self._anchor = None
         self._weak = []
         self._base_tgt = None
         self._align_tgt = None
