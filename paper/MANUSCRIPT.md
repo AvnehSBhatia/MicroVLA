@@ -91,20 +91,33 @@ calibration constant that vision alone could not observe.
 **Contributions.**
 
 1. The smallest deployed language-conditioned VLA stack we are aware of
-   (~30 M total, 7.0 M trained), with a reuse pattern (detector-as-text-encoder)
-   that removes the language model entirely (§2).
-2. A training-inference alignment principle — *dream evidence is faded
-   evidence on the shared path* — that makes the world-model rollout used at
-   deployment literally the code path trained against (§3), and a world model
-   that beats persistence and linear-extrapolation baselines under
-   deployment-exact 15-tick rollouts (§6.1).
-3. A defect taxonomy for producer/consumer ML seams (28 worked instances):
-   24 disagreements catchable by parity testing, 4 *agreements on a wrong
-   convention* catchable only by provenance manifests (§7).
-4. A worked forensic reduction of "success = 0" to a measured physical
-   constant, and the calibrated vision-to-proprioception handoff built from
-   it (§6.3–6.4) — with every intermediate hypothesis and its killing
-   measurement logged.
+   (~30 M total, auditable ledger in §2), with a reuse pattern
+   (detector-as-text-encoder) that removes the language model entirely —
+   and unaided task success carried by **0.24 M task-content parameters**
+   under a structured decoding head (§6.4e).
+2. **Structured decoding as the capacity-floor result**: on a fixed trunk
+   and corpus, free per-tick action regression scores 0.000 across six
+   controlled variants; predicting *goals* for a task-content-free servo
+   shell scores 0.700 — with a staged de-skeletonization path back toward
+   fully-learned control whose first stage (learned close-trigger and hold
+   gates) already swaps in at exact parity (§6.4e–g).
+3. **The memorization audit and its repair** (§6.4f): fixed-placement
+   benchmarks admit non-visual policies — shown at three layers (the
+   benchmark's pinned poses, our head's image-insensitivity, the expert's
+   position-baked constant) — and repaired with ten-episode placement
+   variance plus one nuisance-input augmentation, verified on held-out and
+   randomized protocols with an input-substitution probe we propose as
+   standard practice.
+4. A training-inference alignment principle — *dream evidence is faded
+   evidence on the shared path* (§3) — and a world model beating
+   persistence/linear-extrapolation baselines under deployment-exact
+   rollouts (§6.1).
+5. A defect taxonomy for producer/consumer ML seams (28+ worked
+   instances): disagreements catchable by parity testing vs *agreements on
+   a wrong convention* catchable only by provenance manifests (§7) — plus
+   the forensic reduction of "success = 0" to a measured physical constant
+   (§6.3–6.4), every intermediate hypothesis logged with its killing
+   measurement.
 
 ---
 
@@ -507,6 +520,33 @@ not. We propose the substitution probe + the randomized protocol as
 standard practice for fixed-placement benchmarks: a policy's score and
 its placement-sensitivity are separate claims, and only the pair supports
 "visual."
+
+### 6.4g Consolidation, negative results, and the de-skeletonization ledger
+
+Scaling the variance corpus (10 → 27 → 49 episodes) holds the result and
+sharpens the attribution: the 49-episode head's substitution profile is
+anchor 0.3 cm / proprio-feature 0.1 cm / vision channels 1.1–1.8 cm — the
+prediction is near-absolute and visual, and even the detector's box
+center (inert in every earlier head) becomes informative. Pooled across
+the three variance-trained heads: fixed-placement 24/40, randomized ±4 cm
+12/30, protocol-symmetric. Negative results, reported: joint LoRA
+adaptation of the embedding stage *hurts* at this corpus scale (3.08 vs
+0.99 cm val), and a machine-gate parameter sweep is flat (the shell is
+not knife-edge tuned — its performance is head-accuracy-bound).
+
+**De-skeletonization, stage 1.** Self-play episodes recorded with the
+machine's internal state dumped per tick supervise two sub-3K-parameter
+classifiers that replace the close trigger (88% accuracy, 89% fire
+recall) and the hold check (76%, 94% recall); swapped into the machine,
+the held-out protocol scores **0.700 — exact parity with the
+thresholds**. The scaffold's decisions are learnable from its own traces
+at zero measured cost; the remaining hand-set surface (latch stability,
+P-law gains, probe schedule, place descent) follows the same recipe, each
+with its own ablation row. Object-level generalization remains open —
+zero-shot transfer to the suite's other nine objects is 0.00, awaiting
+per-object variance corpora (the expert's per-object calibration is the
+current bottleneck, itself §6.4f evidence that calibrated constants do
+not transfer).
 
 ### 6.5 Efficiency
 
