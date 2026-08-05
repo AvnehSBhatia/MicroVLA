@@ -607,13 +607,30 @@ seed 20, otherwise §3) — a
 variance-trained head scores 0.67 on task 0 (2/3 [0.21, 0.94], consistent
 with held-out) and 0.00 on tasks 1–9 (n=3 each) — the corpus is soup-only.
 Every zero-shot 0.00 in this paper attaches to sibling v3 or to the
-memorized head (§6); no zero-shot number exists for the released flagship. The boundary is not
-hypothetical: the butter teacher converges to 0.000–0.009 m of the object at
-detection duty 1.0, closes at 0.67 duty, and never lifts at *any* hold
-threshold (0.2 → 0.06, byte-identical episodes) — a failed grasp, not a
-failed read, needing a per-object grasp *strategy*, not per-object constants.
-The repair recipe is demonstrated on one object; extending it is the next
-campaign, not this paper.
+memorized head (§6); no zero-shot number exists for the released flagship.
+The boundary's mechanism was itself worth auditing, and the audit
+overturned our first reading of it. The butter teacher converges to
+0.000–0.009 m of the object at detection duty 1.0, closes at 0.67 duty,
+and never lifts at *any* hold threshold (0.2 → 0.06, byte-identical
+episodes) — which we first read as a failed grasp *strategy*. An
+instrumented re-run (audit stack) measured the actual mechanism: a
+consistent ~5 cm residual along the jaw-capture axis at every close onset
+(the calibration loop had iterated a fixed two rounds with a success-only
+exit, and "0.000–0.009 m" is episode-min 3D distance — a descent flyby
+that masks the at-close jaw-axis component). The residual's failure
+signature is asymmetric-contact squeeze-out: one finger jams open on the
+slab while the other sweeps it 1.0–1.6 cm out of the closing gap — no
+hold threshold can score a grip that ejected its object. One
+recalibration from the measured at-close residual produced a centered
+close, zero object drift, and the campaign's first butter lift (grip held
+150+ ticks; that episode still scores 0 because the audit stack never
+detects the *basket*, §6's stack finding at the place leg). The boundary
+therefore re-scopes from "needs a per-object grasp strategy" to "needs a
+*converged per-object offset*" — per-object constants after all, carrying
+the same stack-pinning §6 measured for the soup offset. The repair recipe
+is demonstrated on one object; the multi-object corpus campaign this
+re-diagnosis unblocks is reported, when it lands, as a dated addendum
+(App D), not amended into this paper's numbers.
 
 **Negatives and calibration honesty.** Joint LoRA adaptation of the
 embedding stage hurts at this corpus scale (val 3.08 vs 0.99 cm). A
@@ -803,8 +820,10 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   stack on which vision is live — on the deployment stack it does separate
   the heads (1/10 vs 4/10), and §6–7 carry the stack-independent claim via
   attributions and varied-label validation.
-* Object-level generalization: one object; the butter negative is the
-  measured boundary (§7).
+* Object-level generalization: one object. The butter boundary is measured
+  and re-diagnosed (§7): a jaw-axis calibration residual, not a grasp
+  strategy limit — the re-diagnosis unblocks a multi-object campaign but
+  this paper claims no multi-object number.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
   LIBERO scores (§3, §9).
