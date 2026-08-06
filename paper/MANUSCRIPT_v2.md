@@ -1319,38 +1319,6 @@ starved at 16 episodes) and soup **9/10** on the held-out protocol
 (`libero_object_real_1785927804554`) — two points above the flagship's
 own cell: the joint corpus helped soup.
 
-**The role-binding sub-study (2026-08-06), and its dissociation.** Because
-cream cheese never crosses zero while its goals are accurate, we tested
-whether *binding* — which box the machine believes is the target — is the
-block, with four binders on one head (v8) and one config, n=10 per cell:
-no binder; the teacher's crop-CLIP rerank ported to the student
-(`--goal-src-rerank`); a mean visual prototype per object built from the
-corpus's own grasped-box embeddings (`--goal-src-proto`); and a 1-NN bank
-over those same embeddings (`--goal-src-bank`). Offline, the two
-corpus-derived binders are separable and unequal: leave-episode-out 3-way
-identity accuracy is **0.613** for the mean prototype and **0.902** for
-1-NN (per-object 0.82/0.90/0.95), the gap arising because raw crop
-embeddings are ~0.99 collinear across objects and only separate after the
-common component is projected out.
-
-Deployed, that ordering does not survive (all cells verified, run ids in
-App D): cream 0/10 in every column; butter 4/10 none, **7/10** rerank,
-2/10 prototype, 4/10 bank; soup 5/10 none, 5/10 rerank, **8/10**
-prototype, 6/10 bank. The binder with the *worse* offline number owns the
-best soup cell and the worst butter cell; the binder with the better one
-returns butter to baseline; the binder with no offline number wins
-butter. A direct A/B engagement probe explains why: with the bank binder
-active the uv stream the head is fed *destabilises* — std 0.258 → 0.335
-laterally, 0.047 → 0.202 vertically on a matched episode — i.e. a binder
-that is 0.902-accurate on corpus crops thrashes between boxes on live
-crops. This is §6's on-manifold limit recurring on a second and third
-instrument: the substitution probe evaluates on teacher trajectories and
-cannot certify off-manifold behaviour, and a binder *built* from teacher
-trajectories cannot bind off-manifold crops. We therefore claim only
-that object breadth is bounded at the role-binding stage, that the bound
-is not liftable by corpus-derived binders, and that a binder trained on
-deployed-distribution crops is the open experiment (App D).
-
 v7 (26 butter episodes, 2× oversampled): butter still **0/10**
 (`libero_object_real_1785934999759`) with every offline instrument clean
 — labels tight in the same table region as soup's, on-manifold error
@@ -1403,6 +1371,65 @@ never-scored seeds, four confirmation cells: the one-config two-object
 behaviour reproduces every time at 0.4–0.5 per object. The rates are
 modest and the n is small; what the design buys is that they are
 confirmed rather than selected.
+
+**The role-binding sub-study (2026-08-06), and its dissociation.** Because
+cream cheese never crosses zero while its goals are accurate, we tested
+whether *binding* — which box the machine believes is the target — is the
+block, with four binders on one head (v8) and one config, n=10 per cell:
+no binder; the teacher's crop-CLIP rerank ported to the student
+(`--goal-src-rerank`); a mean visual prototype per object built from the
+corpus's own grasped-box embeddings (`--goal-src-proto`); and a 1-NN bank
+over those same embeddings (`--goal-src-bank`). Offline, the two
+corpus-derived binders are separable and unequal: leave-episode-out 3-way
+identity accuracy is **0.613** for the mean prototype and **0.902** for
+1-NN (per-object 0.82/0.90/0.95), the gap arising because raw crop
+embeddings are ~0.99 collinear across objects and only separate after the
+common component is projected out.
+
+Deployed, that ordering does not survive (all cells verified, run ids in
+App D): cream 0/10 in every column; butter 4/10 none, **7/10** rerank,
+2/10 prototype, 4/10 bank; soup 5/10 none, 5/10 rerank, **8/10**
+prototype, 6/10 bank. The binder with the *worse* offline number owns the
+best soup cell and the worst butter cell; the binder with the better one
+returns butter to baseline; the binder with no offline number wins
+butter. A direct A/B engagement probe explains why: with the bank binder
+active the uv stream the head is fed *destabilises* — std 0.258 → 0.335
+laterally, 0.047 → 0.202 vertically on a matched episode — i.e. a binder
+that is 0.902-accurate on corpus crops thrashes between boxes on live
+crops. This is §6's on-manifold limit recurring on a second and third
+instrument: the substitution probe evaluates on teacher trajectories and
+cannot certify off-manifold behaviour, and a binder *built* from teacher
+trajectories cannot bind off-manifold crops. We therefore claim only
+that object breadth is bounded at the role-binding stage, that the bound
+is not liftable by corpus-derived binders, and that a binder trained on
+deployed-distribution crops is the open experiment, pre-registered
+below.
+
+The sub-study's twelve cells, all n=10 on the v8 head with the anchor
+band, seed 20, each verified against its results JSON: no binder — cream
+0/10, butter 4/10 (`libero_object_real_1785973899656`), soup 5/10
+(`...5057676`); crop-CLIP rerank — cream 0/10
+(`libero_object_real_1785976023460`), butter 7/10 (`...7280192`), soup
+5/10 (`...8279328`); mean prototype — cream 0/10
+(`libero_object_real_1785990569408`), butter 2/10 (`...1819037`), soup
+8/10 (`...2897481`); 1-NN bank — cream 0/10
+(`libero_object_real_1785993850945`), butter 4/10 (`...5159772`), soup
+6/10 (`...6395740`). The engagement probe is a matched-episode A/B (task
+1, seed 20, `--goal-src-bank` the only difference) logging the uv fed to
+the grasp head per real tick. Instruments ship:
+`scripts/build_prototypes.py`, `scripts/build_role_bank.py`,
+`scripts/proto_separability.py`, `scripts/knn_sep.py`; binders are
+flag-gated and default off.
+
+One prediction was pre-registered here and **falsified**: from 0.82
+per-tick identity accuracy on cream we predicted 0.914 median-of-3 latch
+correctness and therefore cream > 0 under bank binding; the cell returned
+0/10. The error is attributable — the prediction assumed offline
+per-tick accuracy equals deployed per-tick accuracy, which the engagement
+probe refutes and which we do not measure (doing so requires
+ground-truth object identity per bound box at eval time, a new
+instrument). The prediction, its falsification, and this attribution are
+retained rather than removed.
 
 ## E. Defect catalog (unified count: 29)
 
