@@ -7267,3 +7267,31 @@ If a filter is the block, pudding is not evidence for the role-binding
 boundary and the 2-of-4 tally must be restated as 2-of-3 with pudding
 pending — which would weaken the strongest multi-object claim I made
 tonight. Recording that before the result.
+
+### Filter ablation: pudding's block is upstream of the filters (2026-08-06)
+
+Four cells, one trial each, scored by whether the teacher reaches a
+grasp phase at all:
+
+| cell | source_max_area | role_disjoint_iou | reached grasp | uv std | closest | duty |
+|---|---|---|---|---|---|---|
+| baseline | 0.12 | 0.1 | no | (0.289, 0.238) | 0.322 | 0.50 |
+| no area filter | 0.0 | 0.1 | no | (0.289, 0.238) | 0.322 | 0.50 |
+| no disjoint filter | 0.12 | 0.0 | no | (0.311, 0.211) | 0.322 | 0.50 |
+| neither | 0.0 | 0.0 | no | (0.289, 0.238) | 0.322 | 0.50 |
+
+The area filter is provably inert here — its cell is identical to
+baseline to three decimals, so no pudding box was ever being rejected by
+it. The disjoint filter *does* change which boxes survive (uv std moves
+0.289→0.311 laterally, 0.238→0.211 vertically) and changes nothing that
+matters: same failure, same 0.322 closest approach, same 0.50 detection
+duty. Removing both together reverts exactly to baseline.
+
+So the pre-registered weakening does **not** trigger: pudding's block is
+upstream of the source-selection filters, and the 2-of-4 tally stands as
+recorded. What the ablation adds is a sharper localisation — the failure
+survives every knob that decides *which detected box becomes the source*,
+which places it in detection or in the text-conditioned scoring that
+precedes those knobs. That is the same region the (unmeasured)
+text-tower question lives in, and it is now the single named open
+question of the object-breadth result rather than one of several.
