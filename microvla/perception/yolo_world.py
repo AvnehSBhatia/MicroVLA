@@ -86,6 +86,14 @@ class Perception:
     #: 0.68 proposals per frame on this view, so on ~half of frames the policy
     #: had no spatial information at all. This one is detection-independent:
     #: it exists on every frame whether or not anything was grounded.
+    #:
+    #: CONFIG-DEPENDENT, and the 0.68 above is NOT a property of the view:
+    #: it was measured at that era's detection threshold. Re-measured
+    #: 2026-08-06 under the production config (``det_conf`` 0.02) on three
+    #: corpora, proposals run 3.1-3.9 per frame with >=2 available on
+    #: 0.71-0.96 of frames. Both numbers are kept, each labelled with the
+    #: config that produced it -- an unlabelled constant that reads like a
+    #: measured fact is the defect class this repo's audit exists to catch.
     spatial_grid: Optional[torch.Tensor] = None
 
 

@@ -7731,3 +7731,69 @@ downstream of the prompt. The soup regression cell is running.
 Both documents now carry the identity-blind finding. Submission body remains 5
 pages (references spill to a 6th, which is standard), 0 errors, 0 undefined
 citations.
+
+### PRE-REGISTERED: is identity recoverable at all in this pipeline? (2026-08-06)
+
+Identity-blindness says the chain picks a prompt-independent box. Identity can
+then only be recovered by choosing among **multiple** candidate detections —
+which is exactly what the four binders tried to do. So: how many candidates do
+they get? `microvla/perception/yolo_world.py` already documents 0.68 proposals
+per frame on this view from an earlier measurement; this re-measures under the
+production config (`det_conf` 0.02) on all three corpora.
+
+**Prediction, registered before the run.** Proposal count will be near 1, and
+`>=2` will hold on a minority of frames. If so, the boundary is at the
+**detector**, not at the binder: on most frames there is nothing to choose
+between, and no downstream binder — however accurate offline — can recover an
+identity the detector never proposed. That would explain all four binders
+leaving cream at 0/10 without appealing to binder quality at all.
+
+**Falsification condition.** If `>=2` proposals are common (say above 0.5 of
+frames), the prediction fails, identity IS recoverable, and the binders'
+failure returns to being a binder-quality problem — a materially different
+conclusion that would re-open the four-binder sub-study rather than explain it.
+
+### RESULT: prediction falsified — identity IS recoverable, so the binders own their failure (2026-08-06)
+
+| corpus | mean proposals/frame | median | ≥2 proposals | histogram |
+|---|---|---|---|---|
+| soup (crossed) | 3.12 | 4 | 0.71 | {1:7, 3:5, 4:9, 5:2, 7:1} |
+| butter (crossed) | 3.83 | 4 | 0.96 | {1:1, 2:4, 3:7, 4:5, 5:3, 6:2, 7:1, 8:1} |
+| cream (0/10) | 3.92 | 4 | 0.92 | {1:2, 2:4, 3:5, 4:3, 5:5, 6:3, 7:2} |
+
+The registered threshold was "≥2 proposals on more than 0.5 of frames falsifies
+the prediction". Observed: **0.71 to 0.96**. The prediction is dead — this is
+the **fourth** falsified pre-registration this campaign. Cream in particular
+offers ~3.9 candidates per frame, *more* than the object that crosses.
+
+**What this forces us to conclude, against the convenient direction.** The
+boundary is **not** at the detector. Three to four candidate boxes are on the
+table on nearly every frame, so a binder that could score them correctly would
+recover identity. The four binders therefore fail on **their own quality**, not
+on missing candidates — the comfortable explanation ("the detector never
+proposed it") is refuted by our own measurement, and the sub-study is re-opened
+rather than closed.
+
+**This lands exactly on the paper's central theme.** The already-measured
+reason binders fail live is on-manifold overfitting: with the 0.902-accuracy
+bank active, the uv stream feeding the grasp head *destabilises* (lateral std
+0.258→0.335, vertical 0.047→0.202) — a binder accurate on corpus crops thrashes
+on live crops. Candidates exist; scoring them under the machine's own
+off-manifold viewpoints is what breaks. That is the paper's on-manifold limit
+recurring for the third time, now with the alternative explanation eliminated
+rather than merely unexamined.
+
+**Code-documentation defect found and fixed.** `yolo_world.py` documented "0.68
+proposals per frame on this view" from an earlier measurement. Under the
+production config (`det_conf` 0.02) the true figure is 3.1–3.9. The old number
+is not wrong so much as **config-dependent and unlabelled** — it was measured at
+a different detection threshold and then read as a property of the view. The
+docstring now carries both numbers with their configs, because a stale constant
+that looks like a measured fact is precisely the class of defect this paper
+documents 29 of.
+
+**Status after this cycle.** Binding is identity-blind (measured). Identity is
+recoverable in principle (measured). Why cream cannot be bound live remains
+**unexplained**, and the honest statement is that the failure sits in live
+candidate scoring, where every instrument we have is trained or validated on
+teacher trajectories and thus cannot certify off-manifold behaviour.
