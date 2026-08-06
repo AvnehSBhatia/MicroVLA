@@ -8206,3 +8206,14 @@ the task completely; which channel carries the failure is not yet established.*
 **Interim caveat added to the submission**, rather than waiting: leaving the
 paper claiming identity-blindness with no mention of a 7/10→0/10 collapse would
 be a one-sided presentation of evidence already in hand.
+
+**Internal inconsistency caught by reading the rendered PDF (2026-08-06).** The
+architecture paragraph asserted that the place head "has nothing to do here"
+because every task places into the same basket — while the paragraph directly
+below it reports a 7/10→0/10 collapse that the telemetry locates *downstream of
+object approach*. Both cannot stand. The error was a scope slip: all *correct*
+instructions imply the same place target, which leaves the channel's variation
+normally **unexercised**, not **inert**. A mismatched command embedding is
+exactly the input that exercises it. Corrected to say so, independently of how
+the decomposition resolves — the inconsistency was in the text as written, and
+a referee reading two adjacent paragraphs would have found it before we did.

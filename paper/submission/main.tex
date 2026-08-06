@@ -220,9 +220,10 @@ the only instruction-to-grasp path is \emph{which box is selected}, and that
 selection is identity-blind. The first two steps hold with certainty and only
 the third is empirical, so the architecture \emph{predicts} the swap result
 rather than merely agreeing with it. \texttt{PlaceHead} does take a command
-embedding and is genuinely language-conditioned---but every task in the suite
-places into the same basket, so the stack's one real language channel has
-nothing to do here.
+embedding and is genuinely language-conditioned. Every task in this suite
+places into the same basket, so all \emph{correct} instructions imply the same
+place target---which leaves the stack's one real language channel normally
+\emph{unexercised}, not inert. The swap below exercises it.
 
 \noindent \textbf{Identity-blind is not language-blind.} Swapping the
 instruction to a different object---environment, physics and success criterion
