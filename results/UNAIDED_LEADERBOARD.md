@@ -88,6 +88,24 @@ Selection ledger: v6-v9 scored the seed-20 band (4 config looks) before
 the pre-registration; the confirmation seed was never scored by any
 student run.
 
-Updated: 2026-08-05 cycle 12 — n=50 cells landed (35/50 held-out,
+## Role-binding sub-study (2026-08-06, v8 three-object head, anchor band, n=10 each)
+
+| binder | offline identity acc. | cream | butter | soup |
+|---|---|---|---|---|
+| none | — | 0/10 | 4/10 | 5/10 |
+| text rerank (crop-CLIP) | not measured | 0/10 | **7/10** | 5/10 |
+| mean prototype | 0.613 | 0/10 | 2/10 | **8/10** |
+| 1-NN bank | 0.902 | 0/10 | 4/10 | 6/10 |
+
+Offline binder accuracy does NOT predict deployed success: the weaker
+binder wins soup and loses butter; the stronger returns butter to
+baseline; the unmeasured one wins butter. An A/B engagement probe shows
+the bank binder raises the fed-uv std (0.258 -> 0.335 lateral) instead of
+lowering it — corpus-built binders thrash on live crops. A prediction
+that bank binding would lift cream above zero was pre-registered and
+FALSIFIED (0/10); the attribution is logged in paper/paper.md. Open
+experiment: a binder trained on deployed-distribution crops.
+
+Updated: 2026-08-06 (binder sub-study complete); previously 2026-08-05 cycle 12 — n=50 cells landed (35/50 held-out,
 26/50 randomized), rebuild matrix complete, v5 zero-shot row measured,
 multi-object addendum confirmed on fresh seed (5/10 butter + 3/10 soup).
