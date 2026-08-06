@@ -963,6 +963,23 @@ diagnostic telemetry offline (§5); single benchmark, single simulator.
 
 ## 11. Reproducibility
 
+**Start here: `paper/submission/REPRODUCE.md`** carries the exact commands for
+both n=50 headline cells, the md5 hashes of the two checkpoints that produced
+them (`goal_heads_v5.pt` `01ff8728…`, `full_stageB_rec_fix.pt` `a8ea1cda…`,
+verified byte-identical between this repo and the machine that ran them), and a
+`--mock-env` smoke test needing no LIBERO, no GPU, and no network. It also
+states what reproduction means here: **land inside the Wilson interval, not on
+the point estimate** — these are Bernoulli cells, and a rerun hitting 0.700
+exactly would be luck rather than fidelity. And it warns that a mismatch on a
+*different* software stack may be this paper's own audit-stack finding
+recurring rather than a failed reproduction, so stack versions should be
+reported with any discrepancy.
+
+Run artifacts are now self-describing: `results.json` records `provenance`
+(full `argv`, git commit, dirty flag). The two headline artifacts **predate**
+this field — their commands had to be recovered from the shell scripts that
+launched them, which is precisely why the field now exists.
+
 One repo; every dimension flows from one config object; 606 tests (CPU-only,
 mock-only, no network) cover the deployment path; parameter and disk budgets
 are asserted by the build. Shipped: `models/full_stageB_rec_fix.pt` (trunk),
@@ -1221,6 +1238,58 @@ place-side offset appears in release flags and old leaderboard rows as
 `hang_comp`.
 
 ## D. Protocols and provenance
+
+### D.0 Identity-blind role binding (2026-08-06) — and a mechanism retracted
+
+**What we previously claimed, and withdraw.** Earlier drafts located the
+multi-object boundary at *role binding*: the detector's region-text head scores
+0.000 on the product names LIBERO writes its tasks in, so every grocery falls
+through a prompt chain to a shared generic tail (`"box"`, `"cardboard box"`,
+`"can"`), which would make same-shaped objects indiscriminable by construction.
+The 0.000 observation is correct and stands. **The causal story built on it is
+retracted**, by screening each chain element on each object's own corpus:
+
+| object | product name | head noun | `"box"` | resolves to |
+|---|---|---|---|---|
+| soup — **crosses 35/50** | "alphabet soup" **0.00** | "soup" **0.00** | **0.96** | `box` |
+| butter — **crosses** | "butter" **0.00** | — | **1.00** | `box` |
+| cream — 0/10 | "cream cheese" **0.00** | "cheese" **0.00** | **0.92** | `box` |
+
+The two objects that cross fall back **exactly as the one that fails does**.
+"Indiscriminable by construction" cannot explain cream when soup is
+indiscriminable in the same sense and succeeds at 35/50.
+
+**What replaces it, measured without ground truth.** The LIBERO-Object BDDL
+scenes share six of seven objects — soup's scene contains cream cheese and
+cream's contains alphabet soup — so identity is decidable by asking whether two
+objects' chains select the *same detection on the same frame*, never asking
+where the true object is (the question that defeated five instruments):
+
+| frames from | soup vs cream | soup vs butter | cream vs butter | median centre distance |
+|---|---|---|---|---|
+| soup corpus | **1.00** | **1.00** | **1.00** | 0.0001 |
+| cream corpus | 0.87 | 0.96 | 0.91 | 0.0001 |
+| butter corpus | 0.92 | **1.00** | 0.92 | 0.0000 |
+
+Threshold for "same box" was 0.02; the observed median is **0.0001**, 200×
+inside it, so the result is not threshold-sensitive. **Deployed role binding is
+identity-blind**, and soup's 35/50 is *not* explained by binding the named
+object.
+
+**Scope.** This does not touch the placement-memorization audit or the
+vision-vs-proprioception attribution, which concern *which inputs* the grasp
+head uses and are measured independently. It does mean the repaired head is
+grounded on **a box in the image**, not **the named object** — and that
+"object-level generalization" was never the right frame, since the pipeline has
+no object-level channel to generalize over.
+
+**It does not excuse the binders.** A follow-up measured 3.1–3.9 class-agnostic
+candidate proposals per frame (≥2 on 0.71–0.96 of frames; cream highest at
+3.92), falsifying a pre-registered prediction that candidates would be scarce.
+Binders *are* handed identity-bearing candidates and fail on their own live
+scoring — consistent with the measured instability of the 0.902 bank (lateral
+uv std 0.258→0.335, vertical 0.047→0.202). Why cream specifically cannot be
+bound live remains **unexplained**.
 
 **Seed arithmetic.** `trial_seed = seed·1_000_003 + t`; init state =
 `init_states[trial_seed mod 50]`; teleport RNG = `777_000 + trial_seed`
