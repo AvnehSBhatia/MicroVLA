@@ -1,0 +1,159 @@
+"""Measure what a LIBERO suite actually pins (paper SS3 / App D).
+
+For every task in the suite, load the shipped seeded init states
+(``benchmark.get_task_init_states``), apply each with
+``OffScreenRenderEnv.set_init_state`` (the exact call the eval harness uses,
+``eval/libero_eval.py``), and read every scene object's start pose from the
+simulator. Emits a per-task table (target mean/std/quaternion, basket std,
+distractor variation) plus a SHA-256 digest of each task's init-state array,
+so the measurement is traceable to the exact init data it read.
+
+Usage:
+    python scripts/measure_placement_pinning.py --suite libero_object \
+        [--out results/placement_pinning.json]
+
+No policy, no checkpoints, no detector: this is a benchmark measurement.
+Requires the LIBERO sim stack (not part of this repo's core deps).
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
+
+
+def _target_and_basket(obj_names: list[str]) -> tuple[str | None, str | None]:
+    """The libero_object family is 'pick <obj>, place in basket'."""
+    basket = next((n for n in obj_names if "basket" in n), None)
+    target = next((n for n in obj_names if "basket" not in n), None)
+    return target, basket
+
+
+def measure(suite: str) -> dict:
+    from eval._libero_compat import prepare_libero
+
+    prepare_libero()
+    from libero.libero import benchmark
+    from libero.libero.envs import OffScreenRenderEnv
+
+    bench = benchmark.get_benchmark_dict()[suite]()
+    n_tasks = bench.get_num_tasks() if hasattr(bench, "get_num_tasks") else bench.n_tasks
+
+    out: dict = {"suite": suite, "tasks": []}
+    for ti in range(n_tasks):
+        task = bench.get_task(ti)
+        init_states = np.asarray(bench.get_task_init_states(ti))
+        digest = hashlib.sha256(init_states.tobytes()).hexdigest()
+        env = OffScreenRenderEnv(
+            bddl_file_name=bench.get_task_bddl_file_path(ti),
+            camera_heights=64, camera_widths=64,
+        )
+        try:
+            env.reset()
+            inner = env.env if hasattr(env, "env") else env
+            interest = list(getattr(inner, "obj_of_interest", []))
+            # Pose of every object body across all shipped init states.
+            body_names = [
+                n for n in inner.sim.model.body_names
+                if n.endswith("_main") and "robot" not in n and "gripper" not in n
+            ]
+            poses: dict[str, list] = {n: [] for n in body_names}
+            for st in init_states:
+                env.set_init_state(st)
+                for n in body_names:
+                    bid = inner.sim.model.body_name2id(n)
+                    pos = np.array(inner.sim.data.body_xpos[bid])
+                    quat = np.array(inner.sim.data.body_xquat[bid])
+                    poses[n].append(np.concatenate([pos, quat]))
+            rows = {}
+            for n, arr in poses.items():
+                a = np.asarray(arr)
+                pos_dev = float(np.abs(a[:, :3] - a[0, :3]).max())
+                quat_dev = float(np.abs(a[:, 3:] - a[0, 3:]).max())
+                rows[n] = {
+                    "mean_xyz": a[:, :3].mean(axis=0).round(6).tolist(),
+                    "std_xyz": a[:, :3].std(axis=0).round(6).tolist(),
+                    "quat_first": a[0, 3:].round(6).tolist(),
+                    "quat_max_abs_dev": quat_dev,
+                    "pos_max_abs_dev": pos_dev,
+                    # "pinned": identical to machine precision. sim.forward()
+                    # introduces O(1e-17) float noise even on byte-identical
+                    # qpos, so exact `==` over xpos is the wrong test.
+                    "pinned_1e9": bool(pos_dev < 1e-9 and quat_dev < 1e-9),
+                    "bit_identical": bool(np.all(a == a[0])),
+                }
+            target, basket = _target_and_basket(
+                [n for n in body_names if any(o in n for o in interest)] or body_names
+            )
+            out["tasks"].append({
+                "task_id": ti,
+                "name": getattr(task, "name", f"task_{ti}"),
+                "language": task.language,
+                "n_init_states": int(len(init_states)),
+                "init_states_sha256": digest,
+                "obj_of_interest": interest,
+                "target_body": target,
+                "basket_body": basket,
+                "objects": rows,
+            })
+            print(f"[{ti}] {task.language}: target={target} "
+                  f"std_xy_cm={[round(v * 100, 2) for v in rows[target]['std_xyz'][:2]] if target in rows else '?'} "
+                  f"pinned={rows[target]['pinned_1e9'] if target in rows else '?'}",
+                  flush=True)
+        finally:
+            env.close()
+    return out
+
+
+def as_markdown(res: dict) -> str:
+    lines = [
+        f"# Placement pinning measurement — {res['suite']}",
+        "",
+        "Generated by `scripts/measure_placement_pinning.py`. Start pose of each",
+        "task's target object across all shipped init states (applied via",
+        "`OffScreenRenderEnv.set_init_state`, the eval harness's own call).",
+        "",
+        "| task | target | n | mean x,y (m) | std x,y (cm) | max dev (m) | pinned (<1e-9 m) | quat (w,x,y,z) | basket std x,y (cm) | init-array sha256 (first 12) |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for t in res["tasks"]:
+        r = t["objects"].get(t["target_body"] or "", None)
+        if r is None:
+            continue
+        mx, my = r["mean_xyz"][0], r["mean_xyz"][1]
+        sx, sy = r["std_xyz"][0] * 100, r["std_xyz"][1] * 100
+        q = ", ".join(f"{v:+.3f}" for v in r["quat_first"])
+        b = t["objects"].get(t["basket_body"] or "", None)
+        bstd = (f"({b['std_xyz'][0] * 100:.2f}, {b['std_xyz'][1] * 100:.2f})"
+                if b else "-")
+        lines.append(
+            f"| {t['task_id']} | {t['target_body']} | {t['n_init_states']} "
+            f"| ({mx:+.3f}, {my:+.3f}) | ({sx:.2f}, {sy:.2f}) | {r['pos_max_abs_dev']:.1e} "
+            f"| {'yes' if r['pinned_1e9'] else 'no'} | ({q}) | {bstd} | {t['init_states_sha256'][:12]} |")
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--suite", default="libero_object")
+    ap.add_argument("--out", default="results/placement_pinning.json")
+    args = ap.parse_args()
+    res = measure(args.suite)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(res, indent=2))
+    md = out.with_suffix(".md")
+    md.write_text(as_markdown(res))
+    print(f"wrote {out} and {md}")
+
+
+if __name__ == "__main__":
+    main()
