@@ -319,6 +319,24 @@ every earlier probe because all ten tasks share one basket, so a memorized and
 a grounded place map are behaviourally identical \emph{until the instruction is
 swapped}.
 
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{../visuals/F5_third_object.png}
+\caption{How the third object crossed. \textbf{(A)} Appearance drift by episode
+tick: the blocked object's deployment embeddings sit furthest from its own
+training corpus \emph{at the start}, before the arm has acted on any
+prediction, and the gap shrinks 65\% --- the opposite of the rising trend the
+two crossing objects show, which is what a \emph{consequence} of a bad goal
+looks like. This is the circularity check that retired two earlier instruments.
+\textbf{(B)} The miss decomposed: 94\% lateral, with the blocked object's
+\emph{height} better than the crossing object's, which rules out a descent
+failure. \textbf{(C)} The intervention, $n{=}50$ per arm on identical seeds,
+Wilson 95\% intervals: fine-tuning the grasp head on the machine's own
+viewpoints takes the blocked object from 3/50 to 18/50 (paired exact McNemar
+$p{=}6.1\times10^{-5}$, 15/15 discordant one-way), against the crossing object's
+35/50 for reference.}
+\label{fig:third}
+\end{figure}
+
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which
 \emph{inputs} the grasp head uses and are measured independently---but the

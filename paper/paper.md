@@ -9867,3 +9867,33 @@ reads as a property of the head alone, which the audit-stack control
 specifically refutes. Deferring a *detail* to the body is editing; deferring a
 *caveat that changes what a number means* is overclaiming, and the distinction
 is worth stating because the first draft of the cut got it wrong.
+
+### The paper gets its first figure (2026-08-06)
+
+The submission had **no figures placed in the LaTeX** — F1–F4 existed in
+`paper/visuals/` but were never included, so a reviewer met six pages of
+unbroken prose and tables. For work whose contribution is partly methodological
+clarity, that is a self-inflicted handicap.
+
+**F5** (`paper/render_fig5_third_object.py`, regenerable) tells the day's
+strongest result in three panels, every number artifact-verified:
+
+- **A — drift precedes the error.** The blocked object's appearance gap is
+  largest in ticks 0–100, *before the arm has acted on any prediction*, and
+  shrinks 65%; both crossing objects show the opposite, rising trend. This is
+  the circularity check that retired two earlier instruments, drawn so the
+  asymmetry is visible rather than asserted.
+- **B — the miss is lateral, not depth.** 94% lateral, with the blocked
+  object's *height* better than the crossing object's.
+- **C — the intervention.** 3/50 → 18/50 with Wilson intervals and the paired
+  McNemar result, against soup's 35/50 for reference.
+
+Renders at 412 ppi on page 5, clean build, 0 errors. Two annotation overflows
+were caught by *looking at the rendered image* rather than trusting the script
+— the same habit that found four defects in the PDF today that were invisible
+in the `.tex`.
+
+**Deliberately one figure, not four.** The older F1–F4 predate today's results
+and would need regeneration against current data before they could be trusted;
+placing a stale figure is worse than placing none, and I am not regenerating
+four plots at the end of a long session to pad the paper.
