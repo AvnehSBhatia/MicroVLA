@@ -8939,3 +8939,57 @@ fixing something that was not broken.
 misbinding story is the one that follows from today's identity-blind finding,
 and it would be the tidier result. The alternative would mean four binder
 cells, a prototype bank and a rerank study were all aimed at the wrong stage.
+
+### FALSIFIED, and it redirects the multi-object account: cream reaches the right object every time (2026-08-06)
+
+The seventh instrument answered the question six others could not, and it
+**falsified my registered prediction** — the sixth falsification of this
+campaign, and the most consequential, because it corrects an account rather
+than merely closing a gap.
+
+**Nearest scene body to the end-effector, world space, no projection:**
+
+| | soup (crosses 35/50) | cream (0/10) |
+|---|---|---|
+| nearest at closest approach | `alphabet_soup_1` **6/6** | `cream_cheese_1` **6/6** |
+| nearest at jaws-close | `alphabet_soup_1` **6/6** | `cream_cheese_1` **6/6** |
+| closest approach (m) | 0.008–0.053, mean ~0.029 | 0.028–0.082, mean **~0.070** |
+| distance at jaws-close (m) | 0.012–0.084, mean ~0.052 | 0.040–0.109, mean **~0.094** |
+| margin over 2nd-nearest | 3–30× | **~1.5×** |
+
+**Cream is not misbinding. It identifies and approaches the commanded object on
+every trial, stops ~7 cm short, and closes the gripper on air ~9.4 cm away.**
+I predicted a distractor; the data says the target, unanimously. The prediction
+is falsified and the registered alternative — "binding is not cream's problem;
+the failure is grasp geometry" — is what the evidence supports.
+
+**This resolves a result that had been puzzling all campaign.** The
+role-binding sub-study found that *offline binder accuracy dissociates from
+deployed success*: cream scored 0/10 under **every** binder — none, crop-CLIP
+rerank, mean prototype (0.613), 1-NN bank (0.902) — with no ordering by
+accuracy. That looked like a mystery about binder quality. It is not a mystery:
+**binding was never cream's bottleneck**, so improving it could not have moved
+the cell, and the four binders were aimed at a stage that was working. A
+sub-study I re-opened this morning on the grounds that "the binders own their
+failure" is better described as having tested the wrong hypothesis throughout.
+
+**What is now the honest multi-object account.** Two of four objects cross. The
+two that do not are *not* blocked at role binding — that mechanism was
+retracted this morning on other grounds, and this closes the door on it from a
+second direction. Cream's machine reaches the right object and fails to close
+on it, which points at grasp geometry (predicted grasp height/depth, approach
+angle, gripper aperture) and is consistent with the previously measured
+on-manifold goal error being worst for cream (1.58 cm vs butter 1.34, soup
+1.06) — a 1.6 cm on-manifold error becoming a 7 cm deployed miss is the
+paper's own on-manifold limit yet again.
+
+**What I am not claiming.** n=6 per object, one configuration, two objects. That
+cream approaches correctly is unanimous and unambiguous (6/6, and the margin
+over the runner-up is never below 1.5×), but *why* it stops short is now the
+open question and this instrument does not answer it. The grasp-geometry
+reading is where the evidence points, not something measured.
+
+**Identity-blindness stands and is unaffected.** It is a property of the prompt
+stage, measured directly and confirmed behaviourally by the 2×2. What today's
+result removes is the *inference* that identity-blindness explains cream — it
+does not, because cream's binding lands on the right object anyway.
