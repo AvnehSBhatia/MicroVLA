@@ -6953,3 +6953,20 @@ depth and in-frame pixels; (2) restrict scoring to pre-latch ticks, which
 the butter/soup contrast suggested is the decision-relevant window
 anyway; (3) re-run soup FIRST and require high accuracy before any cream
 or butter number is believed or reported.
+
+### Instrument v2, calibration-first (2026-08-06)
+
+`scripts/bindacc2.py` implements the three fixes the retraction called
+for: (1) a point counts only if its camera-frame depth is positive and
+its pixel lands inside the frame — computed from the extrinsic matrix,
+which is what v1 skipped; (2) accuracy is reported twice, over all ticks
+and over **pre-latch ticks only**, the window the median-of-window latch
+actually consumes; (3) soup runs first and alone.
+
+The acceptance rule is fixed before the run and is deliberately harsh:
+soup's pre-latch accuracy must come back **high** (the object succeeds
+35/50; if the instrument cannot see that, the instrument is still wrong)
+before any cream or butter number is computed, believed, or written
+down. If soup fails again the geometric approach is abandoned rather than
+tuned — tuning a ground-truth instrument until it agrees with the
+hypothesis is precisely the failure this project keeps catching.
