@@ -7154,3 +7154,30 @@ preprocessing (flip/BGR order) differs from the eval path and must be
 made identical rather than approximated. No conclusion about the text
 tower is drawn until the probe reproduces the eval path's detection duty
 on a frame from the same distribution.
+
+### The control invalidated the probe, exactly as designed (2026-08-06)
+
+The soup scene returned zero detections for all ten phrases too. Soup is
+the object this system grasps 35/50, so a probe blind on soup is blind,
+full stop — **the text-tower probe v1 is invalid and no claim about the
+text tower is drawn from it.** The internal control did precisely the job
+it was included for, one step before an exciting conclusion.
+
+The confound is now identifiable: v1 built its frame from a freshly reset
+env at the arm's home pose, where the wrist camera sees table and gripper
+rather than the objects. The detector was never given a frame from the
+distribution it works on. Preprocessing was not the issue — the probe's
+row-flip and BGR order match `microvla/utils/camera.py::upright` and the
+policy's `frame_rgb[..., ::-1]` exactly, which I checked rather than
+assumed.
+
+v2 removes the environment from the instrument entirely and reads
+`wrist_frames` straight out of the recorded corpora — by construction the
+frames the detector succeeds on, from the same episodes that trained the
+heads. Its gate is fixed in advance and is the same shape as before: the
+soup corpus frame must produce a confident "alphabet soup" detection, or
+v2 is invalid too and nothing is claimed. Three instruments have now
+failed their calibration tonight and each failure is in this log; the
+alternative — reporting the first result that agreed with my hypothesis —
+was available at every step and is what the audit half of this paper
+exists to prevent.
