@@ -9678,3 +9678,51 @@ same failure in a different coordinate. The fix is the one the paper already
 prescribes for its own cells: report the interval, not the point. Every "0/10"
 in this log should be read as "≤0.28 with 95% confidence", and I am recording
 that rather than editing the history.
+
+### FINAL: the intervention is confirmed at power — cream 18/50 vs 3/50, paired p = 6.1e-05 (2026-08-06)
+
+Both arms complete, n=50 each, cream cheese, held-out seed 20, identical
+configuration, same seeds and init states:
+
+| arm | cell | Wilson 95% |
+|---|---|---|
+| v8 head (control) | 3/50 = **0.060** | [0.02, 0.16] |
+| **DAgger head** | **18/50 = 0.360** | **[0.24, 0.50]** |
+
+- **Paired exact McNemar: 15 discordant pairs, all 15 favouring the DAgger
+  head, p = 6.1e-05.** A perfect one-way discordance.
+- Fisher exact (unpaired, for reference): p = 3.9e-04.
+- Wilson intervals do **not** overlap. Ratio **6.0×**.
+
+The paired test is the appropriate one — the harness is deterministic (measured
+noise floor exactly zero, 10/10 bit-identical earlier today), so the two arms
+differ only by the head.
+
+**Every registered condition is met.** The prediction was ≈10/50 with an
+interval excluding zero; the result is 18/50. The falsification (≲2/50 ⇒
+withdraw the crossing claim) is missed by an order of magnitude. The guard
+held: collection drew seed 0, both evaluation arms drew seed 20.
+
+**Cream cheese crosses.** Third object, properly powered, with all 18 successes
+filmed and md5-distinct (`watch_videos/cream_n50/`).
+
+| object | best held-out cell |
+|---|---|
+| alphabet soup | 35/50 = 0.700 [0.56, 0.81] |
+| butter | crossed, twice confirmed on fresh seeds |
+| **cream cheese** | **18/50 = 0.360 [0.24, 0.50]** |
+
+**What the day's arc actually was.** This began with a per-object prompt fix
+that failed, which forced the retraction of a mechanism I had called resolved.
+Nine mechanisms were then proposed and eight refuted by measurement — including
+two of my own that reached the point of being written up before their tests
+came back. The ninth survived falsification, a circularity check that had
+killed two earlier instruments, and finally an intervention. The intervention
+was not a better binder, a cleverer prompt, or a per-object constant. It was
+**showing the head the viewpoints it actually visits.**
+
+That is the same repair as the ten placement-teleported episodes and the same
+repair as command coverage in the place head. Three defects, three repairs, one
+shape: **a memorized value standing in for a measurement, fixed by showing the
+model the variation it was never shown.** The paper's title turns out to
+describe its own method as well as its subject.
