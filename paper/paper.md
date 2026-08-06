@@ -7070,3 +7070,37 @@ The soup cell is the one that matters most for honesty: each added object
 dilutes the corpus, and if soup degrades materially as objects are added,
 that is the real cost of breadth at this scale and it gets reported as
 prominently as any gain.
+
+### Fourth object: prediction wrong again, and the same stage is implicated (2026-08-06)
+
+I predicted chocolate pudding would behave like butter (cross) because it
+almost never won a misbind in the binder tables. **It behaves like
+cream.** Calibration iterations 1 and 2 both return the
+never-reached-grasp sentinel with crop-CLIP rerank already enabled — the
+lever that rescued cream's teacher — and the telemetry names the same
+stage:
+
+* phase sequence never leaves `servo_src` (225 ticks, no align, no grasp);
+* source-uv std **(0.303, 0.200)** — the binding-flicker signature, at the
+  same magnitude as cream's 0.33;
+* detection duty 0.5, so the detector fires but on inconsistent boxes;
+* the arm parks at (−0.271, +0.060) while the pudding sits at
+  (−0.120, −0.240) — roughly 34 cm away, i.e. it is servoing to something
+  else entirely.
+
+Two consequences for the paper's claims, both tightening rather than
+loosening them. First, my selection prior was wrong: "rarely won a
+misbind" does not predict bindability, because an object that is never
+*mistaken for* the target can still fail to be *found* — the tables
+measured the wrong direction of the confusion. That is a second falsified
+prediction tonight and it is recorded as such. Second, the boundary is
+now attested on two independent objects (cream, pudding) with the same
+signature at the same stage, which is stronger evidence for the
+role-binding account than one object was: of four objects attempted,
+**two cross and two are binding-blocked**, and the split is not explained
+by grasp geometry, corpus size, or goal accuracy.
+
+The chain will run its remaining calibration iterations and stop at the
+smoke gate, as designed. No pudding corpus will be recorded, so the
+four-object head is not built — correctly, because the teacher cannot
+produce data for an object it never reaches.
