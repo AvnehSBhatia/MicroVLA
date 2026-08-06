@@ -1327,12 +1327,42 @@ from ~0.67 to ~0.26. The cream cell differs — ~half its trials never approach
 the `_HEAD_DISCRIM` "white carton" entry; that cell is therefore reported for
 completeness and **not** used for attribution.
 
+### D.0.2 Decomposition: the collapse is entirely the embedding channel
+
 One instruction drives both the detection prompts **and** the place head's
-command embedding, so the swap cannot attribute the collapse to a channel. A
-decomposition (`--override-prompt-only`, driving the two from different
-instructions) is running; its predictions and the retraction it would force
-are registered in `paper.md` before the result. Attribution is reported as
-**pending**, not guessed.
+command embedding. Driving them from *different* instructions
+(`--override-prompt-only`) yields an unplanned but exact 2×2:
+
+| | embeddings = soup | embeddings = butter |
+|---|---|---|
+| **prompts = soup** | **7/10** (baseline) | **0/10** (cell B) |
+| **prompts = butter** | **6/10** (cell A) | **0/10** (full swap) |
+
+Marginals: prompt channel 0.35 vs 0.30 (nothing), embedding channel 0.65 vs
+0.00 (everything). **One main effect, no interaction.** Exact McNemar:
+baseline vs cell A **p = 1.0000**; baseline vs cell B **p = 0.0156**; cell A vs
+cell B **p = 0.0312**; **cell B vs the full swap: identical patterns, 10/10
+agreement.** Swapping the embedding alone does not merely suffice for the
+collapse — it accounts for all of it.
+
+**What the system is.** Combined with the architecture — `goal_machine.step(
+proprio)` replaces the plan wholesale; `build_grasp_features(uv, conf, proprio,
+box_emb, frame_emb)` has no text argument; `set_place(place_head(command_emb))`
+runs once per episode — **object selection, approach and grasping run with no
+language input at all, and the entire language channel is a single latched
+(x, y) place point.** Ask this policy for the butter and it finds, approaches
+and grasps the alphabet soup at baseline rate; it fails only when that one
+cached coordinate is wrong.
+
+The earlier falsified swap prediction is thereby *explained* rather than merely
+recorded: it reasoned about "the instruction" when the system has two
+instruction-driven channels, one inert and one total.
+
+**Open.** (i) The harness noise floor is queued and unmeasured, so per-trial
+figures are provisional; the rate-level results are not (7 one-way discordant
+pairs; a perfect 10/10 pattern match). (ii) Generalization beyond task 0 and the
+flagship head is **unanswered** — the first attempt was void (baseline 0/10
+from a configuration error, logged in `paper.md`) and is re-queued.
 
 **Seed arithmetic.** `trial_seed = seed·1_000_003 + t`; init state =
 `init_states[trial_seed mod 50]`; teleport RNG = `777_000 + trial_seed`
