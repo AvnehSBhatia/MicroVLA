@@ -8371,3 +8371,45 @@ it is falsifiable in a useful direction: **if the place points differ by
 millimetres, the latched-place-point story cannot explain a total collapse**,
 and the mechanism would have to be sought elsewhere despite cell B. Queued
 behind the noise-floor control.
+
+### The basket never moves — which turns the queued place-point measurement into a memorization test (2026-08-06)
+
+Measured from `results/placement_pinning.json` (the instrument now shipped):
+**the basket sits in the same place in all ten LIBERO-Object tasks.**
+
+| task | basket mean x,y (m) | within-task std (m) |
+|---|---|---|
+| 0 (soup) | (+0.0023, +0.2605) | (0.0081, 0.0087) |
+| 1 (cream) | (−0.0016, +0.2597) | (0.0083, 0.0078) |
+| 6 (butter) | (+0.0010, +0.2587) | (0.0076, 0.0081) |
+
+Task-to-task separations: **0 vs 1 = 0.40 cm, 0 vs 6 = 0.22 cm, 1 vs 6 =
+0.28 cm** — all *smaller* than the ~0.8 cm jitter within a single task. The
+place target is, to any practical tolerance, a constant of the suite.
+
+**This reframes the queued place-point measurement as a memorization test, and
+lands it squarely on this paper's thesis.** A place head that had *grounded* on
+the basket would emit essentially the same `(x, y)` for every command, because
+the basket does not move. A place head that emits materially different points
+for "alphabet soup" and "butter" is keying on **the command embedding**, not on
+the world — it has memorized a command→location association exactly as the
+calibrated expert memorized an offset and the grasp head memorized
+proprioception.
+
+**Registered prediction, sharpened.** Soup and butter place points differ by
+**well above 0.40 cm** (the true basket separation) — plausibly by several
+centimetres, since a several-centimetre error is what drops a grocery outside a
+basket and produces `grip_close_rate` ~0.26 with `eef_obj_dist_min` at
+baseline. **If instead they differ by ≲0.4 cm, the place head is grounded, the
+latched-place-point story cannot explain the collapse, and I must look
+elsewhere despite cell B** — which is the falsification I registered when
+queueing the measurement, now with a number attached to it.
+
+**If confirmed, this is a fourth memorization layer**, not a restatement of the
+three in the abstract (expert offset constant, iteration-coupled selection
+loop, grasp-head proprioception shortcut). It was invisible to every probe in
+this campaign because the benchmark never exercises it: all ten tasks share one
+basket, so a memorized command→place map and a grounded one are behaviourally
+identical *until you swap the instruction*. The swap is what made a
+fixed-placement shortcut observable — the same move the whole paper argues for,
+applied to the one component we had not thought to audit.
