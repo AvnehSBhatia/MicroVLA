@@ -6565,3 +6565,24 @@ the two-object one-config behaviour reproduces every time, at 0.4–0.5 per
 object. That is now the campaign's most robust multi-object claim — modest
 rates, but confirmed rather than selected. Prototype-binding cells began
 computing at 04:29 UTC; bank-binding cells follow.
+
+### Prediction confirmed: prototype-bound cream 0/10 (2026-08-06, cycle 24)
+
+**Prototype binder, cream: 0/10** (`libero_object_real_1785990569408`) —
+exactly as predicted in writing before the run (mean-prototype per-tick
+accuracy 0.613 → median-of-3 latch correctness 0.667; a third of latches
+land on the wrong object outright, and the anchor band then locks the
+error in). The mechanism check confirms it is a binding failure and not
+something else: source-uv std 0.321, statistically unchanged from the
+no-binder 0.329 and the text-rerank 0.339 — three different binders,
+three identical flicker levels, because all three score against vectors
+whose object identity is drowned by the crops' dominant common
+component. Closest approach 0.098 m (vs 0.105 no-binder): no movement.
+
+This is the negative that makes the 1-NN bank test decisive. Same
+vectors, same episodes, same machine — only the estimator changes
+(0.613 → 0.902 per-tick, 0.667 → 0.914 latch). If bank-bound cream
+crosses zero, binding was the whole boundary and the fix costs no
+training. If it does not, my diagnosis is wrong in a locatable way and
+the telemetry (uv std vs 0.33) says immediately which half failed.
+Prototype butter/soup cells running; bank trio behind them.
