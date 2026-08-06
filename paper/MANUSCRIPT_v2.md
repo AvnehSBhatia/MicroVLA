@@ -46,9 +46,14 @@ alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
 released head itself; §7). A dated addendum carries the multi-object
 campaign: a second object crossed and twice confirmed on never-scored
-seeds, a third measured, mechanism-located at role binding, and *not*
-crossed — with a pre-registered prediction of that crossing recorded and
-falsified (App D).
+seeds, and two not crossed — with three pre-registered predictions recorded
+and falsified and five instruments abandoned at their own calibration gates
+before a sixth, needing no ground truth, succeeded and **retracted our own
+proposed mechanism**: different objects' prompt chains select the *same*
+detection from the same frame (median centre distance 0.0001), so deployed
+role binding is **identity-blind**, and the crossing object's 35/50 is *not*
+explained by binding the named object. This scopes "grounding" throughout —
+the repaired head is grounded on *a* box, not *the named* one (App D).
 
 ---
 

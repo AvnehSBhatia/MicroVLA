@@ -7621,3 +7621,113 @@ than hiding it: *every object, including the two that succeed, is detected by
 the same generic shape prompt rather than by its name, so "the detector cannot
 name it" cannot be why the other two fail.* A referee learns more from that
 than from the mechanism we withdrew.
+
+### The scenes are the same scene — and that enables a decisive, ground-truth-free test (2026-08-06)
+
+Reading the BDDL scene definitions kills the distractor hypothesis registered
+one entry above, before it was ever run:
+
+```
+soup scene:  alphabet_soup, basket, salad_dressing, cream_cheese, milk, tomato_sauce, butter
+cream scene: cream_cheese,  basket, orange_juice,   alphabet_soup, milk, tomato_sauce, butter
+```
+
+**Cream cheese sits in soup's scene; alphabet soup sits in cream's scene.** Six
+of seven objects are shared. The competitor set is essentially identical, so
+"how many shape-alike distractors compete for the generic prompt" cannot
+distinguish an object that crosses at 35/50 from one that scores 0/10. The
+hypothesis is withdrawn at the cost of one BDDL read rather than a GPU-day —
+which is the argument for reading the environment definition before building
+the instrument.
+
+**What this makes possible.** Both objects are in *both* scenes, and both
+resolve to the same generic prompt "box". So we can ask the identity question
+**without any ground truth**, which is what defeated five previous instruments:
+run the soup chain and the cream chain over the *same frames* and check whether
+they select the *same detection*.
+
+**PRE-REGISTERED prediction.** Since both chains resolve to "box" at 0.96/0.92
+firing, they will select the **same box** on the same frame — agreement well
+above 0.5, plausibly near 1.0. If so, deployed role binding is **identity-blind**:
+the system cannot be picking the named object, and soup's 35/50 cannot be
+explained by binding the right object by name.
+
+**Registered consequence if confirmed, recorded before the run.** This does
+*not* touch the placement-memorization audit or the vision-vs-proprioception
+attribution result, which concern the grasp head's inputs and are measured
+independently. It *does* mean the paper must say the head is grounded on *a*
+box rather than on *the named* box — a caveat a referee would otherwise find
+first, and one that materially scopes the word "grounding". **If agreement
+comes out low instead, the prediction is falsified and role binding does carry
+identity**, in which case cream's failure returns to fully unexplained and this
+entry records a third dead hypothesis.
+
+### CONFIRMED: deployed role binding is identity-blind (2026-08-06)
+
+The registered prediction is confirmed, and not marginally. Running each
+object's chain over the *same* frames and asking whether they select the same
+detection:
+
+| frames from | soup vs cream | soup vs butter | cream vs butter | median centre distance |
+|---|---|---|---|---|
+| soup corpus | **1.00** | **1.00** | **1.00** | 0.0001 |
+| cream corpus | 0.87 | 0.96 | 0.91 | 0.0001 |
+| butter corpus | 0.92 | **1.00** | 0.92 | 0.0000 |
+
+**The result is not threshold-sensitive.** "Same box" was scored at a centre
+distance below 0.02, but the observed median distance is **0.0001** — 200×
+inside the threshold. These are not similar boxes; they are the same box. Any
+threshold between 0.001 and 0.02 gives the same table.
+
+**What this establishes.** Asking the machine for alphabet soup and asking it
+for cream cheese returns *the same detection from the same frame*. Deployed
+role binding does not carry object identity. It follows that **soup's 35/50
+cannot be explained by the machine binding the named object**, because the
+machine cannot tell the two objects apart at this stage — and the scenes
+contain both objects, so there was something to tell apart.
+
+This is the first instrument in six attempts to actually measure the deployed
+binding question, and it succeeded precisely because it **needs no ground
+truth**: it compares two prompts against each other rather than against a
+projected world position. The five failed instruments all tried to establish
+where the true object was. The question "do these two prompts agree?" is
+answerable without knowing who is right.
+
+**A coherent mechanism, now supported rather than asserted.** The detector
+selects a largely prompt-independent box; the task succeeds when that box
+happens to be the target and fails when it is not. This fits every observation
+on the table: why all four binders left cream at 0/10 (they operate downstream
+of a stage that discarded identity), why cream's machine converges to
+`eef_obj_dist_min` ~0.072 m — it servos accurately to *an* object, just not the
+commanded one — and why per-object prompt engineering (`_HEAD_DISCRIM`) changed
+nothing (cream 0/10 with the discriminating chain, this cycle).
+
+**Scoping the word "grounding", before a referee does it for us.** The
+placement-memorization audit and the vision-vs-proprioception attribution
+result are untouched: they concern *which inputs* the grasp head uses, measured
+independently, and remain as reported. But the repaired head must now be
+described as grounded on **a box in the image** rather than on **the named
+object**. That distinction is real, it is ours to disclose, and the manuscript
+is being changed to say so. It also means "object-level generalization" was
+never the right frame for the multi-object campaign: the pipeline has no
+object-level channel to generalize over.
+
+**Honest note on what this costs.** Two of four objects still cross, and soup's
+35/50 held-out cell is unchanged and correct. What changes is the *story* about
+why — a system that succeeds without discriminating its target is a weaker
+scientific claim than one that succeeds by discriminating it, and we would
+rather report the weaker true one. The corresponding strength is that this is
+now measured rather than assumed in either direction.
+
+**Cream, discriminating chain: 0/10 FINAL** (`eval_results/unaided_cream_discrim`,
+`mean_success` 0.0, n=10, verified from artifact). The `_HEAD_DISCRIM` fix
+failed, exactly as the pre-registered prediction allowed for ("the mechanism
+predicts a small gain at best... if cream stays at 0/10 that is consistent with
+the mechanism rather than a refutation of it"). With identity-blindness now
+measured, the reason is clear and was not available when that prediction was
+written: a per-object prompt cannot help a stage that discards identity
+downstream of the prompt. The soup regression cell is running.
+
+Both documents now carry the identity-blind finding. Submission body remains 5
+pages (references spill to a 6th, which is standard), 0 errors, 0 undefined
+citations.

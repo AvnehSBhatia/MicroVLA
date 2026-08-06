@@ -48,13 +48,15 @@ goal-structured decoding driving an engineered pick-and-place shell; free
 per-tick regression scored 0/56. All results are simulation, one task and one
 object in every claimed cell, $n{=}10$ per cell and final at that $n$. A dated
 addendum carries the multi-object campaign: four objects attempted, a second
-crossed and twice confirmed on never-scored seeds, two \emph{not} crossed and
----after a proposed mechanism was tested and retracted---not explained. Three
-pre-registered predictions were recorded and falsified, and five instruments
-built to quantify the boundary were all abandoned at their own calibration
-gates. The retracted mechanism is instructive: every object, including the two
-that succeed, is detected by the same generic shape prompt rather than by its
-name, so ``the detector cannot name it'' cannot be why the other two fail.
+crossed and twice confirmed on never-scored seeds, and two \emph{not} crossed.
+Three pre-registered predictions were recorded and falsified and five
+instruments abandoned at their own calibration gates before a sixth, which
+needs no ground truth, succeeded and retracted our own proposed mechanism:
+different objects' prompt chains select the \emph{same} detection from the same
+frame (median centre distance $0.0001$), so deployed role binding is
+\textbf{identity-blind} and the crossing object's 35/50 is not explained by
+binding the named object. This scopes ``grounding'' throughout: the repaired
+head is grounded on \emph{a} box, not \emph{the named} one.
 \end{abstract}
 
 \section{Introduction}
@@ -179,9 +181,35 @@ by a moving wrist camera; it is abandoned, not retuned. The observation that
 product names never fire stands; the causal story built on it does not. The two
 uncrossed objects are therefore \textbf{not explained}---weaker and more
 accurate than the mechanism we withdrew. If every object binds through the same
-generic prompt, the difference must lie in the scene rather than the prompt
-(how many shape-alike distractors compete for it): an untested hypothesis, not
-a finding.
+generic prompt, the difference cannot lie in the prompt.
+
+\noindent \textbf{What replaces it, measured: deployed role binding is
+identity-blind.} The LIBERO-Object scenes make this decidable without ground
+truth---soup's scene contains cream cheese and cream's scene contains alphabet
+soup, six of seven objects shared---so instead of asking \emph{where the true
+object is} (the question that defeated five instruments), we ask whether two
+different objects' prompt chains select the \emph{same detection from the same
+frame}. They do: same-box rate 1.00 on soup's frames, 0.87--0.96 on cream's,
+0.92--1.00 on butter's, at a median centre distance of \textbf{0.0001}---200$\times$
+inside the 0.02 threshold, so the result is threshold-insensitive. Asking for
+alphabet soup and asking for cream cheese return the same box. Deployed binding
+therefore carries no object identity, and \textbf{soup's 35/50 cannot be
+explained by the machine binding the named object}, because at this stage the
+machine cannot tell the two apart. The coherent reading is that the detector
+selects a largely prompt-independent box and the task succeeds when that box
+happens to be the target; this fits all four binders leaving cream at 0/10
+(they operate downstream of a stage that already discarded identity), cream's
+machine converging to within 7\,cm of \emph{an} object but not the commanded
+one, and per-object prompt engineering changing nothing (cream 0/10).
+
+\noindent \textbf{This scopes the word ``grounding''.} The memorization audit
+and the vision-vs-proprioception attribution are untouched---they concern which
+\emph{inputs} the grasp head uses and are measured independently---but the
+repaired head is grounded on \emph{a box in the image}, not on \emph{the named
+object}. ``Object-level generalization'' was consequently never the right frame
+for this campaign: the pipeline has no object-level channel to generalize over.
+A system that succeeds without discriminating its target is a weaker claim than
+one that succeeds by discriminating it, and we report the weaker true one.
 
 \begin{table}[h]\centering\small
 \caption{Role-binding sub-study: four binders, three objects, $n{=}10$ each,
