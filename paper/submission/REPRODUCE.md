@@ -63,10 +63,20 @@ Reference artifacts: `libero_object_real_1785899388619` (held-out, `mean_success
 
 ## What "reproduce" honestly means here
 
-**Expect the interval, not the point.** These are Bernoulli cells at n=50. Even a
-bit-identical rerun of a *different* seed stream should land inside the Wilson
-interval, not on 0.700 exactly. Treat a result inside [0.56, 0.81] as a
-reproduction and a result outside it as a discrepancy worth reporting.
+**On the same stack, expect the number exactly.** The harness is
+**deterministic** — measured, not assumed: re-running the baseline cell with an
+identical command reproduced all 10 trials bit-identically, matching on
+`steps`, `src_detect_rate`, `src_conf_mean`, `grip_close_rate` and all three
+`eef_obj_dist_*` fields, with only wall-clock time differing. So the commands
+above should return **exactly** 0.700 and 0.520 on a matching stack, and *any*
+deviation is evidence about your stack rather than sampling noise. That makes
+this a sharp check rather than a fuzzy one.
+
+**The Wilson intervals are for a different question.** [0.56, 0.81] and
+[0.39, 0.65] quantify uncertainty over *which init states you draw*, so they
+apply when you change the seed or the protocol — not when you re-run the
+shipped command. Do not read a mismatch on the shipped command as "within the
+interval, close enough": on a matching stack there is no interval to be within.
 
 **Physics is not bit-reproducible across stacks.** The paper's central control
 finding is that a MuJoCo/robosuite rebuild can shift detector behaviour enough to

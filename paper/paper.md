@@ -8706,3 +8706,13 @@ points differ by 0.78 cm, so swapping between them should be harmless and the
 v8 butter-task swap should **not** collapse — the prediction already on record.
 The gen2 result is now a direct test of this mechanism rather than a generic
 generalization check.
+
+**`REPRODUCE.md` corrected (2026-08-06).** It told reproducers to "expect the
+Wilson interval, not the point estimate". With a measured zero noise floor that
+is wrong for the shipped commands: on a matching stack they return **exactly**
+0.700 and 0.520, and any deviation is evidence about the stack rather than
+sampling. The Wilson intervals answer a different question — uncertainty over
+*which init states you draw* — so they apply when you change the seed or
+protocol, not when you re-run the shipped command. The old wording invited a
+reproducer to accept a wrong answer as "close enough", which is worse than
+giving no guidance at all.
