@@ -9726,3 +9726,49 @@ repair as command coverage in the place head. Three defects, three repairs, one
 shape: **a memorized value standing in for a measurement, fixed by showing the
 model the variation it was never shown.** The paper's title turns out to
 describe its own method as well as its subject.
+
+### A bound on the DAgger repair, found by trying to extend it (2026-08-06)
+
+The obvious next test: DAgger has no teacher in its loop — it labels from the
+simulator — so it should repair the **fourth** object, chocolate pudding, whose
+scripted teacher never reached a grasp and which therefore has no corpus at
+all. Crossing an object the expert could not solve would be a much stronger
+claim for the method than repairing one it could.
+
+**It cannot be done honestly, and the reason is instructive.** The label needs
+a grasp *height*, and grasp z is **not** object z plus a constant:
+
+| object | object z | corpus grasp z | delta |
+|---|---|---|---|
+| alphabet soup | +0.0150 | 0.0448 | +0.0298 |
+| butter | −0.0050 | 0.0092 | +0.0142 |
+| cream cheese | +0.0000 | 0.0102 | +0.0102 |
+| **chocolate pudding** | **+0.0350** (tallest) | — **none exists** | **?** |
+
+The three deltas (0.030, 0.014, 0.010) do not follow object height in any
+usable way, and pudding is taller than all three, so any value I picked would
+be an extrapolation beyond the data's range. The xy label was derivable because
+grasp xy sits ~0.5–4.5 mm from the object centre for every measured object; the
+z label is not, because **grasp height depends on object geometry that no
+successful grasp of pudding has ever recorded.**
+
+**So I am not running it.** Choosing a pudding-specific grasp height to make the
+cell work would be a per-object constant of exactly the `hang_comp` kind this
+paper spends four layers documenting — and I would be introducing one in the
+experiment that demonstrates the repair. A crossed fourth object bought that way
+would be worth less than the honest bound.
+
+**The bound, stated as a limitation of the method.** DAgger-on-own-viewpoints
+repairs an object whose **grasp geometry is known** but whose **deployment
+viewpoints have drifted off the training manifold**. It cannot bootstrap an
+object with no successful grasp anywhere, because the supervision it needs — the
+grasp pose — is precisely what is missing. The repair fixes *covariate shift*,
+not *absent labels*, and those are different problems that a single word
+("DAgger") can hide.
+
+**What would unlock pudding**, recorded as future work rather than attempted: a
+grasp height derived from the simulator's object geometry (AABB top minus a
+gripper constant) rather than from a recorded grasp. That is a principled
+instrument, not a guess — but it is a *new* instrument, and this campaign has
+already retired seven of those at their own gates. It deserves its own
+calibration rather than being bolted onto a result on its last legs.
