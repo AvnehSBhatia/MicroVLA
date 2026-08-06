@@ -8025,3 +8025,32 @@ paper's own finding recurring rather than a failed reproduction.**
 Sweep result: 28 cited paths, 3 provenance defects found and fixed in one
 session (missing run `argv`, untracked pinning instrument, absent release
 manifest), 0 remaining.
+
+### Swap baseline lands, and is recorded before its comparison exists (2026-08-06)
+
+**Baseline: soup env, correct instruction, seed 20, n=10 → 7/10**
+(`eval_results/swap_baseline`, `mean_success` 0.7, artifact-verified). This
+**exactly reproduces the published flagship held-out cell (7/10)** — an
+independent same-stack reproduction of the paper's headline n=10 number, run
+today with no tuning between.
+
+Per-trial success pattern, written down now so the swap cannot be compared to a
+moving target:
+
+```
+trial:    0 1 2 3 4 5 6 7 8 9
+baseline: 1 1 0 1 1 1 0 0 1 1     (7/10)
+```
+
+Trials 2, 6 and 7 fail. **If the instruction is genuinely inert, the swapped
+cell must reproduce this exact string**, not merely its count — identical
+seeds, identical init states, identical physics. A matching rate could
+coincide; a matching ten-bit pattern essentially could not.
+
+**The override is verified applied, not assumed.** The run log carries
+`INSTRUCTION OVERRIDE: task 'pick_up_the_alphabet_soup_and_place_it_in_the_basket'
+told 'pick up the butter and place it in the basket' (was 'pick up the alphabet
+soup and place it in the basket'); success still scored on the REAL task`. A
+silent no-op here would have produced a "confirmation" of identity-blindness
+that was really just the baseline run twice — the failure mode the loud print
+exists to prevent, and the one worth checking before trusting the result.
