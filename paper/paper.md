@@ -8319,3 +8319,43 @@ still depend on the harness noise floor, which is queued and unmeasured. The
 *rate* conclusions (p = 1.0000, 0.0156, 0.0312) are computed on paired cells
 and would only be threatened by a noise floor large enough to flip several
 trials per run, which the queued control will settle.
+
+### The entire language channel is one latched number (2026-08-06)
+
+Tracing cell B's isolation through the code closes the decomposition
+analytically, not just statistically. In goal-machine mode:
+
+1. `action = self.goal_machine.step(proprio, ...)` — the machine's action
+   **replaces** the plan wholesale, so fusion/TRM/planner outputs (which *do*
+   consume the text tokens) cannot reach behaviour at all.
+2. The grasp head takes `build_grasp_features(uv, conf, proprio, box_emb,
+   frame_emb)` — no text, established earlier.
+3. The place head is called **exactly once per episode**, in `reset()`:
+
+```python
+cmd = task.command_emb
+pred = self.goal_place_head(cmd)
+self.goal_machine.set_place(pred["xy"][0])     # "a per-task constant: latch it once, now"
+```
+
+**So the whole of this system's language conditioning, on the path that
+produces actions, is a single latched (x, y) place point.** Everything else the
+text tower computes is either unused (planner path) or absent by signature
+(grasp head).
+
+That makes cell B an exact isolation: prompts from soup, embeddings from
+butter changes **one number** — where the machine believes the basket is. And
+it predicts the failure mode observed in the full swap and in cell B's first
+trial: grip closes, the object is lifted, the arm travels to a wrong place
+point and releases there, so `eef_obj_dist_min` stays at baseline (~0.013 — the
+object *was* reached) while `grip_close_rate` falls to ~0.26 (it was let go).
+Cell B trial 0: `succ=False grip=0.257 dmin=0.013`, matching the full swap's
+per-trial values almost exactly.
+
+**Why this is worth stating rather than burying in an appendix.** A reader
+would reasonably assume a "vision-language-action" stack routes language
+through its policy. In this configuration it does not: it routes language into
+one cached coordinate, and everything else — object selection, approach,
+grasping — runs without it. That is both the honest description of the artifact
+and, we think, the most transferable warning in the paper: *check where the
+language actually goes before calling a system language-conditioned.*
