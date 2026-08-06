@@ -8599,3 +8599,110 @@ against the enumerated items rather than adjusted by one, because the error
 came from trusting a running count instead of the list under it. The tallies
 are a claim like any other, and this log's whole discipline is that a number
 you did not re-derive is a number you are guessing.
+
+### NOISE FLOOR MEASURED: exactly zero — the harness is deterministic (2026-08-06)
+
+**Baseline re-run bit-identically: 10/10 trials identical, on every field.**
+(`eval_results/noise_baseline_repeat`, `mean_success` **0.7**, matching the
+original 0.7.) Not just success/failure — `steps`, `src_detect_rate`,
+`src_conf_mean`, `grip_close_rate`, `eef_obj_dist_min`, `eef_obj_dist_at_20`
+and `eef_obj_dist_final` all match exactly, trial for trial. Only wall-clock
+time differs.
+
+| | result |
+|---|---|
+| success flips | **0 / 10** |
+| trials with any telemetry difference | **0 / 10** |
+
+**The registered prediction is confirmed** ("reproduces `1101110011` exactly or
+flips at most one trial"), so no downgrade is triggered. **Every per-trial
+figure reported today stands as stated**, including the one most at risk: cell
+B reproducing the full swap's pattern on 10/10 trials is a real equivalence,
+not a coincidence of two noisy runs.
+
+**It also sharpens the decomposition rather than merely licensing it.** With a
+zero noise floor, the three trials where cell A differs from baseline (1, 7, 9)
+are **genuine effects of the prompt swap**, not scatter. So "the prompt channel
+is inert" is *too strong*, and the precise statement is:
+
+> The prompt swap measurably perturbs individual trajectories — 3 of 10 trials
+> flip, deterministically — but does not systematically degrade success
+> (6/10 vs 7/10, exact p = 1.0). The embedding swap destroys all ten.
+
+That is a better result than a flat null: swapping the detected object's name
+*does* change what the machine does moment to moment, and it still doesn't
+change whether the task succeeds. The channel carries signal that the outcome
+is indifferent to.
+
+**A property I had assumed all campaign without measuring.** Every paired cell
+in this paper — memorized vs repaired, the audit-stack inversion, the rebuild
+matrix — compares runs that differ only by the manipulation under test. That
+was load-bearing for all of it and was never checked until now, on the seventh
+instrument of a campaign about unverified assumptions. It should have been the
+first measurement taken.
+
+**Consequence for `REPRODUCE.md`, which is now wrong.** It tells a reproducer
+to "expect the Wilson interval, not the point estimate", reasoning that these
+are Bernoulli cells. For a *different* draw that is right; for **re-running the
+shipped command on the same stack it is wrong** — the correct expectation is
+**exactly 0.700**, and any deviation is evidence about the stack, not about
+sampling. Correcting it, because guidance that tells someone to accept a wrong
+answer is worse than no guidance.
+
+### CONFIRMED: a fourth memorization layer — the place head memorized command→location (2026-08-06)
+
+The registered threshold was **0.40 cm** (the true task-to-task basket
+separation). Measured, running each instruction through the production
+`ClipTaskEncoder` and the released place head:
+
+**v5 (flagship; trained on soup corpora only):**
+
+| command | place point (x, y) | error vs true basket (+0.2605) |
+|---|---|---|
+| alphabet soup | (−0.0010, **+0.2569**) | **0.36 cm** — correct |
+| butter | (+0.0017, **+0.1155**) | **14.5 cm** — nowhere near it |
+| cream cheese | (−0.0003, **+0.1303**) | **13.0 cm** — nowhere near it |
+
+Pairwise: soup–butter **14.15 cm**, soup–cream **12.66 cm**. That is **35× the
+registered threshold**, in the predicted direction. The prediction is confirmed
+and the falsification condition (≲0.4 cm ⇒ the head is grounded) is not met.
+
+**The basket never moves** (0.22–0.40 cm across all ten tasks, *less* than the
+0.8 cm within-task jitter). A place head that had grounded on the basket would
+emit one point for every command. This one emits the *correct* point for the
+command it trained on and points 13–14 cm away for commands it did not. **That
+is memorization of a command→location association, a fourth layer to add to the
+expert's offset constant, the iteration-coupled selection loop, and the grasp
+head's proprioception shortcut.**
+
+**The OOD reading tested directly, and confirmed.** If the mechanism is
+"untrained command ⇒ wrong place point", a head trained on *all three* commands
+should emit the correct point for all three. Re-running the identical
+measurement with **v8** (`data_dirs` include butter and cream):
+
+| command | v8 place point | error vs true basket |
+|---|---|---|
+| alphabet soup | (−0.0009, +0.2570) | 0.35 cm |
+| butter | (−0.0052, **+0.2504**) | **1.01 cm** |
+| cream cheese | (−0.0053, **+0.2506**) | **0.99 cm** |
+
+Pairwise spread collapses from **14.15 cm → 0.78 cm**, i.e. into the basket's
+own task-to-task variation. Same architecture, same measurement, only the
+training coverage differs. **The catastrophe is a training-coverage artifact,
+not an architectural one** — exactly the corollary registered before the
+generalization cell was queued.
+
+**This closes the causal chain end to end**, every link measured rather than
+inferred: the instruction reaches behaviour only as `set_place(place_head(
+command_emb))` (code); v5's place head maps an unseen command to a point 14 cm
+short of the basket (measured); the machine therefore grasps the correct object
+and releases it over open table, which is precisely the observed signature —
+`eef_obj_dist_min` at baseline (~0.013, the object *was* reached) with
+`grip_close_rate` falling 0.675 → 0.257 (it was let go); and the cell collapses
+7/10 → 0/10 (measured, exact p = 0.016).
+
+**It also predicts the still-running gen2 cell.** v8's soup and butter place
+points differ by 0.78 cm, so swapping between them should be harmless and the
+v8 butter-task swap should **not** collapse — the prediction already on record.
+The gen2 result is now a direct test of this mechanism rather than a generic
+generalization check.
