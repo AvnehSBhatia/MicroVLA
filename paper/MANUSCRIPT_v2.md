@@ -887,18 +887,24 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   the heads (1/10 vs 4/10), and §6–7 carry the stack-independent claim via
   attributions and varied-label validation.
 * Object-level generalization: one object in every claimed cell of the
-  body. Two objects are carried in the dated App-D addendum — the
+  body. Four objects were attempted and two are carried in the dated
+  App-D addendum — the
   campaign runs from teacher end-to-end (2/3), through a head clean on
   every offline instrument yet 0/10 deployed, to the live-caught
   estimate-chase mechanism, to 10/10 butter under early latch
   (config-split), to 6/10 butter + 4/10 soup under one anchor-band config
   with no per-object constants, with two pre-registered fresh-seed
   confirmations (5/10 + 3/10, and 5/10 + 4/10 on a three-object head).
-  A third object (cream cheese) does NOT cross: its goals are accurate
-  (1.58 cm on-manifold) but role binding fails, and a four-binder study
-  shows the failure is not liftable by any corpus-derived binder — offline
-  binder accuracy dissociates from deployed success (§7). No multi-object
-  number is claimed in the body; the addendum carries them with their
+  Two further objects (cream cheese, chocolate pudding) do NOT cross:
+  goals are accurate where measurable (cream 1.58 cm on-manifold against
+  butter's 1.34) but role binding fails identically on both, and a
+  four-binder study shows the failure is not liftable by any
+  corpus-derived binder — offline binder accuracy dissociates from
+  deployed success (§7). The deployed binding accuracy that would
+  quantify this is reported as unmeasured: four instruments were built to
+  measure it and all four failed their own pre-registered calibration
+  gates. No multi-object number is claimed in the body; the addendum
+  carries them with their
   selection ledger, their falsified prediction, and the open experiment.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
