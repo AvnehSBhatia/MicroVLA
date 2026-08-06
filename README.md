@@ -21,11 +21,24 @@ early-latch config split). Three-object head (`goal_heads_v8.pt`, adds a
 cream-cheese corpus) with semantic rebinding: selection-band butter 7/10
 + soup 5/10, second pre-registered fresh-seed confirmation **butter 5/10
 + soup 4/10**. Cream cheese does not cross: its goals are accurate
-(1.58 cm on-manifold, vs butter 1.34 and soup 1.06) but the frozen
-detector's role binding cannot separate it from look-alikes — the
-boundary is quantified at 0.902 (1-NN) / 0.613 (mean prototype) identity
-accuracy, and binder cells testing it are dated in App D. The full
-estimate-chase mechanism story is in the manuscript's App-D addendum.
+(1.58 cm on-manifold, vs butter 1.34 and soup 1.06).
+
+**Corrected 2026-08-06.** This paragraph previously said cream fails because
+the detector's role binding "cannot separate it from look-alikes". That was
+measured and **retracted**: role binding separates *nothing*. Running two
+objects' prompt chains over the same frames returns the **same detection**
+(same-box rate 0.87–1.00, median centre distance 0.0001) — every product name
+scores 0.00 on the region-text head, so all chains fall through to a generic
+"box", **including the chains of the two objects that do cross**. Soup
+succeeds at 35/50 while being indiscriminable in exactly the sense cream was
+blamed for. Deployed binding is therefore **identity-blind**: soup's success
+is not explained by binding the named object, and the repaired head is
+grounded on *a* box rather than *the named* one. Why cream specifically
+cannot be bound live is **unexplained** — a follow-up measured 3.1–3.9
+candidate proposals per frame, ruling out "the detector never proposed it"
+and placing the failure in live candidate scoring. The 0.902 / 0.613 figures
+are *offline* identity accuracy on corpus crops and dissociate from deployed
+success; binder cells are dated in App D.
 
 The free-regression baseline (same trunk, six controlled variants) is 0.000;
 structured decoding — two learned goal heads (0.24M) driving a task-content-free
@@ -96,8 +109,8 @@ generalization is documented ongoing work.
 # MicroVLA v2
 
 A micro vision-language-action (VLA) pipeline: a single frozen off-the-shelf
-detector — YOLO-World-S — supplies both open-vocabulary vision *and*
-language grounding (its own internal CLIP text tower), feeding a set of
+detector — YOLO-World-S — supplies both open-vocabulary vision *and* the only
+text encoding in the stack (its own internal CLIP text tower), feeding a set of
 small, novel trainable heads — hard-capped at **9M trainable parameters
 total** — that turn "task text + video stream" into normalized 7-servo PWM
 plans. A 30 Hz JEPA-style latent rollout runs real perception at 2 Hz and
@@ -231,7 +244,10 @@ real, possibly large, commanded motion).
 The control loop (`microvla/jepa/loop.py`) ticks at `cfg.tick_hz = 30`. Every
 `round(tick_hz / real_frame_hz) = 15`th tick (`0, 15, 30, 45, ...`) is a
 **real tick**: YOLO-World-S actually runs on the camera frame at
-`cfg.real_frame_hz = 2` Hz, producing grounded source/target boxes. The
+`cfg.real_frame_hz = 2` Hz, producing source/target boxes. (Measured
+2026-08-06: those boxes are *not* identity-bound — see the correction above.
+"Source" names the role the box plays in the servo shell, not a verified
+identity match to the instruction's noun.) The
 other 14 of every 15 ticks are **dream ticks**: no frame is consumed; the
 corrected (re-standardized) TRM prediction from the previous tick becomes
 the frame token, the last real boxes are held with staleness-decayed
