@@ -7322,3 +7322,53 @@ Recording it as a hypothesis, not a finding, because I have not tested
 it — and because tonight's tally is already four wrong instrument
 designs and two falsified predictions, which is exactly the rate at which
 a sixth guess should be someone else's first.
+
+### RESOLVED: the object-breadth boundary is the generic-prompt tail, and it was documented all along (2026-08-06)
+
+Instrumenting `perceive()` inside a real episode — instead of designing a
+sixth probe — resolved it in one run. The production call is not
+`set_classes([phrase, "basket"])`. It is `set_role_prompts` with a
+preference chain:
+
+```
+classes = ['alphabet soup', 'soup', 'box', 'cardboard box', 'can', 'basket', 'bin']
+role_ids = [[0,1,2,3,4], [5,6]]        # source takes the FIRST prompt that fires
+```
+
+Live source confidences are 0.052-0.114. My five probes asked the bare
+product phrase alone and got nothing — which is not an instrument bug at
+all but **the finding**, and `microvla/perception/prompts.py` states it
+in its own docstring: *"YOLO-World's region-text head scores 0.000 on the
+product names LIBERO tasks are written in ('alphabet soup', 'cream
+cheese')"*. The system detects groceries only via a generic tail —
+`("box", "cardboard box", "can")` — chosen by measured firing rate.
+
+That closes the boundary question with a mechanism, not a suspicion.
+Every LIBERO-Object grocery resolves to the SAME tail, so once the
+product phrase fails (which it usually does), the source role is bound by
+"box"/"can" — words that describe cream cheese, chocolate pudding,
+butter, and milk equally well. Discrimination is therefore impossible for
+box-shaped objects *by construction of the prompt chain*, and every
+symptom follows: uv std ~0.30 (several boxes matching equally), cream
+misbinding onto milk and soup, butter onto ketchup and orange juice,
+cream-vs-butter centred prototype cosine ~0.00 (both are boxes), and four
+corpus-derived binders unable to fix it — they re-rank boxes the text
+stage already conflated.
+
+Why soup and butter cross anyway: soup is the one object whose tail
+contains a *shape-specific* winner ("can") that no other scene object
+matches, and butter's teacher was rescued by crop-CLIP rerank operating
+on a scene where its distractors are bottles and jars. Cream and pudding
+are boxes among boxes, with no discriminating prompt available.
+
+Two corrections to my own record. (1) The five "failed instruments" were
+mostly measuring something real; I misread their null result as a bug
+because I assumed the bare phrase was what production used. The
+projection instruments were genuinely broken; the text probes were asking
+an honest question and getting an honest answer. (2) The right statement
+of the boundary is therefore sharper than "role binding fails": **object
+breadth is limited by the prompt chain's inability to discriminate
+same-shaped groceries, because the frozen text tower scores 0.000 on the
+product names themselves.** That is testable, already partly measured in
+this repo, and names its own fix (a discriminating prompt or a
+detector whose text tower grounds product names).
