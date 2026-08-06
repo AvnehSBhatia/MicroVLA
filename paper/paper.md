@@ -6993,3 +6993,22 @@ If neither convention round-trips, the geometric ground truth is
 abandoned as promised and deployed binding accuracy stays unmeasured
 (and so labelled) rather than being estimated by an instrument I cannot
 validate. `scripts/convcheck.py`, running.
+
+### Convention settled by measurement, not by trial: depth is +z (2026-08-06)
+
+The convention check answered the question with a quantity that has
+nothing to do with binding: scene objects sit at camera-frame
+z = +0.274 … +0.375 when the wrist camera is looking at them, so **+z is
+forward** and v2's `depth = -z` filter was inverted — which is why it
+rejected 7/7 points. The fix is a sign determined by measuring the actual
+coordinates of objects known to be in front of the lens, not by trying
+signs until the binding numbers pleased me.
+
+Two honesty notes. First, the round-trip validator I wrote to be the
+*primary* arbiter crashed on my own misuse of
+`transform_from_pixels_to_world` (wrong depth-map shape); I am therefore
+NOT claiming a round-trip validation, only the z-range measurement.
+Second, the sign fix does not by itself make the instrument
+trustworthy — the pre-registered gate is unchanged and still binding:
+**soup's pre-latch accuracy must come back high, or nothing downstream is
+believed.** Soup calibration relaunched with the corrected sign.
