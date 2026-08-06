@@ -44,9 +44,11 @@ engineered pick-and-place shell; free per-tick regression scored 0/56. All
 results are simulation (LIBERO/MuJoCo), one task and one object (task 0,
 alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
-released head itself; §7); a dated addendum carries the first
-multi-object iteration, mechanism-diagnosed and confirmed on a fresh
-seed (App D).
+released head itself; §7). A dated addendum carries the multi-object
+campaign: a second object crossed and twice confirmed on never-scored
+seeds, a third measured, mechanism-located at role binding, and *not*
+crossed — with a pre-registered prediction of that crossing recorded and
+falsified (App D).
 
 ---
 
@@ -633,8 +635,8 @@ bought detector-version dependence, which the proprio-shortcut head never
 had.
 
 **Transfer boundary.** Placement generalization repaired; object
-generalization measured at its boundary, then crossed in the dated
-addendum. Under the all-tasks sweep — run first with sibling v3
+generalization measured at its boundary, crossed for one further object
+and blocked at a named stage for a third — both in the dated addendum. Under the all-tasks sweep — run first with sibling v3
 (protocol as in §6: n=3 per task, seed 20, otherwise §3) — a
 variance-trained head scores 0.67 on task 0 (2/3 [0.21, 0.94], consistent
 with held-out) and 0.00 on tasks 1–9 (n=3 each) — the corpus is soup-only.
