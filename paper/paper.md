@@ -6586,3 +6586,26 @@ crosses zero, binding was the whole boundary and the fix costs no
 training. If it does not, my diagnosis is wrong in a locatable way and
 the telemetry (uv std vs 0.33) says immediately which half failed.
 Prototype butter/soup cells running; bank trio behind them.
+
+### Prototype binder degrades the working objects too: butter 2/10 (2026-08-06)
+
+**Prototype-bound butter: 2/10** — against 7/10 for the same head under
+text rerank and 4/10 with no binder at all. The mean-prototype binder is
+not merely useless for the confusable object; it actively *replaces*
+correct bindings with wrong ones on an object whose text-match already
+worked. That is the sharpest possible statement of the estimator problem
+measured earlier: with raw prototype cosines at 0.986–0.991 across three
+objects, a nearest-prototype rule is close to arbitrary, and arbitrary
+binding beats no binding only by accident.
+
+The four-binder ladder so far (three-object v8 head, anchor band, n=10):
+
+| binder | cream | butter | soup |
+|---|---|---|---|
+| none | 0/10 | 4/10 | 5/10 |
+| text rerank | 0/10 | **7/10** | 5/10 |
+| mean prototype (0.613 identity acc.) | **0/10** | **2/10** | running |
+| 1-NN bank (0.902 identity acc.) | running | running | running |
+
+The bank cells are the test that matters: same vectors, same episodes,
+only the estimator changes.
