@@ -46,8 +46,8 @@ alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
 released head itself; §7). A dated addendum carries the multi-object
 campaign: a second object crossed and twice confirmed on never-scored
-seeds, and two not crossed — with three pre-registered predictions recorded
-and falsified and five instruments abandoned at their own calibration gates
+seeds, and two not crossed — with five pre-registered predictions recorded
+and falsified and six instruments abandoned at their own calibration gates
 before a sixth, needing no ground truth, succeeded and **retracted our own
 proposed mechanism**: different objects' prompt chains select the *same*
 detection from the same frame (median centre distance 0.0001), so deployed
@@ -941,9 +941,9 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   four-binder study shows the failure is not liftable by any
   corpus-derived binder — offline binder accuracy dissociates from
   deployed success (§7). The deployed binding accuracy that would
-  quantify this is reported as unmeasured: four instruments were built to
-  measure it and all four failed their own pre-registered calibration
-  gates. No multi-object number is claimed in the body; the addendum
+  quantify this is reported as unmeasured: six instruments were built to
+  measure it and all six failed their own pre-registered calibration
+  gates; a seventh, needing no ground truth, succeeded (App D.0). No multi-object number is claimed in the body; the addendum
   carries them with their
   selection ledger, their falsified prediction, and the open experiment.
 * Assisted-teacher numbers as policy competence (App B only).
@@ -1275,7 +1275,7 @@ indiscriminable in the same sense and succeeds at 35/50.
 scenes share six of seven objects — soup's scene contains cream cheese and
 cream's contains alphabet soup — so identity is decidable by asking whether two
 objects' chains select the *same detection on the same frame*, never asking
-where the true object is (the question that defeated five instruments):
+where the true object is (the question that defeated six instruments):
 
 | frames from | soup vs cream | soup vs butter | cream vs butter | median centre distance |
 |---|---|---|---|---|
