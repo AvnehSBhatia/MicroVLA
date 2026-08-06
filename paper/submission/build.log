@@ -78,8 +78,8 @@ ty
 [1{/Users/avneh/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdf
 tex.map}]
 [2]
-[3]
-Overfull \hbox (42.14018pt too wide) in paragraph at lines 261--276
+[3 <../visuals/F3_protocol_by_head.png>]
+Overfull \hbox (42.14018pt too wide) in paragraph at lines 273--288
 \OT1/cmtt/m/n/10 GraspPointHead.forward \OT1/cmr/m/n/10 (-20) con-sumes only \O
 T1/cmtt/m/n/10 geom\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/10 box[]emb\OT1/cmr/m/
 n/10 (-20) , \OT1/cmtt/m/n/10 frame[]emb\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/1
@@ -114,5 +114,5 @@ nts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025basic/texmf-dist
 dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2025basic/tex
 mf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025basic
 /texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (8 pages, 476072 bytes).
+Output written on main.pdf (8 pages, 596928 bytes).
 Transcript written on main.log.

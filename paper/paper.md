@@ -9897,3 +9897,29 @@ in the `.tex`.
 and would need regeneration against current data before they could be trusted;
 placing a stale figure is worse than placing none, and I am not regenerating
 four plots at the end of a long session to pad the paper.
+
+### Correction: F3 was not stale, and it is now placed (2026-08-06)
+
+An hour ago I declined to place the pre-existing figures on the grounds that
+"F1–F4 predate today's results and would need regeneration before they could be
+trusted." **That was wrong for F3, and I checked rather than assumed only after
+saying it.** Verified cell by cell against the current paper:
+
+- dev 7/4/7/7, held-out 3/7/7/6, randomized 1/4/5/3 — match Table 2 exactly
+- audit-stack inset: memorized 6/10, released 0/10 — matches the control
+- n=50 addenda 35/50 and 26/50 — match
+- free per-tick regression 0/56 — matches
+
+Nothing measured today touched any of those cells; today's work was all
+multi-object, and the protocol × head matrix is a task-0 result. **F3 is
+current.** It is now placed as Figure~1, so the paper's central
+de-memorization result — the memorized head leading on dev and collapsing off
+it, the released head flat across all three protocols, and the audit-stack
+inversion drawn inside the panel where it belongs — is visible rather than only
+tabulated.
+
+**The general error is worth naming.** "It predates the new results" is a
+plausible-sounding reason to discard something, and it happened to be false
+here: staleness is a property you check, not one you infer from a date. I
+reached for the cautious-sounding option and it was the wrong one. Two figures
+now, both verified against the artifacts they summarise.
