@@ -7046,3 +7046,27 @@ deployed behaviour is demonstrated qualitatively by the four-binder
 dissociation and the uv-destabilisation probe, and is *not* quantified.
 Two instruments were built, both failed their own calibration, and both
 failures are reported.
+
+### Fourth object launched: chocolate pudding, chosen by the binder study's own data (2026-08-06)
+
+With the binding instrument abandoned, the remaining lever for object
+breadth is another object — and which one is not a guess. The binder
+study's misbinding tables name the confusable pairs: cream's misbinds
+were milk (28) and soup (23); butter's were ketchup (46) and orange juice
+(21). **Chocolate pudding almost never won a misbind in any table**,
+which is the closest thing to a separability prior we have that was not
+fit for this purpose. So task 8 (chocolate pudding) is the fourth-object
+attempt, and the prediction on record is that it behaves like butter (it
+crosses) rather than cream (it does not).
+
+`scripts/obj4.sh` runs the full measured recipe with no shortcuts: offset
+calibration to at-close convergence (<1 cm, the loop-flaw fix from the
+butter re-diagnosis), a 3-trial teacher smoke gate at ≥1/3, a 25-target
+±3 cm randomized corpus, a **four-object** head (soup + butter + cream +
+pudding) trained with eef-jitter, then n=10 unaided cells on pudding,
+butter, and soup under the one anchor-band + rerank configuration.
+
+The soup cell is the one that matters most for honesty: each added object
+dilutes the corpus, and if soup degrades materially as objects are added,
+that is the real cost of breadth at this scale and it gets reported as
+prominently as any gain.
