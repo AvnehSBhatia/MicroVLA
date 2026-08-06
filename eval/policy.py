@@ -295,6 +295,8 @@ class MicroVLAPolicy:
         goal_ckpt: Optional[str] = None,
         goal_kwargs: Optional[dict] = None,
         goal_src_rerank: bool = False,
+        goal_src_proto: Optional[str] = None,
+        goal_src_proto_key: Optional[str] = None,
         gates_ckpt: Optional[str] = None,
     ) -> None:
         """Builds the policy.
@@ -391,6 +393,28 @@ class MicroVLAPolicy:
         # the assisted machines and is mutually exclusive with them.
         self.goal_machine = None
         self.goal_src_rerank = bool(goal_src_rerank)
+        # Visual role prototype (the cream lesson): a unit vector built from
+        # the corpus's own grasped-box embeddings, used to bind the source box
+        # by cosine when the detector's TEXT tower cannot separate look-alikes.
+        self.goal_src_proto = None
+        self.goal_src_proto_gmean = None
+        if goal_src_proto:
+            protos = torch.load(goal_src_proto, map_location="cpu",
+                                weights_only=False)
+            gm = protos.pop("_global_mean", None)
+            if gm is not None:
+                gm = torch.as_tensor(gm, dtype=torch.float32).reshape(-1)
+                self.goal_src_proto_gmean = gm / (gm.norm() + 1e-8)
+            if goal_src_proto_key:
+                vec = protos[goal_src_proto_key]
+            elif len(protos) == 1:
+                vec = next(iter(protos.values()))
+            else:
+                raise ValueError(
+                    "goal_src_proto holds several prototypes "
+                    f"({sorted(protos)}) — pass goal_src_proto_key")
+            vec = torch.as_tensor(vec, dtype=torch.float32).reshape(-1)
+            self.goal_src_proto = vec / (vec.norm() + 1e-8)
         self.goal_grasp_head = None
         self.goal_place_head = None
         if goal_ckpt:
@@ -786,7 +810,27 @@ class MicroVLAPolicy:
                 # the teacher's did pre-rerank; re-pick the source by crop-emb
                 # vs the SOURCE phrase, rejecting better-target matches — the
                 # same zero-training lever the teacher used to cross it.
-                if self.goal_src_rerank:
+                if self.goal_src_proto is not None:
+                    props = getattr(result.perception, "proposals", ()) or ()
+                    best, best_s = None, float("-inf")
+                    for p in props:
+                        if float(getattr(p, "confidence", 0.0)) < self.ibvs_conf_floor:
+                            continue
+                        e = torch.as_tensor(
+                            p.emb, dtype=torch.float32).detach().cpu().reshape(-1)
+                        if e.numel() != self.goal_src_proto.numel():
+                            continue
+                        e = e / (e.norm() + 1e-8)
+                        if self.goal_src_proto_gmean is not None:
+                            g = self.goal_src_proto_gmean
+                            e = e - float((e * g).sum()) * g
+                            e = e / (e.norm() + 1e-8)
+                        s = float((e * self.goal_src_proto).sum())
+                        if s > best_s:
+                            best, best_s = p, s
+                    if best is not None:
+                        src = best
+                elif self.goal_src_rerank:
                     task = getattr(self.loop, "_task", None)
                     props = getattr(result.perception, "proposals", ()) or ()
                     if task is not None and getattr(task, "source_emb", None) is not None and props:
