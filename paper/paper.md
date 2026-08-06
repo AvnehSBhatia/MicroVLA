@@ -7104,3 +7104,27 @@ The chain will run its remaining calibration iterations and stop at the
 smoke gate, as designed. No pudding corpus will be recorded, so the
 four-object head is not built — correctly, because the teacher cannot
 produce data for an object it never reaches.
+
+### The decisive perception test, with no ground truth required (2026-08-06)
+
+Two objects now fail at the same stage with the same signature, and both
+diagnoses so far have leaned on instruments that needed calibration. This
+test needs none: on a single wrist frame, set the frozen detector's
+classes to each of the ten LIBERO-Object phrases in turn and record which
+box each phrase selects. No labels, no policy, no binder, no projection —
+just the text tower answering ten questions about one image.
+
+The reading is fixed in advance:
+* if distinct phrases select **the same box**, role binding is impossible
+  by construction for those objects, and cream and pudding are explained
+  without appealing to anything learned — the boundary is a property of
+  the frozen encoder, which is the strongest and simplest form of the
+  claim;
+* if each phrase selects a **different** box, the text tower discriminates
+  fine and the failure is downstream in how the machine consumes it —
+  which would contradict the role-binding account I have been building
+  and require §7 to be rewritten around whatever the consumption defect
+  turns out to be.
+
+Run on task 8 (pudding, blocked) and task 0 (soup, works) so the
+comparison is internal: `scripts/textdisc.py`.
