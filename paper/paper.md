@@ -8160,3 +8160,49 @@ system is instruction-sensitive", with the stage unresolved.
 
 Recorded before running. Note also that the baseline for A and B is the same
 7/10 cell with pattern `1101110011` already on record.
+
+### Instruction swap, all three cells FINAL (2026-08-06)
+
+| cell | result | pattern |
+|---|---|---|
+| baseline, correct instruction | **7/10** | `1101110011` |
+| soup env, told **butter** | **0/10** | `0000000000` |
+| soup env, told **cream cheese** | **0/10** | `0000000000` |
+
+All artifact-verified (`swap_baseline` 0.7, `swap_butter` 0.0, `swap_cream`
+0.0). Seven discordant pairs, all in the same direction: **exact two-sided
+p = 0.0156**. Overrides verified applied from the run log in both swap cells.
+
+**The system is strongly instruction-sensitive.** Any reading of the
+identity-blind result as "the machine ignores language" is refuted by this
+table. Naming a different object destroys the cell completely and
+significantly.
+
+**The two swaps fail differently, exactly as pre-registered.** Recorded before
+the run: *"the cream swap is NOT a clean replicate — cream's chain contains
+'white carton' (17% firing), so it perturbs the input in a way butter's does
+not."*
+
+| | butter swap | cream swap |
+|---|---|---|
+| `eef_obj_dist_min` | 0.006–0.013 (**reaches the soup**) | 0.007–0.010 on ~half, **0.032–0.051 on the rest** |
+| `grip_close_rate` | 0.252–0.432 | 0.000–0.467 |
+
+Butter's chain (`['butter','box','cardboard box','can']`) leaves the machine
+reaching the true soup object as accurately as baseline, and the failure is
+downstream. Cream's chain additionally prevents approach on about half its
+trials. The pre-registered asymmetry is therefore visible in the data, and the
+cream cell is **not** clean evidence about identity — it confounds the prompt
+channel with `_HEAD_DISCRIM`, and is reported for completeness rather than used
+for attribution.
+
+**Attribution is under test, not asserted.** The decomposition cells (prompts
+and embeddings driven from different instructions) are queued and will place
+the collapse in one channel or refuse to. Until they land, the honest statement
+is two-sided and stops there: *the machine still approaches the commanded
+task's object under a swapped instruction (butter cell), and nonetheless fails
+the task completely; which channel carries the failure is not yet established.*
+
+**Interim caveat added to the submission**, rather than waiting: leaving the
+paper claiming identity-blindness with no mention of a 7/10→0/10 collapse would
+be a one-sided presentation of evidence already in hand.

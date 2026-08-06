@@ -23,11 +23,10 @@ instead of \emph{looking}. We document this on LIBERO-Object, whose target
 start poses are exactly pinned (measured) in 6 of 10 tasks and within
 ${\sim}\pm1$\,cm in the rest. Our platform is a 30.2\,M-parameter deployed
 stack carrying \emph{no} language model---an open-vocabulary detector's own
-text tower supplies every text embedding---making it the smallest surveyed
-language-conditioned policy under both size conventions at once: 17.2\,M
-trained vs.\ Octo-small's 27\,M, 30.2\,M deployed vs.\ RT-1's 35\,M even
-granting RT-1 the encoder its count omits. No result below is attributed to
-size. First, an audit finds placement memorization at
+text tower supplies every text embedding---the smallest surveyed
+language-conditioned policy under both size conventions at once (17.2\,M
+trained, 30.2\,M deployed; the runners-up differ per convention). No result
+below is attributed to size. First, an audit finds placement memorization at
 three layers: a calibrated expert whose offset constant encodes pose
 (sign-flipping under a software rebuild), an iteration-coupled selection loop
 (0.700 dev vs.\ 0.300 held-out), and a learned grasp head whose regression
@@ -225,6 +224,21 @@ embedding and is genuinely language-conditioned---but every task in the suite
 places into the same basket, so the stack's one real language channel has
 nothing to do here.
 
+\noindent \textbf{Identity-blind is not language-blind.} Swapping the
+instruction to a different object---environment, physics and success criterion
+unchanged, so success is still scored on the real task---collapses the cell
+from 7/10 to \textbf{0/10} (told butter; 0/10 again told cream cheese; seven
+discordant pairs one-way, exact two-sided $p=0.016$). Any reading of the
+preceding paragraphs as ``the policy ignores its instruction'' is refuted by
+that table. Telemetry places the butter cell's failure \emph{downstream of
+object approach}---the machine still reaches the true soup object as closely as
+baseline (\texttt{eef\_obj\_dist\_min} 0.006--0.013 vs.\ 0.012--0.018) while
+\texttt{grip\_close\_rate} falls from ${\sim}0.67$ to ${\sim}0.26$. Since one
+instruction drives both the detection prompts and the place head's command
+embedding, we do not attribute the collapse to either channel here; a
+decomposition that drives them from different instructions is the obvious
+experiment and we report it as pending rather than guessing.
+
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which
 \emph{inputs} the grasp head uses and are measured independently---but the
@@ -252,14 +266,12 @@ mean prototype (centered) & 0.613 & 0/10 & 2/10 & \textbf{8/10} \\
 
 \noindent \textbf{Offline binder accuracy dissociates from deployed success.}
 The weaker binder owns the best soup cell and the worst butter cell; the
-stronger returns butter to baseline; the binder with no offline number wins
-butter. A matched-episode A/B probe explains it: with the 0.902 binder active
-the uv stream fed to the grasp head \emph{destabilises} (std $0.258\to0.335$
-laterally, $0.047\to0.202$ vertically)---a binder accurate on corpus crops
-thrashes on live crops. This is the paper's own on-manifold limit recurring on
-two further instruments: a probe that evaluates on teacher trajectories cannot
-certify off-manifold behaviour, and a binder \emph{built} from teacher
-trajectories cannot bind off-manifold crops.
+binder with no offline number wins butter. A matched-episode A/B probe explains
+it: with the 0.902 binder active the uv stream feeding the grasp head
+\emph{destabilises} (std $0.258\to0.335$ lateral, $0.047\to0.202$
+vertical)---accurate on corpus crops, thrashing on live ones. The paper's
+on-manifold limit again: a binder \emph{built} from teacher trajectories cannot
+bind off-manifold crops.
 
 Three predictions were pre-registered here and all three are recorded as
 falsified: that 0.82 per-tick identity accuracy would yield 0.914 median-of-3
