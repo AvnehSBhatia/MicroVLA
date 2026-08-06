@@ -8741,3 +8741,32 @@ exactly where a fixed benchmark cannot: when every task shares a target, a
 memorized command→location map and a grounded one are behaviourally identical
 until the command is changed. That is a transferable recommendation, not a fact
 about MicroVLA.
+
+### gen2 baseline live at 4/10 — and a power caveat recorded before the swap result (2026-08-06)
+
+**Butter task 6, v8 head, `anchor_band` config, correct instruction: 4/10**
+(`eval_results/gen2_butter_base`, artifact-verified), pattern `0100001110`.
+A live cell, consistent with butter's published range (4–7/10), so unlike the
+void first attempt this test measures something.
+
+**But the test is asymmetric in power, and I want that on record before the
+number arrives — it cuts against my own prediction.** With a 4/10 baseline, a
+total collapse to 0/10 yields 4 one-way discordant pairs: exact two-sided
+**p = 0.125**, *not* significant. So:
+
+- If the swap lands near **4/10**, that is direct evidence of **no effect**, and
+  my registered prediction (no collapse, because v8's soup and butter place
+  points differ by only 0.78 cm) is **supported**.
+- If the swap **collapses to 0/10**, my prediction is **wrong** — but the cell
+  is **underpowered to establish that at p < 0.05**, and I would have to report
+  it as suggestive-but-not-significant rather than as a refutation, and say why.
+
+This asymmetry favours my own hypothesis, which is exactly why it belongs in
+writing beforehand. I registered a related caveat when queueing the first
+attempt ("butter's weaker baseline gives p≈0.03 at best... I will NOT pool the
+two tasks to manufacture a smaller p"); the realised baseline is 4/10 rather
+than the 5/10 assumed there, so the achievable p is 0.125, not 0.03. **The
+honest reading is that this cell can confirm the absence of a collapse but
+cannot, at n=10, establish its presence.** If it collapses I will say the
+mechanism is in doubt and that a larger n is needed, not that the result is
+null.
