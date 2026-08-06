@@ -1345,6 +1345,39 @@ scoring — consistent with the measured instability of the 0.902 bank (lateral
 uv std 0.258→0.335, vertical 0.047→0.202). Why cream specifically cannot be
 bound live remains **unexplained**.
 
+### D.0.0 Which object does the machine actually reach? (world space)
+
+The six instruments that failed at deployed binding all asked the question in
+**image space**, needing a camera projection — the step that broke them. *Which
+body did the gripper reach?* is a world-space question, and world-space
+positions read cleanly. Logging every scene body's position and taking the
+nearest to the end-effector (`_sim_all_object_pos`, n=6 per object, seed 20,
+v8 + anchor_band):
+
+| | soup (crosses 35/50) | cream (0/10) |
+|---|---|---|
+| nearest at closest approach | `alphabet_soup_1` **6/6** | `cream_cheese_1` **6/6** |
+| nearest at jaws-close | `alphabet_soup_1` **6/6** | `cream_cheese_1` **6/6** |
+| closest approach (m) | 0.008–0.053 (mean ~0.029) | 0.028–0.082 (mean **~0.070**) |
+| distance at jaws-close (m) | 0.012–0.084 (mean ~0.052) | 0.040–0.109 (mean **~0.094**) |
+| margin over 2nd-nearest | 3–30× | ~1.5× |
+
+**The blocked object is not misbinding.** It reaches the commanded object on
+every trial, stops ~7 cm short, and closes the gripper on air. A pre-registered
+prediction that it would reach a *distractor* is **falsified** — the sixth of
+this campaign.
+
+**This retires the binder puzzle rather than deepening it.** Cream scored 0/10
+under every binder with no ordering by offline accuracy (none / rerank /
+prototype 0.613 / bank 0.902). That looked like a mystery about binder quality.
+It is not: binding was never the bottleneck, so no binder could have moved the
+cell. The four binder cells tested the wrong hypothesis.
+
+**Where it does fail** is grasp geometry, consistent with cream's on-manifold
+goal error being the worst of the three (1.58 cm vs 1.34 and 1.06) — a 1.6 cm
+on-manifold error surfacing as a 7 cm deployed miss. *Why* it stops short is
+**not measured**, and is not claimed.
+
 ### D.0.1 Identity-blind is not language-blind — the instruction swap
 
 Swapping the instruction to a different object, with env/physics/success
