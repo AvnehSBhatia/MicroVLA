@@ -381,6 +381,39 @@ does. Training must reproduce that feedback loop with a scheduled horizon
 single-step-only training will compound error the InnovationCorrector alone
 cannot save.
 
+## Probing *your own* policy's language grounding
+
+`eval/probes.py` ships the two annotation-free probes that found the results
+above. They need no labels, no simulator and no second model — only a
+perception object with `set_role_prompts`/`perceive`, or paired success
+vectors. Both apply to any detector-grounded policy, not just this one.
+
+```python
+from eval.probes import prompt_agreement, instruction_swap
+
+# 1. Does your grounding stage IGNORE the instruction?
+#    Run two objects' real deployed prompt chains over the SAME frames.
+r = prompt_agreement(perception,
+                     chain_a=["alphabet soup", "soup", "box"],
+                     chain_b=["butter", "box"],
+                     frames=real_frames)
+print(r.verdict())   # IDENTITY-BLIND / DISCRIMINATING / MIXED / INCONCLUSIVE
+
+# 2. Does some stage MEMORIZE it? Run a task while telling the policy to
+#    fetch a different object; keep the env and success criterion on the
+#    real task, and pair the trials (same seeds, same init states).
+s = instruction_swap(baseline=[...], swapped=[...])
+print(s.verdict())   # exact McNemar, and it prints its own power ceiling
+```
+
+They fail differently on purpose: the first catches a stage that ignores the
+instruction, the second a stage that memorized it. The second is the only way
+to see a memorized command→location map on a benchmark where every task shares
+one target — there, memorized and grounded maps are behaviourally identical
+until the command changes. In this repo the swap arm is
+`eval/libero_eval.py --override-instruction` (plus `--override-prompt-only` to
+drive the prompt and embedding channels apart).
+
 ## Quickstart
 
 Commands below assume you're at the repo root.
