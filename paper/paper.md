@@ -10185,3 +10185,33 @@ cs.LG cross-list).
 (`main_icra.pdf`, 3.5 body pages, ~1.5 pages of headroom), and this
 clean-room-verified arXiv bundle. Each builds with 0 errors. The step none of
 them can take is the one that starts the external clock.
+
+### PRE-REGISTERED: DAgger round 2 — does the repair compound? (2026-08-06)
+
+One round of DAgger took the blocked object from 3/50 to 18/50. **DAgger is an
+iterative algorithm and I ran one iteration.** Round 2 collects under the
+*repaired* head, which visits a different (and better) state distribution than
+the head that generated round 1's data — that is the whole premise of the
+method, and it has not been tested here.
+
+**Protocol, unchanged from round 1** so the two rounds are comparable: collect
+on **seed 0** with `MICROVLA_LOG_FEATS=1` using `goal_heads_dagger.pt` (not
+v8), label from the simulator's object pose with the same measured offsets,
+fine-tune from the round-1 head with the same corpus mix-in, evaluate on
+**seed 20** at n=50.
+
+**Registered prediction.** Round 2 improves on 18/50 = 0.360, but by *less*
+than round 1 improved on 3/50 — diminishing returns, since round 1 removed the
+largest slice of the distribution mismatch. Concretely: somewhere in 20–28/50,
+not another 6× jump.
+
+**Registered falsification.** If round 2 lands at or below 18/50, then **one
+round captures essentially all of the available benefit**, and the honest
+statement is that this is a single-shot repair rather than an iterative one.
+That is a useful bound on the method and I would report it as such — a null
+here is as informative as the specificity null was, and for the same reason.
+
+**What this cannot become.** If round 2 wins, the reported cell is round 2's,
+with round 1's cell kept alongside it and both dated. I am not going to run
+rounds until one is high and report that one; the stopping rule is *two rounds,
+both reported*, fixed now.
