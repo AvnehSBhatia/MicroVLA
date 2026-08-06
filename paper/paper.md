@@ -6389,3 +6389,39 @@ default off; 605 tests green; mock path exercised). Three-object rerank
 eval chained: cream + butter + soup n=10 each, v8 head, anchor band +
 rerank. If cream >0 under it, the student crosses the binding boundary
 with zero new training — the addendum's cleanest sentence yet.
+
+### Three-object cells FINAL; rerank is a net win where binding is discriminable (2026-08-06, cycle 19)
+
+One head (v8: soup + butter + 17-ep cream corpus), one config
+(anchor_band 0.04), n=10 each, all artifact-verified:
+
+| cell | cream | butter | soup |
+|---|---|---|---|
+| no student rerank | 0/10 | 4/10 | 5/10 |
+| **+ `--goal-src-rerank`** | 0/10 | **7/10** | **5/10** |
+
+run ids: v8h cream 1785972640613, butter 1785973899656, soup
+1785975057676; rr cream 1785976023460, butter 1785977280192, soup
+1785978279328.
+
+Two findings. (1) **Semantic rebinding pays where the text-match
+discriminates**: butter 4/10 → 7/10 and soup holds 5/10 — the best
+one-config pair this campaign has produced, on a head trained over three
+objects. (2) **Cream cheese is a frozen-detector boundary, and the
+measurement says so precisely**: the rerank demonstrably engages (it
+moved butter), yet cream's source-uv std is unchanged (0.329 → 0.339)
+with closest approach 0.105 → 0.086 m. The rebinder picks among boxes
+that CLIP's "cream cheese" text embedding cannot separate — so the
+binding flicker survives it. Object breadth here is bounded by the
+frozen detector's *text-match discriminability*, not by the goal heads,
+not by the corpus, and not by the shell. That is a clean, falsifiable
+scope statement for a 30M stack whose only text encoder is the
+detector's own tower — and it names the next lever exactly (a
+discriminative role-binding signal, e.g. per-object crop prototypes from
+the corpus, not more episodes).
+
+Selection discipline: the rerank cells are a seventh look at the seed-20
+band. Pre-registered NOW, before any further look: **v8 head +
+anchor_band 0.04 + `--goal-src-rerank`, seed 47 → states 41–49 + state 0
+(nine never-scored states; the tenth overlaps the dev band — disclosed),
+n=10 butter + n=10 soup, single shot, no adjustment.** Running.
