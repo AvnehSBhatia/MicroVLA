@@ -9606,3 +9606,39 @@ consistent with a true rate anywhere from "barely ever" to "half the time".
 against a stale n=10 from a different session would import any drift between
 them into the contrast. Both arms run now, same stack, same seeds, back to
 back. ~3 hours; the answer is worth the compute.
+
+### CREAM CROSSES: 18/50 = 0.360, Wilson [0.24, 0.50] (2026-08-06)
+
+**Cream cheese, DAgger head, held-out seed 20, n=50: 18/50 = 0.360**
+(`eval_results/n50_cream_dagger`, artifact-verified). Wilson 95%
+**[0.24, 0.50]** — the lower bound excludes zero, so this is a crossing, not a
+handful of lucky trials.
+
+The registered prediction was ≈10/50 if the observed 0.2 rate were real. The
+actual rate is **0.360, nearly double**, and the n=10 cell that prompted this
+run (2/10) sits comfortably inside the n=50 interval — it was a *low* excursion,
+not a high one. The registered falsification (≲2/50 ⇒ withdraw the crossing
+claim) is not met by a wide margin.
+
+**This is the third object to cross**, on a protocol band the DAgger collection
+(seed 0) never touched, and it converts today's "first successes" into a
+measured cell:
+
+| object | best held-out cell |
+|---|---|
+| alphabet soup | 35/50 = 0.700 [0.56, 0.81] |
+| butter | crossed, confirmed twice on fresh seeds |
+| **cream cheese** | **18/50 = 0.360 [0.24, 0.50]** |
+
+The v8 control arm (same object, same seeds, same configuration, un-finetuned
+head) is running. Its contrast will be significant across every plausible
+outcome — Fisher exact gives p = 1.2e-06 against 0/50, and still p < 4e-04 even
+if the control returned 3/50. The prior evidence for that arm is 0/10 and 0/6.
+
+**What the whole arc cost.** Cream sat at 0/10 through four binders, a
+prompt-engineering fix, three head versions, and eight refuted mechanisms. What
+moved it was not a better binder or a cleverer prompt but **showing the head the
+viewpoints it actually visits** — the same lesson as the ten-episode teleport
+repair and the command-coverage repair. Every defect in this paper has been a
+memorized value standing in for a measurement, and every repair has been showing
+the model the variation it was never shown.
