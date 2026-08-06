@@ -33,7 +33,9 @@ four layers: a calibrated expert whose offset constant encodes pose
 rationally prefers proprioception to pixels, and---found last, by swapping the
 instruction---a place head that memorized a command$\to$location map, emitting
 the correct basket for the command it trained on and points 13--14\,cm away for
-commands it did not, against a basket that never moves. Second, a repair---ten teacher
+commands it did not, against a basket that never moves; a head trained on all
+three commands is correct for all three and its swap cell does not collapse, so
+this layer too is repaired by data rather than architecture. Second, a repair---ten teacher
 episodes under $\pm4$\,cm placement teleports plus jitter on a nuisance
 input---restores \emph{visual} grounding, i.e.\ which input the head reads
 (attribution: vision 1.1--1.8\,cm, proprioception
@@ -273,12 +275,18 @@ point per scene. The released head emits the correct basket for the command it
 trained on (0.36\,cm error) and points \textbf{14.5\,cm} and \textbf{13.0\,cm}
 away for the two it did not: it learned command$\to$location, not basket---and
 14\,cm is exactly enough to release a grocery over open table, which is the
-observed failure. The cause is training coverage, not architecture: the same
-measurement on a head trained on all three commands collapses the spread from
-14.15\,cm to 0.78\,cm, inside the basket's own variation. This layer was
-invisible to every earlier probe because all ten tasks share one basket, so a
-memorized and a grounded place map are behaviourally identical \emph{until the
-instruction is swapped}.
+observed failure. The cause is training coverage, not architecture, and this
+\textbf{repairs} rather than merely explains: on a head trained on all three
+commands the place-point spread collapses from 14.15\,cm to 0.78\,cm, and its
+swap cell \emph{does not collapse}---3/10 against its own 4/10 baseline,
+exact $p=1.0$, versus the flagship's 7/10$\to$0/10 at $p=0.016$. Same
+architecture, same manipulation, opposite outcomes; behaviour tracks the
+place-point measurement exactly, 14\,cm destroying the cell and 0.8\,cm doing
+nothing. It also answers generalization: the mechanism reproduces on a second
+task with a different head, in both directions. This layer was invisible to
+every earlier probe because all ten tasks share one basket, so a memorized and
+a grounded place map are behaviourally identical \emph{until the instruction is
+swapped}.
 
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which

@@ -476,11 +476,24 @@ registered before the measurement. And 14 cm is exactly enough to release a
 grocery over open table, which is the observed swap failure (grasp succeeds,
 `eef_obj_dist_min` at baseline, `grip_close_rate` 0.675→0.257).
 
-**Training coverage, not architecture.** The identical measurement on
-`goal_heads_v8` (whose `data_dirs` include butter and cream) collapses the
-spread from **14.15 cm to 0.78 cm** — inside the basket's own variation, all
-three commands correct to ≤1 cm. The failure is repaired by including the
-command in training.
+**Training coverage, not architecture — and repaired, not merely explained.**
+The identical measurement on `goal_heads_v8` (whose `data_dirs` include butter
+and cream) collapses the spread from **14.15 cm to 0.78 cm** — inside the
+basket's own variation, all three commands correct to ≤1 cm. Confirmed
+behaviourally on a second task with that head:
+
+| head | trained on | baseline | swapped | exact p | place spread |
+|---|---|---|---|---|---|
+| v5 (flagship), soup task | soup only | 7/10 | **0/10** | **0.0156** | 14.15 cm |
+| v8, butter task | soup+butter+cream | 4/10 | **3/10** | **1.0000** | 0.78 cm |
+
+Same architecture, same manipulation, opposite outcomes; behaviour tracks the
+place-point measurement exactly. This also answers generalization — the
+mechanism reproduces on a second task with a different head, in both
+directions. Registered power caveat: with a 4/10 baseline the v8 cell could
+confirm the *absence* of a collapse (p = 1.0) but could not have established
+its presence at n=10 (a full collapse would give p = 0.125); that asymmetry was
+recorded before the number arrived.
 
 This layer was invisible to every earlier probe in this campaign because all
 ten tasks share one basket: a memorized and a grounded place map are
