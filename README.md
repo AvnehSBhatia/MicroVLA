@@ -47,10 +47,23 @@ butter; 0/10 again told cream cheese; exact two-sided *p* = 0.016). The system
 is strongly instruction-sensitive, and a pre-registered prediction that the
 swap would be inert is **falsified**. Telemetry places the butter cell's
 failure *downstream of object approach* — the machine still reaches the true
-soup object as closely as baseline — but one instruction drives both the
-detection prompts and the place head's command embedding, so the collapse is
-**not yet attributed to a channel**. A decomposition is running; see
-`paper/paper.md`.
+soup object as closely as baseline. A 2×2 decomposition (driving the detection
+prompts and the place head's command embedding from *different* instructions)
+localises the collapse **entirely to the embedding channel**:
+
+| | embeddings = soup | embeddings = butter |
+|---|---|---|
+| **prompts = soup** | **7/10** | **0/10** |
+| **prompts = butter** | **6/10** | **0/10** |
+
+Exact McNemar: prompt swap vs baseline *p* = 1.0000; embedding swap vs baseline
+*p* = 0.0156; embedding swap vs the full swap — **identical patterns**. With the
+architecture (`goal_machine.step(proprio)` replaces the plan; the grasp head
+takes no text; `set_place(place_head(command_emb))` runs once per episode),
+**object selection, approach and grasping run with no language input at all,
+and the whole language channel is a single latched (x, y) place point.** Ask
+this policy for the butter and it finds, approaches and grasps the alphabet
+soup at baseline rate. Full record in `paper/paper.md`.
 
 The free-regression baseline (same trunk, six controlled variants) is 0.000;
 structured decoding — two learned goal heads (0.24M) driving a task-content-free
