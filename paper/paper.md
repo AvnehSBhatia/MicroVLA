@@ -6813,3 +6813,27 @@ LaTeX (they exist and are regenerable); no venue style file applied
 pending a venue choice; and **no submission has been made** — that
 requires the author's decision and credentials, and no artifact here may
 be represented as submitted or reviewed.
+
+### Closing the last measurement gap: deployed binding accuracy (2026-08-06, in progress)
+
+The binder study's dissociation (offline 0.613/0.902 vs. deployed cells
+that do not follow the ordering) left exactly one quantity unmeasured:
+**how often the deployed machine binds the correct object, live.** I said
+in the falsification write-up that measuring it needs a new instrument;
+this is that instrument.
+
+Ground truth comes from MuJoCo instance segmentation, not from the text
+tower (which would be circular) and not from the corpus (which is the
+distribution under suspicion): for each detector proposal at each real
+tick, the modal segmentation id inside the box names the object the box
+actually covers. Segmentation is read for diagnosis only and never
+reaches a controller — the same discipline the teacher-calibration
+telemetry is held to.
+
+With that number in hand the addendum's claim becomes falsifiable in the
+right place: if deployed binding accuracy for cream is at chance while
+its offline accuracy is 0.82, the on-manifold gap is quantified rather
+than inferred from uv std; if deployed accuracy is high and cream still
+fails, binding is exonerated and the block moves downstream — which
+would contradict the current §7 text and require it to be rewritten.
+Probe running (`scripts/seg_probe.py`, task 1).
