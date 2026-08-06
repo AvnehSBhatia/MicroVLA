@@ -7909,3 +7909,30 @@ regression cell is for. Cream with the discriminating chain: **0/10**.
 Net result of the `_HEAD_DISCRIM` experiment: no gain on the target object, no
 loss on the others, and its motivating rationale independently retracted. The
 code stays (inert, disclosed) and no number in the paper is produced with it.
+
+**Pre-analysis, recorded before the swap numbers (2026-08-06).** Two things to
+settle in advance so the result cannot be read to taste.
+
+*Is the swap circular?* The obvious objection: soup and butter chains both
+resolve to "box", so of course swapping them changes nothing — the behavioural
+test merely restates the perception measurement. It does not, and the reason is
+specific. The perception measurement shows the same *box* is selected. It does
+**not** show that everything downstream is unaffected: the goal heads consume
+box **embeddings** and a CLIP task embedding derived from the instruction text,
+both of which differ between "alphabet soup" and "butter" even when the
+selected box is identical. The behavioural cell tests whether those surviving
+differences matter at the task level. A null result is therefore an end-to-end
+confirmation, not a restatement — and a non-null result would show identity
+partially survives in a channel the perception probe does not observe.
+
+*The strong reading is per-trial, not per-rate.* Seeds, init states and physics
+are identical across cells, so if the instruction is genuinely inert the **same
+trials** should succeed, not merely the same number. Matching rates could
+coincide; a matching success *pattern* over ten trials could not, plausibly.
+The analysis reports per-trial agreement and names the differing trials.
+
+*Asymmetry to expect.* The cream swap is **not** a clean replicate of the
+butter swap: cream's chain now contains "white carton" (fires 17%), so it
+perturbs the input in a way butter's does not. If the butter swap is inert and
+the cream swap is not, that difference is attributable to the discriminating
+prompt rather than to object identity, and will be reported that way.
