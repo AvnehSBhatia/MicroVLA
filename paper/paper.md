@@ -8413,3 +8413,45 @@ basket, so a memorized command→place map and a grounded one are behaviourally
 identical *until you swap the instruction*. The swap is what made a
 fixed-placement shortcut observable — the same move the whole paper argues for,
 applied to the one component we had not thought to audit.
+
+### PREDICTION UPDATE, recorded before the generalization cell runs (2026-08-06)
+
+I registered, before the decomposition: *"butter's baseline clearly above zero,
+swapped cell at or near 0/10, same direction as soup."* **I now expect the
+opposite, and the reason is the mechanism I did not have when I registered it.**
+
+Checkpoint metadata, read from the files:
+
+| head | `data_dirs` |
+|---|---|
+| `goal_heads_v5` (flagship, all soup cells) | `teacher_rand_full`, `teacher_rand2` — **soup only** |
+| `goal_heads_v8` (the generalization cell) | + `butter_rand`, `butter_rand2`, `cream_rand` — **soup, butter and cream** |
+
+The mechanism now on the table is: the place head latches `(x, y)` from the
+**command embedding**, and a command it never trained on is out-of-distribution,
+so it emits a wrong place point. Under v5 that is exactly butter's situation —
+v5 has only ever seen soup's embedding. **Under v8 it is not**: both soup's and
+butter's embeddings are in-distribution, so swapping between them should
+produce a *correct* place point either way and the cell should **not** collapse.
+
+**Updated prediction: the v8 butter-task swap does NOT collapse** — it lands
+near its own baseline, in the opposite direction from what I registered an hour
+ago.
+
+**Why this is an update and not a goalpost move.** The original prediction was
+registered before the decomposition identified the channel, and it treated the
+collapse as a property of "swapping the instruction". The mechanism says the
+collapse is a property of *feeding the place head an embedding it never trained
+on*, which is a different thing that merely coincided under v5. The update is
+derived from checkpoint metadata that anyone can read, it is recorded before
+the cell runs, and it is **riskier** than the original: a collapse now
+falsifies my mechanism rather than confirming a vague "instructions matter".
+
+**What each outcome means.** *No collapse* → strong support for the
+OOD-embedding mechanism, and a striking corollary: the swap's catastrophe is a
+**training-coverage** artifact, not an architectural one, and is repaired by
+including the command in training. *Collapse anyway* → both commands are
+in-distribution for v8, so an OOD embedding cannot be the cause, and the
+latched-place-point story needs rework despite cell B.
+
+The original prediction stays on the record above, unedited, marked superseded.
