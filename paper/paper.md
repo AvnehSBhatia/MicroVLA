@@ -9172,3 +9172,42 @@ documents.
 error, systematic, ~7 cm, on an object it *correctly identifies and
 approaches*. Why the grasp head's xy degrades 4.4× off-manifold is
 **unexplained**. Position is not the explanation.
+
+### The failure localized from a second, independent signal (2026-08-06)
+
+`src_center` — the detected image position of the source box — at each trial's
+closest approach:
+
+| | src_center (mean) | src_center (std) | lateral world error |
+|---|---|---|---|
+| soup (crosses) | (0.542, 0.686) | (0.219, 0.135) | 0.0192 m |
+| cream (0/10) | **(0.813, 0.796)** | (0.086, **0.007**) | 0.0689 m |
+
+**Cream settles with the object in the bottom-right corner of the wrist view**,
+where soup settles near centre. And it does so *more consistently than soup
+does* — a vertical std of **0.007** against soup's 0.135. The failure is not
+noise; the machine converges confidently to the wrong place.
+
+**This rules out perception and confirms the grasp head, from a signal
+independent of the world-space measurement.** The detector finds cream
+reliably (detection rate ~1.0, image position stable to 0.7% of frame height).
+The goal machine then servos to the xy the *grasp head* predicts — not to
+centring the object — so a head whose xy is ~7 cm off drives the arm to a point
+from which the object necessarily appears off-centre. Both signals agree, and
+they fail in the same direction: world-space says the gripper is 6.9 cm
+lateral, image-space says the object ends up at the frame edge rather than
+under the fingers.
+
+**The chain, now measured at every link:** perception detects cream (rate ~1.0)
+→ the grasp head predicts an xy ~7 cm from the object, systematically
+(coherence 0.976) → the machine servos there and stops → the object sits at uv
+(0.81, 0.80) instead of under the gripper → the jaws close on nothing at
+~9.4 cm. Every step is measured; **only the reason the head's xy is wrong
+remains open**, and it is not perception, not binding, not descent, and not
+position.
+
+**A detail worth keeping.** Cream's convergence is *tighter* than soup's while
+being wrong. A diagnostic that looked only at variance — "is the servo
+stable?" — would have scored cream as the healthier of the two. Stability is
+not accuracy, and this is a clean instance of a metric that inverts if you
+forget which one you are measuring.
