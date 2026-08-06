@@ -32,8 +32,20 @@ constants: pre-registered fresh-seed confirmation **butter 5/10 + soup
 early-latch config split). Three-object head (`goal_heads_v8.pt`, adds a
 cream-cheese corpus) with semantic rebinding: selection-band butter 7/10
 + soup 5/10, second pre-registered fresh-seed confirmation **butter 5/10
-+ soup 4/10**. Cream cheese does not cross: its goals are accurate
-(1.58 cm on-manifold, vs butter 1.34 and soup 1.06).
++ soup 4/10**.
+
+**Cream cheese: first successes, 2026-08-06.** Cream was 0/10 under every
+configuration, binder and prompt fix in this campaign. Nine mechanisms were
+proposed for it and **eight refuted by measurement**; the ninth —
+appearance-side off-manifold drift — survived falsification, a circularity
+check, and an intervention. Fine-tuning the grasp head on the machine's *own*
+deployment viewpoints (labelled from the simulator's object pose, which the
+teacher corpus cannot do for viewpoints it never visited) cut cream's deployed
+lateral error **56%** (0.0697→0.0310 m, Mann-Whitney *p*=0.020) and produced
+its **first two successes** (2/10 on held-out seed 20), while soup went 3/6 →
+7/10 — the repair costs nothing. Collection used seed 0, evaluation seed 20, so
+no cell is scored on its own band. We do **not** claim cream is crossed: 2/10
+vs 0/10 is Fisher *p*=0.474. Films in `watch_videos/dagger_cream/`.
 
 **Corrected 2026-08-06.** This paragraph previously said cream fails because
 the detector's role binding "cannot separate it from look-alikes". That was
