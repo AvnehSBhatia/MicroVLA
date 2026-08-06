@@ -9305,3 +9305,37 @@ is *not*, plus a precise localization (systematic lateral xy error in the grasp
 head, 0.976 coherence, on an object correctly identified and approached). The
 cause is open, and after eight failures I am more confident in the localization
 than I would be in a ninth guess.
+
+### PRE-REGISTERED: the last untested candidate — appearance, not position (2026-08-06)
+
+Eight mechanisms tested, eight refuted. One candidate remains and it is the
+only one the offline design has not reached: the head's **visual** inputs
+(`box_emb`) come, in deployment, from viewpoints the teacher never visited.
+Position (uv) is now excluded non-circularly; appearance is not.
+
+**Instrument.** `MICROVLA_LOG_EMB=1` logs the source-box embedding every 20th
+real tick (off by default — 512 floats a tick would bloat every ordinary run).
+Compare deployment embeddings against each object's own corpus embeddings
+(`source_box_embs`, already stored in the `.npz`). Non-circular in the way the
+uv measurement was not: an embedding's *distance from the training
+distribution* is a property of what the camera saw, and while the machine's
+path is downstream of the head, the appearance statistics of a viewpoint are
+not manufactured by the head being wrong about xy.
+
+**Registered prediction.** Cream's deployment `box_emb` sits **further from its
+corpus distribution** than soup's does from its own — a larger normalized
+distance, or a lower cosine to the corpus mean. If so, appearance-side
+off-manifold drift is a live candidate for the 3.3× degradation.
+
+**Registered falsification.** If cream's deployment embeddings sit *as close*
+to their corpus as soup's do to theirs, appearance is excluded too, and the
+grasp head's deployed error would have **no remaining input-side explanation** —
+which would point at the head's own extrapolation behaviour rather than at any
+property of what it is shown. That is a real possibility and I record it as
+such: **nine tested mechanisms with nine refutations is a legitimate outcome**,
+and would leave the localization (systematic lateral xy, coherence 0.976,
+correct object) as the paper's honest final word on the multi-object boundary.
+
+Also fixed while adding this: the first version referenced `os` without
+importing it in `eval/policy.py` — 19 tests failed instantly, which is what the
+suite is for. 613 pass now.

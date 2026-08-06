@@ -37,6 +37,7 @@ network, no downloads.
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -958,6 +959,17 @@ class MicroVLAPolicy:
                 "src_conf": float(result.perception.source.confidence),
                 "tgt_conf": float(result.perception.target.confidence),
                 "src_center": [float(v) for v in result.perception.source.center],
+                # Subsampled source-box embedding, for asking offline whether
+                # the machine's own viewpoints are off-manifold in APPEARANCE
+                # (the last untested candidate for the grasp head's deployed
+                # xy error). Every 20th real tick keeps the telemetry small;
+                # off unless MICROVLA_LOG_EMB=1, since 512 floats a tick would
+                # bloat every ordinary run.
+                **({} if not os.environ.get("MICROVLA_LOG_EMB")
+                   or (self._tick_index % 20) else {
+                    "src_box_emb": [float(v) for v in
+                                    np.asarray(result.perception.source.emb).reshape(-1)],
+                }),
             }),
             **({} if self.ibvs_machine is None
                else {"phase": self.ibvs_machine.phase}),
