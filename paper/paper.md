@@ -7502,3 +7502,122 @@ recurring rather than a failed reproduction**, since the audit-stack control
 shows a rebuild can invert which head looks better (memorized 6/10 vs released
 0/10, the exact reverse of the deployment stack). We tell reviewers to report
 stack versions with any mismatch instead of assuming either side is wrong.
+
+### PRE-REGISTERED: does detector discriminability predict which objects cross? (2026-08-06)
+
+The multi-object result is "two of four crossed", and the claimed mechanism is
+that the frozen detector cannot bind the other two. That claim is currently
+supported by cream's screening table alone. It becomes a *testable* mechanism
+if discriminability, measured per object on its own corpus through the
+production chain, **predicts** the crossing outcome.
+
+**Instrument.** For each object, build the production prompt chain
+(`with_fallbacks`), call `set_role_prompts` exactly as deployment does, run
+`perceive()` on real corpus frames, and record firing rate and the spread of
+the selected box centre. Low spread means the detector keeps picking the same
+region (bindable); high spread means it is picking a different box from frame
+to frame (not bindable).
+
+**Registered prediction, before running.** Soup and butter crossed; cream did
+not. If the mechanism is real, **soup and butter show box-centre spread below
+~0.15 in both axes, and cream shows spread above ~0.20** (its incumbent "box"
+prompt measured (0.270, 0.155)). Cream is screened under BOTH its pre-fix chain
+(the one in force when it scored 0/10) and its post-fix `_HEAD_DISCRIM` chain,
+because comparing a crossing outcome against a chain that did not produce it
+would be the same provenance error logged above.
+
+**Retraction conditions, registered now.** (a) If a *crossed* object shows high
+spread, the mechanism claim is falsified and the paper reverts to "two of four
+crossed, cause unknown" — the spread metric does not get retuned to fit. (b)
+Only three of four objects can be screened; there is no pudding corpus, so
+pudding stays out of the table rather than being inferred. (c) n=3 objects
+cannot establish a correlation and will not be reported as one — the strongest
+available reading is consistency-or-not with a named mechanism.
+
+### RESULT: prediction falsified, and a previous cycle's "resolved mechanism" RETRACTED (2026-08-06)
+
+The registered prediction failed, and following it honestly destroyed a claim
+this log made one cycle earlier.
+
+**Screening, production chain, each object's own corpus (24 frames / 3 eps each):**
+
+| object | outcome | fire | conf | box-centre spread |
+|---|---|---|---|---|
+| soup | **CROSSED 35/50** | 0.96 | 0.085 | **(0.320, 0.176)** |
+| butter | **CROSSED** | 1.00 | 0.208 | (0.256, 0.075) |
+| cream | 0/10 | 0.96 | 0.107 | (0.304, 0.233) |
+| cream, pre-fix chain | 0/10 | 0.96 | 0.154 | (0.295, 0.186) |
+
+Prediction was: crossed objects below ~0.15 spread, cream above ~0.20. **No
+crossed object is below 0.15, and soup — the object that succeeds 35/50 — has
+the HIGHEST spread of all three, above cream's.** Per registered retraction
+condition (a), the spread metric is abandoned, not retuned.
+
+**The confound, named.** Box-centre spread across frames is measured under a
+**wrist camera that moves**, so an object's image position changes legitimately
+as the arm travels. Spread therefore conflates "the detector switched objects"
+with "the camera moved" and cannot distinguish them. This also retracts the
+interpretation offered in the screening table above — that "box" firing at 0.92
+with spread (0.270, 0.155) meant it was "matching several boxes". That reading
+was unfounded. Likewise "white carton"'s tight (0.057, 0.072) was measured on
+17% of frames, ~4 frames likely adjacent in time and thus under minimal camera
+motion; it is a small-sample artifact of temporal clustering, not evidence of
+better binding.
+
+**The decisive follow-up, and the retraction it forces.** Screening each chain
+element individually asks which one the chain actually resolves to:
+
+| object | product name | head noun | "box" | resolves to |
+|---|---|---|---|---|
+| soup (**crossed 35/50**) | "alphabet soup" **0.00** | "soup" **0.00** | **0.96** | **box** |
+| butter (**crossed**) | "butter" **0.00** | — | **1.00** | **box** |
+| cream (0/10) | "cream cheese" **0.00** | "cheese" **0.00** | **0.92** | **box** |
+
+**All three objects fall back to the generic tail. The two that cross fall back
+exactly as the one that fails does.** The previous cycle's claim — that
+object breadth is limited because product names score 0.000 and every grocery
+therefore collapses onto a shared generic tail, "making same-shaped objects
+indiscriminable *by construction*" — **is retracted**. It cannot explain
+cream's failure, because soup is indiscriminable in precisely the same sense
+and succeeds 35/50. The observation that product names never fire is *correct*
+and stands; the causal story built on it does not.
+
+**Consequences, stated rather than buried.** (i) `_HEAD_DISCRIM` ("white
+carton") was motivated by the now-retracted reading; the code change is inert
+for every object but cream and is still under test, but its *rationale* is
+withdrawn and no result may cite it. (ii) The cream evaluation currently
+running is testing a fix whose premise is dead — it is being carried to
+completion anyway, because stopping a pre-registered run because you no longer
+like its rationale is how selection bias enters. (iii) Deployed binding
+accuracy remains UNMEASURED; this is now the fifth instrument aimed at it to
+fail at its own gate.
+
+**Refined hypothesis, registered for future work, not claimed.** If every
+object binds through the same generic "box" prompt, the difference between
+crossing and not cannot live in the prompt — it must live in the **scene**: how
+many box-like distractors compete for that prompt, and whether the true target
+wins. That is a property of the object's LIBERO scene, not of its name. It
+predicts cream's scene contains box-like competitors that soup's does not.
+Untested; recorded as a hypothesis with its own instrument to build, and
+explicitly NOT offered as this paper's mechanism.
+
+**What the paper now says about multi-object breadth:** two of four objects
+crossed; the two that did not are *not* explained. The honest status is "cause
+unknown", replacing "mechanism-located at role binding". A named mechanism that
+fails its own control is worth less than an admitted gap.
+
+**Manuscript updated to match (2026-08-06).** The retraction propagated to all
+three places the withdrawn mechanism appeared: the abstract ("two measured,
+mechanism-located at role binding" → "two not crossed and, after a proposed
+mechanism was tested and retracted, not explained"), the non-claims list
+("blocked at role binding" → "not explained"), and the addendum, which now
+carries the element-screening table and the falsified spread prediction inline.
+Counts corrected throughout: **three** pre-registered predictions falsified (was
+two) and **five** instruments abandoned at their own gates (was four). Body is
+5 pages with references spilling to a 6th; 0 errors, 0 undefined citations.
+
+The abstract now leads with the retraction's most useful consequence rather
+than hiding it: *every object, including the two that succeed, is detected by
+the same generic shape prompt rather than by its name, so "the detector cannot
+name it" cannot be why the other two fail.* A referee learns more from that
+than from the mechanism we withdrew.

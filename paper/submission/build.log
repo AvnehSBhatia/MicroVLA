@@ -78,13 +78,10 @@ ty
 [1{/Users/avneh/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdf
 tex.map}]
 [2]
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-[3] (./main.bbl
-[4])
-[5] (./main.aux) ) </Users/avneh/Library/texlive/2025basic/texmf-var/fonts/pk/l
+[3]
+[4] (./main.bbl
+[5])
+[6] (./main.aux) ) </Users/avneh/Library/texlive/2025basic/texmf-var/fonts/pk/l
 jfour/jknappen/ec/tcrm0900.600pk></usr/local/texlive/2025basic/texmf-dist/fonts
 /type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2025basic/texmf-dist/f
 onts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2025basic/texmf-di
@@ -103,5 +100,5 @@ cal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr
 /usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pf
 b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/
 msam10.pfb>
-Output written on main.pdf (5 pages, 228735 bytes).
+Output written on main.pdf (6 pages, 231232 bytes).
 Transcript written on main.log.
