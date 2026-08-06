@@ -7936,3 +7936,45 @@ butter swap: cream's chain now contains "white carton" (fires 17%), so it
 perturbs the input in a way butter's does not. If the butter swap is inert and
 the cream swap is not, that difference is attributable to the discriminating
 prompt rather than to object identity, and will be reported that way.
+
+### The architecture proves it: no text reaches the grasp decision (2026-08-06)
+
+Code inspection closes the identity-blindness argument from the other side, and
+it is stronger than the measurement because it is not statistical.
+
+`GraspPointHead.forward` (`microvla/control/goal_head.py:117`) consumes exactly
+`feats["geom"]`, `feats["box_emb"]`, `feats["frame_emb"]`, and `feats["eef_xy"]`.
+Its builder is `build_grasp_features(uv, conf, proprio, box_emb, frame_emb)` —
+**there is no task, command, or text embedding in the signature at all.** The
+deployed call site (`eval/policy.py:901`) passes exactly those five quantities.
+
+So the chain is:
+
+1. The grasp head — which decides *where to grasp* — receives **no language
+   input whatsoever** (code fact, not measurement).
+2. The only path from instruction to grasp is therefore *which box gets
+   selected*, which reaches the head as `uv`, `conf`, and `box_emb`.
+3. That selection is **identity-blind** (measured: same box for different
+   objects, median centre distance 0.0001).
+4. Therefore the instruction **cannot** influence the grasp decision.
+
+Steps 1 and 2 are architectural and hold with certainty; only step 3 is
+empirical. This is a materially stronger result than the measurement alone, and
+it *predicts* the instruction-swap outcome rather than merely being consistent
+with it — which is what makes the running swap a real test of the chain instead
+of a restatement.
+
+**The place side is different, and the asymmetry is worth stating.** `PlaceHead.forward`
+(`goal_head.py:167`) takes `command_emb` and *is* language-conditioned. It is
+inert across this benchmark for a mundane reason: every LIBERO-Object task
+places into the same basket, so a correctly-conditioned place target is
+identical whatever the instruction says. The stack therefore has exactly one
+genuine language channel, and the benchmark gives it nothing to do.
+
+**What this does and does not license.** It does not touch the
+placement-memorization audit or the vision-vs-proprioception attribution. It
+does mean the honest description of the system is: *an open-vocabulary detector
+selects a box by shape, and a language-free head decides where to grasp it.*
+That is a smaller claim than "language-conditioned VLA", and it is the true one.
+The architecture was ours to read at any point in this campaign; reading it is
+what six instruments and four falsified predictions cost.
