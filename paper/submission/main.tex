@@ -102,7 +102,21 @@ with the shell's share measured on both stacks.
 instances at producer/consumer seams, split into disagreements catchable by
 parity testing and agreements-on-a-wrong-convention catchable only by
 provenance~\citep{sculley2015debt,breck2017mltest}.
+\item \textbf{A ground-truth-free test for identity-blind grounding, and the
+negative result it produced.} Open-vocabulary detectors are typically prompted
+with a fallback chain, so a policy can appear language-conditioned while every
+instruction collapses to the same generic prompt. Comparing two \emph{different}
+instructions' selections on the same frame detects this without knowing which
+is correct---the property that let it succeed where five ground-truth-seeking
+instruments failed. Applied to our own stack it returns the same box for
+different objects (median centre distance $0.0001$), so our best cell's 0.700 is
+\emph{not} explained by binding the named object. The test is cheap, needs no
+annotation, and applies to any detector-grounded policy.
 \end{enumerate}
+
+\noindent Both headline findings have one shape: apparent competence resting on
+a channel other than the claimed one---position where we claimed looking, shape
+where we claimed naming. The audit generalizes better than the artifact does.
 
 \section{Platform}
 

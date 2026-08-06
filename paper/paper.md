@@ -7876,3 +7876,21 @@ Both are cited in the submission's size table and the claim now names its own
 adversarial survey. This is the fourth external check performed by reading the
 source rather than a summary this session; the USE parameter count remains
 deliberately uncited because no authoritative figure was found.
+
+### The identity test becomes contribution #4, and the two findings unify (2026-08-06)
+
+Promoted the ground-truth-free identity test from a diagnostic to a stated
+contribution, because it is the most *transferable* thing this session
+produced. The generalizable form: open-vocabulary detectors are typically
+prompted with a fallback chain, so **a policy can appear language-conditioned
+while every instruction collapses to the same generic prompt**. Comparing two
+*different* instructions' selections on the same frame detects this without
+knowing which is correct — which is exactly why it worked where five
+ground-truth-seeking instruments failed. It is cheap, needs no annotation, and
+applies to any detector-grounded policy, not just ours.
+
+Also added the unifying line the paper had been missing: **both headline
+findings have one shape — apparent competence resting on a channel other than
+the claimed one. Position where we claimed looking; shape where we claimed
+naming.** The audit generalizes better than the artifact does, and saying so
+plainly is more useful to a reader than either finding alone.

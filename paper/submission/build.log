@@ -77,8 +77,20 @@ ty
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msb.cfg)
 [1{/Users/avneh/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdf
 tex.map}]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 [2]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 [3]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 [4] (./main.bbl
 [5])
 [6] (./main.aux) ) </Users/avneh/Library/texlive/2025basic/texmf-var/fonts/pk/l
@@ -100,5 +112,5 @@ cal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr
 /usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pf
 b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/
 msam10.pfb>
-Output written on main.pdf (6 pages, 236505 bytes).
+Output written on main.pdf (6 pages, 237990 bytes).
 Transcript written on main.log.
