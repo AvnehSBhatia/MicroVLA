@@ -6722,3 +6722,31 @@ are corpus-derived and none of them transfers. (c) The honest scope for
 the addendum: object breadth is bounded by role binding, the bound is
 quantified offline at 0.902/0.613, and the transfer of those numbers to
 deployment is an open measurement, not a demonstrated fact.
+
+### Bank-butter 4/10 — exactly its no-binder cell (2026-08-06)
+
+**Bank-bound butter: 4/10** (`eval_results/unaided_bk_butter`), against
+4/10 with no binder at all, 7/10 with text rerank, 2/10 with mean
+prototypes. The 0.902-accuracy binder returns butter to precisely the
+baseline it started from, and independently corroborates the engagement
+probe: a binder that thrashes tick-to-tick on live crops neither helps
+(cream 0/10) nor is it merely inert — it undoes the gain the far cruder
+text rerank achieved (7/10 → 4/10).
+
+Three-object ladder, all n=10 on the v8 head with the anchor band:
+
+| binder | offline identity acc. | cream | butter | soup |
+|---|---|---|---|---|
+| none | — | 0/10 | 4/10 | 5/10 |
+| text rerank | (not measured offline) | 0/10 | **7/10** | 5/10 |
+| mean prototype | 0.613 | 0/10 | 2/10 | **8/10** |
+| 1-NN bank | 0.902 | 0/10 | 4/10 | running |
+
+Read honestly, the column that matters is the ordering: **offline binder
+accuracy does not predict deployed success at all**. 0.613 gives the best
+soup cell of the night and the worst butter cell; 0.902 returns butter to
+baseline and leaves cream at zero; the binder with no offline number at
+all (text rerank) gives the best butter cell. Whatever these binders are
+doing on live crops, it is not what the corpus-crop benchmark measures.
+That is the finding — and it is the same on-manifold gap §6 documents for
+substitution probes, now shown twice more.
