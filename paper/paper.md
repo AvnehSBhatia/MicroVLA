@@ -10008,3 +10008,51 @@ I caught it from a partial result (16/35) rather than from re-reading what I
 had written — the number looked low, and *that* is what prompted the check.
 Noticing a design flaw because the result is disappointing is a weak form of
 noticing; the registration should have carried the control from the start.
+
+### SPECIFICITY CONFIRMED: the repair does nothing where there is nothing to repair (2026-08-06)
+
+Soup, n=50 both arms, held-out seed 20, identical configuration and seeds:
+
+| arm | cell | Wilson 95% |
+|---|---|---|
+| v8 control | 27/50 = 0.540 | [0.40, 0.67] |
+| +DAgger | 28/50 = 0.560 | [0.42, 0.69] |
+
+**Paired exact McNemar: 21 discordant pairs, 11 favouring DAgger and 10
+favouring control — p = 1.0000.** As null as a result can be.
+
+**Note what that null is made of.** It is not that the two heads behave
+identically — *21 of 50 trials flipped*, on a harness whose noise floor is
+exactly zero, so every one of those flips is a real behavioural change. The
+head changed; the outcome distribution did not. A rate comparison alone would
+have hidden that, and it is worth stating because "no significant difference"
+and "no difference" are not the same claim.
+
+**Dose-response across the two objects — the repair tracks the defect:**
+
+| object | appearance drift gap | control | +DAgger | paired p | effect |
+|---|---|---|---|---|---|
+| cream cheese | **+0.0272** | 3/50 | **18/50** | **6.1e-05** | **6.0×** |
+| alphabet soup | **+0.0089** | 27/50 | 28/50 | 1.0000 | 1.0× |
+
+Three times the drift, six times the benefit; a third of the drift, no benefit
+at all. **This is the strongest confirmation of the mechanism in the campaign,
+and it comes from the arm that "failed".** A repair that improved every object
+would be consistent with generic regularization — more data, better head. A
+repair whose effect appears *only* where the measured defect is present, and
+vanishes where it is absent, is hard to explain as anything but a targeted fix
+for that defect. I did not design this as a specificity test; the registered
+falsification happened to be one.
+
+**The registered falsification is met and the bound stands.** DAgger-on-own-
+viewpoints is **specific to objects whose deployment viewpoints have drifted**.
+It is not a general improvement to grasp prediction, and the working object's
+remaining ~30–45% failure is something else entirely — unmeasured, and not
+claimed.
+
+**The headline cell is untouched, as committed before the run.** The released
+v5 head keeps the paper's 0.700 held-out result with its full provenance chain.
+The soup DAgger cells are reported as additional dated cells and nothing is
+swapped in on the strength of a late-session run — which, at 0.560 against v5's
+0.700, would have been a downgrade dressed as an upgrade had I not fixed the
+comparator in advance.
