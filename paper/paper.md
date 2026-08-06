@@ -9032,3 +9032,61 @@ not a missing constant — is what blocks the third object.
 error is systematic (a fixed bias, correctable in principle) or scattered
 (a variance problem) is not measured here — the mean is 6.9 cm but I have not
 looked at its direction, and I am not going to infer it from six numbers.
+
+### THE MULTI-OBJECT RESULT, EXPLAINED: the benchmark has two target positions, and the head memorized one (2026-08-06)
+
+Measuring the *direction* of cream's systematic bias led somewhere the whole
+campaign had missed.
+
+**LIBERO-Object's ten tasks place their targets at exactly TWO table
+positions**, 22.0 cm apart (from `results/placement_pinning.json`, the shipped
+instrument):
+
+| position | tasks |
+|---|---|
+| **A** (−0.1200, −0.2400) | 0 alphabet soup, 4 ketchup, **6 butter**, 7 milk, 8 chocolate pudding |
+| **B** (+0.0500, −0.1000) | **1 cream cheese**, 2 salad dressing, 3 bbq sauce, 5 tomato sauce, 9 orange juice |
+
+Within each group the agreement is 0.0–0.7 mm. This is a *stronger* statement
+than §3's within-task pinning: not only is each task's placement fixed across
+its 50 init states, **the ten tasks between them use two locations.** A policy
+that memorizes two coordinates can look like it generalizes across ten tasks.
+
+**And that is what ours did.** The objects that cross — soup (task 0) and
+butter (task 6) — are **both at position A**, and the training corpora are
+dominated by them (`teacher_rand_full`, `teacher_rand2`, `butter_rand`,
+`butter_rand2` at A; `cream_rand` alone at B). Cream, the object that fails, is
+the one at **position B**. Its grasp error is:
+
+- **systematic**, not scatter — coherence |mean|/mean|v| = **0.976** across six trials;
+- **6.7 cm**, versus soup's 1.4 cm;
+- and aimed at **position A**: the mean error vector lies **7.4° off** the
+  cream→A direction and covers **31% of the 22 cm gap**.
+
+**The grasp head learned a location, not a look-up.** It is pulled toward the
+table position where its training data lives, which is invisible on any object
+placed there and fatal for the one that is not. This is the paper's title
+demonstrated at the multi-object level, and it retires every competing account
+of the multi-object result: not role binding (cream reaches the *commanded*
+object 6/6), not binder quality (they were improving a working stage), not
+descent (cream's height is better than soup's), not object appearance.
+
+**Honest complication: chocolate pudding is at position A and still does not
+cross.** So position is not sufficient. Pudding fails earlier and differently —
+its scripted teacher never reached a grasp in five calibration iterations, so
+no corpus exists for it at all. The account is "cream's failure is explained by
+position-memorization; pudding's failure is upstream of the head and remains a
+teacher failure", not "position explains everything".
+
+**What this does NOT license.** A cream-specific xy correction would cross a
+third object by memorizing its coordinate — the exact defect, now measured
+twice over. The finding is diagnostic: the benchmark affords two-position
+memorization, and our head took it. Fixing it means training data that covers
+placement, which is what the ten-episode teleport repair did for the *dev*
+protocol and what no corpus here does across positions.
+
+**Registered follow-up, not yet run.** If the head is biased toward position A,
+then the four *other* position-B objects (salad dressing, bbq sauce, tomato
+sauce, orange juice) should show the same ~7 cm bias toward A, and the three
+other position-A objects should not. That is a 9-task prediction from a
+one-object measurement and it is cheap to test — one nearest-body run per task.
