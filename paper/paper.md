@@ -8579,3 +8579,23 @@ Both cells (`gen_butter_base` 0.0, `gen_butter_swap` 0.0) are superseded by the
 re-queued `gen2_*` pair under the `anchor_band` configuration.
 
 The noise-floor control is now running.
+
+### Arithmetic error in my own tally, caught by recounting (2026-08-06)
+
+The submission claimed the deployed-binding question was *"attempted five times
+and abandoned five times"* and then **enumerated six**: a projected-origin
+ground truth, its sign-corrected successor, **three** text-tower probes, and
+the spread metric. I introduced that error earlier today when adding the spread
+metric to a list of five without incrementing the count. A referee counting the
+items in the same sentence would have found it immediately.
+
+The falsified-prediction tally was stale for the same reason — it said three
+while five now exist: bank binding, chocolate pudding, box-centre spread,
+proposal scarcity, and the instruction swap.
+
+Corrected in the abstract and the addendum: **five falsified predictions, six
+instruments abandoned before a seventh succeeded.** Both numbers were recounted
+against the enumerated items rather than adjusted by one, because the error
+came from trusting a running count instead of the list under it. The tallies
+are a claim like any other, and this log's whole discipline is that a number
+you did not re-derive is a number you are guessing.
