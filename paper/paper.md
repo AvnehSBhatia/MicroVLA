@@ -10123,3 +10123,38 @@ clock that is currently stopped.
 The package is ready for the first of those today: `paper/submission/` builds
 clean, `REPRODUCE.md` lets a stranger verify both headline cells, `models/`
 ships every checkpoint the papers cite with digests, and 616 tests pass.
+
+### An ICRA-format draft, prepared as a proposal (2026-08-06)
+
+I said the reformat-and-cut was an authorial judgment and left it. Handing over
+a *task* is less useful than handing over a *draft to adjust*, so
+`paper/submission/main_icra.tex` now exists.
+
+**Status of the format.** `IEEEtran.cls` is **not installed** and `tlmgr`
+requires admin, so this builds as two-column `article` at 10pt with 0.75in
+margins — close to IEEE conference density, close enough to size the cut. Once
+`sudo tlmgr install ieeetran` is run, the class swap is one line, marked in a
+comment at the top. **The substantive work is the cut, not the class.**
+
+**What I cut**, and the reasoning: the multi-object addendum's narrative
+compresses from ~2 pages to 5 paragraphs, keeping every *result* (three objects
+crossed, nine mechanisms with eight refuted, the three tests the survivor
+passed, and the specificity null) and dropping the *chronology* — which
+instrument failed in what order, the retraction sequence, the binder sub-study
+prose. That history is the honest record and belongs in `paper.md` and the
+manuscript; a 6-page conference paper is not where it earns its space. Two of
+three figures were dropped, then one restored.
+
+**It came in at 3.5 body pages against ICRA's 6 — I over-cut**, which is a
+better error than the reverse and is why I restored the third-object figure as
+a full-width `figure*`. There is roughly a page and a half of headroom left. My
+recommendation for it, offered rather than taken: restore the attribution
+figure (it carries the probe's own counterexample) and the binder sub-study's
+dissociation result, in that order.
+
+**What I did not do:** decide. The cut reflects my reading that the
+methodology transfers further than the success rates. If the intended emphasis
+is the artifact rather than the audit, a different third should go, and the
+draft is a starting point for that edit rather than an answer to it.
+
+616 tests pass; both PDFs build clean.
