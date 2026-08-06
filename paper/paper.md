@@ -6795,3 +6795,21 @@ have no measurement of the deployed quantity. That prediction, its
 falsification, and this attribution stay in the paper — a negative
 result with a located cause is worth more than the positive one I was
 chasing.
+
+### Submission package built (2026-08-06)
+
+`paper/submission/`: `main.tex` (anonymized, plain `article`, 4 pp),
+`refs.bib` (18 entries), compiled `main.pdf` — clean build, zero LaTeX
+warnings, zero undefined citations. Content is the audited subset only:
+the parameter ledger, the protocol × head table with both n=50
+confirmations and the two-stack controls, the rebuild matrix, the
+multi-object addendum including the four-binder dissociation table, and
+the falsified prediction stated in the abstract rather than buried.
+Claims/non-claims/limitations transcribed verbatim in spirit from
+MANUSCRIPT_v2 §9–10.
+
+Explicitly NOT done, and recorded as such: figures not yet placed in the
+LaTeX (they exist and are regenerable); no venue style file applied
+pending a venue choice; and **no submission has been made** — that
+requires the author's decision and credentials, and no artifact here may
+be represented as submitted or reviewed.

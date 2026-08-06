@@ -1,0 +1,115 @@
+\begin{thebibliography}{17}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bansal et~al.(2018)Bansal, Krizhevsky, and
+  Ogale]{bansal2018chauffeurnet}
+Mayank Bansal, Alex Krizhevsky, and Abhijit Ogale.
+\newblock Chauffeurnet: Learning to drive by imitating the best and
+  synthesizing the worst.
+\newblock \emph{arXiv preprint arXiv:1812.03079}, 2018.
+
+\bibitem[Black et~al.(2025)]{black2025pi05}
+Kevin Black et~al.
+\newblock $\pi_{0.5}$: A vision-language-action model with open-world
+  generalization.
+\newblock \emph{arXiv preprint arXiv:2504.16054}, 2025.
+
+\bibitem[Breck et~al.(2017)Breck, Cai, Nielsen, Salib, and
+  Sculley]{breck2017mltest}
+Eric Breck, Shanqing Cai, Eric Nielsen, Michael Salib, and D.~Sculley.
+\newblock The {ML} test score: A rubric for {ML} production readiness and
+  technical debt reduction.
+\newblock In \emph{IEEE International Conference on Big Data}, 2017.
+
+\bibitem[Brohan et~al.(2023)]{brohan2023rt2}
+Anthony Brohan et~al.
+\newblock {RT-2}: Vision-language-action models transfer web knowledge to
+  robotic control.
+\newblock \emph{arXiv preprint arXiv:2307.15818}, 2023.
+
+\bibitem[de~Haan et~al.(2019)de~Haan, Jayaraman, and Levine]{dehaan2019causal}
+Pim de~Haan, Dinesh Jayaraman, and Sergey Levine.
+\newblock Causal confusion in imitation learning.
+\newblock In \emph{NeurIPS}, 2019.
+
+\bibitem[Geirhos et~al.(2020)Geirhos, Jacobsen, Michaelis, Zemel, Brendel,
+  Bethge, and Wichmann]{geirhos2020shortcut}
+Robert Geirhos, J{\"o}rn-Henrik Jacobsen, Claudio Michaelis, Richard Zemel,
+  Wieland Brendel, Matthias Bethge, and Felix~A. Wichmann.
+\newblock Shortcut learning in deep neural networks.
+\newblock \emph{Nature Machine Intelligence}, 2:\penalty0 665--673, 2020.
+
+\bibitem[Huang et~al.(2023)]{huang2023voxposer}
+Wenlong Huang et~al.
+\newblock {VoxPoser}: Composable {3D} value maps for robotic manipulation with
+  language models.
+\newblock In \emph{CoRL}, 2023.
+
+\bibitem[Kim et~al.(2024)]{kim2024openvla}
+Moo~Jin Kim et~al.
+\newblock {OpenVLA}: An open-source vision-language-action model.
+\newblock \emph{arXiv preprint arXiv:2406.09246}, 2024.
+
+\bibitem[Liu et~al.(2023)Liu, Zhu, Gao, Feng, Liu, Zhu, and
+  Stone]{liu2023libero}
+Bo~Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter
+  Stone.
+\newblock {LIBERO}: Benchmarking knowledge transfer for lifelong robot
+  learning.
+\newblock In \emph{NeurIPS Datasets and Benchmarks}, 2023.
+
+\bibitem[Liu et~al.(2024)Liu, Fang, Abbeel, and Levine]{liu2024moka}
+Fangchen Liu, Kuan Fang, Pieter Abbeel, and Sergey Levine.
+\newblock {MOKA}: Open-world robotic manipulation through mark-based visual
+  prompting.
+\newblock In \emph{RSS}, 2024.
+
+\bibitem[Mandlekar et~al.(2023)Mandlekar, Nasiriany, Wen, Akinola, Narang, Fan,
+  Zhu, and Fox]{mandlekar2023mimicgen}
+Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo Akinola, Yashraj Narang,
+  Linxi Fan, Yuke Zhu, and Dieter Fox.
+\newblock {MimicGen}: A data generation system for scalable robot learning
+  using human demonstrations.
+\newblock In \emph{CoRL}, 2023.
+
+\bibitem[{Octo Model Team} et~al.(2024)]{octo2024}
+{Octo Model Team} et~al.
+\newblock Octo: An open-source generalist robot policy.
+\newblock In \emph{RSS}, 2024.
+
+\bibitem[Sculley et~al.(2015)Sculley, Holt, Golovin, Davydov, Phillips, Ebner,
+  Chaudhary, Young, Crespo, and Dennison]{sculley2015debt}
+D.~Sculley, Gary Holt, Daniel Golovin, Eugene Davydov, Todd Phillips, Dietmar
+  Ebner, Vinay Chaudhary, Michael Young, Jean-Fran{\c c}ois Crespo, and Dan
+  Dennison.
+\newblock Hidden technical debt in machine learning systems.
+\newblock In \emph{NeurIPS}, 2015.
+
+\bibitem[Shridhar et~al.(2021)Shridhar, Manuelli, and Fox]{shridhar2021cliport}
+Mohit Shridhar, Lucas Manuelli, and Dieter Fox.
+\newblock {CLIPort}: What and where pathways for robotic manipulation.
+\newblock In \emph{CoRL}, 2021.
+
+\bibitem[Shukor et~al.(2025)]{shukor2025smolvla}
+Mustafa Shukor et~al.
+\newblock {SmolVLA}: A vision-language-action model for affordable and
+  efficient robotics.
+\newblock \emph{arXiv preprint arXiv:2506.01844}, 2025.
+
+\bibitem[Wen et~al.(2020)Wen, Lin, Darrell, Jayaraman, and Gao]{wen2020copycat}
+Chuan Wen, Jierui Lin, Trevor Darrell, Dinesh Jayaraman, and Yang Gao.
+\newblock Fighting copycat agents in behavioral cloning from observation
+  histories.
+\newblock In \emph{NeurIPS}, 2020.
+
+\bibitem[Zeng et~al.(2020)]{zeng2020transporter}
+Andy Zeng et~al.
+\newblock Transporter networks: Rearranging the visual world for robotic
+  manipulation.
+\newblock In \emph{CoRL}, 2020.
+
+\end{thebibliography}
