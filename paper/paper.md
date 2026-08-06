@@ -6636,3 +6636,45 @@ three cells — only which box the machine believed was the target.
 Prediction for the bank trio, on record: soup should hold high, butter
 should recover past 2/10 (1-NN separates it at 0.90 where the mean
 prototype does not), cream is the open question at 0.82.
+
+### PREDICTION FALSIFIED: bank-bound cream 0/10, and the failure is locatable (2026-08-06)
+
+I predicted in writing, before the run, that 1-NN bank binding would put
+cream above zero (0.82 per-tick identity accuracy → 0.914 median-of-3
+latch correctness). **It did not: bank-bound cream is 0/10**
+(`libero_object_real_1785993850945`). The prediction is wrong and the
+binder-accuracy → deployed-success chain I built on it does not hold as
+stated.
+
+The telemetry says exactly which half broke. Source-uv std under bank
+binding is **0.328** — against 0.329 with no binder, 0.339 with text
+rerank, 0.321 with mean prototypes. Four binders, four identical flicker
+levels. The bank binder, whose offline identity accuracy is 0.902
+overall and 0.82 on cream, **does not change what the deployed machine
+binds at all**. Closest approach is unchanged too (0.107 m vs 0.105
+no-binder), and no trial gets inside 6 cm.
+
+So the offline measurement and the deployed behaviour have come apart,
+and that gap — not the cream cell itself — is now the finding to chase.
+Two candidate explanations, both testable and neither yet tested:
+(1) the binder is not engaging on the live path (proposals may not reach
+the observe branch with usable embeddings, in which case `src` never
+changes and every "binder" cell has been measuring the same policy —
+which the four identical uv-std numbers are consistent with, and which
+would ALSO explain why the prototype cells differed only by noise); or
+(2) it engages but the live crop embeddings sit off the corpus manifold,
+so a bank built from teacher episodes cannot match them — the same
+on-manifold limit §6 documents for substitution probes, now biting the
+binder.
+
+Explanation (1) is embarrassing and cheap to check, so it goes first: log
+the chosen proposal index per tick with and without `--goal-src-bank` on
+one episode and compare. If the indices are identical, the binder never
+fired and three of tonight's cells (proto cream/butter/soup, bank cream)
+must be re-labelled as replicates of the no-binder policy rather than
+binder tests — with the prototype-soup 8/10 and prototype-butter 2/10
+spread re-read as n=10 sampling noise around the same policy, not as
+evidence that binder quality tracks separability. That re-reading would
+retract the "binder gain tracks per-object separability" claim logged
+earlier tonight; it stays in the log either way, marked as contingent on
+this check.
