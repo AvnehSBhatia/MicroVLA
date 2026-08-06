@@ -1,8 +1,10 @@
 # Submission package
 
-`main.tex` + `refs.bib` → `main.pdf` (5 pp body + references, anonymized,
-`plainnat`). Build:
+`main.tex` + `refs.bib` → `main.pdf` (7 pp total: body runs to just past p5,
+references pp 6–7; anonymized, `plainnat`). Build:
 `pdflatex main && bibtex main && pdflatex main && pdflatex main`.
+Body length is *not* yet trimmed to a venue limit — see the note below on
+formatting. Content was prioritised over hitting a self-imposed page count.
 
 **`REPRODUCE.md`** is the entry point for anyone checking the numbers: exact
 commands for both n=50 headline cells, SHA/md5 digests of the two checkpoints

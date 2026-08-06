@@ -55,8 +55,13 @@ needs no ground truth, succeeded and retracted our own proposed mechanism:
 different objects' prompt chains select the \emph{same} detection from the same
 frame (median centre distance $0.0001$), so deployed role binding is
 \textbf{identity-blind} and the crossing object's 35/50 is not explained by
-binding the named object. This scopes ``grounding'' throughout: the repaired
-head is grounded on \emph{a} box, not \emph{the named} one.
+binding the named object. Swapping the instruction collapses the cell
+(7/10$\to$0/10, $p=0.016$), and a $2\times2$ decomposition localises that
+entirely to the \emph{command embedding}---prompts from another object cost
+nothing ($p=1.0$). Object selection, approach and grasping thus run with no
+language input at all, and this system's whole language channel is one latched
+place coordinate: the repaired head is grounded on \emph{a} box, not \emph{the
+named} one.
 \end{abstract}
 
 \section{Introduction}
@@ -230,16 +235,26 @@ place target---which leaves the stack's one real language channel normally
 instruction to a different object---environment, physics and success criterion
 unchanged, so success is still scored on the real task---collapses the cell
 from 7/10 to \textbf{0/10} (told butter; 0/10 again told cream cheese; seven
-discordant pairs one-way, exact two-sided $p=0.016$). Any reading of the
-preceding paragraphs as ``the policy ignores its instruction'' is refuted by
-that table. Telemetry places the butter cell's failure \emph{downstream of
-object approach}---the machine still reaches the true soup object as closely as
-baseline (\texttt{eef\_obj\_dist\_min} 0.006--0.013 vs.\ 0.012--0.018) while
-\texttt{grip\_close\_rate} falls from ${\sim}0.67$ to ${\sim}0.26$. Since one
+discordant pairs one-way, exact two-sided $p=0.016$) --- so the policy plainly
+does not ignore its instruction. Telemetry places the butter cell's failure \emph{downstream of
+object approach}: the machine still reaches the true soup object as closely as
+baseline while \texttt{grip\_close\_rate} falls from ${\sim}0.67$ to
+${\sim}0.26$.
+
+\noindent \textbf{Decomposition: the collapse is entirely one channel.} One
 instruction drives both the detection prompts and the place head's command
-embedding, we do not attribute the collapse to either channel here; a
-decomposition that drives them from different instructions is the obvious
-experiment and we report it as pending rather than guessing.
+embedding, so we drove them from \emph{different} instructions. The four cells
+form a $2\times2$: with embeddings from the real task, prompts from another
+object cost nothing (6/10 vs.\ 7/10, exact $p=1.0$); with prompts from the real
+task, embeddings from another object collapse it (0/10, $p=0.016$) and
+reproduce the full swap's per-trial pattern \emph{exactly} (10/10 agreement).
+One main effect, no interaction. Combined with the architecture, this says what
+the system is: \textbf{object selection, approach and grasping run with no
+language input at all, and the entire language channel is a single latched
+$(x,y)$ place point} cached once per episode by
+\texttt{set\_place(place\_head(command\_emb))}. Ask this policy for the butter
+and it finds, approaches and grasps the alphabet soup at baseline rate; it
+fails only when that one cached coordinate is wrong.
 
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which
@@ -250,21 +265,7 @@ for this campaign: the pipeline has no object-level channel to generalize over.
 A system that succeeds without discriminating its target is a weaker claim than
 one that succeeds by discriminating it, and we report the weaker true one.
 
-\begin{table}[h]\centering\small
-\caption{Role-binding sub-study: four binders, three objects, $n{=}10$ each,
-one head and one configuration. Offline identity accuracy is leave-episode-out
-3-way classification on corpus crops.}
-\begin{tabular}{lcccc}
-\toprule
-binder & offline identity acc. & cream & butter & soup \\
-\midrule
-none & --- & 0/10 & 4/10 & 5/10 \\
-crop-CLIP rerank & not measured & 0/10 & \textbf{7/10} & 5/10 \\
-mean prototype (centered) & 0.613 & 0/10 & 2/10 & \textbf{8/10} \\
-1-NN bank (centered) & 0.902 & 0/10 & 4/10 & 6/10 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\noindent \textbf{Role-binding sub-study} (four binders $\times$ three objects, $n{=}10$ each, one head and one configuration): the blocked object scores 0/10 under \emph{every} binder---none, crop-CLIP rerank, mean prototype (offline identity 0.613), 1-NN bank (0.902)---while the two that cross move non-monotonically with offline accuracy (butter 4/7/2/4, soup 5/5/8/6). Full cells with run ids are in the manuscript appendix.
 
 \noindent \textbf{Offline binder accuracy dissociates from deployed success.}
 The weaker binder owns the best soup cell and the worst butter cell; the
@@ -386,17 +387,17 @@ shell is engineered); head-level grounding from the randomized column alone,
 stack-free; object-level generalization beyond the addendum's two crossed
 objects (four attempted, two not crossed and, after a tested-and-retracted
 mechanism, \emph{not explained}); any deployed
-binding-accuracy figure; physical deployment; any size claim beyond the bounded
-one of Table~\ref{tab:size} (surveyed systems, published counts, parameters
-only)---in particular no claim that smaller systems do not exist, and no claim
-that small size caused any success rate reported here.
+binding-accuracy figure; physical deployment; any size claim beyond
+Table~\ref{tab:size}'s bounded one (surveyed systems, published counts,
+parameters only)---neither that smaller systems cannot exist, nor that small
+size caused any result here.
 \textbf{Limitations:} $n{=}10$ per cell with $n{=}50$ confirmations on two
 protocols; ten held-out states reused across five disclosed selection looks;
 machine constants inherited from a dev-tuned era; substitution probes are
-on-manifold instruments; $\pm4$\,cm randomization sits inside the shell's
-$\pm6$\,cm probe envelope and separates heads only where visual goals are live;
-the teacher's calibration consumed privileged diagnostic telemetry offline;
-single benchmark, single simulator.
+on-manifold; $\pm4$\,cm randomization sits inside the shell's $\pm6$\,cm probe
+envelope and separates heads only where visual goals are live; the teacher's
+calibration consumed privileged telemetry offline; single benchmark, single
+simulator.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}

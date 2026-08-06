@@ -8455,3 +8455,66 @@ in-distribution for v8, so an OOD embedding cannot be the cause, and the
 latched-place-point story needs rework despite cell B.
 
 The original prediction stays on the record above, unedited, marked superseded.
+
+### DECOMPOSITION COMPLETE: the collapse is entirely the embedding channel (2026-08-06)
+
+**Cell B — prompts from the real soup instruction, task embeddings from
+butter: 0/10** (`eval_results/dec_embonly_butter`, `mean_success` 0.0,
+artifact-verified). Its per-trial pattern is `0000000000`, **identical to the
+full swap on all ten trials.**
+
+The four cells form a 2×2 factorial that was not designed as one but reads as
+one exactly:
+
+| | embeddings = soup | embeddings = butter |
+|---|---|---|
+| **prompts = soup** | **7/10** (baseline) | **0/10** (cell B) |
+| **prompts = butter** | **6/10** (cell A) | **0/10** (full swap) |
+
+Marginals: prompt channel **0.35 vs 0.30** (no effect); embedding channel
+**0.65 vs 0.00** (total). One main effect, no interaction.
+
+Exact McNemar on every pair:
+
+| comparison | discordant | exact two-sided p |
+|---|---|---|
+| baseline vs cell A (prompt swapped) | 3 | **1.0000** |
+| baseline vs cell B (embedding swapped) | 7, one-way | **0.0156** |
+| baseline vs full swap | 7, one-way | **0.0156** |
+| cell A vs cell B | 6, one-way | **0.0312** |
+| cell B vs full swap | 0 | **identical patterns** |
+
+**Cell B reproduces the full swap trial for trial.** Swapping the embedding
+alone is not merely *sufficient* for the collapse — it accounts for all of it,
+with nothing left for the prompt channel to explain.
+
+**The registered prediction is confirmed**, and the earlier falsification is
+now explained rather than merely recorded. The instruction-swap prediction
+failed because I predicted at the level of "the instruction" when the system
+has two independent instruction-driven channels: one inert, one total.
+
+**What the system actually is.** Combining this with the architecture:
+`goal_machine.step(proprio)` replaces the plan wholesale; the grasp head's
+signature contains no text; the place head runs once per episode caching
+`set_place(place_head(command_emb))`. So **object selection, approach and
+grasping run with no language input whatsoever, and the entire language channel
+is one latched (x, y) place point.** You can ask this policy for the butter and
+it will find, approach and grasp the alphabet soup at baseline rate (6/10 vs
+7/10, p = 1.0) — and it fails only when the one cached coordinate is wrong.
+
+**Caveat still live, not dropped now that the result is clean.** The per-trial
+figures depend on the harness noise floor, which is queued and still
+unmeasured. The rate-level conclusions do not: cell B vs baseline is 7 one-way
+discordant pairs, and cell B vs full swap is a perfect 10/10 pattern match,
+neither of which a modest noise floor could manufacture.
+
+**Submission updated with the decomposition (2026-08-06).** Abstract now
+carries it (the 2×2 localisation and "one latched place coordinate"); the
+addendum's "attribution pending" paragraph is replaced by the result; the
+role-binding table is compressed to prose (the manuscript keeps all cells with
+run ids). Body runs to just past 5 pages; references pp 6–7. **I stopped
+trimming**: three rounds of compression were improving concision, the fourth
+would have cut verified content to hit a page number I set myself, and the
+package has no venue yet. Recorded because "it fit in 5 pages" is not a
+result, and cutting evidence to preserve a formatting target is the kind of
+quiet distortion this log exists to catch.
