@@ -458,6 +458,35 @@ flip is the evidence). A constant that changes sign under a dependency bump
 encodes the detector version too — the strongest form of the argument that
 these quantities must be learned.
 
+**Layer 4 — the place head (found 2026-08-06, by swapping the instruction).**
+The basket does not move: measured across all ten LIBERO-Object tasks its mean
+position varies by **0.22–0.40 cm**, *less* than its own ~0.8 cm within-task
+jitter (`results/placement_pinning.json`). A place head that had grounded on
+the basket would therefore emit one point per scene. The released head
+(`goal_heads_v5`, trained on soup corpora only) emits:
+
+| command | place point (x, y) | error vs true basket (+0.2605) |
+|---|---|---|
+| "alphabet soup" (trained) | (−0.0010, **+0.2569**) | **0.36 cm** — correct |
+| "butter" (unseen) | (+0.0017, **+0.1155**) | **14.5 cm** |
+| "cream cheese" (unseen) | (−0.0003, **+0.1303**) | **13.0 cm** |
+
+It learned **command→location**, not basket — 35× the 0.40 cm threshold
+registered before the measurement. And 14 cm is exactly enough to release a
+grocery over open table, which is the observed swap failure (grasp succeeds,
+`eef_obj_dist_min` at baseline, `grip_close_rate` 0.675→0.257).
+
+**Training coverage, not architecture.** The identical measurement on
+`goal_heads_v8` (whose `data_dirs` include butter and cream) collapses the
+spread from **14.15 cm to 0.78 cm** — inside the basket's own variation, all
+three commands correct to ≤1 cm. The failure is repaired by including the
+command in training.
+
+This layer was invisible to every earlier probe in this campaign because all
+ten tasks share one basket: a memorized and a grounded place map are
+behaviourally identical *until the instruction is swapped*. It is the paper's
+own thesis locating a defect the paper's own instruments had missed.
+
 **The head, probed.** An input-substitution probe on the fixed-placement
 grasp head: prediction flat (~1 mm) under image-position sweeps while
 tracking the end-effector (slope ≈0.87 toward the fixed target). With a
