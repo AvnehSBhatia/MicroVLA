@@ -8518,3 +8518,42 @@ would have cut verified content to hit a page number I set myself, and the
 package has no venue yet. Recorded because "it fit in 5 pages" is not a
 result, and cutting evidence to preserve a formatting target is the kind of
 quiet distortion this log exists to catch.
+
+### The generalization test is VOID — my design error, not a result (2026-08-06)
+
+**Butter task 6, v8 head, correct instruction, seed 20: 0/10**
+(`eval_results/gen_butter_base`, `mean_success` 0.0, artifact-verified).
+`eef_obj_dist_min` runs 0.056–0.146 m across all ten trials: the machine never
+gets near the object.
+
+**The baseline is dead, so the cell measures nothing.** A swap ablation asks
+whether a manipulation destroys performance; with a baseline of zero there is
+no performance to destroy, and the swapped cell's number — whatever it turns
+out to be — is uninterpretable. I registered "baseline clearly above zero" as
+the precondition, and it failed. **Instrument #7, failed at its own
+pre-registered gate.**
+
+**The cause is my configuration choice, and it was avoidable.** I reused the
+soup flag string verbatim, which carries **no `--goal-kwargs`**. But butter's
+published cells were never produced in that configuration — they used
+`{"anchor_band":0.04}` or the early-latch `{"latch_tol":9.0,"z_freeze":1.0}`
+split (both recorded in this log, both present in the pod's own scripts). I
+copied the flags that make *soup* work and applied them to *butter*, which is
+the same "constant inherited from a different regime" defect the paper
+documents 29 instances of. Finding it in a run I designed today, hours after
+writing that section, is the honest version of the lesson.
+
+**Consequence.** The question "does the collapse generalize beyond task 0 and
+the flagship head?" is **UNANSWERED**, not answered negatively. It is not
+evidence against the decomposition, which stands on its own four cells; it is
+simply a test that did not run. The swap cell now executing against this dead
+baseline will be recorded and discarded.
+
+**Re-queued correctly**: butter task 6, v8, with `{"anchor_band":0.04}` — the
+configuration under which butter's cells were actually measured — baseline and
+swap. The registered prediction is unchanged from the update logged before this
+failure: **the v8 swap should NOT collapse**, because both soup's and butter's
+command embeddings are in v8's training corpora, so neither is out of
+distribution for its place head. If the corrected baseline is *also* near zero,
+the generalization question stays unanswered and I will say so rather than
+tuning until a baseline appears.
