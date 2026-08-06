@@ -7894,3 +7894,18 @@ findings have one shape — apparent competence resting on a channel other than
 the claimed one. Position where we claimed looking; shape where we claimed
 naming.** The audit generalizes better than the artifact does, and saying so
 plainly is more useful to a reader than either finding alone.
+
+### Regression check: the prompts.py change is safe for the working object (2026-08-06)
+
+**Soup, same code as the cream discriminating run: 5/10**
+(`eval_results/unaided_soup_discrim`, `mean_success` 0.5, n=10,
+artifact-verified). Soup's chain is byte-identical before and after the
+`_HEAD_DISCRIM` edit — only cream's chain changed — and 5/10 sits inside the
+held-out cell's Wilson interval [0.56, 0.81]'s neighbourhood at this n (the
+n=10 flagship held-out cell is 7/10; n=10 cells at p≈0.7 return 5/10 routinely).
+The edit is confirmed inert for the objects it does not name, which is what a
+regression cell is for. Cream with the discriminating chain: **0/10**.
+
+Net result of the `_HEAD_DISCRIM` experiment: no gain on the target object, no
+loss on the others, and its motivating rationale independently retracted. The
+code stays (inert, disclosed) and no number in the paper is produced with it.
