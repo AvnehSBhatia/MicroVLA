@@ -767,17 +767,40 @@ fine-tuning; Octo, TinyVLA, and SmolVLA compress the recipe. Sizes are
 comparable only under one stated convention — here, *deployed* = every
 parameter loaded at inference, frozen or trained:
 
-| stack | deployed params (one convention) |
-|---|---|
-| RT-2 | ~55 B |
-| OpenVLA | ~7 B |
-| SmolVLA | ~450 M |
-| TinyVLA family | ~70 M backbone (before action head) – 1.4 B |
-| Octo-small | 27 M transformer + frozen T5-base ~110 M ≈ 137 M |
-| MicroVLA (this work) | 13 M detector + ~10 M world model (both frozen) + 7.2 M trained ≈ 30 M |
+**Both conventions, because they disagree.** An earlier draft of this table
+listed Octo-small as the smallest alternative and omitted **RT-1 (35 M)**, the
+nearest neighbour in size — a material omission, corrected here. The two size
+conventions in common use disagree about who is smallest, because published
+counts routinely exclude a frozen language encoder that inference still loads:
 
-We claim no comparative superlative — the convention does most of the work in
-any such table. On absolute performance: sub-1B systems report ~87% on
+| stack | trained | deployed | language encoder |
+|---|---|---|---|
+| RT-2 | 55 B | 55 B | internal (PaLI-X) |
+| OpenVLA | 7 B | 7 B | internal (Llama-2) |
+| SmolVLA | 450 M | 450 M | internal (SmolVLM2) |
+| TinyVLA family | ~70 M backbone – 1.4 B | ~70 M – 1.4 B | internal |
+| Octo-small | **27 M** | 138 M | T5-base, 111 M frozen |
+| RT-1 | 35 M | **≥35 M** | USE, frozen, *uncounted* |
+| **MicroVLA (this work)** | **17.2 M** | **30.2 M** | *none* — detector's own tower |
+
+MicroVLA counts from `microvla.utils.param_audit`: trunk 7,005,837 + goal heads
+0.24 M + TRM 9.97 M = 17.2 M trained; + 13.0 M frozen detector = 30.2 M
+deployed. Only **7.24 M is causally load-bearing** (the world model is inert in
+every nonzero number).
+
+MicroVLA is the smallest of the surveyed systems **under both conventions at
+once** — 1.6× below Octo-small's 27 M trained, and below RT-1's 35 M deployed
+*even after granting RT-1 a free language encoder*, for which we deliberately
+cite no count rather than estimate one. The claim is bounded and refutable: it
+ranges over surveyed language-conditioned VLA policies with published counts,
+concerns parameter counts alone, and is refuted by exhibiting any
+surveyed-class system below 17.2 M trained or 30.2 M deployed. We do not claim
+smaller systems cannot exist, and we do not claim small size *caused* any
+success rate reported here. The mechanism is architectural: MicroVLA carries no
+separate language model, so the frozen encoder the other rows pay for twice —
+once in memory, once in the convention mismatch — does not exist here.
+
+On absolute performance: sub-1B systems report ~87% on
 LIBERO-Object (CoTinyVLA) and ~90% suite averages (XS-VLA); SmolVLA ~83% —
 under the community protocol and end-to-end fine-tuning on large
 demonstration corpora. §3 states why nothing here is comparable to those

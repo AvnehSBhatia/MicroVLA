@@ -7412,3 +7412,56 @@ prompt grounds on only 17% of frames while the latch needs a stable
 window; if cream stays at 0/10 that is consistent with the mechanism
 rather than a refutation of it, and the honest report is that the fix was
 insufficient, not that the diagnosis was wrong.
+
+### The size claim, made checkable under both conventions (2026-08-06)
+
+Auditing our own related-work paragraph found a **material omission that a
+referee would have caught**: it listed Octo-small (~137M) as the smallest
+alternative and jumped from there to MicroVLA's ~30M, omitting **RT-1**, whose
+35M is by far the nearest neighbour in size. Omitting the nearest competitor
+from a size comparison is the kind of error that costs a paper its credibility
+even when the conclusion survives. Verified against the sources rather than
+memory: RT-1 is 35M with a FiLM-conditioned EfficientNet, and its instruction
+embedding comes from a **Universal Sentence Encoder that the 35M excludes**;
+Octo-small is a 27M transformer whose language encoder is a **frozen T5-base
+(111M)** likewise excluded.
+
+That exclusion is the whole story. The two size conventions in common use
+disagree about who is smallest, because published counts routinely omit a
+frozen text encoder that inference still loads:
+
+| system | trained | deployed | language encoder |
+|---|---|---|---|
+| RT-2 | 55B | 55B | internal (PaLI-X) |
+| OpenVLA | 7B | 7B | internal (Llama-2) |
+| SmolVLA | 450M | 450M | internal (SmolVLM2) |
+| Octo-small | **27M** | 138M | T5-base, 111M frozen |
+| RT-1 | 35M | **≥35M** | USE, frozen, *uncounted* |
+| **MicroVLA** | **17.2M** | **30.2M** | *none* — detector's own tower |
+
+MicroVLA counts verified by `microvla.utils.param_audit`: trunk 7,005,837 +
+goal heads 0.24M + TRM 9.97M = 17.2M trained; + 13.0M frozen detector = 30.2M
+deployed. Of the 17.2M only **7.24M is causally load-bearing**, the world model
+being inert in every nonzero number.
+
+**The result is that MicroVLA is smallest under both conventions at once** —
+1.6× below Octo-small's 27M on trained parameters, and below RT-1's 35M on
+deployed parameters *even after granting RT-1 a free language encoder we
+decline to estimate*. Granting the competitor its best case and still winning
+is the only version of this claim worth making. We deliberately cite **no**
+parameter count for USE: the search returned no authoritative figure, and an
+invented one would be the exact failure this log exists to prevent.
+
+The claim is stated in bounded, refutable form: it ranges over surveyed
+language-conditioned VLA policies with published counts, concerns parameter
+counts alone, and **is refuted by exhibiting any surveyed-class system below
+17.2M trained or 30.2M deployed**. The mechanism is architectural, not
+incidental — MicroVLA has no separate language model, so the frozen encoder the
+other rows pay for twice (in memory, and in the convention mismatch) does not
+exist here.
+
+This replaces the previous "we claim no comparative superlative", which
+*understated* what the evidence supports, with a claim a referee can check or
+break. Non-claims tightened in the same edit: no claim that smaller systems do
+not exist, and **no claim that small size caused any success rate reported
+here**. Submission rebuilds clean at 5 pages, 0 errors, 0 undefined citations.

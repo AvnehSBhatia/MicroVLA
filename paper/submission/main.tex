@@ -202,12 +202,53 @@ removed.
 
 \section{Related work}
 
-Scale and size are comparable only under a stated convention; under
-``deployed = every parameter loaded at inference'', RT-2~\citep{brohan2023rt2}
-is ${\sim}55$B, OpenVLA~\citep{kim2024openvla} ${\sim}7$B,
-SmolVLA~\citep{shukor2025smolvla} ${\sim}450$M, Octo-small~\citep{octo2024}
-${\sim}137$M with its frozen text encoder, and MicroVLA ${\approx}30$M. We
-claim no comparative superlative, and no number here is comparable to
+Size is comparable only under a stated convention, and the two conventions in
+common use disagree about which system is smallest, because published counts
+routinely exclude a frozen language encoder that inference nonetheless loads.
+We therefore report both (Table~\ref{tab:size}). Under
+\emph{trained parameters}, Octo-small's 27\,M transformer~\citep{octo2024} is
+the smallest published alternative and MicroVLA's 17.2\,M is $1.6\times$ below
+it; under \emph{deployed} $=$ every parameter loaded at inference, RT-1's
+35\,M~\citep{brohan2022rt1} is the smallest published alternative and
+MicroVLA's 30.2\,M is below it \emph{even after granting RT-1 a free language
+encoder}---RT-1's 35\,M excludes the Universal Sentence Encoder that produces
+its instruction embedding, for which we cite no count rather than estimate one.
+MicroVLA is thus the smallest of the surveyed systems under both conventions
+simultaneously, which is the strongest form of the claim the evidence supports.
+
+\begin{table}[h]\centering\small
+\caption{Size under both conventions. ``Trained'' counts parameters fit by the
+authors; ``deployed'' counts every parameter loaded at inference, frozen or
+not. $\dagger$ excludes a frozen language encoder the published count omits.
+Sizes only: capability, task breadth, and protocol are not comparable.}
+\label{tab:size}
+\begin{tabular}{lrrl}
+\toprule
+system & trained & deployed & language encoder \\
+\midrule
+RT-2~\citep{brohan2023rt2}        & 55\,B & 55\,B & internal (PaLI-X) \\
+OpenVLA~\citep{kim2024openvla}    & 7\,B  & 7\,B  & internal (Llama-2) \\
+SmolVLA~\citep{shukor2025smolvla} & 450\,M & 450\,M & internal (SmolVLM2) \\
+Octo-small~\citep{octo2024}       & \underline{27\,M} & 138\,M & T5-base, 111\,M frozen \\
+RT-1~\citep{brohan2022rt1}        & 35\,M & \underline{$\ge$35\,M}$^\dagger$ & USE, frozen, uncounted \\
+\midrule
+\textbf{MicroVLA}                 & \textbf{17.2\,M} & \textbf{30.2\,M} & \emph{none}---detector's own tower \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The claim is bounded and checkable: it ranges over language-conditioned VLA
+policies with published parameter counts that we surveyed, it is a statement
+about parameter counts alone, and it is refuted by exhibiting any surveyed-class
+system below 17.2\,M trained or 30.2\,M deployed. We cannot rule out
+unpublished or unsurveyed smaller systems. The mechanism behind the gap is
+architectural rather than incidental: MicroVLA carries no separate language
+model at all, because the detector's own text tower supplies every text
+embedding---so the frozen encoder that the other rows pay for twice (once in
+memory, once in the convention mismatch) does not exist here. Of MicroVLA's
+17.2\,M trained parameters only 7.24\,M are causally load-bearing, since the
+9.97\,M world model is inert in every nonzero number of this paper.
+No number here is comparable to
 community-protocol LIBERO scores (600 steps, $n{=}10$, wrist-only,
 scripted-expert corpora). Predicting \emph{where} rather than \emph{how} is
 the Transporter~\citep{zeng2020transporter} and CLIPort~\citep{shridhar2021cliport}
@@ -229,13 +270,18 @@ repaired.
 head's cells above; free per-tick regression at 0/56; the de-memorization
 mechanism at the head level (attribution shift, varied-label validation, and a
 paired jitter ablation, $0/10\to7/10$ dev, exact McNemar/sign $p\approx0.016$),
-scoped by the audit-stack control; and 29 worked skew defects.
+scoped by the audit-stack control; 29 worked skew defects; and the bounded size
+result of Table~\ref{tab:size} (smallest of the surveyed systems under both the
+trained and the deployed convention simultaneously).
 \textbf{Not claimed:} any task-success contribution from the world model
 (causally inert in every nonzero number); end-to-end learned motor control (the
 shell is engineered); head-level grounding from the randomized column alone,
 stack-free; object-level generalization beyond the addendum's two crossed
 objects (four attempted, two blocked at role binding); any deployed
-binding-accuracy figure; any comparative size superlative; physical deployment.
+binding-accuracy figure; physical deployment; any size claim beyond the bounded
+one of Table~\ref{tab:size} (surveyed systems, published counts, parameters
+only)---in particular no claim that smaller systems do not exist, and no claim
+that small size caused any success rate reported here.
 \textbf{Limitations:} $n{=}10$ per cell with $n{=}50$ confirmations on two
 protocols; ten held-out states reused across five disclosed selection looks;
 machine constants inherited from a dev-tuned era; substitution probes are
