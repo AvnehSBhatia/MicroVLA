@@ -6893,3 +6893,31 @@ binding accuracy comes back high, the instrument is calibrated and
 cream's 0.033 stands. If soup also comes back near zero, my projection
 convention is wrong, the cream number is an artifact, and it gets
 retracted rather than reported.
+
+### Butter's deployed binding accuracy: 0.393 — and it still succeeds (2026-08-06)
+
+**Butter (task 6), no binder, deployed: 44/112 ticks = 0.393**, misbound
+onto ketchup (46) and orange juice (21). Two things follow, and the
+second is the more interesting.
+
+First, the instrument discriminates. Butter's 0.393 is 12x cream's 0.033
+on the same code path, so a uniformly-broken projection convention is
+ruled out — the remaining calibration question is only whether the
+absolute scale is right, which the soup control settles.
+
+Second, **butter succeeds at 4-7/10 while binding correctly on well
+under half of ticks.** Deployed binding accuracy is therefore not the
+determinant of success that my falsified prediction assumed; the machine
+tolerates substantial misbinding. The mechanism is already in the
+architecture: the latch consumes a *median over a window* and the anchor
+band rejects estimates far from the first stable median, so early
+correct binds can carry an episode that later misbinds. That is a
+concrete, testable account of why 0.902-accurate offline binding bought
+nothing (it changes ticks the latch has already stopped listening to)
+and why cream's 0.033 is nevertheless fatal (there is no early correct
+cluster to anchor on).
+
+This also retires the last framing from the falsification: the right
+quantity was never per-tick accuracy alone but *accuracy within the
+pre-latch window*. That is measurable with the same instrument by
+restricting the tick set, and is queued.
