@@ -6532,3 +6532,14 @@ zero-information trick. The honest description is "a second,
 non-parametric read of the same corpus, used for role binding rather
 than goal regression", and any claim in the paper must carry that
 sentence.
+
+### Pre-registered seed-47 confirmation, cell 1 of 2: butter 5/10 (2026-08-06)
+
+`--goal-src-rerank` + anchor band on the three-object v8 head, seed 47
+(states 41–49 + state 0; nine never-scored, one disclosed dev overlap),
+single shot as pre-registered: **butter 5/10**
+(`libero_object_real_1785945668035`-era run under
+eval_results/confirm2_butter_s47). Consistent with both its selection-band
+cell (7/10) and the earlier v7 fresh-seed confirmation (5/10). Soup cell
+of the same pre-registration is running; prototype and bank cells queue
+behind it.
