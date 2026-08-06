@@ -6609,3 +6609,30 @@ The four-binder ladder so far (three-object v8 head, anchor band, n=10):
 
 The bank cells are the test that matters: same vectors, same episodes,
 only the estimator changes.
+
+### Binder quality tracks measured per-object separability — prototype trio complete (2026-08-06)
+
+**Prototype-bound soup: 8/10** (`unaided_pr_soup`) — the best soup cell
+this head has produced, against 5/10 with no binder and 5/10 with text
+rerank. The prototype trio now reads cream 0/10, butter 2/10, soup 8/10,
+and it lines up exactly with the separability measured *before* any of
+these runs:
+
+| object | centered prototype separation | 1-NN identity acc. | prototype-binder cell |
+|---|---|---|---|
+| soup | −0.75 / −0.66 vs others | 0.95 | **8/10** (best of its column) |
+| butter | −0.66 vs soup, **+0.00 vs cream** | 0.90 | 2/10 (down from 7/10 rerank) |
+| cream | **+0.00 vs butter** | 0.82 | 0/10 |
+
+That is the cleanest statement of the binding story yet: a binder helps
+exactly as much as the embedding space lets it discriminate. Where the
+object's prototype direction is well separated (soup), even a crude mean
+prototype beats the text tower and lifts success by three trials. Where
+two objects share a null direction (butter–cream, centered cosine 0.00),
+the same binder is close to a coin flip and *destroys* a working cell.
+Nothing about the head, the corpus or the shell changed across those
+three cells — only which box the machine believed was the target.
+
+Prediction for the bank trio, on record: soup should hold high, butter
+should recover past 2/10 (1-NN separates it at 0.90 where the mean
+prototype does not), cream is the open question at 0.82.
