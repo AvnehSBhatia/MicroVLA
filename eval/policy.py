@@ -294,6 +294,7 @@ class MicroVLAPolicy:
         source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect,
         goal_ckpt: Optional[str] = None,
         goal_kwargs: Optional[dict] = None,
+        goal_src_rerank: bool = False,
         gates_ckpt: Optional[str] = None,
     ) -> None:
         """Builds the policy.
@@ -389,6 +390,7 @@ class MicroVLAPolicy:
         # trained goal heads. Takes the same replace-wholesale action slot as
         # the assisted machines and is mutually exclusive with them.
         self.goal_machine = None
+        self.goal_src_rerank = bool(goal_src_rerank)
         self.goal_grasp_head = None
         self.goal_place_head = None
         if goal_ckpt:
@@ -778,6 +780,22 @@ class MicroVLAPolicy:
             # directly, exactly the teacher's information diet.
             if result.perception is not None and proprio is not None:
                 src = result.perception.source
+                # Student-side semantic rebinding (the cream lesson, addendum
+                # 2026-08-05): for look-alike objects the detector-text match
+                # flickers between boxes (uv std ~0.3 every trial) exactly as
+                # the teacher's did pre-rerank; re-pick the source by crop-emb
+                # vs the SOURCE phrase, rejecting better-target matches — the
+                # same zero-training lever the teacher used to cross it.
+                if self.goal_src_rerank:
+                    task = getattr(self.loop, "_task", None)
+                    props = getattr(result.perception, "proposals", ()) or ()
+                    if task is not None and getattr(task, "source_emb", None) is not None and props:
+                        from eval.ibvs_phase import clip_rerank_box
+                        reb = clip_rerank_box(
+                            props, task.source_emb,
+                            reject_emb=getattr(task, "target_emb", None))
+                        if reb is not None:
+                            src = reb
                 conf = float(src.confidence)
                 pvec = np.asarray(proprio, dtype=np.float64).reshape(-1)
                 if (conf >= self.ibvs_conf_floor and pvec.shape[0] >= 10

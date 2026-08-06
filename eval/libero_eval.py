@@ -812,6 +812,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             goal_ckpt=getattr(args, "goal_ckpt", None),
             goal_kwargs=(json.loads(args.goal_kwargs)
                          if getattr(args, "goal_kwargs", "") else None),
+            goal_src_rerank=getattr(args, "goal_src_rerank", False),
             gates_ckpt=getattr(args, "gates_ckpt", None),
         )
 
@@ -976,6 +977,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--goal-kwargs", default="",
                    help="JSON dict of GoalServoMachine ctor overrides for "
                         "--goal-ckpt sweeps, e.g. '{\"latch_sigma\": 0.08}'.")
+    p.add_argument("--goal-src-rerank", action="store_true",
+                   help="structured mode: re-pick the SOURCE box per real "
+                        "tick by crop-emb vs the source phrase (rejecting "
+                        "better-target matches) — the teacher's crop-CLIP "
+                        "rebinding, student-side (look-alike objects).")
     p.add_argument("--gates-ckpt", default=None,
                    help="learned close-trigger + hold gates (train_gates) "
                         "replacing the machine thresholds — de-skeletonization "
