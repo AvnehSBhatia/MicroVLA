@@ -6454,3 +6454,26 @@ v8 head + anchor band + prototype binding) queued behind the seed-47
 confirmation. Prediction on record BEFORE the run: cream improves but
 stays below butter/soup, because 61% binding accuracy with a
 cream–butter null direction bounds it.
+
+### Cream is binding-limited, not goal-limited — the head is exonerated (2026-08-06, cycle 21)
+
+Offline probe of the deployed three-object head (v8) on each object's own
+corpus, per-episode median xy error:
+
+| object | on-manifold goal error | deployed cell |
+|---|---|---|
+| soup | **1.06 cm** | 5/10 |
+| butter | **1.34 cm** | 4/10 → 7/10 with text rerank |
+| cream | **1.58 cm** | 0/10 |
+
+Cream's goals are as good as butter's — 1.58 cm against a machine whose
+probe search covers ±6 cm — yet it scores zero. Combined with the
+measured binding flicker (uv std 0.33 with and without crop-CLIP rerank)
+and the embedding-space separability result (identity recoverable at
+0.613 vs 0.333 chance, cream–butter the null direction), the isolation is
+complete: **the learned goal head is exonerated for cream; the frozen
+detector's role binding is the sole indicted stage.** This is the
+strongest form of the paper's own thesis — the failure decomposes to a
+named stage with a number attached, not to a diffuse "doesn't
+generalize". Prototype-binding cells (the zero-training lever aimed
+exactly at that stage) are computing.
