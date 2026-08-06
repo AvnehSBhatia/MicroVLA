@@ -8269,3 +8269,53 @@ discordance is far outside any plausible noise floor).
 Recorded because I built the per-trial analysis, used it in three writeups, and
 only then asked whether it was measuring anything. The rate-level conclusions
 do not depend on it; the per-trial ones do.
+
+### Decomposition cell A FINAL: the prompt channel is inert (2026-08-06)
+
+**Cell A — detection prompts from "butter", task embeddings from the real
+soup instruction: 6/10** (`eval_results/dec_promptonly_butter`,
+`mean_success` 0.6, artifact-verified). Decomposition verified active in the
+run log on every episode.
+
+```
+trial:      0 1 2 3 4 5 6 7 8 9
+baseline:   1 1 0 1 1 1 0 0 1 1    7/10
+cell A:     1 0 0 1 1 1 0 1 1 0    6/10
+full swap:  0 0 0 0 0 0 0 0 0 0    0/10
+```
+
+Exact McNemar on the paired cells:
+
+| comparison | discordant | favouring | exact two-sided p |
+|---|---|---|---|
+| baseline vs **cell A** | 3 | 2 baseline | **1.0000** |
+| baseline vs full swap | 7 | 7 baseline | **0.0156** |
+| cell A vs full swap | 6 | 6 cell A | **0.0312** |
+
+**Driving the detection prompts from a different object's name costs nothing
+measurable** (p = 1.0). Driving *both* channels from it destroys the cell
+(p = 0.0156), and cell A is significantly better than the full swap
+(p = 0.0312). The prompt channel is therefore **not** where the collapse lives.
+
+**This is the behavioural counterpart of the identity-blind measurement, and it
+is the strongest form of that claim available.** The corpus-frame measurement
+showed two prompts select the same box. Cell A shows the consequence *in
+deployment, on the machine's own off-manifold states*: you can ask this policy
+for the butter and it will find, approach and grasp the alphabet soup at
+baseline rate. The on-manifold caveat that has defeated so much of this
+campaign does not apply here, because cell A is a deployment cell.
+
+**Held back pending cell B.** Attribution is only complete if the mirror
+condition — prompts from soup, embeddings from butter — collapses. Cell B is
+running with its dual override verified in the log (`INSTRUCTION OVERRIDE` to
+butter, then `DECOMPOSITION ACTIVE` restoring soup prompts). If B collapses,
+the language sensitivity is localised to the place head. If B *also* scores
+~6/10, then neither channel alone explains a collapse that both together
+produce, the channels interact, and I report the stage as unresolved — which
+was registered before any of these cells ran.
+
+**Caveat carried forward, not quietly dropped.** The per-trial claims above
+still depend on the harness noise floor, which is queued and unmeasured. The
+*rate* conclusions (p = 1.0000, 0.0156, 0.0312) are computed on paired cells
+and would only be threatened by a noise floor large enough to flip several
+trials per run, which the queued control will settle.
