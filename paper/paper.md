@@ -8217,3 +8217,24 @@ normally **unexercised**, not **inert**. A mismatched command embedding is
 exactly the input that exercises it. Corrected to say so, independently of how
 the decomposition resolves — the inconsistency was in the text as written, and
 a referee reading two adjacent paragraphs would have found it before we did.
+
+### PRE-REGISTERED: does the swap collapse generalize beyond soup? (2026-08-06)
+
+The swap and its decomposition are both measured on task 0 (alphabet soup) with
+the flagship head. A referee's immediate question is whether the effect is a
+property of *that* task/head pair. Queued: **butter's own task (task 6)** with
+the three-object head `goal_heads_v8.pt`, baseline vs told-soup, n=10 each,
+seed 20.
+
+**Registered prediction.** Butter's baseline is a weaker cell than soup's
+(butter cells run ~4–7/10 depending on config), so the effect size is smaller
+and n=10 may not reach significance on its own. Predicted: **baseline clearly
+above zero, swapped cell at or near 0/10**, same direction as soup. If the
+swapped cell instead matches its baseline, the collapse is specific to task 0 /
+the flagship head and must be reported as such rather than as a property of the
+architecture.
+
+**Registered caveat, before the run.** With a baseline near 5/10, a 5→0 result
+gives exact p≈0.03 — reportable, but weaker than soup's 0.016, and I will not
+pool the two tasks to manufacture a smaller p. They are different heads on
+different tasks; they get reported side by side.
