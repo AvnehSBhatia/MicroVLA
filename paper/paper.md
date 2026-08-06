@@ -9458,3 +9458,29 @@ be evaluated on the data that produced it: training draws seed 0, evaluation
 draws seed 20, and I will report the seed-20 cell whatever it says. A repair
 validated on its own collection band would be the iteration-coupled selection
 loop this paper documents as Layer 2.
+
+### DAgger fine-tune trained; held-out evaluation running (2026-08-06)
+
+**102 deployment feature vectors** captured from cream rollouts on seed 0,
+mixed with **1812 corpus samples** across all three objects (so the repair
+cannot silently trade the working objects for the blocked one).
+
+```
+epoch  0  mean xy err 0.0288 m   (on the DAgger subset: 0.1120)
+epoch 59  mean xy err 0.0136 m   (on the DAgger subset: 0.0255)
+```
+
+**On the machine's own viewpoints the head's error falls 11.2 cm → 2.55 cm, a
+4.4× reduction**, and the corpus-mixed overall error also improves
+(0.0288 → 0.0136), so the fit did not come at the corpus's expense.
+
+**This number proves nothing on its own and is not the test.** Fine-tuning
+reduces error on the data it fits — that is what fitting is. It is reported
+because the *magnitude* is informative: 11.2 cm error on deployment viewpoints
+before any correction confirms, from a fourth angle, that the head is badly
+wrong exactly where the machine goes. Whether that is *causal* is what the
+held-out cell decides.
+
+Running now, per the protocol fixed before collection: **cream on seed 20**,
+which the DAgger data (seed 0) never touched, plus **soup on seed 20** as a
+regression check. Both will be reported whatever they say.
