@@ -183,43 +183,47 @@ target. Four objects were attempted; two crossed.
 \noindent \textbf{A proposed mechanism, tested and retracted.} We previously
 located the failure at \emph{role binding}: the region-text head scores 0.000
 on every product name these tasks are written in (measured, and correct), so
-groceries fall back to a shared generic tail (``box'', ``cardboard box'',
-``can''), which would make same-shaped objects indiscriminable by construction.
-Screening each chain element on each object's own corpus refutes this as a
-\emph{cause}: soup resolves to ``box'' at 0.96, butter 1.00, cream
-0.92---\textbf{the objects that cross fall back exactly as the one that fails
-does}, and soup succeeds 35/50 while indiscriminable in precisely the stated
+groceries fall back to a shared generic tail, which would make same-shaped
+objects indiscriminable by construction. Screening each chain element per
+object refutes this as a \emph{cause}: soup resolves to ``box'' at 0.96, butter
+1.00, cream 0.92---\textbf{the objects that cross fall back exactly as the one
+that fails does}, and soup succeeds 35/50 while indiscriminable in the stated
 sense. A companion pre-registered prediction, that box-centre spread would
 separate them, was falsified in the same run (soup, the best object, has the
-\emph{highest} spread, 0.320 vs.\ cream's 0.304) and is additionally confounded
-by a moving wrist camera; it is abandoned, not retuned. The observation that
-product names never fire stands; the causal story built on it does not. The two
-uncrossed objects are therefore \textbf{not explained}---weaker and more
-accurate than the mechanism we withdrew. If every object binds through the same
-generic prompt, the difference cannot lie in the prompt.
+\emph{highest} spread) and is confounded by a moving wrist camera; abandoned,
+not retuned. The 0.000 observation stands; the causal story built on it does not.
 
-\noindent \textbf{What replaces it, measured: deployed role binding is
-identity-blind.} The LIBERO-Object scenes make this decidable without ground
-truth---soup's scene contains cream cheese and cream's scene contains alphabet
-soup, six of seven objects shared---so instead of asking \emph{where the true
-object is} (the question that defeated five instruments), we ask whether two
-different objects' prompt chains select the \emph{same detection from the same
-frame}. They do: same-box rate 1.00 on soup's frames, 0.87--0.96 on cream's,
-0.92--1.00 on butter's, at a median centre distance of \textbf{0.0001}---200$\times$
-inside the 0.02 threshold, so the result is threshold-insensitive. Asking for
-alphabet soup and asking for cream cheese return the same box. Deployed binding
-therefore carries no object identity, and \textbf{soup's 35/50 cannot be
-explained by the machine binding the named object}, because at this stage the
-machine cannot tell the two apart. The coherent reading is that the detector
-selects a largely prompt-independent box and the task succeeds when that box
-happens to be the target; this fits cream's machine converging to within
-7\,cm of \emph{an} object but not the commanded one, and per-object prompt
-engineering changing nothing (cream 0/10). It does \emph{not} excuse the four
-binders: a further measurement finds 3.1--3.9 class-agnostic candidate
-proposals per frame ($\ge$2 on 0.71--0.96 of frames, cream highest at 3.92), so
-the binders are handed identity-bearing candidates and fail on their own live
-scoring rather than on missing ones---refuting the convenient reading and
-re-opening that sub-study rather than closing it.
+\noindent \textbf{What replaces it: deployed role binding is identity-blind.}
+The scenes make this decidable without ground truth---soup's contains cream
+cheese and cream's contains alphabet soup, six of seven objects shared---so
+rather than ask \emph{where the true object is} (the question that defeated
+five instruments), we ask whether two objects' chains select the \emph{same
+detection from the same frame}. They do: same-box rate 1.00 on soup's frames,
+0.87--0.96 on cream's, 0.92--1.00 on butter's, median centre distance
+\textbf{0.0001}---200$\times$ inside the 0.02 threshold, so
+threshold-insensitive. Deployed binding carries no object identity, and
+\textbf{soup's 35/50 is not explained by binding the named object}. This fits
+cream's machine converging within 7\,cm of \emph{an} object but not the
+commanded one, and per-object prompt engineering changing nothing (0/10). It
+does \emph{not} excuse the four binders: 3.1--3.9 class-agnostic proposals
+exist per frame ($\ge$2 on 0.71--0.96 of frames, cream highest), so they are
+handed identity-bearing candidates and fail on their own live scoring---which
+re-opens that sub-study rather than closing it.
+
+\noindent \textbf{The architecture closes the argument.} Code inspection makes
+this structural rather than statistical: \texttt{GraspPointHead.forward}
+consumes only \texttt{geom}, \texttt{box\_emb}, \texttt{frame\_emb},
+\texttt{eef\_xy}, assembled by
+\texttt{build\_grasp\_features(uv, conf, proprio, box\_emb, frame\_emb)}---no
+task, command, or text embedding appears anywhere in its signature. The head
+that decides \emph{where to grasp} therefore receives no language input at all,
+the only instruction-to-grasp path is \emph{which box is selected}, and that
+selection is identity-blind. The first two steps hold with certainty and only
+the third is empirical, so the architecture \emph{predicts} the swap result
+rather than merely agreeing with it. \texttt{PlaceHead} does take a command
+embedding and is genuinely language-conditioned---but every task in the suite
+places into the same basket, so the stack's one real language channel has
+nothing to do here.
 
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which
