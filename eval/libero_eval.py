@@ -418,6 +418,22 @@ def _run_real_trial(
                         np.asarray(eef, dtype=np.float64)[:3]
                         - np.asarray(obj, dtype=np.float64)[:3]))
                     extra["obj_pos"] = [float(v) for v in obj[:3]]
+                # WHICH object is the gripper actually at? The commanded one is
+                # only one of ~7 in these scenes, and role binding is measured
+                # identity-blind, so "close to the target" and "close to A
+                # target" are different claims. This asks the question in WORLD
+                # space -- no projection, which is what defeated the earlier
+                # image-space instruments (paper.md).
+                if eef is not None:
+                    allpos = _sim_all_object_pos(env)
+                    if allpos:
+                        e = np.asarray(eef, dtype=np.float64)[:3]
+                        ds = {k: float(np.linalg.norm(e - np.asarray(v)))
+                              for k, v in allpos.items()}
+                        near = min(ds, key=ds.get)
+                        extra["nearest_body"] = near
+                        extra["nearest_dist"] = ds[near]
+                        extra["all_obj_dist"] = ds
             except Exception:
                 pass
             telemetry.append({"step": step, **step_telemetry, **extra})
@@ -555,6 +571,33 @@ def randomize_source_xy(env, rng, radius: float) -> list[float] | None:
         pass
     logger.info("randomize_source_xy: %s shifted by (%+.3f, %+.3f)", pick, dx, dy)
     return [dx, dy]
+
+
+def _sim_all_object_pos(env) -> dict[str, list[float]]:
+    """Every scene object's world position, keyed by body name.
+
+    Companion to :func:`_sim_object_pos`, which returns only the target. Used
+    to ask *which* object the gripper reached -- a question the six image-space
+    binding instruments could not answer, because they needed a camera
+    projection and this does not. Containers are kept: "the gripper is at the
+    basket" is a meaningful and distinguishable answer.
+
+    Returns ``{}`` when the env exposes no bodies. Diagnostics only, never
+    control.
+    """
+    try:
+        inner = getattr(env, "env", env)
+        sim = getattr(inner, "sim", None)
+        body_ids = getattr(inner, "obj_body_id", None) or {}
+        if sim is None or not body_ids:
+            return {}
+        out = {}
+        for name, bid in body_ids.items():
+            p = sim.data.body_xpos[bid]
+            out[str(name)] = [float(p[0]), float(p[1]), float(p[2])]
+        return out
+    except Exception:
+        return {}
 
 
 def _sim_object_pos(env) -> list[float] | None:

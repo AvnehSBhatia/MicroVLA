@@ -8905,3 +8905,37 @@ A finding that "a VLA's entire language channel can be one cached coordinate"
 is worth more to the field as something another lab can check in an afternoon
 than as a fact about MicroVLA. This is that, and it costs a second forward pass
 and no labels.
+
+### PRE-REGISTERED: which object does the machine actually reach? (2026-08-06)
+
+The last open question of the multi-object campaign is why cream fails. Six
+instruments could not answer it, and every one of them asked the question in
+**image space** — needing a camera projection, which is exactly what broke
+them. *Which object did the gripper go to?* is a **world-space** question, and
+world-space object positions read cleanly (proven twice: the pinning
+measurement, and today's verification of `_sim_object_pos`).
+
+**Instrument** (`_sim_all_object_pos`): log every scene body's world position
+each step, and record the body nearest the end-effector. No projection, no
+in-frame filter, no threshold — the two failure modes that killed instruments
+1–2 and the filter that killed instrument 3 are all absent by construction.
+613 tests pass; mock path unaffected.
+
+**Registered prediction.** On soup (crosses 35/50) the nearest body at the
+gripper's closest approach is the **commanded object** on most trials. On cream
+(0/10) it is **a different object** on most trials — the identity-blind "box"
+prompt selecting a distractor is the natural reading of a machine that servos
+accurately (`eef_obj_dist_min` ~0.07) to something that is not the target.
+
+**Registered alternative, which would be more interesting.** If cream's nearest
+body *is* the cream cheese on most trials, then binding is **not** cream's
+problem: the machine reaches the right object and fails to grasp it, and the
+failure is in grasp geometry (height, approach angle, gripper width) rather
+than identity. That would redirect the whole multi-object account, and the
+0/10-under-every-binder result would finally make sense — the binders were
+fixing something that was not broken.
+
+**Recorded before running because I have a stake in the first answer**: the
+misbinding story is the one that follows from today's identity-blind finding,
+and it would be the tidier result. The alternative would mean four binder
+cells, a prototype bank and a rerank study were all aimed at the wrong stage.
