@@ -8864,3 +8864,44 @@ This is the seventh instrument audit of the campaign and the first where the
 instrument passed. Worth noting which way that cuts: the six failures were
 found by testing; this one would never have been examined if I had not been
 building something else.
+
+### The two probes packaged as a reusable artifact (2026-08-06)
+
+The most transferable thing this campaign produced is a *pair of probes*, and
+until now they existed only as scratch scripts on a pod — which makes them a
+claim rather than a contribution. Packaged as `eval/probes.py`, with
+`tests/test_probes.py` (8 tests, CPU-only, mock-only, no network, per the repo
+contract). **613 tests pass.**
+
+`prompt_agreement(perception, chain_a, chain_b, frames)` — detects a grounding
+stage that **ignores** the instruction, by running two objects' chains over the
+same frames and comparing the boxes they select. No annotation, because it
+compares two prompts against *each other* rather than against a truth.
+
+`instruction_swap(baseline, swapped)` — detects a stage that **memorized** the
+instruction, via exact McNemar on paired cells.
+
+**Validated against every cell measured today**, reproducing each exactly:
+
+| cell | result | probe verdict |
+|---|---|---|
+| v5 soup, full swap | 7/10 → 0/10, p=0.0156 | INSTRUCTION-SENSITIVE |
+| v5 soup, prompt channel only | 7/10 → 6/10, p=1.0000 | NO SIGNIFICANT EFFECT |
+| v5 soup, embedding channel only | 7/10 → 0/10, p=0.0156 | INSTRUCTION-SENSITIVE |
+| v8 butter, full swap | 4/10 → 3/10, p=1.0000 | NO SIGNIFICANT EFFECT **+ power warning** |
+| noise floor, baseline vs repeat | 7/10 → 7/10 | NO EFFECT (identical every trial) |
+
+**The guardrails are the point, not the arithmetic.** The verdicts refuse to
+over-claim in the three ways this campaign actually got burned: a cell with
+<5 co-detected frames returns INCONCLUSIVE rather than a rate; a discriminating
+result says explicitly that it *cannot see whether the discrimination is
+correct*; and an underpowered cell prints its own ceiling — the v8 butter row
+above volunteers that a 4/10 baseline could not have reached p<0.05 even under
+total collapse, which is the caveat I had to remember to register by hand this
+morning. Unpaired cells raise rather than silently truncating, because
+truncating would fabricate a pairing.
+
+A finding that "a VLA's entire language channel can be one cached coordinate"
+is worth more to the field as something another lab can check in an afternoon
+than as a fact about MicroVLA. This is that, and it costs a second forward pass
+and no labels.
