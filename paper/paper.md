@@ -8359,3 +8359,15 @@ one cached coordinate, and everything else — object selection, approach,
 grasping — runs without it. That is both the honest description of the artifact
 and, we think, the most transferable warning in the paper: *check where the
 language actually goes before calling a system language-conditioned.*
+
+**Queued: quantify the mechanism (2026-08-06).** If the whole language channel
+is one latched `(x, y)`, the swap's effect size should be readable directly as
+the **distance between the place points the head produces for the two
+commands**. `scripts/placepoint.py` encodes each instruction through the
+production `ClipTaskEncoder`, runs the released place head on each command
+embedding, and reports pairwise distances in metres. That converts "the place
+target is wrong" from an inference about telemetry into a measured number, and
+it is falsifiable in a useful direction: **if the place points differ by
+millimetres, the latched-place-point story cannot explain a total collapse**,
+and the mechanism would have to be sought elsewhere despite cell B. Queued
+behind the noise-floor control.
