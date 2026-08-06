@@ -7012,3 +7012,37 @@ Second, the sign fix does not by itself make the instrument
 trustworthy — the pre-registered gate is unchanged and still binding:
 **soup's pre-latch accuracy must come back high, or nothing downstream is
 believed.** Soup calibration relaunched with the corrected sign.
+
+### ABANDONED per the pre-registered rule: deployed binding accuracy stays unmeasured (2026-08-06)
+
+With the depth sign corrected the geometry now works — median 7 objects
+pass the depth+frame filter per tick — and soup still fails its gate:
+**pre-latch 3/33 = 0.091**, all-tick 12/108 = 0.111, on the object this
+system grasps 35/50. The acceptance rule I fixed in advance said: if soup
+fails again, abandon the geometric ground truth rather than tune it. So
+it is abandoned, and **deployed per-tick binding accuracy is recorded as
+UNMEASURED** — not estimated, not approximated, not cited anywhere in the
+manuscript.
+
+The flaw is now identifiable and is intrinsic to the design, not another
+sign error. Ground truth was "nearest projected *body origin* to the
+bound box centre," and the in-frame filter deletes exactly the wrong
+points: during descent the target fills the wrist view and its origin
+falls *below the frustum*, so the target is filtered out while distant
+distractors survive and win by default. That is why soup misbinds onto
+butter on 60 ticks — an artifact of which origins happened to be
+in-frame, not of what the machine bound. Filtering that biases against
+the object the camera is centred on cannot measure binding, at any sign
+convention.
+
+A different instrument could work — project each object's geom AABB
+corners and score by overlap with the detection box, which survives the
+close-up case — but building it now, after two failed versions, is
+instrument-shopping until one agrees with me. So it is **pre-registered
+for future work with its own gate** (soup pre-latch accuracy ≥ 0.8 before
+any other object is scored), and tonight's claim set is unchanged: the
+on-manifold gap between corpus-crop binder accuracy (0.613/0.902) and
+deployed behaviour is demonstrated qualitatively by the four-binder
+dissociation and the uv-destabilisation probe, and is *not* quantified.
+Two instruments were built, both failed their own calibration, and both
+failures are reported.
