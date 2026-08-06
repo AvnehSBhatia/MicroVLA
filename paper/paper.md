@@ -7208,3 +7208,31 @@ Tally for the night, stated plainly because it is the honest headline of
 this stretch: four instruments attempted, four failed their own
 calibration gates, zero fabricated results reported. The measurements
 that stand are the ones from before this stretch, unchanged.
+
+### Fourth object closed as a clean negative: 2 of 4 objects cross (2026-08-06)
+
+The pudding chain ran to completion and stopped exactly where it should:
+five calibration iterations, all returning the never-reached-grasp
+sentinel, then a 3-trial teacher smoke at **0/3**, then halt — no corpus
+recorded, no four-object head trained, because a teacher that cannot
+reach the object cannot produce data for it. The gate did its job without
+supervision.
+
+**Final object tally for the campaign: four attempted, two cross
+(alphabet soup, butter), two blocked (cream cheese, chocolate pudding),
+and the two failures share a signature** — the teacher never leaves
+`servo_src`, source-uv std ~0.30, and the arm parks tens of centimetres
+from the target, with crop-CLIP rerank enabled in both cases. Neither
+failure is a grasp-geometry failure (the butter re-diagnosis showed what
+that looks like: contact, squeeze-out, a measurable at-close residual),
+and neither is a goal-accuracy failure (cream's on-manifold goal error is
+1.58 cm, comparable to butter's 1.34).
+
+The honest scope statement the paper now carries: at 30M parameters with
+a frozen detector as the only vision *and* text encoder, object breadth
+on this benchmark is limited by role binding, that limit is attested on
+two independent objects, and it is *not* liftable by any of the four
+binders tried (none, crop-CLIP rerank, mean prototype, 1-NN bank). What
+remains unmeasured — and is now explicitly labelled unmeasured rather
+than inferred — is the deployed binding accuracy itself and whether the
+frozen text tower discriminates these phrases at all.
