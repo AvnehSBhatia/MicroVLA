@@ -8238,3 +8238,34 @@ architecture.
 gives exact p≈0.03 — reportable, but weaker than soup's 0.016, and I will not
 pool the two tasks to manufacture a smaller p. They are different heads on
 different tasks; they get reported side by side.
+
+### A missing control, noticed mid-analysis: the noise floor (2026-08-06)
+
+The per-trial comparison assumes that a trial flipping between two cells means
+the manipulation caused it. That assumption is **unverified**, and I have been
+relying on it. Same seed and init state make the *environment* deterministic,
+but the policy runs CUDA kernels whose reduction order is not guaranteed
+identical across processes, so two runs of the **same** configuration can
+diverge — a trajectory near a grasp threshold can tip either way.
+
+This matters right now: decomposition cell A differs from baseline on trials 1
+and 7, **in opposite directions** (baseline wins trial 1, cell A wins trial 7),
+which is exactly what a noise floor looks like rather than a systematic effect.
+Without measuring it, "agrees with baseline 6/7" is uninterpretable at the
+single-trial level.
+
+**Control queued: the baseline cell, re-run bit-identically.** Same command,
+same seed, same head, nothing changed. Whatever fraction of trials flips is the
+harness's own noise floor, and any per-trial claim smaller than that floor is
+not a claim.
+
+**Registered prediction.** The repeat reproduces `1101110011` exactly or flips
+at most one trial. If it flips two or more, then **per-trial pattern matching
+is not a valid instrument in this harness**, every per-trial agreement figure I
+have reported today must be downgraded to a rate comparison, and the swap
+result rests on 7/10 vs 0/10 (which survives either way — a 7-trial one-way
+discordance is far outside any plausible noise floor).
+
+Recorded because I built the per-trial analysis, used it in three writeups, and
+only then asked whether it was measuring anything. The rate-level conclusions
+do not depend on it; the per-trial ones do.
