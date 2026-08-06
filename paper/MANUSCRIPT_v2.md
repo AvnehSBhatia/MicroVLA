@@ -18,6 +18,12 @@ claim; read it before quoting the abstract.
 Fixed-placement benchmarks let imitation policies learn location instead of
 looking. We document this on LIBERO-Object, whose target start poses are
 exactly pinned (measured) in 6 of 10 tasks and within ~±1 cm in the rest.
+The benchmark's across-task structure is tighter than its within-task pinning:
+the ten LIBERO-Object targets occupy just **two** table positions, 22.0 cm
+apart, five tasks each, agreeing to 0.0–0.7 mm within a group
+(`results/placement_pinning.json`). A policy memorizing two coordinates can
+present as generalizing over ten tasks.
+
 First, an audit finds placement memorization at four layers: a calibrated
 expert whose offset constant encodes pose (sign-flipping under a software
 rebuild), an iteration-coupled selection loop (0.700 dev vs 0.300 held-out), and
