@@ -33,7 +33,8 @@ three layers: a calibrated expert whose offset constant encodes pose
 (0.700 dev vs.\ 0.300 held-out), and a learned grasp head whose regression
 rationally prefers proprioception to pixels. Second, a repair---ten teacher
 episodes under $\pm4$\,cm placement teleports plus jitter on a nuisance
-input---restores grounding (attribution: vision 1.1--1.8\,cm, proprioception
+input---restores \emph{visual} grounding, i.e.\ which input the head reads
+(attribution: vision 1.1--1.8\,cm, proprioception
 0.1\,cm), verified by a substitution probe paired with a behavioural
 randomization protocol: the released head scores 0.400 dev, 0.700 held-out,
 0.400 randomized, with both non-dev protocols confirmed at $n{=}50$

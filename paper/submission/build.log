@@ -82,10 +82,6 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 [2]
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
 [3]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -112,5 +108,5 @@ cal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr
 /usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pf
 b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/
 msam10.pfb>
-Output written on main.pdf (6 pages, 237990 bytes).
+Output written on main.pdf (6 pages, 238314 bytes).
 Transcript written on main.log.
