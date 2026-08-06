@@ -6503,3 +6503,32 @@ eval queued behind the prototype cells. Revised prediction on record:
 cream >0 under bank binding if the boundary is estimator-limited as this
 measurement says; if cream stays 0 with 0.82-accurate binding available,
 the block is downstream of binding and I have mis-located it.
+
+### Quantitative prediction for the landing cells, and a disclosure (2026-08-06, cycle 23)
+
+The machine latches on a median over a 3-estimate window, so per-tick
+binding accuracy p converts to latch correctness by the binomial
+majority rule (correct iff ≥2 of 3 picks are the right object):
+
+| binder | per-tick p | median-of-3 latch correct |
+|---|---|---|
+| mean prototype | 0.613 | **0.667** |
+| 1-NN bank (cream) | 0.820 | **0.914** |
+| 1-NN bank (overall) | 0.902 | 0.973 |
+
+So the prototype cells should land cream well below butter/soup (a third
+of latches land on the wrong object outright), while bank binding should
+put cream's latch correctness at ~0.91 — at which point cream's ceiling
+becomes whatever the grasp geometry allows, i.e. the butter/soup band
+(4–7/10), not zero. This is a falsifiable, numeric prediction recorded
+before the cells land; if bank-bound cream is still 0/10 the block is
+downstream of binding and this analysis is wrong in a locatable way.
+
+**Disclosure, stated plainly:** the prototype and bank binders are built
+from the SAME teacher corpora the goal heads train on. They add no new
+episodes and no gradient steps, but they are corpus-derived, so they are
+part of the learned system — not a free lunch and not a
+zero-information trick. The honest description is "a second,
+non-parametric read of the same corpus, used for role binding rather
+than goal regression", and any claim in the paper must carry that
+sentence.
