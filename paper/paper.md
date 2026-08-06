@@ -6869,3 +6869,27 @@ first-run prompt, which the repo already solves via
 `eval/_libero_compat.prepare_libero()`. The harness had encoded the fix
 and I bypassed it — a one-line instance of the provenance failure mode
 §8 catalogues.
+
+### Deployed binding accuracy, cream: 0.033 — with the instrument's own control pending (2026-08-06)
+
+**Cream (task 1), no binder, deployed: 2/60 ticks correct = 0.033.** The
+misbinding is systematic, not diffuse: the box the machine treats as
+"cream cheese" is nearest to *milk* on 28 ticks and to *alphabet soup* on
+23, with cream itself winning twice. Against the 1-NN bank's 0.82
+leave-episode-out accuracy on corpus crops, that is the on-manifold gap
+quantified at last — roughly a 25x drop from corpus to deployment, and
+below the ~0.2 chance rate for five candidate objects, i.e. binding is
+actively anti-correlated with the target rather than merely noisy.
+
+**This number is not yet believable, and the reason is in this paper's
+own protocol section:** "instrument calibration is part of the protocol,
+because across this project the instruments were wrong more often than
+the models." A ground-truth pixel projection has two conventions I could
+have inverted — (row, col) vs (u, v), and normalisation by width vs
+height — and either mistake manufactures exactly this result. So the
+control is running: the identical measurement on **soup (task 0)**, the
+object whose policy demonstrably works at 5-8/10. If soup's deployed
+binding accuracy comes back high, the instrument is calibrated and
+cream's 0.033 stands. If soup also comes back near zero, my projection
+convention is wrong, the cream number is an artifact, and it gets
+retracted rather than reported.
