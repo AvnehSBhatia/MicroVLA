@@ -9951,3 +9951,39 @@ paper actually claims — de-memorization, attribution, and the multi-object
 resolution. Adding more would be padding, and the earlier instinct to place
 nothing was wrong in the opposite direction; the right number is the one the
 claims need.
+
+### PRE-REGISTERED: does the repair lift the headline object too? (2026-08-06)
+
+The DAgger repair was built for the blocked object and crossed it. The paper's
+headline cell is a *different* object at 0.700 held-out (35/50). Two reasons to
+ask whether the repair lifts that too:
+
+1. **It is the honest test of what the repair is.** If it only helps objects
+   that were failing, it is a rescue; if it helps the object that already works,
+   it is a general fix for off-manifold grasp prediction. Those are different
+   claims and only a measurement separates them.
+2. Suggestive evidence exists: the cream-trained DAgger head, applied to soup
+   without any soup-specific collection, scored 7/10 against 3/6 for the head it
+   came from. Small n, not significant, but the wrong direction to ignore.
+
+**Protocol, identical to the cream arm.** Collect soup rollouts on **seed 0**
+with `MICROVLA_LOG_FEATS=1`, label from the simulator's object pose plus the
+measured corpus offset, fine-tune from v8 with corpus mix-in across all three
+objects, evaluate on **seed 20** at n=50. No cell scored on its own band.
+
+**Registered prediction.** Soup improves on its 0.700 held-out cell — I expect
+modestly, since 0.700 already reflects a head trained on soup's own corpus, so
+the off-manifold headroom is smaller than cream's was.
+
+**Registered falsification, and it is the more interesting outcome.** If soup
+does *not* improve, or degrades, then the repair is **specific to objects whose
+deployment viewpoints have drifted**, and the working object's remaining 30%
+failure is something else entirely — which would bound the repair a second time
+and is worth more to the paper than a few points of headline. Reported either
+way.
+
+**What I will not do**: swap the released head for a DAgger'd one in the
+headline cell if it wins. The released v5 cell is the paper's audited,
+n=50-confirmed result with a full provenance chain; a late-session replacement
+would need its own audit, and "we improved it at the end" is how selection
+loops start. Any improvement is reported as an additional dated cell.
