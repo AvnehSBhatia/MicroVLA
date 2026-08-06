@@ -13,12 +13,19 @@ benchmarks let non-visual policies score, plus the small repair that fixes it.**
 | input attribution | eef-tracking, image-flat | **visual** (vision 1.1–1.8 cm, proprio 0.1 cm) |
 | survives detector-stack rebuild | dev 7/10 → **2/10** | **all three protocols reproduce** |
 
-**Multi-object addendum (2026-08-05, dated):** a soup+butter head
-(`goal_heads_v7.pt`) under the anchor trust-region latch (one config, no
-per-object constants) — pre-registered fresh-seed confirmation **butter
-5/10 + soup 3/10** (selection-band cells 6/10 + 4/10; butter reaches
-**10/10** under the early-latch config split). The full estimate-chase
-mechanism story is in the manuscript's App-D addendum.
+**Multi-object addendum (dated).** Two-object head (`goal_heads_v7.pt`)
+under the anchor trust-region latch — one config, no per-object
+constants: pre-registered fresh-seed confirmation **butter 5/10 + soup
+3/10** (selection-band 6/10 + 4/10; butter reaches **10/10** under the
+early-latch config split). Three-object head (`goal_heads_v8.pt`, adds a
+cream-cheese corpus) with semantic rebinding: selection-band butter 7/10
++ soup 5/10, second pre-registered fresh-seed confirmation **butter 5/10
++ soup 4/10**. Cream cheese does not cross: its goals are accurate
+(1.58 cm on-manifold, vs butter 1.34 and soup 1.06) but the frozen
+detector's role binding cannot separate it from look-alikes — the
+boundary is quantified at 0.902 (1-NN) / 0.613 (mean prototype) identity
+accuracy, and binder cells testing it are dated in App D. The full
+estimate-chase mechanism story is in the manuscript's App-D addendum.
 
 The free-regression baseline (same trunk, six controlled variants) is 0.000;
 structured decoding — two learned goal heads (0.24M) driving a task-content-free
@@ -34,8 +41,16 @@ films in [`demo/`](demo/).
 |---|---|---|
 | `full_stageB_rec_fix.pt` | trunk: fusion/drift/relational/planner + TRM (frozen at deploy) | ~17M trained-side |
 | `goal_heads_v5.pt` | structured-decoding goal heads (grasp + place), variance-trained + jitter | 0.24M |
-| `goal_heads_v7.pt` | multi-object heads (soup + butter corpus, 2026-08-05 addendum) | 0.24M |
+| `goal_heads_v7.pt` | two-object heads (soup + butter corpus, 2026-08-05 addendum) | 0.24M |
+| `goal_heads_v8.pt` | **three-object heads** (soup + butter + cream corpus, 2026-08-06 addendum) | 0.24M |
+| `role_bank.pt` | per-object crop-embedding banks for 1-NN role binding (`--goal-src-bank`); measured 0.902 identity accuracy vs 0.613 for a mean prototype | 1432 vectors |
+| `role_prototypes.pt` | mean-prototype variant of the same (`--goal-src-proto`); shipped because its **negative** result is part of the evidence | 3 vectors |
 | `gates_v1.pt` | stage-1 learned gates (close trigger + hold check) | <3K |
+
+Both binders are built from the training corpora by
+`scripts/build_role_bank.py` / `scripts/build_prototypes.py` — no new
+episodes and no gradient steps, but corpus-derived, so they are part of
+the learned system rather than a free lunch.
 
 (The frozen YOLO-World-S detector downloads automatically via `ultralytics`.)
 
