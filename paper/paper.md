@@ -9987,3 +9987,24 @@ headline cell if it wins. The released v5 cell is the paper's audited,
 n=50-confirmed result with a full provenance chain; a late-session replacement
 would need its own audit, and "we improved it at the end" is how selection
 loops start. Any improvement is reported as an additional dated cell.
+
+### A design gap in my own registration, caught mid-run (2026-08-06)
+
+The cream arm had a **matched n=50 control** — v8 under identical configuration
+— which is what made "18/50 vs 3/50, paired McNemar" a clean claim. When I
+registered the soup arm I specified the *treatment* and forgot the *control*.
+
+**Why that matters here specifically.** The soup DAgger head is v8-based with
+`anchor_band`; the paper's 0.700 headline is the **v5** head under a
+**different** configuration. Comparing them changes two things at once, so a
+number below 0.700 could mean "DAgger hurt soup" *or* "v8+anchor_band is a
+weaker configuration for soup than v5's was" — and nothing in the data would
+separate them. That is a confound of exactly the kind this paper's §8 catalogue
+documents, introduced by me, in the registration itself.
+
+**Fixed rather than reasoned around:** the v8+anchor_band soup arm is queued at
+n=50 on the same seeds, so the contrast becomes like-for-like. Recorded because
+I caught it from a partial result (16/35) rather than from re-reading what I
+had written — the number looked low, and *that* is what prompted the check.
+Noticing a design flaw because the result is disappointing is a weak form of
+noticing; the registration should have carried the control from the start.
