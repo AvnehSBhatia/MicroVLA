@@ -7978,3 +7978,29 @@ selects a box by shape, and a language-free head decides where to grasp it.*
 That is a smaller claim than "language-conditioned VLA", and it is the true one.
 The architecture was ours to read at any point in this campaign; reading it is
 what six instruments and four falsified predictions cost.
+
+### Repo audit: the paper's foundational instrument was untracked (2026-08-06)
+
+Building the reproduction path surfaced a second, worse provenance gap than the
+missing `argv`. The manuscript cites `scripts/measure_placement_pinning.py` in
+**four** places as shipped, and the submission's opening claim — "target start
+poses are exactly pinned in 6 of 10 tasks and within ~±1 cm in the rest" —
+rests entirely on its output. **Neither the script nor its emitted table was in
+the repository.** A referee following the citation would have found nothing.
+
+Verified against the claim *before* tracking it, rather than assuming our own
+artifact agreed with our own prose: the table reports **6 tasks pinned**
+(bit-identical across all 50 shipped init states, max deviation ~1e-17 m) and
+**4 varying at std 0.25–0.58 cm** — matching "6 of 10 … 0.25–0.58 cm" exactly.
+The table additionally carries a **SHA-256 digest of each task's init-state
+array**, so the measurement is traceable to the exact data it read.
+
+Now tracked: the script, `results/placement_pinning.json`, and
+`results/placement_pinning.md`. Combined with the run-`provenance` field and
+`REPRODUCE.md`, the chain from headline claim → instrument → artifact → data
+digest is now complete and walkable by someone who has never spoken to us.
+
+Two provenance defects found in one session by the simple act of asking "could
+a stranger reproduce this?" — both in *our* favour to ignore, both fixed. That
+question is a better auditor than any of the six instruments this campaign
+built.
