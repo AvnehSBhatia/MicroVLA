@@ -784,6 +784,8 @@ counts routinely exclude a frozen language encoder that inference still loads:
 | OpenVLA | 7 B | 7 B | internal (Llama-2) |
 | SmolVLA | 450 M | 450 M | internal (SmolVLM2) |
 | TinyVLA family | ~70 M backbone – 1.4 B | ~70 M – 1.4 B | internal |
+| LiteVLA (arXiv 2511.05642) | LoRA only | ~256 M | internal (SmolVLM-256M) |
+| NanoVLA-S (arXiv 2510.25122) | 52 M | ~161 M | BERT-base, frozen, **excluded from its headline** |
 | Octo-small | **27 M** | 138 M | T5-base, 111 M frozen |
 | RT-1 | 35 M | **≥35 M** | USE, frozen, *uncounted* |
 | **MicroVLA (this work)** | **17.2 M** | **30.2 M** | *none* — detector's own tower |
@@ -804,6 +806,16 @@ smaller systems cannot exist, and we do not claim small size *caused* any
 success rate reported here. The mechanism is architectural: MicroVLA carries no
 separate language model, so the frozen encoder the other rows pay for twice —
 once in memory, once in the convention mismatch — does not exist here.
+
+**The survey was run adversarially**, searching specifically for systems
+*smaller* than ours and reading the two live threats rather than trusting
+search summaries. NanoVLA is the convention gap in miniature: a paper named for
+being nano reports 52 M while loading ~161 M, because a frozen ResNet18 and a
+frozen BERT-base do not appear in the headline (its "98% fewer parameters" is
+measured against OpenVLA's 7.5 B, not against small systems). LiteVLA reaches a
+Raspberry Pi on a 256 M SmolVLM backbone. Both sit above MicroVLA on both axes.
+The USE parameter count stays deliberately uncited — no authoritative figure
+was found, and RT-1 is granted its best case instead.
 
 On absolute performance: sub-1B systems report ~87% on
 LIBERO-Object (CoTinyVLA) and ~90% suite averages (XS-VLA); SmolVLA ~83% —
