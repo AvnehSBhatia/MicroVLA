@@ -10090,3 +10090,36 @@ externally broken. The check costs 0.02 s and would have caught all four of
 today's instances.
 
 616 tests pass.
+
+### Venue options, with dates — the handoff (2026-08-06)
+
+The blocking step is a venue choice, which is not mine to make. What I can do
+is remove the research friction from it. Searched today; **verify these against
+the official sites before relying on them**, since deadlines move:
+
+| venue | deadline | notes |
+|---|---|---|
+| **ICRA 2027** | **15 Sep 2026**, 23:59 PT (~5.5 weeks) | Seoul, 24–28 May 2027. IEEE format, 6 pages + references (8 with over-length fee). The concrete near-term option. |
+| CoRL 2027 | not yet announced | CoRL 2026's deadline has passed; 2027 CFP not posted as of today. Historically a ~May–June deadline, which would be the natural home for this work. |
+| arXiv preprint | any time | Costs nothing, establishes precedence, and is the only step that does not wait on a committee. |
+
+**What ICRA would require that is not done.** Our body runs 7 pages in plain
+`article`; ICRA is IEEE two-column, 6 pages plus references. That is a
+reformat and a real cut — roughly a third of the body — not a style change.
+The material most likely to survive is the audit, the four layers, and the
+probes; the multi-object addendum would compress hard. **I have not done this
+reformat**, because which third to cut is an authorial judgment about what the
+paper is *for*, and that decision belongs to whoever puts their name on it.
+
+**My reading, offered as a recommendation and not a decision.** The work's
+transferable contribution is the *methodology* — the two annotation-free
+probes, the probe-plus-randomization pairing, and the four-layer audit — more
+than the artifact's success rates. That argues for a venue that rewards
+methods and negative results. Given the calendar, the lowest-regret sequence is
+**arXiv now, ICRA 2027 by 15 September, CoRL 2027 when its CFP posts** — the
+preprint costs nothing, does not consume the ICRA option, and starts the only
+clock that is currently stopped.
+
+The package is ready for the first of those today: `paper/submission/` builds
+clean, `REPRODUCE.md` lets a stranger verify both headline cells, `models/`
+ships every checkpoint the papers cite with digests, and 616 tests pass.
