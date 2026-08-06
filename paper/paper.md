@@ -9923,3 +9923,31 @@ plausible-sounding reason to discard something, and it happened to be false
 here: staleness is a property you check, not one you infer from a date. I
 reached for the cautious-sounding option and it was the wrong one. Two figures
 now, both verified against the artifacts they summarise.
+
+### Three figures, all verified against their artifacts (2026-08-06)
+
+F2 placed as Figure~2 after the same cell-by-cell check F3 got. Its flagship
+bars — box-centre uv 1.09, frame emb 1.79, box emb 1.68, trunk-proprio
+**0.09** cm — are exactly the "vision 1.1–1.8 cm, proprioception 0.1 cm" the
+abstract claims, so the paper's second headline result is now drawn rather than
+only asserted.
+
+**It also carries the counterexample inside the figure**, which is why it earns
+the space: v2 and v2.1 have near-identical probe profiles on the jointly logged
+channels while scoring **0.000 and 0.700 deployed**. That single annotation is
+the entire motivation for pairing substitution probes with behavioural
+randomization — a probe evaluated on teacher trajectories is an on-manifold
+instrument and cannot certify off-manifold behaviour on its own. Drawing the
+instrument's own limitation next to its result is more honest than a sentence
+in the body.
+
+Final layout: **7 body pages, 3 figures** (p3 protocol × head, p4 attribution
+with its counterexample, p6 the third-object arc), references pp8–9. Every
+figure verified against the artifacts it summarises; none regenerated blind.
+
+**Stopping at three.** F1 (road to nonzero) and F4 (offset invariance) exist
+and may well be accurate too, but three figures cover the three results the
+paper actually claims — de-memorization, attribution, and the multi-object
+resolution. Adding more would be padding, and the earlier instinct to place
+nothing was wrong in the opposite direction; the right number is the one the
+claims need.
