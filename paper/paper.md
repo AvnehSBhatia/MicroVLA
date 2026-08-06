@@ -8716,3 +8716,16 @@ sampling. The Wilson intervals answer a different question — uncertainty over
 protocol, not when you re-run the shipped command. The old wording invited a
 reproducer to accept a wrong answer as "close enough", which is worse than
 giving no guidance at all.
+
+**Fourth layer propagated to all documents (2026-08-06).** Abstract, the audit
+contribution, the manuscript's abstract/claims/§6 heading: "three layers" →
+**four**, with the place head named. One more stale count fixed in the same
+sweep (contribution #4 said "five ground-truth-seeking instruments failed";
+six did).
+
+**The title still holds, and holds harder.** "Learning Location, Not Looking"
+was written about the grasp side. The fourth layer is a component that
+literally learned a *location* keyed to a *word* — against a basket that never
+moves — and it was the one component no probe in this campaign had thought to
+audit, precisely because the benchmark never exercises it. The paper's own
+thesis found a defect the paper's own instruments had missed.

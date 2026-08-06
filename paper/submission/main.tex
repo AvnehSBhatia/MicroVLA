@@ -27,10 +27,13 @@ text tower supplies every text embedding---the smallest surveyed
 language-conditioned policy under both size conventions at once (17.2\,M
 trained, 30.2\,M deployed; the runners-up differ per convention). No result
 below is attributed to size. First, an audit finds placement memorization at
-three layers: a calibrated expert whose offset constant encodes pose
+four layers: a calibrated expert whose offset constant encodes pose
 (sign-flipping under a software rebuild), an iteration-coupled selection loop
-(0.700 dev vs.\ 0.300 held-out), and a learned grasp head whose regression
-rationally prefers proprioception to pixels. Second, a repair---ten teacher
+(0.700 dev vs.\ 0.300 held-out), a learned grasp head whose regression
+rationally prefers proprioception to pixels, and---found last, by swapping the
+instruction---a place head that memorized a command$\to$location map, emitting
+the correct basket for the command it trained on and points 13--14\,cm away for
+commands it did not, against a basket that never moves. Second, a repair---ten teacher
 episodes under $\pm4$\,cm placement teleports plus jitter on a nuisance
 input---restores \emph{visual} grounding, i.e.\ which input the head reads
 (attribution: vision 1.1--1.8\,cm, proprioception
@@ -90,7 +93,7 @@ contributes.
 \item \textbf{A placement-memorization audit and its verification method.}
 A forensically worked instance of shortcut
 learning~\citep{geirhos2020shortcut,dehaan2019causal} on a fixed-placement
-benchmark, shown at three layers, with the corrected measured account of what
+benchmark, shown at four layers, with the corrected measured account of what
 LIBERO-Object pins (per-task table and shipped measurement script); and the
 probe-plus-behavioural-randomization protocol, motivated by the on-manifold
 limit of substitution probes and by a counterexample to probe-only
@@ -112,7 +115,7 @@ negative result it produced.} Open-vocabulary detectors are typically prompted
 with a fallback chain, so a policy can appear language-conditioned while every
 instruction collapses to the same generic prompt. Comparing two \emph{different}
 instructions' selections on the same frame detects this without knowing which
-is correct---the property that let it succeed where five ground-truth-seeking
+is correct---the property that let it succeed where six ground-truth-seeking
 instruments failed. Applied to our own stack it returns the same box for
 different objects (median centre distance $0.0001$), so our best cell's 0.700 is
 \emph{not} explained by binding the named object. The test is cheap, needs no
@@ -255,6 +258,20 @@ $(x,y)$ place point} cached once per episode by
 \texttt{set\_place(place\_head(command\_emb))}. Ask this policy for the butter
 and it finds, approaches and grasps the alphabet soup at baseline rate; it
 fails only when that one cached coordinate is wrong.
+
+\noindent \textbf{And that coordinate is memorized---the audit's fourth layer.}
+The basket does not move (0.22--0.40\,cm across all ten tasks, less than its own
+0.8\,cm within-task jitter), so a \emph{grounded} place head would emit one
+point per scene. The released head emits the correct basket for the command it
+trained on (0.36\,cm error) and points \textbf{14.5\,cm} and \textbf{13.0\,cm}
+away for the two it did not: it learned command$\to$location, not basket---and
+14\,cm is exactly enough to release a grocery over open table, which is the
+observed failure. The cause is training coverage, not architecture: the same
+measurement on a head trained on all three commands collapses the spread from
+14.15\,cm to 0.78\,cm, inside the basket's own variation. This layer was
+invisible to every earlier probe because all ten tasks share one basket, so a
+memorized and a grounded place map are behaviourally identical \emph{until the
+instruction is swapped}.
 
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which

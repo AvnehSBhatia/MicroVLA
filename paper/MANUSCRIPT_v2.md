@@ -18,7 +18,7 @@ claim; read it before quoting the abstract.
 Fixed-placement benchmarks let imitation policies learn location instead of
 looking. We document this on LIBERO-Object, whose target start poses are
 exactly pinned (measured) in 6 of 10 tasks and within ~±1 cm in the rest.
-First, an audit finds placement memorization at three layers: a calibrated
+First, an audit finds placement memorization at four layers: a calibrated
 expert whose offset constant encodes pose (sign-flipping under a software
 rebuild), an iteration-coupled selection loop (0.700 dev vs 0.300 held-out), and
 a learned grasp head whose regression rationally prefers proprioception to
@@ -86,7 +86,7 @@ commitment, a hand-eye constant) that per-tick regression from single noisy
 frames cannot represent (§4). Replacing the action head with two small heads
 that predict *where* to grasp and place, driving an engineered pick-and-place
 shell, broke the zero and climbed to 0.700 (§5). We then audited our own
-number the way a sceptical reviewer would, found three layers of placement
+number the way a sceptical reviewer would, found four layers of placement
 memorization (§6), repaired the learned layer with ten variance episodes plus
 one nuisance-input randomization, and verified the repair with an
 input-substitution probe *paired with* a behavioural randomization protocol —
@@ -117,7 +117,7 @@ catch and the ones only provenance can.
 
 1. **A placement-memorization audit and its verification method.** A
    forensically worked instance of shortcut learning on a fixed-placement
-   benchmark, shown at three layers — a calibrated teacher whose composite
+   benchmark, shown at four layers — a calibrated teacher whose composite
    offset encodes pose (and detector version), an iteration-coupled selection
    loop, and a learned head whose regression rationally prefers
    proprioception — with the corrected, measured account of what
@@ -421,7 +421,7 @@ App B and are never aggregated with policy numbers.
 
 ---
 
-## 6. The audit: three layers of location-memorization
+## 6. The audit: four layers of location-memorization
 
 The 7/10 configuration reached 0.700 on the dev protocol. We audited that
 number as a result in its own right, because every layer of the system turned

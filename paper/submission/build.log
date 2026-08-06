@@ -77,12 +77,8 @@ ty
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msb.cfg)
 [1{/Users/avneh/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdf
 tex.map}]
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
 [2]
-Overfull \hbox (42.14018pt too wide) in paragraph at lines 218--233
+Overfull \hbox (42.14018pt too wide) in paragraph at lines 221--236
 \OT1/cmtt/m/n/10 GraspPointHead.forward \OT1/cmr/m/n/10 (-20) con-sumes only \O
 T1/cmtt/m/n/10 geom\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/10 box[]emb\OT1/cmr/m/
 n/10 (-20) , \OT1/cmtt/m/n/10 frame[]emb\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/1
@@ -114,5 +110,5 @@ e1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
 /type1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2025basic/texmf-dist/fo
 nts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025basic/texmf-dis
 t/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (7 pages, 256344 bytes).
+Output written on main.pdf (7 pages, 257563 bytes).
 Transcript written on main.log.
