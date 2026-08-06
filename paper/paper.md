@@ -9846,3 +9846,24 @@ measurement's circularity, and this one); three that worked (the
 ground-truth-free identity comparison, the world-space nearest-body probe, the
 DAgger intervention). A 3-in-11 hit rate, every failure recorded with the gate
 it failed, and no gate moved after the fact.
+
+### Abstract rewritten: 614 words → ~320 (2026-08-06)
+
+The abstract had grown by accretion all day — every result appended as it
+landed — reaching **614 words**, roughly 3× a conference abstract and a
+continuous wall of numbers. For a paper whose contribution is partly
+*methodological clarity*, that was the single largest barrier between the work
+and a reader.
+
+Restructured into five short paragraphs: the benchmark measurement (including
+the two-position finding), the four layers and three data-side repairs with the
+headline cells, the platform and size claim, the two transferable probes, and
+the honest scoping. Nothing was dropped that the body does not carry in full.
+
+**One caveat was restored after the first cut removed it**: the twin control
+cells and the finding that the behavioural certificate is **joint in (head,
+stack)**. That is load-bearing rather than decorative — without it the 0.700
+reads as a property of the head alone, which the audit-stack control
+specifically refutes. Deferring a *detail* to the body is editing; deferring a
+*caveat that changes what a number means* is overclaiming, and the distinction
+is worth stating because the first draft of the cut got it wrong.

@@ -18,64 +18,43 @@ A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale}
 \maketitle
 
 \begin{abstract}
-Fixed-placement benchmarks let imitation policies learn \emph{location}
-instead of \emph{looking}. We document this on LIBERO-Object, whose target
-start poses are exactly pinned (measured) in 6 of 10 tasks and within
-${\sim}\pm1$\,cm in the rest. Our platform is a 30.2\,M-parameter deployed
-stack carrying \emph{no} language model---an open-vocabulary detector's own
-text tower supplies every text embedding---the smallest surveyed
-language-conditioned policy under both size conventions at once (17.2\,M
-trained, 30.2\,M deployed; the runners-up differ per convention). No result
-below is attributed to size. First, an audit finds placement memorization at
-four layers: a calibrated expert whose offset constant encodes pose
-(sign-flipping under a software rebuild), an iteration-coupled selection loop
-(0.700 dev vs.\ 0.300 held-out), a learned grasp head whose regression
-rationally prefers proprioception to pixels, and---found last, by swapping the
-instruction---a place head that memorized a command$\to$location map, emitting
-the correct basket for the command it trained on and points 13--14\,cm away for
-commands it did not, against a basket that never moves; a head trained on all
-three commands is correct for all three and its swap cell does not collapse, so
-this layer too is repaired by data rather than architecture. Second, a repair---ten teacher
-episodes under $\pm4$\,cm placement teleports plus jitter on a nuisance
-input---restores \emph{visual} grounding, i.e.\ which input the head reads
-(attribution: vision 1.1--1.8\,cm, proprioception
-0.1\,cm), verified by a substitution probe paired with a behavioural
-randomization protocol: the released head scores 0.400 dev, 0.700 held-out,
-0.400 randomized, with both non-dev protocols confirmed at $n{=}50$
-(35/50 $[0.56,0.81]$; 26/50 $[0.39,0.65]$). The protocol's twin control cells
-scope that verification from both sides: on the deployment stack the memorized
-head scores 1/10 under the repaired head's own shift draws (where it scores
-4/10), while on a rebuilt stack whose detector shift disables the repaired
-head's visual goals (0/10), the shell's search absorbs the same shifts for the
-proprioception-shortcut head (6/10). The behavioural certificate is therefore
-joint in (head, stack). Third, the policy class that made this reachable is
-goal-structured decoding driving an engineered pick-and-place shell; free
-per-tick regression scored 0/56. All results are simulation, one task and one
-object in every claimed cell, $n{=}10$ per cell except where an $n{=}50$
-confirmation is stated. A dated
-addendum carries the multi-object campaign: four objects attempted, \textbf{three
-crossed} --- a second twice confirmed on never-scored seeds, a third crossed by
-the intervention below, and a fourth whose scripted teacher never reached a
-grasp. For the third we proposed nine mechanisms and refuted eight by
-measurement; the ninth, appearance-side off-manifold drift, survives
-falsification, a circularity check, and an \emph{intervention} --- fine-tuning
-the grasp head on the machine's own viewpoints cuts its deployed lateral error
-56\% and \textbf{crosses it}, 18/50 $[0.24,0.50]$ against a same-seed control
-at 3/50 (exact McNemar $p{=}6.1\times10^{-5}$), at no cost to the object that
-already worked.
-Five pre-registered predictions were recorded and falsified and six
-instruments abandoned at their own calibration gates before a seventh, which
-needs no ground truth, succeeded and retracted our own proposed mechanism:
-different objects' prompt chains select the \emph{same} detection from the same
-frame (median centre distance $0.0001$), so deployed role binding is
-\textbf{identity-blind} and the crossing object's 35/50 is not explained by
-binding the named object. Swapping the instruction collapses the cell
-(7/10$\to$0/10, $p=0.016$), and a $2\times2$ decomposition localises that
-entirely to the \emph{command embedding}---prompts from another object cost
-nothing ($p=1.0$). Object selection, approach and grasping thus run with no
-language input at all, and this system's whole language channel is one latched
-place coordinate: the repaired head is grounded on \emph{a} box, not \emph{the
-named} one.
+Fixed-placement benchmarks let imitation policies learn \emph{location} instead
+of \emph{looking}. On LIBERO-Object we measure the preconditions exactly: the
+target's start pose is bit-identical across all 50 shipped init states in 6 of
+10 tasks, and the ten tasks between them use just \textbf{two} table positions,
+22\,cm apart. A policy that memorizes two coordinates can present as
+generalizing over ten.
+
+We audit our own stack and find placement memorization at \textbf{four} layers:
+a calibrated expert whose offset constant encodes pose, an iteration-coupled
+selection loop, a grasp head whose regression prefers proprioception to pixels,
+and a place head that memorized a command$\to$location map against a basket that
+never moves. Three are repaired, each by \emph{data} rather than architecture:
+ten placement-teleported episodes, command coverage in training, and DAgger on
+the machine's own deployment viewpoints. The released head scores 0.700
+held-out (35/50 $[0.56,0.81]$) and 0.520 randomized (26/50) where free per-tick
+regression scores 0/56; a third object crosses at 18/50 $[0.24,0.50]$ against a
+same-seed control at 3/50 (exact McNemar $p{=}6.1\times10^{-5}$). Twin control
+cells scope that verification from both sides: the behavioural certificate is
+joint in \emph{(head, stack)}---a detector-stack rebuild inverts which head
+looks better.
+
+The platform is 30.2\,M parameters deployed with \emph{no} language model---an
+open-vocabulary detector's own text tower supplies every text embedding---which
+makes it the smallest surveyed language-conditioned policy under both size
+conventions at once. Nothing below is attributed to size.
+
+Two annotation-free probes generalize past this artifact. Comparing two
+instructions' detections on one frame exposes a grounding stage that
+\emph{ignores} the instruction; swapping the instruction exposes one that
+\emph{memorized} it. Applied here they show that object selection, approach and
+grasping run with no language input at all: this system's entire language
+channel is one latched place coordinate.
+
+All results are simulation, one task and one object per claimed cell. Seven
+pre-registered predictions were falsified and eight instruments retired at
+their own calibration gates; two proposed mechanisms were tested and retracted
+before reaching this paper.
 \end{abstract}
 
 \section{Introduction}
