@@ -15,6 +15,8 @@ e4e8925bd00d4cca300a71cec357b425f811ec0b18cfa2bbcdafd53e34a5f2e5  goal_heads_v7.
 d155311a52975846e32d30bd3837c18e9e6799636d1e7f5e4ad9b7f7e59fe191  goal_heads_v8.pt
 38e7611479b2d2a1cdaaa314def84620ce9612c0a03e6cb21b7303c875a85f19  role_bank.pt
 522fba538f4f36ddf2ad48a27966a7d27a68e76b80b3ecf3df406bf6ed34326b  role_prototypes.pt
+4573ad267e363f9ad7f3fb1eac09cd8e91637c50a336d76cd5e907e27b0d1ab1  goal_heads_dagger.pt
+a2278edaf04c5b0be543f0f55ff31152bb0a5a1a98bcda426c33f4ca445ac4b4  goal_heads_dagger_soup.pt
 ```
 
 `goal_heads_v5.pt` and `full_stageB_rec_fix.pt` — the two that produce the
@@ -30,6 +32,8 @@ machine's copies. A digest mismatch means you are not reproducing our numbers.
 | `gates_v1.pt` | stage-1 learned gates (close trigger, hold check) | <3K |
 | `role_bank.pt` | per-object crop-embedding bank, 1-NN role binding | 1432 vectors |
 | `role_prototypes.pt` | mean class prototypes, the weaker binder | — |
+| `goal_heads_dagger.pt` | v8 fine-tuned on the machine's **own** cream-task deployment viewpoints (collected seed 0). **Crosses the third object: 18/50 = 0.360 [0.24, 0.50]** on held-out seed 20 vs a same-seed control at 3/50, paired exact McNemar p=6.1e-05 | 0.24M |
+| `goal_heads_dagger_soup.pt` | the same procedure applied to the object that already works — 28/50 vs 27/50 control, **p=1.0000**. Shipped because its **null** result is the specificity evidence for the mechanism | 0.24M |
 
 `role_bank.pt` / `role_prototypes.pt` back binder cells that **did not**
 improve the blocked object; see the App-D addendum, and note that their 0.902 /
