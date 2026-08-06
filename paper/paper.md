@@ -7236,3 +7236,34 @@ binders tried (none, crop-CLIP rerank, mean prototype, 1-NN bank). What
 remains unmeasured — and is now explicitly labelled unmeasured rather
 than inferred — is the deployed binding accuracy itself and whether the
 frozen text tower discriminates these phrases at all.
+
+### Separating two failure modes I had been conflating (2026-08-06)
+
+Re-reading tonight's record exposes a distinction my own summaries blurred:
+cream and pudding do not fail the same way.
+
+* **Cream:** the *teacher* works once crop-CLIP rerank is enabled
+  (calibration converged in two iterations, smoke 1/3, 17-episode corpus
+  recorded). The *student* is what fails. So cream is a student-side
+  binding failure, and the four-binder study is exactly the right probe
+  for it.
+* **Pudding:** the *teacher* fails, with rerank already on, across five
+  calibration iterations. Nothing student-side was ever exercised,
+  because no corpus exists. Calling both "the same signature" was
+  correct about the telemetry (`servo_src`, uv std ~0.30) and sloppy
+  about the level.
+
+That matters because it changes what is untested. For pudding the
+untried suspects are the *perception filters*, not the text tower:
+`--source-max-area 0.12` rejects source boxes above 12% of frame area
+and `--role-disjoint-iou 0.1` rejects source boxes overlapping the
+target's — either could delete the correct pudding box before any
+binding decision is made, and both were inherited unchanged from the
+soup-era configuration. A four-cell ablation is running (baseline / no
+area filter / no disjoint filter / neither), single trial each, scored by
+whether the teacher reaches a grasp phase at all.
+
+If a filter is the block, pudding is not evidence for the role-binding
+boundary and the 2-of-4 tally must be restated as 2-of-3 with pudding
+pending — which would weaken the strongest multi-object claim I made
+tonight. Recording that before the result.
