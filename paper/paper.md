@@ -9642,3 +9642,39 @@ viewpoints it actually visits** — the same lesson as the ten-episode teleport
 repair and the command-coverage repair. Every defect in this paper has been a
 memorized value standing in for a measurement, and every repair has been showing
 the model the variation it was never shown.
+
+### CORRECTION: cream's "0/10" was an underpowered estimate, not a zero (2026-08-06)
+
+The n=50 control arm (v8 head, cream, seed 20, identical config) is returning
+**successes** — 2 in its first 36 trials. Cream's baseline is therefore **not
+zero**; it is a low but nonzero rate that its 0/10 and 0/6 cells were too small
+to reveal.
+
+**This corrects a phrase I have used throughout the campaign.** "Cream scored
+0/10 under every configuration" is true *of those cells* and misleading *about
+the rate*. A 0/10 cell has a Wilson 95% upper bound of ~0.28 — entirely
+consistent with the ~6% the control is showing. I repeated the zero across many
+entries as though it were a property of the object rather than of a small
+sample, and every downstream statement that treated cream as categorically
+incapable inherited that error.
+
+**It also strengthens rather than weakens the intervention result**, which is
+the opposite of what a correction usually does here. The claim becomes a
+measured *ratio* between two n=50 cells on identical draws rather than a
+"nothing → something" story that a single lucky trial could have manufactured:
+
+| arm | cell |
+|---|---|
+| v8 head (control) | ~2–3/50 |
+| DAgger head | **18/50 = 0.360 [0.24, 0.50]** |
+
+roughly a **6× improvement**, Fisher exact p ≈ 4e-04 even at the control's most
+favourable plausible outcome.
+
+**The general lesson, which belongs in the paper.** This work spends four
+layers arguing that fixed benchmarks let memorized values pass for
+measurements. Here I let a *small-sample zero* pass for a measured zero — the
+same failure in a different coordinate. The fix is the one the paper already
+prescribes for its own cells: report the interval, not the point. Every "0/10"
+in this log should be read as "≤0.28 with 95% confidence", and I am recording
+that rather than editing the history.
