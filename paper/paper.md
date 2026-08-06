@@ -7181,3 +7181,30 @@ failed their calibration tonight and each failure is in this log; the
 alternative — reporting the first result that agreed with my hypothesis —
 was available at every step and is what the audit half of this paper
 exists to prevent.
+
+### STOP: the text-tower question is recorded as open, not answered (2026-08-06)
+
+v3 built perception through the eval path's own `_build_real_perception`
+factory (grid 4, min_side 512, identical flags) and read frames straight
+from the corpora, and **still fails its soup gate** — the object's own
+phrase does not detect on frames from the episodes that trained on it.
+Three variants, one gate, three failures. Per the timebox fixed before
+the run, instrument-building on this question stops here and **whether
+the frozen text tower discriminates LIBERO-Object's phrases is recorded
+as OPEN** — not answered, not estimated, not hinted at in the manuscript.
+
+What is now known about the failure, for whoever picks it up: it is not
+the frame source (env and corpus both fail), not the preprocessing
+(verified identical to `camera.py::upright` and the policy's BGR
+conversion), and not the perception constructor (the eval factory fails
+too). The remaining suspects are the corpus frames' stored channel order
+or dtype — my `[..., ::-1]` assumes RGB storage and would silently
+produce BGR-of-BGR if they are stored converted — and any priming the
+live loop performs before `perceive` that a bare call does not. Both are
+checkable in minutes by someone starting fresh; I have now been wrong
+about this instrument three times and the value of my next guess is low.
+
+Tally for the night, stated plainly because it is the honest headline of
+this stretch: four instruments attempted, four failed their own
+calibration gates, zero fabricated results reported. The measurements
+that stand are the ones from before this stretch, unchanged.
