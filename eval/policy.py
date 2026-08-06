@@ -909,6 +909,16 @@ class MicroVLAPolicy:
                         uv=_npv(src.center), conf=conf, proprio=pvec,
                         box_emb=_npv(src.emb),
                         frame_emb=_npv(result.perception.frame_emb))
+                    if os.environ.get("MICROVLA_LOG_FEATS") and not (self._tick_index % 10):
+                        # DAgger capture: the EXACT feature vector the head saw
+                        # on the machine's own (off-manifold) trajectory. Paired
+                        # later with the simulator's true object pose to build a
+                        # label, which the corpus cannot supply for viewpoints
+                        # the teacher never visited. Off by default; 1k floats
+                        # a tick.
+                        self._last_feats = {
+                            k: [float(v) for v in feats[k].reshape(-1).tolist()]
+                            for k in ("geom", "box_emb", "frame_emb", "eef_xy")}
                     with torch.no_grad():
                         pred = self.goal_grasp_head(feats)
                     self.goal_machine.observe(
@@ -970,6 +980,8 @@ class MicroVLAPolicy:
                     "src_box_emb": [float(v) for v in
                                     np.asarray(result.perception.source.emb).reshape(-1)],
                 }),
+                **({"grasp_feats": self._last_feats}
+                   if getattr(self, "_last_feats", None) else {}),
             }),
             **({} if self.ibvs_machine is None
                else {"phase": self.ibvs_machine.phase}),
@@ -983,6 +995,10 @@ class MicroVLAPolicy:
                                   else [float(v)
                                         for v in self.goal_machine.base_tgt])}),
         })
+        # Consumed once: without this the same captured feature vector would be
+        # attached to the next nine ticks and the DAgger set would be 90%
+        # duplicates.
+        self._last_feats = None
         self.trust_trace.append(float(result.trust))
         self._tick_index += 1
         return action.astype(np.float32)

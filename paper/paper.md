@@ -9419,3 +9419,42 @@ manifold than the objects that work.
 with deployment-like viewpoints for the failing object and re-measure. That is
 a corpus-collection experiment, not an analysis, and it is where this thread
 ends for today.
+
+### PRE-REGISTERED: the intervention — DAgger on the machine's own viewpoints (2026-08-06)
+
+The appearance-drift hypothesis survived a falsification test and a circularity
+check, but nothing has *intervened* on it. The decisive experiment: label the
+machine's own off-manifold viewpoints and retrain the head on them. If drift is
+the cause, this fixes the blocked object; if it is a correlate, it will not.
+
+**The label is derivable, checked first.** Deriving grasp labels from the three
+corpora (`train_goal.derive_labels`) gives grasp points that sit essentially
+*on* the object: soup's mean grasp is 0.5 mm from the object centre laterally,
+cream's 4.5 mm, butter's 1.2 mm, with 1.6–2.8 cm spread across episodes. So the
+grasp label ≈ the object's true position, and the simulator supplies that for
+**any** frame — including viewpoints the teacher never visited, which the corpus
+by construction cannot label. Checked before building on it, because a scattered
+offset would have made the whole design unsound.
+
+**Protocol, fixed before collection.** Collect on **seed 0 (dev band)**, never
+seed 20, so the held-out protocol stays uncontaminated — the same discipline
+that governs every cell in this paper. `MICROVLA_LOG_FEATS=1` captures the
+exact `(geom, box_emb, frame_emb, eef_xy)` the head consumed, every 10th tick,
+paired with the simulator's object pose for the label. Features are consumed
+once and cleared (without which 90% of the set would be duplicates).
+
+**Registered prediction.** Fine-tuning on these off-manifold viewpoints reduces
+cream's deployed lateral error materially below its current ~6.9 cm. Crossing
+(>0/10 on held-out seed 20) would be strong confirmation; a large error
+reduction without crossing would be partial.
+
+**Registered falsification.** If the deployed lateral error stays near 6.9 cm
+after training on the very viewpoints where it occurs, appearance drift is
+**not** the cause — it joins the other eight, and the multi-object boundary is
+reported as localized-but-unexplained, which is where it stood this morning.
+
+**Registered guard against self-deception.** This is a *repair*, so it must not
+be evaluated on the data that produced it: training draws seed 0, evaluation
+draws seed 20, and I will report the seed-20 cell whatever it says. A repair
+validated on its own collection band would be the iteration-coupled selection
+loop this paper documents as Layer 2.
