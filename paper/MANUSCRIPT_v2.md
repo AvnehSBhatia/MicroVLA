@@ -1379,10 +1379,26 @@ prototype 0.613 / bank 0.902). That looked like a mystery about binder quality.
 It is not: binding was never the bottleneck, so no binder could have moved the
 cell. The four binder cells tested the wrong hypothesis.
 
-**Where it does fail** is grasp geometry, consistent with cream's on-manifold
-goal error being the worst of the three (1.58 cm vs 1.34 and 1.06) — a 1.6 cm
-on-manifold error surfacing as a 7 cm deployed miss. *Why* it stops short is
-**not measured**, and is not claimed.
+**Where it does fail** is grasp geometry: the miss is **94% lateral** (6.9 cm
+sideways, 0.4 cm vertical — its *height* is better than soup's), and systematic
+rather than scattered (coherence 0.976).
+
+**Nine mechanisms, eight refuted, one supported by intervention.** Refuted by
+measurement: generic-tail indiscriminability, box-centre spread, proposal
+scarcity, misbinding, position memorization, descent failure, binder quality,
+uv-tail extrapolation. The ninth — appearance-side off-manifold drift —
+survives three tests:
+
+| test | result |
+|---|---|
+| falsification | cream's deployment embeddings sit **3.1×** further from its corpus than soup's (NN-cos gap 0.0272 vs 0.0089); butter, predicted before running, has the smallest gap of all (0.0007) |
+| circularity | drift is **largest in ticks 0–100** (0.0441), shrinking 65% over the episode, while soup and butter show the opposite rising trend — it *precedes* the error |
+| intervention | DAgger on the machine's own viewpoints cuts lateral error **56%** (0.0697→0.0310 m, Mann-Whitney **p=0.020**) and yields cream's **first successes** (2/10 vs 0/10 prior), soup 3/6→7/10 |
+
+Collection drew seed 0, evaluation seed 20 — no cell scored on its own band.
+**Not claimed**: that cream is crossed (2/10 vs 0/10, Fisher p=0.474); that
+drift is the whole cause (56% leaves 3.1 cm); that soup's 3/6→7/10 improvement
+is real (different n, reported only to show the absence of a regression).
 
 ### D.0.1 Identity-blind is not language-blind — the instruction swap
 
