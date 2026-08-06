@@ -9772,3 +9772,77 @@ gripper constant) rather than from a recorded grasp. That is a principled
 instrument, not a guess — but it is a *new* instrument, and this campaign has
 already retired seven of those at their own gates. It deserves its own
 calibration rather than being bolted onto a result on its last legs.
+
+### PRE-REGISTERED: calibrating a geometry-derived grasp height (2026-08-06)
+
+I deferred the pudding repair because its grasp-height label is not derivable
+from any recorded grasp. The principled alternative — derive it from the
+simulator's object geometry — was recorded as future work on the grounds that a
+new instrument needs its own calibration. **It has one available**: three
+objects with grasp heights measured from real corpora.
+
+**Instrument.** For each task's target body, read every geom's position and
+size from MuJoCo and compute the object's top-of-bounding-box z. Predict grasp
+height as `top_z + c` for a single global constant `c` fitted across objects —
+one constant for the suite, not one per object, which is the distinction this
+paper's whole audit turns on.
+
+**Calibration gate, fixed before looking.** The prediction must match all three
+known grasp heights (soup 0.0448, butter 0.0092, cream 0.0102 m) within
+**1 cm**, using a *single shared* `c`. That tolerance is the one that matters
+behaviourally: the gripper's finger span forgives roughly a centimetre of
+height error, which is why soup succeeds while hovering 1.9 cm high.
+
+**If it passes**, pudding gets a label derived from geometry rather than
+guessed, and the DAgger repair can be tested on an object whose scripted
+teacher never succeeded — the strongest available claim for the method.
+
+**If it fails**, the instrument is retired at its gate like the seven before
+it, pudding stays untested, and the bound logged above stands unchanged:
+DAgger repairs covariate shift, not absent labels. **I am recording that I
+expect roughly even odds**, because the three known deltas (0.030, 0.014,
+0.010) already look more like object-specific grasp strategy than a shared
+geometric offset — and if that is what they are, no single constant can fit
+them.
+
+### GATE FAILED by 0.05 cm — instrument retired, and the margin is the point (2026-08-06)
+
+| task | top-of-AABB z | known grasp z | delta |
+|---|---|---|---|
+| 0 alphabet soup | 0.0570 | 0.0448 | −0.0122 |
+| 1 cream cheese | 0.0415 | 0.0102 | −0.0313 |
+| 6 butter | 0.0339 | 0.0092 | −0.0247 |
+| 8 chocolate pudding | 0.0771 | — | ? |
+
+Best single shared constant `c = −0.0227 m`; residuals **1.05 cm** (soup),
+0.85 cm (cream), 0.19 cm (butter). **Max error 1.05 cm against a 1.00 cm gate
+registered before looking. FAILED.**
+
+**It failed by half a millimetre, and I am retiring it anyway.** Widening the
+threshold to 1.1 cm would pass it, unlock the pudding label, and very likely
+produce a fourth crossed object — the single most attractive result still
+available today. That is precisely why the threshold was written down first.
+A gate moved after seeing the residual is not a gate; it is a decision dressed
+as one, and this paper spends four layers documenting what happens when
+constants get chosen to make numbers work.
+
+**The registered expectation was borne out.** I predicted roughly even odds and
+said the three deltas "look more like object-specific grasp strategy than a
+shared geometric offset". They span 2 cm (−0.0122 to −0.0313) with no
+relation to object height — soup, the *tallest* of the three measured, has the
+*smallest* offset. Grasp height here is a property of how the teacher grasped
+each object, not of the object's geometry, and no single constant can represent
+it. Eighth instrument retired at its own gate.
+
+**Standing conclusion, unchanged.** Pudding stays **untested** — its scripted
+teacher never reached a grasp, so no supervision for grasp height exists, and
+none can be derived. The DAgger repair's bound stands as logged: it fixes
+**covariate shift**, not **absent labels**.
+
+**Final tally of the campaign's instruments:** eight built and retired at
+pre-registered gates (projected-origin ground truth, its sign-corrected
+successor, three text-tower probes, box-centre spread, the uv-manifold
+measurement's circularity, and this one); three that worked (the
+ground-truth-free identity comparison, the world-space nearest-body probe, the
+DAgger intervention). A 3-in-11 hit rate, every failure recorded with the gate
+it failed, and no gate moved after the fact.
