@@ -849,6 +849,7 @@ def _make_policy_factory(args: argparse.Namespace) -> Callable[[], object]:
             goal_ckpt=getattr(args, "goal_ckpt", None),
             goal_kwargs=(json.loads(args.goal_kwargs)
                          if getattr(args, "goal_kwargs", "") else None),
+            prompt_instruction=getattr(args, "override_prompt_only", None),
             goal_src_rerank=getattr(args, "goal_src_rerank", False),
             goal_src_proto=getattr(args, "goal_src_proto", None),
             goal_src_proto_key=getattr(args, "goal_src_proto_key", None),
@@ -952,6 +953,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="with --ibvs-gain: shift the IBVS aim toward the "
                         "neighbour so the grasp sits on the clear edge of the "
                         "source object.")
+    p.add_argument("--override-prompt-only", default=None,
+                   help="DIAGNOSTIC decomposition: source the detection prompt "
+                        "chain from this instruction while the CLIP task "
+                        "embeddings still come from the task's own. One "
+                        "instruction normally drives both channels; this "
+                        "separates them so a behavioural change can be "
+                        "attributed to one (paper.md, instruction-swap "
+                        "decomposition). Not a deployment feature.")
     p.add_argument("--override-instruction", default=None,
                    help="ABLATION: tell the policy this instruction instead of "
                         "the task's own. The env (scene, physics, success "

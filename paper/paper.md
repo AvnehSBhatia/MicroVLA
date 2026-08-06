@@ -8123,3 +8123,40 @@ prompt swap alone collapses it, source binding carries identity after all and
 the identity-blind finding — measured on corpus frames, which are on-manifold —
 does not survive deployment, exactly as this paper's own on-manifold limit would
 predict. Registered before implementing it.
+
+### PRE-REGISTERED: decomposing the swap into its two channels (2026-08-06)
+
+The swap moved two things at once. `JEPALoop.set_task` derives **both** the
+detection prompt chain **and** the CLIP task embeddings (which reach the
+language-conditioned `PlaceHead`) from one instruction. `--override-prompt-only`
+now sources the prompts from one string while the embeddings come from the
+task's own — parsed with `parse_command`, deliberately **not**
+`task_encoder.encode()`, which would re-harvest the text tower and repoint
+detector classes as a side effect, contaminating the channel being isolated.
+It logs a warning on every episode. 605 tests pass.
+
+Two cells, both n=10, seed 20, soup env, success scored on the real task:
+
+| cell | prompts from | embeddings from | isolates |
+|---|---|---|---|
+| **A** | butter | soup (task's own) | the **prompt/binding** channel |
+| **B** | soup (task's own) | butter | the **place/embedding** channel |
+
+**Registered prediction.** A returns to baseline (~7/10, inside its Wilson
+interval) and B collapses (≤2/10). That would place the swap's collapse
+entirely in the place channel and leave source binding identity-blind — which
+is what the telemetry suggested post-hoc and what the architecture predicts,
+since the grasp head takes no text but the place head does.
+
+**Registered alternative, and what it would cost.** If **A collapses**, the
+prompt channel carries identity in deployment, and the identity-blind
+finding — measured on *corpus* frames, which are on-manifold — does **not**
+survive contact with the machine's own off-manifold viewpoints. That would be
+this paper's on-manifold limit striking its own newest result, it would require
+retracting the identity-blind claim from all four documents, and it would be
+the correct outcome to report. If **both** collapse, the channels interact and
+neither is separately attributable; the swap would then support only "the
+system is instruction-sensitive", with the stage unresolved.
+
+Recorded before running. Note also that the baseline for A and B is the same
+7/10 cell with pattern `1101110011` already on record.

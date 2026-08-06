@@ -292,8 +292,17 @@ class JEPALoop:
         """
         return next(self.fusion.parameters()).device
 
-    def set_task(self, text: str) -> None:
+    def set_task(self, text: str, prompt_text: str | None = None) -> None:
         """Sets the language task for the episode.
+
+        ``prompt_text`` is a DIAGNOSTIC decomposition, not a deployment
+        feature: one instruction normally drives two channels at once --- the
+        detection prompt chain, and the CLIP task embeddings that reach the
+        language-conditioned place head. Passing ``prompt_text`` sources the
+        detection prompts from it while the embeddings still come from
+        ``text``, which is the only way to attribute a behavioural change to
+        one channel rather than the pair (paper.md, instruction-swap
+        decomposition). Leave it ``None`` for every real run.
 
         Encodes the task once (``task_encoder.encode`` — for
         :class:`~microvla.perception.text_encoder.ClipTaskEncoder` this
@@ -330,7 +339,19 @@ class JEPALoop:
         # on v8_act: 600 real ticks, source detected on 0.0% of them, and the
         # resulting off-distribution inputs saturated the planner's gripper at
         # -1.0 for all 9000 ticks. Do not re-derive prompts here.
-        source_prompts, target_prompts = role_chains(parsed.source, parsed.target)
+        prompt_parsed = parsed
+        if prompt_text is not None:
+            # Parse only -- deliberately NOT task_encoder.encode(), which would
+            # re-harvest the text tower and repoint detector classes as a side
+            # effect, contaminating the very channel this is isolating.
+            from microvla.perception.command_parser import parse_command
+            prompt_parsed = parse_command(prompt_text)
+            logger.warning(
+                "set_task: PROMPT/EMBEDDING DECOMPOSITION ACTIVE — detection "
+                "prompts from %r, task embeddings from %r. Diagnostic only.",
+                prompt_text, text)
+        source_prompts, target_prompts = role_chains(prompt_parsed.source,
+                                                     prompt_parsed.target)
         self.perception.set_role_prompts(source_prompts, target_prompts)
         self.drift.reset()
         self.corrector.reset()

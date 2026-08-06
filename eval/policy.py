@@ -294,6 +294,7 @@ class MicroVLAPolicy:
         source_min_aspect: float = DEFAULT_CONFIG.source_min_aspect,
         goal_ckpt: Optional[str] = None,
         goal_kwargs: Optional[dict] = None,
+        prompt_instruction: Optional[str] = None,
         goal_src_rerank: bool = False,
         goal_src_proto: Optional[str] = None,
         goal_src_proto_key: Optional[str] = None,
@@ -394,6 +395,11 @@ class MicroVLAPolicy:
         # trained goal heads. Takes the same replace-wholesale action slot as
         # the assisted machines and is mutually exclusive with them.
         self.goal_machine = None
+        # Diagnostic only (see JEPALoop.set_task): when set, detection prompts
+        # come from THIS string while the task embeddings come from the
+        # episode's real instruction, isolating the two channels one
+        # instruction normally drives together.
+        self.prompt_instruction = prompt_instruction or None
         self.goal_src_rerank = bool(goal_src_rerank)
         # Visual role prototype (the cream lesson): a unit vector built from
         # the corpus's own grasped-box embeddings, used to bind the source box
@@ -715,7 +721,7 @@ class MicroVLAPolicy:
         Args:
             instruction: Natural-language task description.
         """
-        self.loop.set_task(instruction)
+        self.loop.set_task(instruction, prompt_text=self.prompt_instruction)
         self._tick_index = 0
         self._chunk = None            # cached plan/waypoints for chunk execution
         self._chunk_pos = 0
