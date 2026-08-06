@@ -8830,3 +8830,37 @@ layer", which is what the section now actually contains.
 Reading the *rendered* document rather than the source has now caught four
 defects today — an internal contradiction, a parameter total, an unscoped use
 of "grounding", and these two counts. None were visible in the `.tex`.
+
+### Audited the instrument behind every `eef_obj_dist` number — it holds, by luck (2026-08-06)
+
+Building a "which object did the gripper actually go to?" probe meant reading
+`_sim_object_pos`, and it does **not** look up the task's target. It returns
+*the first non-container body in `obj_body_id`*. Every `eef_obj_dist_min`,
+`eef_obj_dist_at_20` and `eef_obj_dist_final` in this log and in the paper
+depends on that being the commanded object.
+
+**Verified rather than assumed** (`scripts/verify_objpos.py`, now shipped):
+
+| task | `obj_body_id` order | picked | matches command? |
+|---|---|---|---|
+| 0 soup | `alphabet_soup_1`, basket, salad_dressing, cream_cheese, … | `alphabet_soup_1` | **yes** |
+| 1 cream | `cream_cheese_1`, basket, alphabet_soup, milk, … | `cream_cheese_1` | **yes** |
+| 6 butter | `butter_1`, basket, tomato_sauce, orange_juice, … | `butter_1` | **yes** |
+
+**All the numbers stand** — including today's load-bearing ones (the butter
+swap reaching the soup at `dmin` 0.006–0.013 while gripping collapsed, which is
+the observation that located the failure downstream of approach).
+
+**But it holds by coincidence, not construction.** LIBERO's BDDL files happen
+to declare the target object first; nothing in the code requires it. A suite
+ordering its objects differently would silently report distance to a
+*distractor*, and every derived conclusion would invert without any error being
+raised. That is the same shape as the 29 catalogued defects — an unlabelled
+assumption that happens to be true — so it is now labelled in the docstring
+with the verification and the re-check command, rather than left as a quiet
+dependency.
+
+This is the seventh instrument audit of the campaign and the first where the
+instrument passed. Worth noting which way that cuts: the six failures were
+found by testing; this one would never have been examined if I had not been
+building something else.

@@ -562,6 +562,17 @@ def _sim_object_pos(env) -> list[float] | None:
 
     Returns ``[x,y,z]`` or ``None`` when the env does not expose bodies. Used
     only for intermediate metrics — never for control.
+
+    LOAD-BEARING ASSUMPTION, verified rather than assumed (2026-08-06): this
+    picks the first non-container body in ``obj_body_id``, which is the task's
+    commanded target ONLY because LIBERO's BDDL files happen to declare the
+    target first. Checked explicitly on libero_object tasks 0 (alphabet soup),
+    1 (cream cheese) and 6 (butter) — the picked body matches the commanded
+    noun in all three, so every ``eef_obj_dist_*`` figure derived from it is
+    distance to the right object. It is *not* a lookup of the target, so a
+    suite that ordered its objects differently would silently measure distance
+    to a distractor. Re-verify (``scripts/verify_objpos.py``) before trusting
+    these metrics on a new suite.
     """
     try:
         inner = getattr(env, "env", env)
