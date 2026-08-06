@@ -9090,3 +9090,23 @@ then the four *other* position-B objects (salad dressing, bbq sauce, tomato
 sauce, orange juice) should show the same ~7 cm bias toward A, and the three
 other position-A objects should not. That is a 9-task prediction from a
 one-object measurement and it is cheap to test — one nearest-body run per task.
+
+**Sharpened before running (2026-08-06).** Testing four further tasks with the
+nearest-body instrument, n=4 each, same head/config as the cream and soup runs:
+
+| task | object | position | prediction |
+|---|---|---|---|
+| 2 | salad dressing | **B** | lateral error **≥4 cm**, aimed within ~30° of the B→A direction |
+| 5 | tomato sauce | **B** | same |
+| 4 | ketchup | **A** | lateral error **<3 cm** |
+| 7 | milk | **A** | lateral error **<3 cm** |
+
+These objects have **no training corpus at all** — the head saw soup, butter
+and cream only — so this also asks what an untrained object inherits. The
+position-memorization account predicts it inherits *the memorized position*,
+which is the whole point: an untrained object at A should be approached about
+as well as a trained one, and an untrained object at B should be missed by
+about the same 7 cm as cream. **Falsified if the two B objects come in under
+4 cm, or if either A object exceeds 3 cm.** Success rates are not the measure
+here and are not predicted — these tasks have no corpus and no configuration
+tuned for them, so the *bias vector* is the observable, not the cell.
