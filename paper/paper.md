@@ -9339,3 +9339,37 @@ correct object) as the paper's honest final word on the multi-object boundary.
 Also fixed while adding this: the first version referenced `os` without
 importing it in `eval/policy.py` — 19 tests failed instantly, which is what the
 suite is for. 613 pass now.
+
+### CONFIRMED (finally): appearance-side off-manifold drift survives its test (2026-08-06)
+
+Nine mechanisms proposed, eight refuted. **The ninth survives.**
+
+| | dep. cos to corpus mean | dep. NN-cos to corpus | corpus self-NN baseline | **gap** |
+|---|---|---|---|---|
+| soup (crosses 35/50) | 0.9420 | 0.9812 | 0.9901 | **+0.0089** |
+| cream (0/10) | **0.9011** | **0.9564** | 0.9836 | **+0.0272** |
+
+Cream's deployment viewpoints sit **3.1× further from its own training corpus**
+(NN-cosine gap) than soup's do from theirs, and its mean-direction cosine is
+lower too (0.901 vs 0.942). The registered prediction is met on both statistics.
+
+**Why the between-object design matters here.** Both corpora were baked with
+the same detector stack, so even if that stack differs from deployment's, the
+shift applies to *both* objects and cancels in the comparison. An absolute
+threshold on cosine would have been uninterpretable; the ratio is not.
+
+**What this is, stated carefully.** A surviving hypothesis, not an established
+mechanism. It shows cream's deployment appearance is further off-manifold and
+that cream's xy is worse — a correlation across **two objects**. Tempting
+numerical coincidence: the drift gap ratio (3.1×) is close to the xy
+degradation ratio (2.08 cm on-manifold → ~6.9 cm deployed, 3.3×). **Two ratios
+agreeing at n=2 is not evidence of proportionality** and I am not offering it
+as such; I note it only because someone will spot it and should see it already
+flagged as coincidence-shaped.
+
+**Registered now, before running: butter as the third point.** Butter crosses.
+If appearance drift tracks failure, butter's gap should look like soup's
+(~0.01), not cream's (~0.027). **If butter's gap is large while butter still
+crosses, the pattern breaks** and drift is not sufficient — which would return
+this to the same status as the previous eight. Running with n=3 trials, same
+config, `MICROVLA_LOG_EMB=1`.
