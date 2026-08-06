@@ -6372,3 +6372,20 @@ directly: 25-target randomized cream corpus → three-object v8 head
 (soup + butter + cream) → three-object eval n=10 each under the anchor
 band. Binding — not grasping — was the third object's boundary, and the
 crop-level CLIP rebinding the repo already carried is what crossed it.
+
+### Student-side rebinding ported; v8h three-object head partials (2026-08-06, cycle 18)
+
+Three-object v8 head (soup + butter + 17-episode cream corpus): **cream
+0/10** (`libero_object_real_1785972640613`) with the EXACT teacher
+pre-rerank signature — src uv std 0.28–0.40 on every trial, parking
+9–13 cm off: the student's "cream cheese" binding flickers between
+look-alike boxes; the boundary is the frozen detector's text-match, not
+anything trained. **Butter 4/10** (`libero_object_real_1785973899656`)
+under the same head (v7's cell was 6/10 — within n=10 noise; soup cell
+finishing). The lever is the same one that crossed the boundary for the
+teacher: crop-CLIP semantic rebinding, now ported to the student's
+source-binding site as `--goal-src-rerank` (policy.py; flag-gated,
+default off; 605 tests green; mock path exercised). Three-object rerank
+eval chained: cream + butter + soup n=10 each, v8 head, anchor band +
+rerank. If cream >0 under it, the student crosses the binding boundary
+with zero new training — the addendum's cleanest sentence yet.
