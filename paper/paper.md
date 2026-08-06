@@ -7834,3 +7834,15 @@ propagate to behaviour — meaning some later stage recovers identity, and the
 be too strong and must be walked back. Recording that now, before the result,
 because the scoping edit is already committed and I want the condition under
 which I would have to undo it on the record first.
+
+**Precision correction, same day.** The identity-blind entry above wrote that
+the four binders "operate downstream of a stage that discarded identity". The
+proposals measurement makes that wrong, and it is corrected in both documents
+rather than left to read well. Binders consume **class-agnostic proposals**
+(3.1–3.9 per frame), not the identity-blind source selection, so they *are*
+handed identity-bearing candidates. Identity-blindness explains the default
+path — why the machine servos to *an* object and why per-object prompts change
+nothing — but it does **not** excuse the binders, whose failure remains theirs
+and remains unexplained beyond the measured live-scoring instability. Two
+findings from the same day, and the later one constrains the earlier one's
+scope; recording that is cheaper than a referee finding the seam.

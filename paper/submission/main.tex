@@ -197,10 +197,14 @@ therefore carries no object identity, and \textbf{soup's 35/50 cannot be
 explained by the machine binding the named object}, because at this stage the
 machine cannot tell the two apart. The coherent reading is that the detector
 selects a largely prompt-independent box and the task succeeds when that box
-happens to be the target; this fits all four binders leaving cream at 0/10
-(they operate downstream of a stage that already discarded identity), cream's
-machine converging to within 7\,cm of \emph{an} object but not the commanded
-one, and per-object prompt engineering changing nothing (cream 0/10).
+happens to be the target; this fits cream's machine converging to within
+7\,cm of \emph{an} object but not the commanded one, and per-object prompt
+engineering changing nothing (cream 0/10). It does \emph{not} excuse the four
+binders: a further measurement finds 3.1--3.9 class-agnostic candidate
+proposals per frame ($\ge$2 on 0.71--0.96 of frames, cream highest at 3.92), so
+the binders are handed identity-bearing candidates and fail on their own live
+scoring rather than on missing ones---refuting the convenient reading and
+re-opening that sub-study rather than closing it.
 
 \noindent \textbf{This scopes the word ``grounding''.} The memorization audit
 and the vision-vs-proprioception attribution are untouched---they concern which
