@@ -6477,3 +6477,29 @@ strongest form of the paper's own thesis — the failure decomposes to a
 named stage with a number attached, not to a diffuse "doesn't
 generalize". Prototype-binding cells (the zero-training lever aimed
 exactly at that stage) are computing.
+
+### The binder, improved on evidence: 1-NN bank 0.902 vs mean prototype 0.613 (2026-08-06, cycle 22)
+
+Same corpus vectors, better estimator. Leave-episode-out 3-way identity
+accuracy over the crop embeddings (`scripts/knn_sep.py`):
+
+| binder | overall | cream | butter | soup |
+|---|---|---|---|---|
+| mean prototype (centered) | 0.613 | — | — | — |
+| **1-NN bank (centered)** | **0.902** | **0.82** | 0.90 | 0.95 |
+| 5-NN | 0.869 | 0.71 | 0.89 | 0.93 |
+| 15-NN | 0.829 | 0.58 | 0.86 | 0.94 |
+
+The crops are multimodal (viewpoint, distance, occlusion) and averaging
+destroys the structure that carries identity — the mean prototype's 0.613
+was an artifact of the estimator, not a property of the detector.
+Monotone degradation with k confirms it: cream's accuracy falls 0.82 →
+0.58 as neighbourhoods widen, i.e. cream lives in tight local clusters,
+not a compact global blob. Shipped `--goal-src-bank`: per-object banks of
+centered corpus crops (324/522/586 vectors), scored per proposal as
+`max cos(target bank) − max cos(other banks)` — a discriminative margin,
+still zero training and zero new episodes. Three-object bank-binding
+eval queued behind the prototype cells. Revised prediction on record:
+cream >0 under bank binding if the boundary is estimator-limited as this
+measurement says; if cream stays 0 with 0.82-accurate binding available,
+the block is downstream of binding and I have mis-located it.

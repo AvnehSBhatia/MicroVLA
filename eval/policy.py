@@ -297,6 +297,8 @@ class MicroVLAPolicy:
         goal_src_rerank: bool = False,
         goal_src_proto: Optional[str] = None,
         goal_src_proto_key: Optional[str] = None,
+        goal_src_bank: Optional[str] = None,
+        goal_src_bank_key: Optional[str] = None,
         gates_ckpt: Optional[str] = None,
     ) -> None:
         """Builds the policy.
@@ -415,6 +417,29 @@ class MicroVLAPolicy:
                     f"({sorted(protos)}) — pass goal_src_proto_key")
             vec = torch.as_tensor(vec, dtype=torch.float32).reshape(-1)
             self.goal_src_proto = vec / (vec.norm() + 1e-8)
+        # Bank binder: 1-NN over the corpus's own centered crop embeddings.
+        # Measured 0.902 leave-episode-out identity accuracy vs 0.613 for the
+        # mean prototype — the crops are multimodal and averaging destroys it.
+        self.goal_src_bank = None
+        self.goal_src_bank_others = None
+        if goal_src_bank:
+            banks = torch.load(goal_src_bank, map_location="cpu",
+                               weights_only=False)
+            gm = banks.pop("_global_mean", None)
+            if gm is not None:
+                gm = torch.as_tensor(gm, dtype=torch.float32).reshape(-1)
+                self.goal_src_proto_gmean = gm / (gm.norm() + 1e-8)
+            key = goal_src_bank_key or (next(iter(banks)) if len(banks) == 1
+                                        else None)
+            if key is None:
+                raise ValueError(f"goal_src_bank holds {sorted(banks)} — "
+                                 "pass goal_src_bank_key")
+            self.goal_src_bank = torch.as_tensor(banks[key],
+                                                 dtype=torch.float32)
+            others = [torch.as_tensor(v, dtype=torch.float32)
+                      for k, v in banks.items() if k != key]
+            self.goal_src_bank_others = (torch.cat(others, dim=0)
+                                         if others else None)
         self.goal_grasp_head = None
         self.goal_place_head = None
         if goal_ckpt:
@@ -810,7 +835,29 @@ class MicroVLAPolicy:
                 # the teacher's did pre-rerank; re-pick the source by crop-emb
                 # vs the SOURCE phrase, rejecting better-target matches — the
                 # same zero-training lever the teacher used to cross it.
-                if self.goal_src_proto is not None:
+                if self.goal_src_bank is not None:
+                    props = getattr(result.perception, "proposals", ()) or ()
+                    best, best_s = None, float("-inf")
+                    for p in props:
+                        if float(getattr(p, "confidence", 0.0)) < self.ibvs_conf_floor:
+                            continue
+                        e = torch.as_tensor(
+                            p.emb, dtype=torch.float32).detach().cpu().reshape(-1)
+                        if e.numel() != self.goal_src_bank.shape[1]:
+                            continue
+                        e = e / (e.norm() + 1e-8)
+                        g = self.goal_src_proto_gmean
+                        if g is not None:
+                            e = e - float((e * g).sum()) * g
+                            e = e / (e.norm() + 1e-8)
+                        s = float((self.goal_src_bank @ e).max())
+                        if self.goal_src_bank_others is not None:
+                            s -= float((self.goal_src_bank_others @ e).max())
+                        if s > best_s:
+                            best, best_s = p, s
+                    if best is not None:
+                        src = best
+                elif self.goal_src_proto is not None:
                     props = getattr(result.perception, "proposals", ()) or ()
                     best, best_s = None, float("-inf")
                     for p in props:
