@@ -9211,3 +9211,46 @@ being wrong. A diagnostic that looked only at variance — "is the servo
 stable?" — would have scored cream as the healthier of the two. Stability is
 not accuracy, and this is a clean instance of a metric that inverts if you
 forget which one you are measuring.
+
+### Is the head extrapolating? Measured — and the measurement is circular (2026-08-06)
+
+Deployment uv at closest approach, against each object's own training-corpus uv
+distribution (205 and 164 detections, 6 episodes each):
+
+| | training u (p5–p95) | training v (p5–p95) | deployment uv | percentile |
+|---|---|---|---|---|
+| soup (crosses) | 0.068–0.896 | 0.196–0.803 | (0.542, 0.686) | **48% / 13%** |
+| cream (0/10) | 0.063–0.908 | 0.087–0.801 | (0.813, 0.796) | **84% / 85%** |
+
+Cream operates in the **sparse upper tail** of its training distribution while
+soup operates in the bulk. That is suggestive — tail regions carry less
+training mass, and a regressor is worse there — and it is the shape the
+on-manifold limit would predict.
+
+**But I cannot claim it as a cause, because the measurement is circular.** The
+uv at closest approach is *where the machine ended up*, and where it ended up is
+determined by the head's predicted goal. A head that errs by 7 cm will
+necessarily leave the object at an unusual image position. So "cream's
+deployment uv sits in the tail" is equally consistent with the tail *causing*
+the error and with the error *producing* the tail. This instrument cannot
+separate them, and nothing about the numbers tells me which direction the arrow
+runs.
+
+**Reported as inconclusive**, not as support. The tempting move — presenting an
+85th-percentile input as evidence of extrapolation-driven failure — would be
+reading a consequence as a cause, which is the same error class as this
+morning's retracted position account and this afternoon's spread metric
+(confounded by camera motion). Three instruments in one day undone by measuring
+something downstream of the thing they were meant to explain.
+
+**What would break the circularity**: intervene on uv rather than observe it —
+feed the head corpus frames at controlled uv values and measure its xy error as
+a function of uv, off the machine's own trajectory entirely. That is an offline
+measurement, needs no simulator, and is the right next instrument. Recorded as
+the open experiment rather than run now, because designing it properly matters
+more than adding a fourth confounded number today.
+
+**Status of the multi-object question**: cream's grasp-head xy error is
+systematic (0.976), lateral (94%), ~7 cm, on an object it correctly identifies
+and approaches, with perception, binding, descent, and position all excluded.
+Why the head errs is **open**.
