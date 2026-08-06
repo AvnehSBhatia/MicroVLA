@@ -6921,3 +6921,35 @@ This also retires the last framing from the falsification: the right
 quantity was never per-tick accuracy alone but *accuracy within the
 pre-latch window*. That is measurable with the same instrument by
 restricting the tick set, and is queued.
+
+### RETRACTION: the calibration control failed; the binding-accuracy numbers are artifacts (2026-08-06)
+
+**Soup control: 12/108 = 0.111.** Soup is the object this system grasps
+at 35/50 held-out. An instrument that scores the *working* object at
+0.111 is measuring something other than binding correctness, so by the
+condition I recorded before running it, **the deployed binding-accuracy
+numbers are retracted**: cream 0.033 and butter 0.393 do not stand, and
+nothing in the manuscript may cite them.
+
+The bug is diagnosable and mine. `project_points_from_world_to_camera`
+happily projects points that are *behind* the camera or outside the
+frame, returning pixel coordinates that are geometrically meaningless.
+On a wrist camera during descent — where the target sits centimetres from
+the lens and half the scene is behind it — that is not an edge case, it
+is the common case. Every "nearest object" verdict computed from such
+points is noise, which is why the ordering (butter 0.393 > soup 0.111 >
+cream 0.033) matches neither success (soup 0.70 > butter 0.4-0.7 >
+cream 0) nor anything else.
+
+What this costs and what it saves: it costs the quantified on-manifold
+gap I claimed one entry ago, which is now unmeasured again and marked as
+such. It saves the manuscript from carrying a fabricated 25x figure that
+a reviewer with a camera-geometry background would have caught
+immediately — and it is the third time tonight the protocol's own
+instrument-calibration rule has caught an instrument rather than a model.
+
+Fix, queued: (1) filter projections to points with positive camera-frame
+depth and in-frame pixels; (2) restrict scoring to pre-latch ticks, which
+the butter/soup contrast suggested is the decision-relevant window
+anyway; (3) re-run soup FIRST and require high accuracy before any cream
+or butter number is believed or reported.
