@@ -6750,3 +6750,48 @@ all (text rerank) gives the best butter cell. Whatever these binders are
 doing on live crops, it is not what the corpus-crop benchmark measures.
 That is the finding — and it is the same on-manifold gap §6 documents for
 substitution probes, now shown twice more.
+
+### FINAL: the four-binder × three-object matrix, all twelve cells verified (2026-08-06)
+
+Every cell n=10, v8 three-object head, anchor-band machine, seed 20,
+verified against its results.json:
+
+| binder | offline identity acc. | cream | butter | soup |
+|---|---|---|---|---|
+| none | — | 0/10 | 4/10 | 5/10 |
+| text rerank (crop-CLIP) | not measured | 0/10 | **7/10** | 5/10 |
+| mean prototype (centered) | 0.613 | 0/10 | 2/10 | **8/10** |
+| 1-NN bank (centered) | 0.902 | 0/10 | 4/10 | 6/10 |
+
+run ids — pr: 1785990569408 / 1785991819037 / 1785992897481;
+bk: 1785993850945 / 1785995159772 / 1785996395740.
+
+**The result is a dissociation, and it is the honest headline.** Rank the
+binders by offline identity accuracy (0.613 < 0.902) and by deployed
+success and the orders do not match on any object: the 0.613 binder owns
+the best soup cell (8/10) and the worst butter cell (2/10); the 0.902
+binder sits at baseline on butter (4/10) and mid on soup (6/10); the
+binder with no offline number at all wins butter (7/10). Cream is 0/10 in
+all four columns. Spearman over the two ranked binders is undefined at
+n=2 per object, so the claim is stated qualitatively and no significance
+is asserted — but the pattern is consistent across three objects and
+matches the engagement probe's direct measurement (the bank binder raises
+uv std 0.258 → 0.335 rather than lowering it).
+
+What this closes and what it does not. It closes the question "is cream a
+binding problem you can fix with a better corpus-derived binder?" — the
+answer is no, and the reason is measured rather than assumed: every
+binder we can build from teacher episodes is evaluated on a distribution
+the deployed machine does not visit. It does not close "is cream
+bindable" — that needs a binder whose training distribution includes
+deployed states (DAgger-style crop collection under the machine's own
+policy), which is now the top pre-registered item.
+
+**Tonight's falsified prediction, kept in the record.** I predicted
+bank-cream > 0 from 0.82 offline accuracy → 0.914 latch correctness. It
+returned 0/10. The error was assuming offline per-tick accuracy equals
+deployed per-tick accuracy; the engagement probe shows it does not, and I
+have no measurement of the deployed quantity. That prediction, its
+falsification, and this attribution stay in the paper — a negative
+result with a located cause is worth more than the positive one I was
+chasing.
