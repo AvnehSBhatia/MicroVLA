@@ -7846,3 +7846,33 @@ nothing — but it does **not** excuse the binders, whose failure remains theirs
 and remains unexplained beyond the measured live-scoring instability. Two
 findings from the same day, and the later one constrains the earlier one's
 scope; recording that is cheaper than a referee finding the seam.
+
+### The size claim survives an adversarial survey (2026-08-06)
+
+A bounded claim is only worth stating if someone tried to break it. Searched
+specifically for VLA systems *smaller* than ours, then read the two live
+threats rather than trusting a search snippet:
+
+| candidate | trained | deployed | separate text encoder? | verdict |
+|---|---|---|---|---|
+| **NanoVLA-S** (arXiv 2510.25122) | 52M | **~161M** | frozen BERT-base, **excluded from its count** | above us on both |
+| **LiteVLA** (arXiv 2511.05642) | LoRA only | ~256M | internal (SmolVLM-256M) | above us on both |
+
+The claim holds: 17.2M trained / 30.2M deployed remains smallest under both
+conventions. NanoVLA's "98% fewer parameters" is measured against OpenVLA's
+7.5B, not against small systems, and its own headline figure is **trainable**
+parameters — the paper loads ~161M.
+
+**NanoVLA is the convention gap in miniature, and it is a better argument for
+the two-convention table than any prose I could write.** A 2025 paper *named
+for being nano* reports 52M while loading ~161M, because a frozen ResNet18 and
+a frozen BERT-base do not appear in the headline. That is the same accounting
+that lists Octo-small at 27M while T5-base sits beside it and RT-1 at 35M with
+USE outside the number. MicroVLA's architectural claim — no separate language
+model, the detector's own text tower supplies every text embedding — is exactly
+the thing that makes its two numbers converge instead of diverge.
+
+Both are cited in the submission's size table and the claim now names its own
+adversarial survey. This is the fourth external check performed by reading the
+source rather than a summary this session; the USE parameter count remains
+deliberately uncited because no authoritative figure was found.

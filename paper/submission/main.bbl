@@ -1,4 +1,4 @@
-\begin{thebibliography}{18}
+\begin{thebibliography}{20}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -62,6 +62,12 @@ Moo~Jin Kim et~al.
 \newblock {OpenVLA}: An open-source vision-language-action model.
 \newblock \emph{arXiv preprint arXiv:2406.09246}, 2024.
 
+\bibitem[{LiteVLA authors}(2025)]{litevla2025}
+{LiteVLA authors}.
+\newblock {LiteVLA}: Efficient vision-language-action control on {CPU}-bound
+  edge robots.
+\newblock \emph{arXiv preprint arXiv:2511.05642}, 2025.
+
 \bibitem[Liu et~al.(2023)Liu, Zhu, Gao, Feng, Liu, Zhu, and
   Stone]{liu2023libero}
 Bo~Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter
@@ -83,6 +89,12 @@ Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo Akinola, Yashraj Narang,
 \newblock {MimicGen}: A data generation system for scalable robot learning
   using human demonstrations.
 \newblock In \emph{CoRL}, 2023.
+
+\bibitem[{NanoVLA authors}(2025)]{nanovla2025}
+{NanoVLA authors}.
+\newblock {NanoVLA}: Routing decoupled vision-language understanding for
+  nano-sized generalist robotic policies.
+\newblock \emph{arXiv preprint arXiv:2510.25122}, 2025.
 
 \bibitem[{Octo Model Team} et~al.(2024)]{octo2024}
 {Octo Model Team} et~al.

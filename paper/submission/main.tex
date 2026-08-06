@@ -276,7 +276,14 @@ MicroVLA's 30.2\,M is below that \emph{even after granting RT-1 a free language
 encoder}---RT-1's count excludes the Universal Sentence Encoder producing its
 instruction embedding, for which we cite no figure rather than estimate one.
 MicroVLA is thus smallest under both conventions simultaneously, the strongest
-form of the claim the evidence supports.
+form of the claim the evidence supports. The survey was run adversarially,
+against systems whose stated goal is minimal size: NanoVLA-S is 52\,M trainable
+atop a frozen ResNet18 \emph{and} a frozen BERT-base
+(${\sim}161$\,M loaded)~\citep{nanovla2025}, and LiteVLA reaches a Raspberry Pi
+on a 256\,M SmolVLM backbone~\citep{litevla2025}. Both sit above MicroVLA on
+both axes, and NanoVLA is the convention gap in miniature---a paper named for
+being nano, reporting 52\,M while loading ${\sim}161$\,M, because the frozen
+language encoder is not counted.
 
 \begin{table}[h]\centering\small
 \caption{Size under both conventions. $\dagger$ excludes a frozen language
@@ -290,6 +297,8 @@ system & trained & deployed & language encoder \\
 RT-2~\citep{brohan2023rt2}        & 55\,B & 55\,B & internal (PaLI-X) \\
 OpenVLA~\citep{kim2024openvla}    & 7\,B  & 7\,B  & internal (Llama-2) \\
 SmolVLA~\citep{shukor2025smolvla} & 450\,M & 450\,M & internal (SmolVLM2) \\
+LiteVLA~\citep{litevla2025}       & LoRA only & ${\sim}256$\,M & internal (SmolVLM-256M) \\
+NanoVLA-S~\citep{nanovla2025}     & 52\,M & 161\,M & BERT-base, frozen \\
 Octo-small~\citep{octo2024}       & \underline{27\,M} & 138\,M & T5-base, 111\,M frozen \\
 RT-1~\citep{brohan2022rt1}        & 35\,M & \underline{$\ge$35\,M}$^\dagger$ & USE, frozen, uncounted \\
 \midrule
