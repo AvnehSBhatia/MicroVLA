@@ -9373,3 +9373,49 @@ If appearance drift tracks failure, butter's gap should look like soup's
 crosses, the pattern breaks** and drift is not sufficient — which would return
 this to the same status as the previous eight. Running with n=3 trials, same
 config, `MICROVLA_LOG_EMB=1`.
+
+### The drift PRECEDES the error — circularity broken (2026-08-06)
+
+The appearance result faced the same trap that invalidated the uv measurement:
+a machine servoing to a wrong xy necessarily sees the object from unusual
+viewpoints, so drift could be a *consequence*. Splitting deployment embeddings
+by tick index separates the two, because at episode start the arm is at its home
+pose and has not yet acted on any prediction.
+
+| ticks | soup (crosses) | butter (crosses) | cream (0/10) |
+|---|---|---|---|
+| 0–100 (**before** error accumulates) | +0.0050 | −0.0031 | **+0.0441** |
+| 100–300 | +0.0099 | −0.0036 | +0.0363 |
+| 300+ (**after**) | +0.0107 | +0.0055 | **+0.0156** |
+
+**Cream's drift is largest at the very first ticks and shrinks by 65% over the
+episode.** A consequence of the trajectory error would grow as the error
+accumulates — which is precisely what soup and butter show (0.0050→0.0107 and
+−0.0031→+0.0055, small and rising, the signature of a machine gradually leaving
+teacher-like viewpoints). Cream shows the opposite sign of trend from a large
+initial offset. **The drift is there before there is any error to cause it.**
+
+**This is a causal-direction argument, not a proof.** What it establishes is an
+asymmetry that a consequence-only account cannot produce: the effect is
+strongest when the cause would be weakest. No intervention has been run, and
+n=3 objects × 3 trials (15 early-tick samples each) is small. But it is the
+first mechanism in nine to survive both a registered falsification test
+(butter, the other crossing object, has the smallest gap of all at +0.0007) and
+a circularity check that killed two earlier instruments.
+
+**Final status of the multi-object boundary.** Nine mechanisms proposed:
+generic-tail indiscriminability, box-centre spread, proposal scarcity,
+misbinding, position memorization, descent failure, binder quality, uv-tail
+extrapolation — **eight refuted, each by measurement**. The ninth,
+appearance-side off-manifold drift, survives: it separates both crossing
+objects from the failing one, was predicted before butter was run, and precedes
+the error it is proposed to explain. The honest claim is a **well-tested
+surviving hypothesis with a measured localization** — systematic lateral xy
+error in the grasp head (coherence 0.976) on an object it correctly identifies
+and approaches, with the head fed visual features 3.1× further off its training
+manifold than the objects that work.
+
+**What would settle it, and is not claimed:** an intervention — train the head
+with deployment-like viewpoints for the failing object and re-measure. That is
+a corpus-collection experiment, not an analysis, and it is where this thread
+ends for today.
