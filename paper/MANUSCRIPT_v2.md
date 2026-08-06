@@ -1355,6 +1355,19 @@ with their selection-band cells (6/10, 4/10): the one-config
 multi-object behaviour survives the fresh seed, at the modest rates the
 n=10 cells state.
 
+A second, independent pre-registration repeated the exercise on the
+three-object head (v8: soup + butter + a 17-episode cream corpus) with
+the anchor band plus student-side semantic rebinding, on seed 47 (states
+41–49 plus state 0 — nine never scored by any run, the tenth a disclosed
+dev-band overlap): **butter 5/10** (`libero_object_real_1785988311074`,
+detection duty 0.978) and **soup 4/10**
+(`libero_object_real_1785989503955`, duty 0.889), against selection-band
+cells of 7/10 and 5/10. Two pre-registrations, two heads, two
+never-scored seeds, four confirmation cells: the one-config two-object
+behaviour reproduces every time at 0.4–0.5 per object. The rates are
+modest and the n is small; what the design buys is that they are
+confirmed rather than selected.
+
 ## E. Defect catalog (unified count: 29)
 
 24 producer/consumer disagreements + 5 agreements-on-a-wrong-convention.
