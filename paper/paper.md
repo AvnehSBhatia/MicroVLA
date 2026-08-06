@@ -9529,3 +9529,51 @@ would have been mine, in the act of reporting it.
 **Soup regression is running.** If the repair traded the working object for the
 blocked one, it is not a repair, and that cell decides it. Reported whichever
 way it lands.
+
+### REGRESSION CLEAN — the repair helps both objects (2026-08-06)
+
+**Soup, held-out seed 20, DAgger head: 7/10** (`eval_results/dag_soup_s20`,
+pattern `1111110001`), against **3/6** for the same configuration before the
+fine-tune. No trade-off: the repair did not buy the blocked object by spending
+the working one. 7/10 also matches the flagship head's own held-out cell.
+
+**The multi-object campaign, closed:**
+
+| object | pre-DAgger (v8+anchor_band, seed 20) | DAgger head, seed 20 |
+|---|---|---|
+| cream cheese | **0/6** (and 0/10 under every prior config) | **2/10** — first successes in the campaign |
+| alphabet soup | 3/6 | **7/10** |
+
+Cream's lateral error fell **0.0697 → 0.0310 m (−56%, Mann-Whitney p=0.0197)**;
+its two successes came in at `eef_obj_dist_min` 0.013 and 0.002 m. Both success
+films saved (`watch_videos/dagger_cream/`, md5-distinct).
+
+**What is claimed.** Appearance-side off-manifold drift is supported by
+**intervention**: training the grasp head on the machine's own viewpoints
+significantly reduced the error it was measured to have, on a protocol band the
+training data never touched, without costing the working object. Of nine
+proposed mechanisms this is the only one to survive a registered falsification
+test, a circularity check, and an intervention.
+
+**What is not claimed.** That cream is "crossed" — 2/10 vs 0/10 gives Fisher
+p=0.474 and is not significant at this n. That drift is the *whole* cause — a
+56% reduction leaves 3.1 cm, still enough to miss most grasps, which is exactly
+why the cell moved to 2/10 rather than to soup's 7/10. That the soup
+improvement (3/6→7/10) is real — different n, not significant, and reported
+only to show the absence of a regression.
+
+**The guard that makes this reportable at all.** Collection was seed 0,
+evaluation seed 20. Every number above is from the band the DAgger data never
+saw. Had I collected and evaluated on the same band, this would be a textbook
+instance of the iteration-coupled selection loop the paper documents as Layer 2
+of its own memorization audit — and I would have published the very defect the
+paper exists to expose, in the section reporting it.
+
+**Campaign tally, final.** Nine mechanisms proposed for the multi-object
+boundary; eight refuted by measurement; one supported by intervention. Three
+repairs now in the paper, all data-side rather than architectural: ten
+placement-teleported episodes (grasp-head grounding), command coverage in
+training (place-head memorization), and DAgger on deployment viewpoints
+(grasp-head xy). The through-line is the title: each defect was a memorized
+value standing in for a measurement, and each repair was showing the model the
+variation it had never been shown.
