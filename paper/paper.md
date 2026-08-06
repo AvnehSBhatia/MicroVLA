@@ -6678,3 +6678,47 @@ evidence that binder quality tracks separability. That re-reading would
 retract the "binder gain tracks per-object separability" claim logged
 earlier tonight; it stays in the log either way, marked as contingent on
 this check.
+
+### The engagement probe: the binder DOES fire — and that makes the result worse, not better (2026-08-06)
+
+A/B probe on one episode (task 1, seed 20, identical flags except
+`--goal-src-bank`), logging the uv actually fed to the goal head on every
+real tick:
+
+* **no binder:** 14 supervised ticks, uv mean (0.267, 0.733), std (0.258, 0.047)
+* **bank binder:** 45 supervised ticks, uv mean (0.321, 0.677), std (0.335, 0.202)
+* the two sequences agree on ticks 1–4, then **diverge** (tick 5:
+  (0.190, 0.711) vs (0.134, 0.801); tick 8: (0.120, 0.752) vs (0.131, 0.802))
+
+So hypothesis (1) is **refuted**: the binder engages, changes which box
+is bound, and changes the resulting trajectory. Tonight's binder cells
+were real tests, not replicates — the "binder gain tracks separability"
+entry stands as a description of the cells, though its mechanism claim is
+now weaker (see below).
+
+Hypothesis (2) is what survives, and it is the sharper finding. The bank
+binder does not stabilise the stream — it **destabilises** it: uv std
+rises 0.258 → 0.335 laterally and 0.047 → 0.202 vertically. A binder
+measured at 0.902 leave-episode-out identity accuracy on corpus crops is,
+on live crops, thrashing between boxes tick to tick. The offline number
+does not transfer.
+
+That is the paper's own §6 on-manifold limit, reproduced independently on
+a second instrument. The substitution probe evaluates on teacher
+trajectories and cannot certify off-manifold behaviour; the crop bank is
+built from teacher trajectories and cannot bind off-manifold crops. Two
+different instruments, same failure mode, both measured rather than
+argued. The deployed machine visits states the corpus never contains, and
+*every* corpus-derived instrument we have built inherits that blind spot.
+
+Consequences, stated plainly. (a) My latch-correctness prediction was
+wrong because it assumed the offline per-tick accuracy was the deployed
+per-tick accuracy; it is not, and I have no measurement of the deployed
+one (measuring it needs ground-truth object identity per bound box at
+eval time — a new instrument, pre-registered as future work rather than
+run tonight). (b) Cream's 0/10 across four binders is therefore *not*
+evidence that cream is unbindable — it is evidence that all four binders
+are corpus-derived and none of them transfers. (c) The honest scope for
+the addendum: object breadth is bounded by role binding, the bound is
+quantified offline at 0.902/0.613, and the transfer of those numbers to
+deployment is an open measurement, not a demonstrated fact.
