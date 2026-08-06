@@ -7295,3 +7295,30 @@ which places it in detection or in the text-conditioned scoring that
 precedes those knobs. That is the same region the (unmeasured)
 text-tower question lives in, and it is now the single named open
 question of the object-breadth result rather than one of several.
+
+### Text-tower question closed as OPEN, with the suspect narrowed to one call path (2026-08-06)
+
+The convention check settles the last cheap hypothesis: on a soup corpus
+frame (60x256x256x3 uint8, range 0-255), the eval-factory detector with
+the phrase "alphabet soup" returns **conf=0.000 under all four
+combinations** of row-flip and channel order, at two different frame
+depths. Not channel order, not flip, not frame source, not the
+constructor. Five instrument attempts, all failing the same gate.
+
+The question stays OPEN, and this is the last time it is touched tonight.
+What the failures collectively narrow it to, for whoever resumes: the
+live path never calls `perceive()` bare — it goes through
+`JEPALoop.tick`, and the task's phrases are installed by
+`ClipTaskEncoder`, which harvests CLIP text embeddings from the
+detector's own tower *once per task*. A bare `set_classes()` may leave
+the model without the text state that path establishes, in which case
+every probe I wrote tonight was asking a detector that had never been
+told what to look for. That is a single, checkable hypothesis with an
+obvious test (drive one episode through the real loop and log
+`perceive`'s inputs and outputs directly, rather than reconstructing the
+call), and it explains all five failures with one cause.
+
+Recording it as a hypothesis, not a finding, because I have not tested
+it — and because tonight's tally is already four wrong instrument
+designs and two falsified predictions, which is exactly the rate at which
+a sixth guess should be someone else's first.
