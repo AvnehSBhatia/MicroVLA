@@ -45,6 +45,21 @@ from microvla.perception.command_parser import strip_article
 #: at 0.235. Since a chain takes the first prompt that detects ANYTHING, a weak
 #: early entry blocks a strong later one.
 _TAIL_GROCERY: tuple[str, ...] = ("box", "cardboard box", "can")
+#: EXPERIMENTAL, per-object discriminating heads (2026-08-06). The generic
+#: grocery tail is shared by every box-shaped product, so once the product
+#: phrase fails to ground -- measured: "cream cheese" fires on 0% of real
+#: cream frames -- the source role is bound by "box", which describes cream
+#: cheese, butter, pudding and milk equally well. Screening candidates by the
+#: same criterion the tail was built on (measured firing rate on real frames)
+#: found one that lands CONSISTENTLY where "box" does not: "white carton"
+#: fires on 17% of cream frames with box-centre spread (0.057, 0.072) against
+#: "box"'s (0.270, 0.155). Chains take the first prompt that fires, so putting
+#: it ahead of the tail buys discrimination on the frames where it grounds and
+#: costs nothing on the rest. This is a per-object task constant and is
+#: disclosed as one wherever a number produced with it appears.
+_HEAD_DISCRIM: dict[str, tuple[str, ...]] = {
+    "cheese": ("white carton", "white box"),
+}
 _TAIL_TABLEWARE: tuple[str, ...] = ("ceramic bowl", "bowl")
 _TAIL_RECEPTACLE: tuple[str, ...] = ("basket", "bin")
 #: Target-role tails, kept DISJOINT from the source tails above — see
@@ -82,6 +97,13 @@ def with_fallbacks(phrase: str) -> list[str]:
     parts = phrase.lower().split()
     if len(parts) > 1:
         chain.append(parts[-1])
+    # Per-object discriminating heads go AFTER the product phrase and its head
+    # noun (both of which are more specific) but BEFORE the shared generic
+    # tail, which is the stage that conflates same-shaped groceries.
+    for w in parts:
+        if w in _HEAD_DISCRIM:
+            chain += [c for c in _HEAD_DISCRIM[w] if c not in chain]
+            break
     tail = None
     if parts:
         tail = _TAIL_BY_NOUN.get(parts[-1])      # head noun wins

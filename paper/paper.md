@@ -7372,3 +7372,43 @@ same-shaped groceries, because the frozen text tower scores 0.000 on the
 product names themselves.** That is testable, already partly measured in
 this repo, and names its own fix (a discriminating prompt or a
 detector whose text tower grounds product names).
+
+### Prompt screening measures the boundary, and names one candidate fix (2026-08-06)
+
+Screened on 24 real cream frames from 3 corpus episodes, using the
+production `set_role_prompts` call:
+
+| candidate | firing rate | mean conf | box-centre spread |
+|---|---|---|---|
+| "cream cheese" (the task's own words) | **0.00** | — | never detected |
+| "box" (incumbent tail) | 0.92 | 0.181 | (0.270, 0.155) |
+| "white box" | 0.75 | 0.096 | (0.271, 0.230) |
+| **"white carton"** | 0.17 | 0.085 | **(0.057, 0.072)** |
+| "small white box" | 0.25 | 0.039 | (0.283, 0.195) |
+| "cheese box", "foil package" | 0.00 | — | never detected |
+
+This is the boundary measured rather than argued: the phrase the
+benchmark writes the task in never fires, the prompt that fires reliably
+lands all over the scene (it is matching several boxes), and the only
+candidate that lands *consistently* fires on one frame in six. No prompt
+in this family is both reliable and discriminating — which is the precise
+sense in which the frozen detector limits object breadth.
+
+**One candidate fix, implemented and under test.** `_HEAD_DISCRIM` in
+`microvla/perception/prompts.py` inserts per-object discriminating heads
+between the product phrase and the shared generic tail, so a chain takes
+"white carton" on the frames where it grounds and "box" elsewhere.
+Cream's chain becomes `['cream cheese', 'cheese', 'white carton', 'white
+box', 'box', 'cardboard box', 'can']`; **every other object's chain is
+byte-identical** (verified: soup, butter, pudding unchanged), and 605
+tests pass. This is a per-object task constant of the same category as
+`hang_comp` and is disclosed as one wherever a number produced with it
+appears.
+
+Now running: cream n=10 with the discriminating chain, and soup n=10 with
+the same code as the regression check. Recorded before the result — the
+mechanism predicts a *small* gain at best, because the discriminating
+prompt grounds on only 17% of frames while the latch needs a stable
+window; if cream stays at 0/10 that is consistent with the mechanism
+rather than a refutation of it, and the honest report is that the fix was
+insufficient, not that the diagnosis was wrong.
