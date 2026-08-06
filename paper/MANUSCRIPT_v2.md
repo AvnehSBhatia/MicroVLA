@@ -1426,7 +1426,37 @@ flag-gated and default off.
 One prediction was pre-registered here and **falsified**: from 0.82
 per-tick identity accuracy on cream we predicted 0.914 median-of-3 latch
 correctness and therefore cream > 0 under bank binding; the cell returned
-0/10. The error is attributable — the prediction assumed offline
+0/10.
+
+**A fourth object, and what the two failures share.** Chocolate pudding
+(task 8) was attempted next, selected because it almost never won a
+misbind in the binder tables — a prior that turned out to measure the
+wrong direction of the confusion and is recorded as a second falsified
+prediction. Its teacher never reached a grasp across five calibration
+iterations with crop-CLIP rerank enabled, the smoke gate returned 0/3,
+and the chain halted itself without recording a corpus. The campaign
+therefore closes at **four objects attempted, two crossed (alphabet soup,
+butter), two blocked (cream cheese, chocolate pudding)**, and the two
+blocked objects share one signature: the teacher never leaves its
+visual-servo phase, source-uv std ~0.30, and the arm settles tens of
+centimetres from the target. That is neither the grasp-geometry failure
+the butter re-diagnosis characterised (contact, squeeze-out, a measurable
+at-close residual) nor a goal-accuracy failure (cream's on-manifold goal
+error is 1.58 cm against butter's 1.34). Two independent objects failing
+identically at one named stage is the evidence the single-object version
+of this claim lacked.
+
+**Instrument attempts that failed their own gates.** Quantifying the
+deployed side of this boundary was attempted four times and abandoned
+four times, each at a pre-registered calibration gate: a projected-origin
+ground truth (rejected — soup, which succeeds 35/50, scored 0.111), its
+sign-corrected successor (rejected — the in-frame filter deletes the
+close-up target by construction), and three variants of a text-tower
+discrimination probe (rejected — all failed to detect the working
+object's own phrase). Deployed per-tick binding accuracy and text-tower
+discriminability are therefore reported as **unmeasured**, not estimated.
+The four failures are itemised in the log with their diagnoses; none of
+their numbers appears in this paper. The error is attributable — the prediction assumed offline
 per-tick accuracy equals deployed per-tick accuracy, which the engagement
 probe refutes and which we do not measure (doing so requires
 ground-truth object identity per bound box at eval time, a new
