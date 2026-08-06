@@ -1303,6 +1303,37 @@ scoring — consistent with the measured instability of the 0.902 bank (lateral
 uv std 0.258→0.335, vertical 0.047→0.202). Why cream specifically cannot be
 bound live remains **unexplained**.
 
+### D.0.1 Identity-blind is not language-blind — the instruction swap
+
+Swapping the instruction to a different object, with env/physics/success
+criterion unchanged so success is still scored on the real task:
+
+| cell | result | pattern |
+|---|---|---|
+| baseline, correct instruction | **7/10** | `1101110011` |
+| soup env, told **butter** | **0/10** | `0000000000` |
+| soup env, told **cream cheese** | **0/10** | `0000000000` |
+
+Seven discordant pairs one-way; **exact two-sided p = 0.0156**. A
+pre-registered prediction that the swap would be inert is **falsified** — the
+fifth of this campaign. **The system is strongly instruction-sensitive, and any
+reading of identity-blindness as "the machine ignores language" is refuted.**
+
+The failure is *not* at object approach, at least in the butter cell: the
+machine still reaches the true soup object as closely as baseline
+(`eef_obj_dist_min` 0.006–0.013 vs 0.012–0.018) while `grip_close_rate` falls
+from ~0.67 to ~0.26. The cream cell differs — ~half its trials never approach
+(`dmin` up to 0.051) — exactly as pre-registered, because cream's chain carries
+the `_HEAD_DISCRIM` "white carton" entry; that cell is therefore reported for
+completeness and **not** used for attribution.
+
+One instruction drives both the detection prompts **and** the place head's
+command embedding, so the swap cannot attribute the collapse to a channel. A
+decomposition (`--override-prompt-only`, driving the two from different
+instructions) is running; its predictions and the retraction it would force
+are registered in `paper.md` before the result. Attribution is reported as
+**pending**, not guessed.
+
 **Seed arithmetic.** `trial_seed = seed·1_000_003 + t`; init state =
 `init_states[trial_seed mod 50]`; teleport RNG = `777_000 + trial_seed`
 (`eval/libero_eval.py`). Bands: seed 0 → states 0–9 (dev); seed 20 → states
