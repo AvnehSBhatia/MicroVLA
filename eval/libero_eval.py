@@ -952,6 +952,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="with --ibvs-gain: shift the IBVS aim toward the "
                         "neighbour so the grasp sits on the clear edge of the "
                         "source object.")
+    p.add_argument("--override-instruction", default=None,
+                   help="ABLATION: tell the policy this instruction instead of "
+                        "the task's own. The env (scene, physics, success "
+                        "criterion) is unchanged, so success is still scored on "
+                        "the REAL task. If a policy succeeds while being told to "
+                        "fetch a different object, it is provably not using the "
+                        "instruction (paper.md, identity-blind binding).")
     p.add_argument("--clear-distractors", action="store_true",
                    help="diagnostic: after each reset, teleport every movable "
                         "object that does NOT match --keep-objects off the "
@@ -1499,6 +1506,22 @@ def main(argv: list[str] | None = None) -> None:
             s.strip() for s in str(args.keep_objects).split(",") if s.strip())
         tasks = [replace(t, keep_objects=keep_subs) for t in tasks]
         print(f"clear_distractors ON; keep substrings={keep_subs}", flush=True)
+
+    if getattr(args, "override_instruction", None):
+        # Instruction-swap ablation. The env is built from bddl_file +
+        # init_states, so overriding the instruction changes ONLY what the
+        # policy is told -- the scene, the physics, and the success criterion
+        # stay bound to the real task. A policy that still succeeds while being
+        # told to fetch a different object is provably not using the
+        # instruction. Deliberately loud: a silent instruction swap would be
+        # indistinguishable in the logs from a correctly-instructed run.
+        from dataclasses import replace
+        new_instr = str(args.override_instruction)
+        for t in tasks:
+            print(f"INSTRUCTION OVERRIDE: task {t.name!r} told {new_instr!r} "
+                  f"(was {t.instruction!r}); success still scored on the REAL task",
+                  flush=True)
+        tasks = [replace(t, instruction=new_instr) for t in tasks]
 
     if max(1, int(args.workers)) > 1:
         results = _run_parallel(args, tasks)

@@ -7797,3 +7797,40 @@ recoverable in principle (measured). Why cream cannot be bound live remains
 **unexplained**, and the honest statement is that the failure sits in live
 candidate scoring, where every instrument we have is trained or validated on
 teacher trajectories and thus cannot certify off-manifold behaviour.
+
+### PRE-REGISTERED: the instruction-swap ablation (2026-08-06)
+
+Identity-blindness was measured at the *perception* layer. It makes a sharp
+*behavioural* prediction that can be tested directly, and which no previous
+instrument in this campaign could reach: **if the machine cannot distinguish
+the named object, telling it to fetch a different object should not change its
+success rate.**
+
+**Design.** Run the soup task — env, scene, physics, and success criterion all
+unchanged and still scoring "alphabet soup in basket" — while telling the
+policy "pick up the butter and place it in the basket". Butter is present in
+soup's scene (BDDL, verified above), and butter's chain
+`['butter','box','cardboard box','can']` carries **no** `_HEAD_DISCRIM` entry,
+so this is the pure generic-tail path with no per-object constant confounding
+it. A second cell swaps in the cream instruction; that chain now contains
+"white carton", which is disclosed rather than silently included.
+
+**Implementation** (`--override-instruction`): the env is built from
+`bddl_file` + `init_states`, never from the instruction, so the override
+changes *only what the policy is told*. It prints the swap on every task,
+because a silent instruction swap would be indistinguishable in the logs from a
+correctly-instructed run — the exact provenance failure mode this log keeps
+catching. 605 tests pass; verified on the `--mock-env` path.
+
+**Prediction, registered before the run.** Success will be **statistically
+indistinguishable from the correctly-instructed baseline** (flagship held-out
+7/10). Concretely: the swapped cell lands within the baseline's Wilson interval
+rather than collapsing toward 0.
+
+**Falsification condition.** If the swapped cell collapses (say ≤2/10), the
+prediction fails and identity-blindness measured at perception does **not**
+propagate to behaviour — meaning some later stage recovers identity, and the
+"grounded on *a* box" scoping I have already written into both documents would
+be too strong and must be walked back. Recording that now, before the result,
+because the scoping edit is already committed and I want the condition under
+which I would have to undo it on the record first.
