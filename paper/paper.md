@@ -6970,3 +6970,26 @@ before any cream or butter number is computed, believed, or written
 down. If soup fails again the geometric approach is abandoned rather than
 tuned — tuning a ground-truth instrument until it agrees with the
 hypothesis is precisely the failure this project keeps catching.
+
+### v2 rejected 100% of points; settling the convention without touching the hypothesis (2026-08-06)
+
+Instrument v2 returned `ticks=0` on the soup calibration: the
+depth-positivity filter rejected every projected point, median visible
+objects 0.0. So a sign or matrix-direction convention is inverted —
+`get_camera_extrinsic_matrix` may be camera-to-world or its inverse, and
+MuJoCo/OpenGL cameras look down $-z$ while other stacks use $+z$.
+
+The tempting move is to flip the sign and re-run until the binding
+numbers look sensible. That is exactly the failure this project keeps
+cataloguing, and the acceptance rule I wrote one entry ago forbids it.
+So the convention is being settled by a test that **cannot** be biased by
+what I hope to find about binding: project world points to pixels, then
+invert back to world with robosuite's own
+`transform_from_pixels_to_world`, under each candidate convention. The
+convention that round-trips is the correct one, and that verdict is pure
+geometry — it never mentions cream, butter, soup, or binding.
+
+If neither convention round-trips, the geometric ground truth is
+abandoned as promised and deployed binding accuracy stays unmeasured
+(and so labelled) rather than being estimated by an instrument I cannot
+validate. `scripts/convcheck.py`, running.
