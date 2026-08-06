@@ -8004,3 +8004,24 @@ Two provenance defects found in one session by the simple act of asking "could
 a stranger reproduce this?" — both in *our* favour to ignore, both fixed. That
 question is a better auditor than any of the six instruments this campaign
 built.
+
+**Third provenance gap closed: `models/README.md` was cited but absent.** A
+systematic sweep of every path the papers cite in backticks (28 unique) against
+the repo found exactly one remaining miss — the release manifest the manuscript
+describes twice as carrying "the LIBERO commit SHA, init-file hashes, the
+ultralytics version, SHA-256 digests for the detector and every `models/*.pt`".
+It did not exist. It does now, and every field in it was **measured rather than
+transcribed**: digests computed on the files, versions read off the evaluation
+machine, LIBERO commit `8f1084e3` read from its checkout. `goal_heads_v5.pt`
+and `full_stageB_rec_fix.pt` verified byte-identical to the machine that ran
+the headline cells. Nothing was filled in from memory, and the training
+commands point at the manuscript's §11 block rather than being restated (and
+possibly drifting) here.
+
+The manifest also carries the warning the audit-stack finding demands: **report
+stack versions with any reproduction attempt, because a mismatch may be this
+paper's own finding recurring rather than a failed reproduction.**
+
+Sweep result: 28 cited paths, 3 provenance defects found and fixed in one
+session (missing run `argv`, untracked pinning instrument, absent release
+manifest), 0 remaining.
