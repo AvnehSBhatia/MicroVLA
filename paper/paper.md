@@ -9110,3 +9110,65 @@ about the same 7 cm as cream. **Falsified if the two B objects come in under
 4 cm, or if either A object exceeds 3 cm.** Success rates are not the measure
 here and are not predicted — these tasks have no corpus and no configuration
 tuned for them, so the *bias vector* is the observable, not the cell.
+
+### RETRACTED, one hour later: the position-memorization account is falsified (2026-08-06)
+
+The section above — "THE MULTI-OBJECT RESULT, EXPLAINED" — **is wrong, and I am
+retracting it.** The 9-task test I registered to confirm it refuted it instead.
+Seventh falsified prediction of the campaign; second retraction of the day.
+
+**Full results, n=4–6 per task, same head and configuration throughout:**
+
+| task | position | corpus | mean lateral error | coherence | registered prediction |
+|---|---|---|---|---|---|
+| 0 alphabet soup | A | **yes** | **0.0141 m** | 0.758 | — |
+| 1 cream cheese | B | **yes** | 0.0672 m | 0.976 | met |
+| 4 ketchup | A | none | **0.0563 m** | 0.960 | **MISSED** (predicted <0.03) |
+| 7 milk | A | none | **0.1514 m** | 0.976 | **MISSED** (predicted <0.03) |
+| 2 salad dressing | B | none | 0.1729 m | 0.894 | met |
+| 5 tomato sauce | B | none | 0.1601 m | 0.813 | **MISSED** (42.5°, predicted <30°) |
+
+**What kills it: milk.** Milk sits *at position A* — the spot I claimed the head
+memorized — and is missed by **15.1 cm**, with its error pointing **+x, away
+from A** (per-trial: +0.204, +0.061, +0.170, +0.161 in x). A head "pulled toward
+A" cannot miss an object *at* A by 15 cm in the opposite direction. Three of
+four registered criteria failed.
+
+**What actually predicts the error is training coverage, not position:**
+
+| | trained | untrained |
+|---|---|---|
+| at A | 0.014 (soup) | **0.056** (ketchup), **0.151** (milk) |
+| at B | 0.067 (cream) | 0.173 (dressing), 0.160 (tomato) |
+
+Trained objects: 1.4 and 6.7 cm. Untrained: 5.6 to 17.3 cm. That is a mundane
+finding — a regressor is inaccurate on objects it never saw — and it is what
+the data supports.
+
+**What survives from the retracted section**, because it was measured
+separately and does not depend on the account:
+- **LIBERO-Object uses exactly two target positions** across its ten tasks
+  (A and B, 22.0 cm apart, agreement 0.0–0.7 mm within each group). That is a
+  true and, I think, notable fact about the benchmark, and it stands on the
+  pinning artifact alone.
+- Cream reaches the **commanded** object 6/6 (world-space, unambiguous).
+- Cream's error is systematic (coherence 0.976) and *does* lie 6.9° off the
+  cream→A direction. With milk in hand this is best read as **one object's
+  coincidence**, not evidence of a pull, and I am no longer offering it as one.
+
+**Why I got this wrong, since the pattern matters more than the error.** I had
+three data points (soup at A works, butter at A works, cream at B fails), found
+a variable that separated them, and checked its direction on the *one* object
+that already fit. Two of three objects sharing a position is not evidence that
+position is causal — it is the smallest number that can produce a coincidence.
+The test that would have caught it immediately is the one I eventually ran, and
+I ran it only because I had registered it before I believed the account. **The
+pre-registration is what saved this from entering the paper**: the account
+never reached `main.tex`, `MANUSCRIPT_v2.md`, or `README.md` (verified: zero
+occurrences), because I wrote the test before I wrote the claim into the
+documents.
+
+**Status of the multi-object account.** Cream's failure is a lateral grasp
+error, systematic, ~7 cm, on an object it *correctly identifies and
+approaches*. Why the grasp head's xy degrades 4.4× off-manifold is
+**unexplained**. Position is not the explanation.
