@@ -9484,3 +9484,48 @@ held-out cell decides.
 Running now, per the protocol fixed before collection: **cream on seed 20**,
 which the DAgger data (seed 0) never touched, plus **soup on seed 20** as a
 regression check. Both will be reported whatever they say.
+
+### THE INTERVENTION WORKED — partially, and the bound matters (2026-08-06)
+
+**Cream, held-out seed 20, DAgger head: 2/10** — the first successes cream has
+recorded in this entire campaign, against 0/10 under every previous
+configuration, binder, prompt fix and head. Trials 4 and 7, with
+`eef_obj_dist_min` **0.013** and **0.002** m.
+
+```
+trial:  0     1     2     3     4     5     6     7     8     9
+succ:   F     F     F     F     T     F     F     T     F     F
+dmin: .029  .030  .034  .048  .013  .045  .040  .002  .029  .040
+```
+
+**The targeted quantity moved, significantly:**
+
+| measure | pre-DAgger (n=6) | DAgger (n=10) | test |
+|---|---|---|---|
+| lateral `dmin` mean | 0.0697 m | **0.0310 m** (−56%) | Mann-Whitney U=52/60, **p = 0.0197** |
+| success rate | 0/10 | 2/10 | Fisher exact, **p = 0.474** |
+
+**Read this exactly as it is.** The intervention **significantly reduced the
+error it was designed to reduce** (56%, p = 0.020) on a protocol band the
+training data never touched. The **crossing is not statistically significant**
+at n=10 — 2/10 versus 0/10 gives p = 0.47, and I will not present cream as
+"crossed" on that basis. This is the *partial* outcome registered before
+collection: "a large error reduction without crossing would be partial."
+
+**What it establishes about the hypothesis.** Appearance-side off-manifold
+drift is now supported by **intervention**, not just correlation: training the
+head on the machine's own viewpoints halved the lateral error at deployment.
+That is the strongest evidence available for any of the nine proposed
+mechanisms, and the only one to survive falsification, a circularity check, and
+an intervention. It does not prove drift is the *whole* cause — a 56% reduction
+leaves 3.1 cm of error, still enough to miss most grasps, which is exactly why
+the success rate moved only to 2/10.
+
+**Guard held.** Collection was seed 0, evaluation seed 20; the repair was never
+scored on its own band. Had I evaluated on seed 0 this would be the
+iteration-coupled selection loop the paper documents as Layer 2 — the defect
+would have been mine, in the act of reporting it.
+
+**Soup regression is running.** If the repair traded the working object for the
+blocked one, it is not a repair, and that cell decides it. Reported whichever
+way it lands.
