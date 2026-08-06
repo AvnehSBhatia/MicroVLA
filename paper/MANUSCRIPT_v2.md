@@ -885,15 +885,19 @@ dev / 0.300 held-out pair is retained only as the audited baseline.
   the heads (1/10 vs 4/10), and §6–7 carry the stack-independent claim via
   attributions and varied-label validation.
 * Object-level generalization: one object in every claimed cell of the
-  body. The butter boundary is measured, re-diagnosed, and — in the dated
-  App-D addendum — crossed: the same-day campaign runs from teacher
-  end-to-end (2/3), through a head clean on every offline instrument yet
-  0/10 deployed, to the live-caught estimate-chase mechanism, to
-  10/10 butter under early latch (config-split), to 6/10 butter + 4/10
-  soup under one anchor-band config with no per-object constants — and
-  the pre-registered single-shot fresh-seed confirmation returned 5/10
-  butter + 3/10 soup (App D). No multi-object number is claimed in the
-  body; the addendum carries them with their selection ledger.
+  body. Two objects are carried in the dated App-D addendum — the
+  campaign runs from teacher end-to-end (2/3), through a head clean on
+  every offline instrument yet 0/10 deployed, to the live-caught
+  estimate-chase mechanism, to 10/10 butter under early latch
+  (config-split), to 6/10 butter + 4/10 soup under one anchor-band config
+  with no per-object constants, with two pre-registered fresh-seed
+  confirmations (5/10 + 3/10, and 5/10 + 4/10 on a three-object head).
+  A third object (cream cheese) does NOT cross: its goals are accurate
+  (1.58 cm on-manifold) but role binding fails, and a four-binder study
+  shows the failure is not liftable by any corpus-derived binder — offline
+  binder accuracy dissociates from deployed success (§7). No multi-object
+  number is claimed in the body; the addendum carries them with their
+  selection ledger, their falsified prediction, and the open experiment.
 * Assisted-teacher numbers as policy competence (App B only).
 * Any comparative size superlative; any comparability to community-protocol
   LIBERO scores (§3, §9).
@@ -1314,6 +1318,38 @@ butter **0/10** (`libero_object_real_1785926557527`; detection duty
 starved at 16 episodes) and soup **9/10** on the held-out protocol
 (`libero_object_real_1785927804554`) — two points above the flagship's
 own cell: the joint corpus helped soup.
+
+**The role-binding sub-study (2026-08-06), and its dissociation.** Because
+cream cheese never crosses zero while its goals are accurate, we tested
+whether *binding* — which box the machine believes is the target — is the
+block, with four binders on one head (v8) and one config, n=10 per cell:
+no binder; the teacher's crop-CLIP rerank ported to the student
+(`--goal-src-rerank`); a mean visual prototype per object built from the
+corpus's own grasped-box embeddings (`--goal-src-proto`); and a 1-NN bank
+over those same embeddings (`--goal-src-bank`). Offline, the two
+corpus-derived binders are separable and unequal: leave-episode-out 3-way
+identity accuracy is **0.613** for the mean prototype and **0.902** for
+1-NN (per-object 0.82/0.90/0.95), the gap arising because raw crop
+embeddings are ~0.99 collinear across objects and only separate after the
+common component is projected out.
+
+Deployed, that ordering does not survive (all cells verified, run ids in
+App D): cream 0/10 in every column; butter 4/10 none, **7/10** rerank,
+2/10 prototype, 4/10 bank; soup 5/10 none, 5/10 rerank, **8/10**
+prototype, 6/10 bank. The binder with the *worse* offline number owns the
+best soup cell and the worst butter cell; the binder with the better one
+returns butter to baseline; the binder with no offline number wins
+butter. A direct A/B engagement probe explains why: with the bank binder
+active the uv stream the head is fed *destabilises* — std 0.258 → 0.335
+laterally, 0.047 → 0.202 vertically on a matched episode — i.e. a binder
+that is 0.902-accurate on corpus crops thrashes between boxes on live
+crops. This is §6's on-manifold limit recurring on a second and third
+instrument: the substitution probe evaluates on teacher trajectories and
+cannot certify off-manifold behaviour, and a binder *built* from teacher
+trajectories cannot bind off-manifold crops. We therefore claim only
+that object breadth is bounded at the role-binding stage, that the bound
+is not liftable by corpus-derived binders, and that a binder trained on
+deployed-distribution crops is the open experiment (App D).
 
 v7 (26 butter episodes, 2× oversampled): butter still **0/10**
 (`libero_object_real_1785934999759`) with every offline instrument clean
