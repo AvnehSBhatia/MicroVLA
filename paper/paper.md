@@ -10056,3 +10056,37 @@ The soup DAgger cells are reported as additional dated cells and nothing is
 swapped in on the strength of a late-session run — which, at 0.560 against v5's
 0.700, would have been a downgrade dressed as an upgrade had I not fixed the
 comparator in advance.
+
+### The provenance audit becomes a test (2026-08-06)
+
+Four gaps of one class were found by hand today — missing run `argv`, the
+untracked pinning instrument, the absent release manifest, and the DAgger
+checkpoints missing from `models/` while two documents cited them for a
+headline cell. Each was caught by asking *"could a stranger reproduce this?"*,
+which found more real defects today than six of the eleven instruments I built.
+That question is now `tests/test_paper_artifacts.py`.
+
+It scans the claim-bearing documents for backticked file paths and asserts each
+**exists** and is **git-tracked**. Currently checking **38 cited artifacts
+across 4 documents**, and it does two things a weaker version would not:
+
+- **Existing-but-untracked is checked separately**, because it is the subtler
+  half: the file works for us and is absent from a clone. That is exactly how
+  the placement-pinning instrument — which the paper's *opening claim* rests
+  on — stayed uncommitted.
+- **A guard on the guard**: a third test asserts the document list still
+  resolves, so a renamed file cannot silently shrink the audit to nothing.
+
+**Verified by breaking it deliberately.** Un-tracking `goal_heads_dagger.pt`
+makes it fail with the citing document and path named; restoring it passes. A
+provenance test that has never failed is indistinguishable from one that scans
+nothing, and this one scans 38 paths and catches a real regression.
+
+**Why this belongs in the paper rather than only the repo.** The paper's §8
+argues that a class of defect is catchable only by provenance, never by parity
+testing — two sides can agree perfectly on a wrong convention. A citation to a
+file nobody shipped is that defect in its purest form: internally consistent,
+externally broken. The check costs 0.02 s and would have caught all four of
+today's instances.
+
+616 tests pass.
