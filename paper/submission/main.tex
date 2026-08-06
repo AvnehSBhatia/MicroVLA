@@ -118,8 +118,15 @@ instructions' selections on the same frame detects this without knowing which
 is correct---the property that let it succeed where six ground-truth-seeking
 instruments failed. Applied to our own stack it returns the same box for
 different objects (median centre distance $0.0001$), so our best cell's 0.700 is
-\emph{not} explained by binding the named object. The test is cheap, needs no
-annotation, and applies to any detector-grounded policy.
+\emph{not} explained by binding the named object. Its behavioural companion is
+equally cheap: \textbf{swap the instruction to a different object and rescore
+against the original task}. Neither needs annotation, both need only a second
+forward pass, and they fail differently---the first exposes a grounding stage
+that ignores the instruction, the second a stage that memorized it. The swap is
+what found our fourth memorization layer, and it works precisely where a fixed
+benchmark cannot: when every task shares a target, a memorized
+command$\to$location map and a grounded one are behaviourally identical until
+the command is changed.
 \end{enumerate}
 
 \noindent Both headline findings have one shape: apparent competence resting on

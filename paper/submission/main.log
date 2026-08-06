@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  6 AUG 2026 04:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  6 AUG 2026 04:05
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -504,7 +504,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 
-Overfull \hbox (42.14018pt too wide) in paragraph at lines 221--236
+Overfull \hbox (42.14018pt too wide) in paragraph at lines 228--243
 \OT1/cmtt/m/n/10 GraspPointHead.forward \OT1/cmr/m/n/10 (-20) con-sumes only \O
 T1/cmtt/m/n/10 geom\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/10 box[]emb\OT1/cmr/m/
 n/10 (-20) , \OT1/cmtt/m/n/10 frame[]emb\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/1
@@ -537,7 +537,7 @@ Here is how much of TeX's memory you used:
  36800 multiletter control sequences out of 15000+600000
  576543 words of font info for 187 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1001b,597s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1001b,591s stack positions out of 10000i,1000n,20000p,200000b,200000s
  </Users/avneh/Library/texlive/2025basic/texmf-var/fonts/pk/ljfour/jknappen/e
 c/tcrm0900.600pk></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/am
 sfonts/cm/cmbx10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publi
@@ -557,7 +557,7 @@ basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2
 ve/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></usr/local/te
 xlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/loca
 l/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (7 pages, 257563 bytes).
+Output written on main.pdf (7 pages, 258291 bytes).
 PDF statistics:
  222 PDF objects out of 1000 (max. 8388607)
  176 compressed objects within 2 object streams

@@ -8729,3 +8729,15 @@ literally learned a *location* keyed to a *word* — against a basket that never
 moves — and it was the one component no probe in this campaign had thought to
 audit, precisely because the benchmark never exercises it. The paper's own
 thesis found a defect the paper's own instruments had missed.
+
+**Contribution #4 broadened to a pair of probes (2026-08-06).** The
+ground-truth-free identity test and the instruction swap are the same kind of
+instrument and belong together: neither needs annotation, both need only a
+second forward pass, and **they fail differently** — the first exposes a
+grounding stage that *ignores* the instruction, the second a stage that
+*memorized* it. Stated as a pair rather than leaving the swap as a one-off
+diagnostic, because the swap is what found the fourth layer and it works
+exactly where a fixed benchmark cannot: when every task shares a target, a
+memorized command→location map and a grounded one are behaviourally identical
+until the command is changed. That is a transferable recommendation, not a fact
+about MicroVLA.
