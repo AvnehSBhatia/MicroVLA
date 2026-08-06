@@ -7128,3 +7128,29 @@ The reading is fixed in advance:
 
 Run on task 8 (pudding, blocked) and task 0 (soup, works) so the
 comparison is internal: `scripts/textdisc.py`.
+
+### Third instrument failure tonight, caught before it became a finding (2026-08-06)
+
+The text-discrimination probe returned conf=0.000 at uv=(0.500,0.500) for
+all ten phrases — which is not "every phrase picks the same box" but the
+detector's documented **fallback BoxObs for no detection at all**. Read
+carelessly it looks like a spectacular result (the text tower is
+degenerate!); read correctly it says my probe frame is bad, because the
+same detector fires at 0.5 duty in the very run this probe was meant to
+explain.
+
+Recorded as a near-miss because the difference matters: the fallback
+returns a *centred* box with zero confidence, so a probe that does not
+check confidence will silently treat "nothing detected" as "everything
+detected in the same place." That is a producer/consumer convention trap
+of exactly the class §8 catalogues — the sentinel and the signal share a
+shape — and it is the third instrument to fail tonight (after the
+origin-projection ground truth and its sign-corrected successor).
+
+Frame diagnostics (shape/min/max/mean) added and the probe rerun; if the
+frame is black or mis-keyed the fix is mechanical, and if the frame is
+fine but detections are still empty at conf 0.02 then the probe's
+preprocessing (flip/BGR order) differs from the eval path and must be
+made identical rather than approximated. No conclusion about the text
+tower is drawn until the probe reproduces the eval path's detection duty
+on a frame from the same distribution.
