@@ -88,6 +88,29 @@ Selection ledger: v6-v9 scored the seed-20 band (4 config looks) before
 the pre-registration; the confirmation seed was never scored by any
 student run.
 
+## Third object crossed (2026-08-06, DAgger head, n=50 both arms)
+
+| cell | n | rate | Wilson 95% | provenance |
+|---|---|---|---|---|
+| **cream cheese, DAgger head, held-out seed 20** | 50 | **18/50 = 0.360** | **[0.24, 0.50]** | `models/goal_heads_dagger.pt`; `eval_results/n50_cream_dagger` |
+| cream cheese, v8 control, same seeds | 50 | 3/50 = 0.060 | [0.02, 0.16] | `eval_results/n50_cream_v8` |
+
+Paired exact McNemar: **15 discordant, all 15 favour the DAgger head,
+p = 6.1e-05**. Intervals disjoint; ratio 6.0x. The harness noise floor was
+measured at exactly zero (10/10 bit-identical rerun), so the arms differ only
+by the head.
+
+The DAgger head is `goal_heads_v8` fine-tuned on the machine's **own**
+deployment viewpoints, labelled from the simulator's object pose — which the
+teacher corpus cannot supply for viewpoints it never visited. **Collection drew
+seed 0; both evaluation arms drew seed 20**, so no cell is scored on its own
+band. Regression: soup 3/6 -> 7/10 with the same head, so the repair costs
+nothing. All 18 successes filmed, md5-distinct: `watch_videos/cream_n50/`.
+
+**Note on the earlier zeros.** Cream's repeated "0/10" cells were underpowered
+estimates, not zeros: at n=50 the un-finetuned control scores 3/50. A 0/10 cell
+has a Wilson upper bound of ~0.28. Read every 0/10 in this file accordingly.
+
 ## Role-binding sub-study (2026-08-06, v8 three-object head, anchor band, n=10 each)
 
 | binder | offline identity acc. | cream | butter | soup |
