@@ -9577,3 +9577,32 @@ training (place-head memorization), and DAgger on deployment viewpoints
 (grasp-head xy). The through-line is the title: each defect was a memorized
 value standing in for a measurement, and each repair was showing the model the
 variation it had never been shown.
+
+### PRE-REGISTERED: powering the crossing claim to n=50 (2026-08-06)
+
+Two claims came out of the intervention with very different support:
+
+- **Mechanism** — lateral error −56%, Mann-Whitney **p = 0.020**. Established.
+- **Crossing** — 2/10 vs 0/10, Fisher **p = 0.474**. *Not* established.
+
+The second is the one a referee will press, and n=10 cannot settle it. Running
+both arms at **n=50** on held-out seed 20, cream, identical configuration:
+the DAgger head and the v8 head it was fine-tuned from.
+
+**Registered prediction.** If the observed 0.2 rate is real, the DAgger arm
+returns ≈10/50 with a Wilson interval excluding zero, and the paired comparison
+against a v8 arm near 0/50 becomes significant (10/50 vs 0/50 gives Fisher
+p ≈ 0.001). That would convert "first successes" into "crosses", which is a
+materially stronger and more checkable claim.
+
+**Registered falsification.** If the DAgger arm comes in at ≲2/50, the 2/10 was
+a small-sample excursion, the crossing claim is withdrawn entirely, and the
+paper reports **only** the mechanism result — a significant error reduction
+that did not translate into reliable task success. That outcome is entirely
+possible: 2/10 has a Wilson interval of roughly [0.06, 0.51], which is
+consistent with a true rate anywhere from "barely ever" to "half the time".
+
+**Why run the v8 arm too rather than reuse 0/10.** Comparing a fresh n=50
+against a stale n=10 from a different session would import any drift between
+them into the contrast. Both arms run now, same stack, same seeds, back to
+back. ~3 hours; the answer is worth the compute.
