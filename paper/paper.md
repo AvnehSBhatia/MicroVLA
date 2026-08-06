@@ -8993,3 +8993,42 @@ reading is where the evidence points, not something measured.
 stage, measured directly and confirmed behaviourally by the 2×2. What today's
 result removes is the *inference* that identity-blindness explains cream — it
 does not, because cream's binding lands on the right object anyway.
+
+### The miss decomposed: cream's failure is lateral, not vertical (2026-08-06)
+
+"Stops 7 cm short" does not say *which* 7 cm. Decomposing each trial's
+closest-approach residual into lateral (xy) and vertical components, from
+telemetry already on disk:
+
+| | total | lateral (xy) | vertical (eef above object) | vertical share |
+|---|---|---|---|---|
+| soup (crosses 35/50) | 0.0294 m | 0.0186 m | **+0.0190 m** | **66%** |
+| cream (0/10) | 0.0698 m | **0.0688 m** | +0.0040 m | **6%** |
+
+**Cream's descent is not the problem — its height is better than soup's.** It
+settles 4 mm above the object's centre where soup settles 19 mm above, and then
+closes the gripper 6.9 cm to the *side*. Soup's residual is 66% vertical, which
+is the harmless direction (the fingers extend below the end-effector frame, so
+hovering 2 cm high still grasps); cream's is 94% lateral, which is fatal —
+there is nothing between the fingers.
+
+This sharpens yesterday's account twice over. "Grasp geometry" was right but
+vague, and my first instinct on seeing "stops short" was a depth/descent
+failure — **wrong, and refuted by data I already had before I could act on
+it.** The specific defect is a **lateral goal-position error**: the grasp head's
+predicted xy is ~7 cm from the object in deployment while being **1.58 cm
+accurate on teacher trajectories** (the previously measured on-manifold figure).
+A 4.4× degradation from on-manifold to deployed is the paper's central
+limitation stated as a number, in the component where it costs the task.
+
+**Why this matters more than a per-object fix.** The tempting response is a
+cream-specific xy offset, which is precisely the `hang_comp`-shaped constant
+this paper spends four layers criticising; it would "cross" a third object by
+memorising its location. The finding worth keeping is the measurement: the goal
+head's xy generalises 4.4× worse off-manifold than its z, and that asymmetry —
+not a missing constant — is what blocks the third object.
+
+**Not claimed.** n=6, one object pair, one configuration. Whether the lateral
+error is systematic (a fixed bias, correctable in principle) or scattered
+(a variance problem) is not measured here — the mean is 6.9 cm but I have not
+looked at its direction, and I am not going to infer it from six numbers.
