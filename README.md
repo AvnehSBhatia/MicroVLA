@@ -57,10 +57,11 @@ scores 0.00 on the region-text head, so all chains fall through to a generic
 succeeds at 35/50 while being indiscriminable in exactly the sense cream was
 blamed for. Deployed binding is therefore **identity-blind**: soup's success
 is not explained by binding the named object, and the repaired head is
-grounded on *a* box rather than *the named* one. Why cream specifically
-cannot be bound live is **unexplained** — a follow-up measured 3.1–3.9
-candidate proposals per frame, ruling out "the detector never proposed it"
-and placing the failure in live candidate scoring. The 0.902 / 0.613 figures
+grounded on *a* box rather than *the named* one. Cream's own failure was
+later traced elsewhere entirely: a world-space probe shows it reaches the
+**commanded** object 6/6 and fails by a systematic ~7 cm *lateral* grasp
+error, so binding was never its bottleneck (see the first-successes note
+above). The 0.902 / 0.613 figures
 are *offline* identity accuracy on corpus crops and dissociate from deployed
 success; binder cells are dated in App D.
 
@@ -108,6 +109,7 @@ films in [`demo/`](demo/).
 | `role_bank.pt` | per-object crop-embedding banks for 1-NN role binding (`--goal-src-bank`); measured 0.902 identity accuracy vs 0.613 for a mean prototype | 1432 vectors |
 | `role_prototypes.pt` | mean-prototype variant of the same (`--goal-src-proto`); shipped because its **negative** result is part of the evidence | 3 vectors |
 | `gates_v1.pt` | stage-1 learned gates (close trigger + hold check) | <3K |
+| `goal_heads_dagger.pt` | v8 fine-tuned on the machine's **own** deployment viewpoints (DAgger, collected seed 0). Cream's first successes: 2/10 held-out, lateral error −56% (*p*=0.020); soup 3/6→7/10. Checkpoint meta records the collection band and label derivation | 0.24M |
 
 Both binders are built from the training corpora by
 `scripts/build_role_bank.py` / `scripts/build_prototypes.py` — no new
