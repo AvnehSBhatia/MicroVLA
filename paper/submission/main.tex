@@ -51,15 +51,18 @@ proprioception-shortcut head (6/10). The behavioural certificate is therefore
 joint in (head, stack). Third, the policy class that made this reachable is
 goal-structured decoding driving an engineered pick-and-place shell; free
 per-tick regression scored 0/56. All results are simulation, one task and one
-object in every claimed cell, $n{=}10$ per cell and final at that $n$. A dated
-addendum carries the multi-object campaign: four objects attempted, a second
-crossed and twice confirmed on never-scored seeds, and two \emph{not} crossed.
-For the blocked object we proposed nine mechanisms and refuted eight by
+object in every claimed cell, $n{=}10$ per cell except where an $n{=}50$
+confirmation is stated. A dated
+addendum carries the multi-object campaign: four objects attempted, \textbf{three
+crossed} --- a second twice confirmed on never-scored seeds, a third crossed by
+the intervention below, and a fourth whose scripted teacher never reached a
+grasp. For the third we proposed nine mechanisms and refuted eight by
 measurement; the ninth, appearance-side off-manifold drift, survives
 falsification, a circularity check, and an \emph{intervention} --- fine-tuning
 the grasp head on the machine's own viewpoints cuts its deployed lateral error
-56\% ($p{=}0.020$) and yields its first successes, at no cost to the object
-that already worked.
+56\% and \textbf{crosses it}, 18/50 $[0.24,0.50]$ against a same-seed control
+at 3/50 (exact McNemar $p{=}6.1\times10^{-5}$), at no cost to the object that
+already worked.
 Five pre-registered predictions were recorded and falsified and six
 instruments abandoned at their own calibration gates before a seventh, which
 needs no ground truth, succeeded and retracted our own proposed mechanism:
@@ -268,12 +271,13 @@ crossing objects show the opposite trend; it precedes the error it explains.
 \emph{Intervention}: labelling the machine's own viewpoints from the
 simulator's object pose---which the corpus cannot do for what the teacher never
 visited---and fine-tuning on them cuts the deployed lateral error \textbf{56\%}
-($0.0697\to0.0310$\,m, Mann--Whitney $p{=}0.020$) and yields the blocked
-object's \textbf{first successes} (2/10, from 0/10 under every prior
-configuration) while the crossing object goes 3/6$\to$7/10. Collection drew
-seed 0, evaluation seed 20, so no cell is scored on its own band. We do
-\emph{not} claim the object is crossed ($p{=}0.47$); we claim the mechanism
-moved the quantity it was measured on.
+($0.0697\to0.0310$\,m, Mann--Whitney $p{=}0.020$) and \textbf{crosses the
+blocked object}: at $n{=}50$ on held-out seeds it scores \textbf{18/50 $=$
+0.360} $[0.24,0.50]$ against a same-seed control arm at 3/50 $=$ 0.060
+$[0.02,0.16]$ --- 15 discordant pairs, \emph{all} favouring the repaired head,
+exact McNemar $p{=}6.1\times10^{-5}$, intervals disjoint, a $6\times$ ratio. The
+crossing object is unharmed (3/6$\to$7/10). Collection drew seed 0 and both
+evaluation arms drew seed 20, so no cell is scored on its own band.
 
 \noindent \textbf{The architecture closes the argument.} Code inspection makes
 this structural rather than statistical: \texttt{GraspPointHead.forward}
@@ -472,8 +476,9 @@ a claim about them.
 (causally inert in every nonzero number); end-to-end learned motor control (the
 shell is engineered); head-level grounding from the randomized column alone,
 stack-free; object-level generalization beyond the addendum's two crossed
-objects (four attempted, two not crossed --- their failing \emph{stage} is
-located, grasp rather than binding, but its \emph{cause} is unmeasured); any
+objects (four attempted, three crossed; the fourth's scripted teacher never
+reached a grasp, so no corpus exists for it and it is untested rather than
+failed); any
 deployed binding-accuracy figure beyond the world-space nearest-body counts;
 physical deployment; any size claim beyond
 Table~\ref{tab:size}'s bounded one (surveyed systems, published counts,

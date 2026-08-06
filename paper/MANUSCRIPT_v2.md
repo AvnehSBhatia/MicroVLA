@@ -52,7 +52,9 @@ alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
 released head itself; §7). A dated addendum carries the multi-object
 campaign: a second object crossed and twice confirmed on never-scored
-seeds, and two not crossed — with five pre-registered predictions recorded
+seeds, a third crossed by intervention (18/50 [0.24, 0.50] vs a same-seed
+control at 3/50, exact McNemar p=6.1e-05), and a fourth whose teacher never
+reached a grasp — with five pre-registered predictions recorded
 and falsified and six instruments abandoned at their own calibration gates
 before a sixth, needing no ground truth, succeeded and **retracted our own
 proposed mechanism**: different objects' prompt chains select the *same*
