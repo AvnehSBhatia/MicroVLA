@@ -132,7 +132,7 @@ Tiny Recursive Model world model & 9.97\,M & frozen at deployment \\
 fusion + drift + relational + planner trunk heads & 7.0\,M & trained ($\le$9\,M cap) \\
 goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained \\
 \midrule
-\textbf{deployed total} & $\approx$\textbf{30\,M} & \\
+\textbf{deployed total} & \textbf{30.2\,M} & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -165,7 +165,8 @@ randomized $\pm4$\,cm (audit stack) & 6/10 & 0/10 & --- & --- \\
 $[0.56,0.81]$}; randomized \textbf{26/50 $=0.520$ $[0.39,0.65]$}.
 Across a detector-stack rebuild the repaired head reproduces in all three
 protocols while the memorized head's dev cell collapses $7/10\to2/10$ to its
-held-out floor: memorization is stack-coupled, grounding is what survived.
+held-out floor: memorization is stack-coupled, \emph{visual} grounding---which
+input the head reads---is what survived.
 
 \section{The multi-object addendum, and a falsified prediction}
 
