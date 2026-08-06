@@ -6425,3 +6425,32 @@ band. Pre-registered NOW, before any further look: **v8 head +
 anchor_band 0.04 + `--goal-src-rerank`, seed 47 → states 41–49 + state 0
 (nine never-scored states; the tenth overlaps the dev band — disclosed),
 n=10 butter + n=10 soup, single shot, no adjustment.** Running.
+
+### The binding boundary, measured inside the embedding space (2026-08-06, cycle 20)
+
+Rather than argue about why cream fails, we measured what the frozen
+detector's crop embeddings actually carry. From the corpora's own
+grasped-box embeddings (cream 17 eps / 648 ticks, butter 26 / 1044, soup
+27 / 1172), `scripts/proto_separability.py`:
+
+* **Raw prototype cosines: 0.986–0.991** across three different objects —
+  the crop embedding space is dominated by one common component, so any
+  raw-cosine binder is nearly blind by construction (which is exactly why
+  crop-CLIP reranking could not move cream's uv flicker).
+* **Centered on that component the same prototypes separate**: cream–soup
+  −0.75, butter–soup −0.66, cream–butter +0.00.
+* **Leave-episode-out 3-way tick classification: 0.613 (chance 0.333)** —
+  object identity IS present, at roughly 61% per-tick reliability, and
+  notably cream–butter is the confusable pair (+0.00 centered cosine)
+  while both separate cleanly from soup.
+
+So the boundary is now quantified, not asserted: *identity is recoverable
+but weak*, and a per-tick binder at 61% accuracy must be aggregated (the
+machine's median-of-window latch is exactly such an aggregator). Shipped
+`--goal-src-proto`: bind the source box by centered cosine against a
+corpus-built prototype — 0.24M-head architecture untouched, zero new
+episodes, zero training. Three-object eval (cream/butter/soup, n=10 each,
+v8 head + anchor band + prototype binding) queued behind the seed-47
+confirmation. Prediction on record BEFORE the run: cream improves but
+stays below butter/soup, because 61% binding accuracy with a
+cream–butter null direction bounds it.
