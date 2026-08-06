@@ -8557,3 +8557,15 @@ command embeddings are in v8's training corpora, so neither is out of
 distribution for its place head. If the corrected baseline is *also* near zero,
 the generalization question stays unanswered and I will say so rather than
 tuning until a baseline appears.
+
+**Honesty fix on the size claim (2026-08-06).** The abstract calls MicroVLA
+"the smallest surveyed **language-conditioned** policy" while the same abstract
+now reports that its language channel reduces to one latched coordinate. A
+sharp referee would call that having it both ways. Corrected in the bounded
+claim: *"language-conditioned" names the **reference class** — systems that
+accept a language instruction — and is not a claim about how much work that
+instruction does in ours.* With the pointed addition that a reader who thinks
+this disqualifies the artifact from the class should read the size row as
+**smaller still, not larger** — the qualifier cannot be used to inflate the
+comparison in our favour, and saying so closes the only direction the ambiguity
+could have been exploited.

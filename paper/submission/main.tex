@@ -345,7 +345,12 @@ The claim is bounded and checkable: it ranges over language-conditioned VLA
 policies with published parameter counts that we surveyed, it is a statement
 about parameter counts alone, and it is refuted by exhibiting any surveyed-class
 system below 17.2\,M trained or 30.2\,M deployed. We cannot rule out
-unpublished or unsurveyed smaller systems. The mechanism behind the gap is
+unpublished or unsurveyed smaller systems. ``Language-conditioned'' here names
+the \emph{reference class} --- systems that accept a language instruction ---
+and is not a claim about how much work that instruction does in ours: the
+decomposition above shows it reduces to one latched place coordinate. A reader
+who thinks that disqualifies the artifact from the class should read the size
+row as smaller still, not larger. The mechanism behind the gap is
 architectural rather than incidental: MicroVLA carries no separate language
 model at all, because the detector's own text tower supplies every text
 embedding---so the frozen encoder that the other rows pay for twice (once in
