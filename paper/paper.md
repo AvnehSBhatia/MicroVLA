@@ -6837,3 +6837,35 @@ than inferred from uv std; if deployed accuracy is high and cream still
 fails, binding is exonerated and the block moves downstream — which
 would contradict the current §7 text and require it to be rewritten.
 Probe running (`scripts/seg_probe.py`, task 1).
+
+### Instrument built: deployed binding accuracy via camera projection (2026-08-06)
+
+MuJoCo instance segmentation is unusable on this stack (robosuite 1.4.1
+writes 256 into a uint8 buffer; numpy 2 raises `OverflowError` and the
+observable is dropped — logged as a stack defect, not a MicroVLA one).
+The instrument therefore uses geometry instead of semantics: every task
+object's world position is projected into the wrist camera with
+robosuite's own `get_camera_transform_matrix` /
+`project_points_from_world_to_camera`, and the box the machine actually
+bound is scored correct iff the target object's projected pixel is the
+nearest object pixel to that box's centre. Sim state is read for
+diagnosis only and never reaches a controller — the same rule the
+teacher's calibration telemetry is held to.
+
+`scripts/bindacc.py <task> <object> [--bank KEY]`, running now for cream
+(task 1) and butter (task 6). Pre-committed reading of the outcomes:
+* cream accuracy near chance (~1/3 with three candidates) ⇒ the
+  on-manifold gap is quantified at the binding stage and §7's claim
+  stands with a number rather than an inference from uv std;
+* cream accuracy high (≥0.8) with cream still 0/10 ⇒ binding is
+  exonerated, the block is downstream, and §7 is wrong and must be
+  rewritten;
+* butter accuracy materially above cream's ⇒ explains why the same
+  binders help one object and not the other.
+
+One process note, logged because the paper is partly about exactly this:
+my first probe imported `libero` directly and hung on its interactive
+first-run prompt, which the repo already solves via
+`eval/_libero_compat.prepare_libero()`. The harness had encoded the fix
+and I bypassed it — a one-line instance of the provenance failure mode
+§8 catalogues.
