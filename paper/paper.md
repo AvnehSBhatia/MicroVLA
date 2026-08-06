@@ -9254,3 +9254,54 @@ more than adding a fourth confounded number today.
 systematic (0.976), lateral (94%), ~7 cm, on an object it correctly identifies
 and approaches, with perception, binding, descent, and position all excluded.
 Why the head errs is **open**.
+
+### The tail hypothesis REFUTED, non-circularly (2026-08-06)
+
+The interventional design named above, run: evaluate the released head on
+recorded corpus episodes, where uv is set by the **teacher's** trajectory
+rather than by the head's own error, and bin its xy accuracy by how far the
+source box sits from frame centre (|uv−0.5|max).
+
+| eccentricity bin | cream (n=346) | soup (n=1149) | butter (n=317) |
+|---|---|---|---|
+| 0–25% | 0.0176 m | 0.0140 m | 0.0164 m |
+| 25–50% | 0.0236 | 0.0133 | 0.0170 |
+| 50–75% | 0.0236 | 0.0116 | 0.0158 |
+| 75–90% | 0.0213 | 0.0124 | 0.0125 |
+| 90–100% | **0.0147** | 0.0130 | **0.0115** |
+| overall | **0.0208** | **0.0129** | **0.0153** |
+
+**No eccentricity effect exists.** The head is as accurate at the frame edge as
+at the centre on all three objects — for cream and butter the *most* eccentric
+bin is the most accurate. The hypothesis that cream fails because deployment
+pushes the head into a sparse uv tail is **refuted**, and refuted without
+circularity, because corpus uv is not downstream of the head's error.
+
+**A second refutation from the same table.** Cream's deployment uv (0.813,
+0.796) has eccentricity |uv−0.5|max = **0.313**, *below* the corpus median of
+**0.371**. Its deployment inputs are more central than its training inputs, not
+more extreme. My earlier per-axis percentile framing (84th/85th) obscured this:
+the axes are individually high but the *distance from centre* is not, because
+the corpus itself sits near the frame edge (median 0.371, i.e. the object
+typically appears at ~0.13 or ~0.87 along an axis). Reading two marginal
+percentiles as "in the tail" was wrong, and the joint statistic says the
+opposite.
+
+**What survives, and it is worth having.** Cream's head is genuinely worse
+on-manifold than the others — **2.08 cm** vs soup 1.29 and butter 1.53 — so
+some of its deployed deficit is present already in training. But 2.08 cm
+on-manifold against ~6.9 cm deployed is still a **3.3× degradation that uv does
+not explain**. The remaining candidate is the visual features themselves
+(`box_emb`, `frame_emb`) coming from viewpoints the teacher never visited —
+off-manifold in appearance rather than in position. That is testable by the
+same offline design and is **not** claimed here.
+
+**Eighth refuted hypothesis of the campaign.** The tally is worth stating
+plainly: of the mechanisms I proposed for the multi-object boundary — generic-
+tail indiscriminability, box-centre spread, proposal scarcity, misbinding,
+position memorization, descent failure, uv-tail extrapolation — **every one has
+been tested and every one has failed.** What is established is where the defect
+is *not*, plus a precise localization (systematic lateral xy error in the grasp
+head, 0.976 coherence, on an object correctly identified and approached). The
+cause is open, and after eight failures I am more confident in the localization
+than I would be in a ninth guess.
