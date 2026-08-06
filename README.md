@@ -4,6 +4,18 @@
 success on LIBERO — and a reproducible audit showing how fixed-placement
 benchmarks let non-visual policies score, plus the small repair that fixes it.**
 
+> **Audit result, 2026-08-06.** Placement memorization was found at **four**
+> layers: the benchmark, the selection loop, the grasp head — and, found last
+> by swapping the instruction, **the place head**, which learned a
+> command→location map rather than the basket. Against a basket that moves
+> 0.22–0.40 cm across all ten tasks, the released head emits the *correct*
+> point for the command it trained on (0.36 cm error) and points **14.5 cm**
+> and **13.0 cm** away for two it did not. A head trained on all three commands
+> collapses that spread to 0.78 cm, so the failure is **training coverage, not
+> architecture**. This layer was invisible to every earlier probe because all
+> ten tasks share one basket — memorized and grounded place maps are
+> behaviourally identical until the instruction is swapped.
+
 ## Release: structured-decoding policy + de-memorization results (2026-08)
 
 | protocol (task 0, no assist flags, all successes filmed) | memorized head | **released head (v5)** |
