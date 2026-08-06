@@ -7465,3 +7465,40 @@ This replaces the previous "we claim no comparative superlative", which
 break. Non-claims tightened in the same edit: no claim that smaller systems do
 not exist, and **no claim that small size caused any success rate reported
 here**. Submission rebuilds clean at 5 pages, 0 errors, 0 undefined citations.
+
+### Reproducibility: run provenance was missing, and the gap was self-inflicted (2026-08-06)
+
+Building a reviewer-runnable reproduction path exposed a real weakness in our
+own harness: **`results.json` recorded the numbers but not the command that
+produced them.** Every cell in the paper is cited by `run_id`, but a `run_id`
+is only auditable if the artifact says what made it — and recovering the
+headline invocation required grepping the pod's shell scripts for the output
+directory name (`scripts/power50.sh`). That is exactly the kind of provenance
+gap this log exists to catch, and it was ours.
+
+Fixed in `eval/libero_eval.py::_provenance()`: every `results.json` now records
+the full `argv`, the git commit, and whether the tree was dirty. Deliberately
+best-effort — anything unreadable is **omitted rather than guessed**, since an
+absent key is honest and a wrong one is worse than nothing. Distinct from
+`microvla.utils.provenance`, which describes what a *corpus* was baked under;
+this describes the *run*. Verified on the `--mock-env` path (which must always
+stay runnable per the repo contract): argv, commit `faf832d`, dirty `true`.
+605 tests pass, 1 skipped.
+
+**Checkpoint identity verified, not assumed.** The repository ships the exact
+weights that produced the headline number — md5 `01ff8728…` for
+`goal_heads_v5.pt` and `a8ea1cda…` for `full_stageB_rec_fix.pt`, confirmed
+byte-identical between the repo and the machine that ran the n=50 cells. A
+reviewer can check the hash before spending GPU-hours, and a hash mismatch
+means they are not reproducing our cells.
+
+`paper/submission/REPRODUCE.md` carries the exact commands for both n=50 cells,
+the hashes, and a mock-env smoke test that needs no LIBERO, no GPU, and no
+network. It also states what reproduction honestly means here: **expect the
+Wilson interval, not the point estimate** (these are Bernoulli cells; a rerun
+landing on 0.700 exactly would be luck, not fidelity), and — importantly —
+**a mismatch on a different software stack may be the paper's own finding
+recurring rather than a failed reproduction**, since the audit-stack control
+shows a rebuild can invert which head looks better (memorized 6/10 vs released
+0/10, the exact reverse of the deployment stack). We tell reviewers to report
+stack versions with any mismatch instead of assuming either side is wrong.

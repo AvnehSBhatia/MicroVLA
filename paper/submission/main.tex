@@ -21,7 +21,16 @@ A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale}
 Fixed-placement benchmarks let imitation policies learn \emph{location}
 instead of \emph{looking}. We document this on LIBERO-Object, whose target
 start poses are exactly pinned (measured) in 6 of 10 tasks and within
-${\sim}\pm1$\,cm in the rest. First, an audit finds placement memorization at
+${\sim}\pm1$\,cm in the rest. Our platform is a 30.2\,M-parameter deployed
+stack carrying \emph{no} language model: an open-vocabulary detector's own text
+tower supplies every text embedding, which removes the frozen encoder that
+comparable systems load but omit from their published counts. Reporting both
+conventions, it is the smallest of the surveyed language-conditioned policies
+under each simultaneously---17.2\,M trained against Octo-small's 27\,M, and
+30.2\,M deployed against RT-1's 35\,M even after granting RT-1 the text encoder
+its count excludes. Working at this size is what made the following audit
+legible, and none of the results below are attributed to it.
+First, an audit finds placement memorization at
 three layers: a calibrated expert whose offset constant encodes pose
 (sign-flipping under a software rebuild), an iteration-coupled selection loop
 (0.700 dev vs.\ 0.300 held-out), and a learned grasp head whose regression

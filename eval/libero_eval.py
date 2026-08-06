@@ -45,6 +45,37 @@ from microvla.utils.signals import ignore_sigterm
 
 logger = logging.getLogger(__name__)
 
+
+def _provenance() -> dict[str, object]:
+    """What produced this run, recorded into its own results.json.
+
+    Distinct from :mod:`microvla.utils.provenance`, which describes the
+    conditions a *corpus* was baked under; this describes the *run*. Every
+    number in the paper is cited by ``run_id``, which is only auditable if the
+    artifact says what command and what code version made it. Anything that
+    cannot be read is omitted, never guessed -- an absent key is honest, a
+    wrong one is worse than nothing.
+    """
+    import subprocess
+    import sys
+
+    out: dict[str, object] = {"argv": list(sys.argv)}
+    for key, cmd in (
+        ("git_commit", ["git", "rev-parse", "HEAD"]),
+        ("git_dirty", ["git", "status", "--porcelain"]),
+    ):
+        try:
+            r = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=10,
+                cwd=Path(__file__).resolve().parent.parent,
+            )
+            if r.returncode == 0:
+                out[key] = bool(r.stdout.strip()) if key == "git_dirty" else r.stdout.strip()
+        except Exception:  # nosec - provenance is best-effort, never fatal
+            pass
+    return out
+
+
 #: Synthetic (task_name_suffix, instruction) pairs used by the mock backend
 #: so `--mock-env` never needs a real LIBERO suite definition.
 _MOCK_TASK_INSTRUCTIONS = [
@@ -711,6 +742,12 @@ def run_eval(
         "telemetry_path": str(telemetry_path),
         "intermediates": intermediates,
         "render_size": None if mock_env else int(render_size),
+        # Provenance. Every cell in the paper is cited by run_id, but a run_id
+        # is only auditable if the artifact records what produced it -- the
+        # headline n=50 artifacts predate this field and their commands had to
+        # be recovered from shell scripts. Recorded, never inferred; a failure
+        # to read git leaves the key absent rather than guessed.
+        "provenance": _provenance(),
     }
     results_path = out / f"{run_id}_results.json"
     results_path.write_text(json.dumps(results, indent=2))
