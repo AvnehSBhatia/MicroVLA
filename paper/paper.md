@@ -8569,3 +8569,13 @@ this disqualifies the artifact from the class should read the size row as
 **smaller still, not larger** — the qualifier cannot be used to inflate the
 comparison in our favour, and saying so closes the only direction the ambiguity
 could have been exploited.
+
+**Void cell recorded and discarded (2026-08-06).** `gen_butter_swap`
+`mean_success` **0.0** — as expected against a 0/10 baseline, and
+uninterpretable for the reason logged above: a swap ablation with no baseline
+performance measures nothing. Recorded so the run is not silently missing from
+the ledger, and explicitly **not** counted as evidence in either direction.
+Both cells (`gen_butter_base` 0.0, `gen_butter_swap` 0.0) are superseded by the
+re-queued `gen2_*` pair under the `anchor_band` configuration.
+
+The noise-floor control is now running.
