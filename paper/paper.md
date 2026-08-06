@@ -10158,3 +10158,30 @@ is the artifact rather than the audit, a different third should go, and the
 draft is a starting point for that edit rather than an answer to it.
 
 616 tests pass; both PDFs build clean.
+
+### arXiv package prepared — and deliberately not posted (2026-08-06)
+
+`paper/submission/arxiv_pkg/` and `arxiv_pkg.tgz` (407 KB): `main.tex`,
+`main.bbl` (arXiv prefers a pre-compiled bibliography over `.bib`), and the
+three figures with **package-relative** paths rather than the repo-relative
+ones the working copy uses.
+
+**Verified in a clean room, not just in place.** Extracted the tarball to an
+empty directory and built there: 9 pages, 0 errors, 0 undefined citations, no
+`bibtex` pass required. Building "in place" would have proved nothing — the
+repo's `../visuals/` paths resolve from the working copy and would have failed
+for anyone else, which is the same existing-but-not-portable defect that hid
+four artifacts today.
+
+**Not posted, and that is not an oversight.** Publishing a preprint is an
+outward-facing, effectively irreversible act under the author's name and with
+the author's credentials. Preparing it removes the work; performing it is a
+decision that is not mine to make. The README in the package says so, along
+with the one-line submit command and suggested categories (cs.RO primary,
+cs.LG cross-list).
+
+**Three deliverables now exist for three different destinations**: the full
+7-page paper with three figures (`main.pdf`), a condensed ICRA draft
+(`main_icra.pdf`, 3.5 body pages, ~1.5 pages of headroom), and this
+clean-room-verified arXiv bundle. Each builds with 0 errors. The step none of
+them can take is the one that starts the external clock.
