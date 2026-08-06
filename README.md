@@ -40,6 +40,18 @@ and placing the failure in live candidate scoring. The 0.902 / 0.613 figures
 are *offline* identity accuracy on corpus crops and dissociate from deployed
 success; binder cells are dated in App D.
 
+**Identity-blind is not language-blind.** Swapping the instruction to a
+different object — env, physics and success criterion unchanged, so success is
+still scored on the real task — collapses the cell from **7/10 to 0/10** (told
+butter; 0/10 again told cream cheese; exact two-sided *p* = 0.016). The system
+is strongly instruction-sensitive, and a pre-registered prediction that the
+swap would be inert is **falsified**. Telemetry places the butter cell's
+failure *downstream of object approach* — the machine still reaches the true
+soup object as closely as baseline — but one instruction drives both the
+detection prompts and the place head's command embedding, so the collapse is
+**not yet attributed to a channel**. A decomposition is running; see
+`paper/paper.md`.
+
 The free-regression baseline (same trunk, six controlled variants) is 0.000;
 structured decoding — two learned goal heads (0.24M) driving a task-content-free
 servo shell — is the difference in kind. Full evidence chain in
