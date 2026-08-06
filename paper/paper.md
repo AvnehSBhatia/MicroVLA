@@ -6543,3 +6543,25 @@ approach 0.023 m). Consistent with both its selection-band
 cell (7/10) and the earlier v7 fresh-seed confirmation (5/10). Soup cell
 of the same pre-registration is running; prototype and bank cells queue
 behind it.
+
+### Pre-registered seed-47 confirmation COMPLETE: butter 5/10, soup 4/10 (2026-08-06)
+
+Both cells of the second pre-registration have landed, single shot, no
+adjustment: **butter 5/10** (`libero_object_real_1785988311074`;
+detection duty 0.978, closest approach 0.023 m) and **soup 4/10**
+(`libero_object_real_1785989503955`; duty 0.889, closest approach
+0.032 m) — three-object v8 head, text rerank, anchor band, seed 47
+(nine never-scored states + one disclosed dev overlap).
+
+Consistency across every fresh-seed test the campaign has run:
+
+| config | head | seed-20 band | fresh-seed confirmation |
+|---|---|---|---|
+| anchor band | v7 (2 objects) | butter 6/10, soup 4/10 | **butter 5/10, soup 3/10** (seed 77) |
+| anchor band + rerank | v8 (3 objects) | butter 7/10, soup 5/10 | **butter 5/10, soup 4/10** (seed 47) |
+
+Two independent pre-registrations, two heads, two never-scored seeds:
+the two-object one-config behaviour reproduces every time, at 0.4–0.5 per
+object. That is now the campaign's most robust multi-object claim — modest
+rates, but confirmed rather than selected. Prototype-binding cells began
+computing at 04:29 UTC; bank-binding cells follow.
