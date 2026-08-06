@@ -8818,3 +8818,15 @@ memorization at 35× the registered threshold; and the training-coverage repair.
 Generalization beyond task 0 and the flagship head — the question the void
 first attempt could not answer — is answered: **the mechanism reproduces on a
 second task with a different head, in both directions.**
+
+**Final read-through of the rendered PDF (2026-08-06).** Two stale details
+survived every source-level edit and were only visible in the output: the
+addendum's section title still read "and a falsified prediction" (there are
+five), and one line still credited the identity test with succeeding "where
+five instruments failed" (six did). Both fixed. Section retitled to
+"five falsified predictions, one mechanism retracted, and a fourth memorization
+layer", which is what the section now actually contains.
+
+Reading the *rendered* document rather than the source has now caught four
+defects today — an internal contradiction, a parameter total, an unscoped use
+of "grounding", and these two counts. None were visible in the `.tex`.

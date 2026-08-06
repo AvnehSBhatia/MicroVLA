@@ -86,7 +86,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [2]
 [3]
-Overfull \hbox (42.14018pt too wide) in paragraph at lines 230--245
+Overfull \hbox (42.14018pt too wide) in paragraph at lines 231--246
 \OT1/cmtt/m/n/10 GraspPointHead.forward \OT1/cmr/m/n/10 (-20) con-sumes only \O
 T1/cmtt/m/n/10 geom\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/10 box[]emb\OT1/cmr/m/
 n/10 (-20) , \OT1/cmtt/m/n/10 frame[]emb\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/1
@@ -117,5 +117,5 @@ e1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
 /type1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2025basic/texmf-dist/fo
 nts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025basic/texmf-dis
 t/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (7 pages, 258690 bytes).
+Output written on main.pdf (7 pages, 259260 bytes).
 Transcript written on main.log.
