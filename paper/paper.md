@@ -10215,3 +10215,16 @@ here is as informative as the specificity null was, and for the same reason.
 with round 1's cell kept alongside it and both dated. I am not going to run
 rounds until one is high and report that one; the stopping rule is *two rounds,
 both reported*, fixed now.
+
+**Round-2 head trained (2026-08-06).** 71 deployment samples (down from round
+1's 102 — the repaired head succeeds more often, so episodes are shorter),
+mixed with the same 1812 corpus samples, fine-tuned from the **round-1 head**
+rather than from v8.
+
+One number is already informative before any evaluation: the round-2 collection
+starts at **0.0512 m** error on its own viewpoints, against round 1's starting
+**0.1120 m**. The repaired head is operating substantially closer to its
+training manifold — which is the mechanism doing exactly what it was claimed to
+do, observed from a fourth angle and without needing the task outcome.
+
+Round 2 drives that to 0.0171. Held-out n=50 evaluation running.
