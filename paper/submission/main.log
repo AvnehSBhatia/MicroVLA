@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 00:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 00:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -591,6 +591,10 @@ exlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/local/texlive/2
 
 [2]
 
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+
 [3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc}]
 
 [4]
@@ -598,13 +602,13 @@ exlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/local/texlive/2
 File: ../visuals/F3_protocol_by_head.png Graphic file (type png)
 <use ../visuals/F3_protocol_by_head.png>
 Package pdftex.def Info: ../visuals/F3_protocol_by_head.png  used on input line
- 398.
+ 400.
 (pdftex.def)             Requested size: 469.75502pt x 205.80247pt.
 <../visuals/F6_audit_stack_control.png, id=150, 245.718pt x 231.264pt>
 File: ../visuals/F6_audit_stack_control.png Graphic file (type png)
 <use ../visuals/F6_audit_stack_control.png>
 Package pdftex.def Info: ../visuals/F6_audit_stack_control.png  used on input l
-ine 409.
+ine 411.
 (pdftex.def)             Requested size: 197.29623pt x 185.69955pt.
 
 
@@ -617,14 +621,14 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 File: ../visuals/F2_attribution_profiles.png Graphic file (type png)
 <use ../visuals/F2_attribution_profiles.png>
 Package pdftex.def Info: ../visuals/F2_attribution_profiles.png  used on input 
-line 466.
+line 468.
 (pdftex.def)             Requested size: 469.75502pt x 207.24738pt.
 
 
 [6 <../visuals/F3_protocol_by_head.png>]
 
 [7 <../visuals/F6_audit_stack_control.png>]
-Overfull \hbox (44.53966pt too wide) in paragraph at lines 571--586
+Overfull \hbox (44.53966pt too wide) in paragraph at lines 573--588
 \OT1/lmtt/m/n/10 GraspPointHead.forward \OT1/lmr/m/n/10 con-sumes only \OT1/lmt
 t/m/n/10 geom\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 box[]emb\OT1/lmr/m/n/10 , \OT1/
 lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
@@ -638,7 +642,7 @@ lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 625.
+t line 627.
 (pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
 
 
@@ -648,7 +652,7 @@ t line 625.
 <../visuals/F5_third_object.png, id=202, 966.61125pt x 298.11375pt>
 File: ../visuals/F5_third_object.png Graphic file (type png)
 <use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 750
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 752
 .
 (pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
 
@@ -676,7 +680,7 @@ Here is how much of TeX's memory you used:
  37061 multiletter control sequences out of 15000+600000
  633984 words of font info for 92 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1318b,589s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1318b,590s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx7.pfb></usr/local/te
@@ -701,7 +705,7 @@ fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
 /type1/public/lm/lmtt8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1
 /public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publi
 c/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (15 pages, 1070106 bytes).
+Output written on main.pdf (15 pages, 1070397 bytes).
 PDF statistics:
  414 PDF objects out of 1000 (max. 8388607)
  327 compressed objects within 4 object streams

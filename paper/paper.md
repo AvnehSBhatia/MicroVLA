@@ -10708,3 +10708,39 @@ Two things this still does not do, stated so they are not read into it. It
 measures the **gap**, never a success cell; and orange juice — the low-gap
 cluster-B object whose crossing would be the cheapest remaining falsification —
 has never been trained. Both go in the paper as open.
+
+### Correcting my own over-correction: the defect count (2026-08-07)
+
+I withdrew the "29 defects" claim on the grounds that only 12 were traceable by
+number and there was no App E. **App E exists** — `MANUSCRIPT_v2.md` §E, "Defect
+catalog (unified count: 29)" — and names **16** with log anchors: defects 6, 7,
+9, 21–29 by number, plus four class-2 instances (blind-camera corpus, the mock
+suite encoding the same jaw misunderstanding, the finger self-bind read as
+detection duty, the consumer confidence floor above the producer's band). It
+also states a scope rule I had missed: infrastructure defects are tracked
+separately and excluded from the 29.
+
+I also used "an earlier draft said 28" as evidence the count was unreliable.
+That was wrong too. The 28→29 change is explicable and internally consistent:
+the earlier split was 24+4 and the current is 24+5, and App E identifies the new
+class-2 entry as defect 29, the mirrored-jaw signed mean. One defect was found;
+the count went up by one; the class-2 bucket went up by one. Nothing drifted.
+
+Corrected position, which is neither the original claim nor my withdrawal:
+**16 of 29 are enumerated with anchors, 8 are tabled in the submission with
+their discovery measurement, and the remaining 13 are a log tally we do not
+individually reproduce.** The paper now says exactly that — "treat the
+enumerated instances as the evidence and 29 as our count, not as a checkable
+claim."
+
+Worth naming the failure mode, because it is the mirror image of the one this
+paper is about. I searched for the *phrase* "App E" in `MANUSCRIPT_v2.md`, found
+the §8 cross-reference, read that, and concluded the appendix did not exist —
+without scrolling to §E itself. Then I wrote a retraction with some rhetorical
+force behind it. **An unsourced retraction is the same defect as an unsourced
+claim**: both assert something about the evidence without having looked. Being
+on the sceptical side does not exempt a statement from needing a check, and "I
+could not find it" is a claim about my search, not about the corpus.
+
+The referee's underlying point survives intact and is what the fix implements:
+a number in a contributions list should be traceable, and 13 of these were not.

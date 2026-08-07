@@ -141,11 +141,13 @@ construction} and fall only to provenance: corpora that describe themselves
 geometry) and an evaluator that refuses silently mismatched
 inputs~\citep{sculley2015debt,breck2017mltest}. Table~\ref{tab:defects}
 documents the instances this paper works through.
-\textbf{We withdraw the ``29 defects'' count} that earlier drafts asserted:
-the project log's running tally is not individually reproduced here, an
-earlier draft said 28, and a total we cannot enumerate is exactly the kind of
-unsourced constant this paper exists to object to. The taxonomy and the tabled
-instances are the claim.
+\textbf{On the count}, since an audit paper should not ship an unsourced
+constant: the project log records 29, of which \textbf{16 are named with log
+anchors} in the extended manuscript and 8 are tabled here with their discovery
+measurement. The remaining 13 are a running tally we do not individually
+reproduce. Treat the enumerated instances as the evidence and 29 as our count,
+not as a checkable claim; infrastructure defects are tracked separately and
+excluded from it.
 \item \textbf{A ground-truth-free test for identity-blind grounding, and the
 negative result it produced.} Open-vocabulary detectors are typically prompted
 with a fallback chain, so a policy can appear language-conditioned while every
@@ -971,7 +973,8 @@ mechanism at the head level (attribution shift, varied-label validation, and a
 paired jitter ablation, $0/10\to7/10$ dev, exact McNemar/sign $p\approx0.016$;
 9 discordant pairs, 8 in the repaired head's favour, two-sided exact binomial),
 scoped by the audit-stack control; the seam defects of
-Table~\ref{tab:defects} and the taxonomy split; the bounded size
+Table~\ref{tab:defects} and the taxonomy split (the count of 29 is our log
+tally, not a claim: 16 are named with anchors, 8 tabled here); the bounded size
 result of Table~\ref{tab:size} (smallest of the surveyed systems under both the
 trained and the deployed convention simultaneously); and the identity-blindness
 of deployed role binding, together with its architectural corollary that no

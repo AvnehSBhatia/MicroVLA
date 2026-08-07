@@ -123,7 +123,9 @@ than a diffuse regression residual — which is what made a placement audit,
 and then a targeted ten-episode repair, possible at all. §8 closes with the
 instrumentation that the rest of the paper silently consumed: 29 defects at
 producer/consumer seams, and the split between the ones parity testing can
-catch and the ones only provenance can.
+catch and the ones only provenance can. App E names **16 of the 29** with log
+anchors; the remaining 13 are a log tally we do not individually reproduce
+here, and we mark them as such.
 
 **Contributions.**
 
@@ -153,10 +155,12 @@ catch and the ones only provenance can.
    shell alone rescues even the memorized head under ±4 cm randomization
    (6/10), while on the deployment stack it cannot (1/10) — the learned
    share is what moves (§7).
-3. **Training–serving-skew instrumentation.** 29 worked defect instances at
-   producer/consumer seams, split into disagreements catchable by parity
-   testing and agreements-on-a-wrong-convention catchable only by provenance
-   (§8).
+3. **Training–serving-skew instrumentation, and a taxonomy whose boundary is
+   the finding.** Producer/consumer seam defects split into disagreements
+   catchable by parity testing and agreements-on-a-wrong-convention catchable
+   only by provenance (§8). **16 of the 29 are named with log anchors** in
+   App E; the total is a log tally, and the taxonomy plus the named instances
+   are what we claim.
 
 ---
 
@@ -783,7 +787,12 @@ means reads the scene *as this detector stack renders it*.
 Everything above was reachable only because the seams were instrumented. The
 project logged **29 defects** at producer/consumer boundaries, each with its
 discovery measurement and the cheaper instrument that would have caught it
-earlier (App E). The taxonomy's boundary is the finding: **24 disagreements**
+earlier. **Scope of that number, stated so it is checkable**: App E names 16 of
+them with log anchors; the other 13 are a running tally in the log and are not
+individually reproduced in this manuscript. Infrastructure defects are tracked
+separately and excluded. A reader should treat 16 as the enumerated evidence
+and 29 as our count. The taxonomy's boundary is the finding: **24
+disagreements**
 (class 1) — producer and consumer of a feature corpus differ on units, rates,
 defaults, camera or index conventions — are catchable by *parity testing*
 (run both paths on one input, diff tensors). **5 agreements on a wrong

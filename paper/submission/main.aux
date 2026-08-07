@@ -7,14 +7,14 @@
 \citation{geirhos2020shortcut,dehaan2019causal}
 \citation{sculley2015debt,breck2017mltest}
 \@writefile{toc}{\contentsline {paragraph}{Contributions.}{2}{section*.1}\protected@file@percent }
+\citation{liu2023libero}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.1}What LIBERO-Object pins, measured}{3}{subsection.1.1}\protected@file@percent }
 \newlabel{sec:pinning}{{1.1}{3}{What LIBERO-Object pins, measured}{subsection.1.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces LIBERO-Object target start poses, read directly from the shipped init files. \textbf  {\#pos} counts \emph  {distinct float64 positions} over the 50 states; where it is 2 the two values differ by one ULP ($\sim 3\times 10^{-17}$\,m) on a single axis (soup splits 23/27 on $y$; tomato sauce 18/32 on $x$). \textbf  {\#quat} counts distinct orientation quaternions: \emph  {one} in every task, so rotation is bit-identical suite-wide even where position jitters. Clusters are 22.04\,cm apart; within-cluster max pairwise separation is 0.95\,mm (A) and 0.63\,mm (B). The basket moves at most 4.04\,mm across all ten tasks. Per-task SHA-256 digests of the init arrays are in \texttt  {results/placement\_pinning\_direct.json}; \texttt  {.init} and \texttt  {.pruned\_init} give identical target statistics.}}{3}{table.caption.2}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{tab:pinning}{{1}{3}{LIBERO-Object target start poses, read directly from the shipped init files. \textbf {\#pos} counts \emph {distinct float64 positions} over the 50 states; where it is 2 the two values differ by one ULP ($\sim 3\times 10^{-17}$\,m) on a single axis (soup splits 23/27 on $y$; tomato sauce 18/32 on $x$). \textbf {\#quat} counts distinct orientation quaternions: \emph {one} in every task, so rotation is bit-identical suite-wide even where position jitters. Clusters are 22.04\,cm apart; within-cluster max pairwise separation is 0.95\,mm (A) and 0.63\,mm (B). The basket moves at most 4.04\,mm across all ten tasks. Per-task SHA-256 digests of the init arrays are in \texttt {results/placement\_pinning\_direct.json}; \texttt {.init} and \texttt {.pruned\_init} give identical target statistics}{table.caption.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Platform}{3}{section.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Deployed parameter ledger. ``Deployed'' counts every parameter loaded at inference, frozen or trained.}}{3}{table.caption.3}\protected@file@percent }
-\citation{liu2023libero}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Deployed parameter ledger. ``Deployed'' counts every parameter loaded at inference, frozen or trained.}}{4}{table.caption.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Methods}{4}{section.3}\protected@file@percent }
 \newlabel{sec:methods}{{3}{4}{Methods}{section.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Environment and protocol.}{4}{section*.4}\protected@file@percent }
@@ -94,9 +94,9 @@
 \bibcite{nanovla2025}{{6}{2025}{{Chen et~al.}}{{Chen, Wang, Chen, Cai, and Lu}}}
 \bibcite{dehaan2019causal}{{7}{2019}{{de~Haan et~al.}}{{de~Haan, Jayaraman, and Levine}}}
 \bibcite{fei2025liberoplus}{{8}{2025}{{Fei et~al.}}{{}}}
-\bibcite{geirhos2020shortcut}{{9}{2020}{{Geirhos et~al.}}{{Geirhos, Jacobsen, Michaelis, Zemel, Brendel, Bethge, and Wichmann}}}
 \@writefile{toc}{\contentsline {section}{\numberline {7}Claims, non-claims, limitations}{14}{section.7}\protected@file@percent }
 \newlabel{sec:limits}{{7}{14}{Claims, non-claims, limitations}{section.7}{}}
+\bibcite{geirhos2020shortcut}{{9}{2020}{{Geirhos et~al.}}{{Geirhos, Jacobsen, Michaelis, Zemel, Brendel, Bethge, and Wichmann}}}
 \bibcite{glossop2025cast}{{10}{2025}{{Glossop et~al.}}{{Glossop, Chen, Bhorkar, Shah, and Levine}}}
 \bibcite{langgap2026}{{11}{2026}{{Hou et~al.}}{{}}}
 \bibcite{huang2023voxposer}{{12}{2023}{{Huang et~al.}}{{}}}

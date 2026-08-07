@@ -25,9 +25,10 @@ A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale}
 \begin{abstract}
 Fixed-placement benchmarks let imitation policies learn \emph{location} instead
 of \emph{looking}. On LIBERO-Object we measure the preconditions exactly: the
-target's start pose is bit-identical across all 50 shipped init states in 6 of
-10 tasks, and the ten tasks between them use just \textbf{two} table positions,
-22\,cm apart. A policy that memorizes two coordinates can present as
+target's start \emph{position} is constant to float64 rounding (two values,
+1 ULP apart) in 6 of 10 tasks, its \emph{orientation} is bit-identical across
+all 50 states in \textbf{all ten}, and the ten tasks between them use just
+\textbf{two} table positions, 22\,cm apart. A policy that memorizes two coordinates can present as
 generalizing over ten.
 
 We audit our own stack and find placement memorization at \textbf{four} layers:
@@ -70,11 +71,14 @@ can instead be \emph{location}: constants---in a benchmark's init files, in an
 expert's calibration, in a learned regressor's shortcut---that encode where the
 object always is, so that vision only ever gates an approach a memorized value
 finishes. On LIBERO-Object~\citep{liu2023libero} we measure the preconditions
-exactly: the target object's start pose is bit-identical across all 50 shipped
-init states in 6 of 10 tasks, and varies by only 0.25--0.58\,cm (std) in the
-other four. \emph{Across} tasks the structure is tighter still --- the ten
-targets occupy just \textbf{two} table positions, 22.0\,cm apart, five tasks
-each, agreeing to 0.0--0.7\,mm within a group. A policy that memorizes two
+exactly, reading the shipped init files directly: in 6 of 10 tasks the target's
+start \emph{position} takes exactly two distinct float64 values, one ULP apart
+(${\sim}3\times10^{-17}$\,m) on a single axis, and varies by 0.25--0.58\,cm
+(std) in the other four; the target's \emph{orientation} is bit-identical
+across all 50 states in \textbf{all ten} tasks. \emph{Across} tasks the
+structure is tighter still --- the ten targets occupy just \textbf{two} table
+positions, 22.0\,cm apart, five tasks each, agreeing to within 0.95\,mm (max
+pairwise euclidean) inside a group. A policy that memorizes two
 coordinates can present as generalizing over ten tasks. A benchmark with
 ${\lesssim}1$\,cm of within-task target variance and two positions between them
 admits position-memorizers, and we found them in every layer of our own system.
