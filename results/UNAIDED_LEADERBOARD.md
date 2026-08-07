@@ -92,11 +92,14 @@ student run.
 
 | cell | n | rate | Wilson 95% | provenance |
 |---|---|---|---|---|
-| **cream cheese, DAgger head, held-out seed 20** | 50 | **18/50 = 0.360** | **[0.24, 0.50]** | `models/goal_heads_dagger.pt`; `eval_results/n50_cream_dagger` |
+| **cream cheese, DAgger round 2, held-out seed 20** | 50 | **22/50 = 0.440** | **[0.31, 0.58]** | `models/goal_heads_dagger_r2.pt`; `eval_results/n50_cream_dagger_r2` |
+| cream cheese, DAgger round 1, held-out seed 20 | 50 | 18/50 = 0.360 | [0.24, 0.50] | `models/goal_heads_dagger.pt`; `eval_results/n50_cream_dagger` |
 | cream cheese, v8 control, same seeds | 50 | 3/50 = 0.060 | [0.02, 0.16] | `eval_results/n50_cream_v8` |
 
-Paired exact McNemar: **15 discordant, all 15 favour the DAgger head,
-p = 6.1e-05**. Intervals disjoint; ratio 6.0x. The harness noise floor was
+Paired exact McNemar vs the control: round 1 **15/15 one-way, p = 1e-04**; round 2
+**19/19 one-way, p < 1e-04**. Round 2 vs round 1 is **not** significant
+(p = 0.39), so both cells are reported and the repair is described as largely
+single-shot. Intervals disjoint; ratio 6.0x. The harness noise floor was
 measured at exactly zero (10/10 bit-identical rerun), so the arms differ only
 by the head.
 

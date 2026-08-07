@@ -10274,3 +10274,24 @@ repair: one round removes most of the recoverable distribution mismatch, and a
 second round's marginal benefit is real in direction but not resolvable at this
 sample size. The method's bound stands as logged — it repairs covariate shift,
 only where viewpoints have drifted, and mostly in one pass.
+
+### The provenance test caught a real regression, hours after being written (2026-08-06)
+
+Updating the leaderboard and release manifest with round 2's cell cited
+`models/goal_heads_dagger_r2.pt` before the file was tracked.
+`tests/test_paper_artifacts.py::test_cited_artifacts_are_tracked` **failed**,
+naming the document and the path.
+
+That is the fifth instance of this defect class today and the **first one a
+machine caught instead of me**. The four before it — missing run `argv`, the
+untracked pinning instrument, the absent release manifest, the unshipped DAgger
+checkpoints — each cost a manual audit prompted by luck or by asking the right
+question. This one cost 0.02 s and surfaced within hours of the test existing,
+on a commit I would otherwise have pushed believing it complete.
+
+It also answers the obvious objection to that test — that a check written after
+the fact, passing on the state that motivated it, proves nothing. It has now
+failed on a genuine regression it did not know about, which is the only
+evidence that distinguishes a guard from a decoration.
+
+Round 2's head is tracked, digest in the manifest, 616 tests pass.

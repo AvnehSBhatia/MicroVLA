@@ -17,6 +17,7 @@ d155311a52975846e32d30bd3837c18e9e6799636d1e7f5e4ad9b7f7e59fe191  goal_heads_v8.
 522fba538f4f36ddf2ad48a27966a7d27a68e76b80b3ecf3df406bf6ed34326b  role_prototypes.pt
 4573ad267e363f9ad7f3fb1eac09cd8e91637c50a336d76cd5e907e27b0d1ab1  goal_heads_dagger.pt
 a2278edaf04c5b0be543f0f55ff31152bb0a5a1a98bcda426c33f4ca445ac4b4  goal_heads_dagger_soup.pt
+d0bf0413b0584348ccf2b81bdcf915c500b793d8f27fb222aa024f66a37aaaa2  goal_heads_dagger_r2.pt
 ```
 
 `goal_heads_v5.pt` and `full_stageB_rec_fix.pt` — the two that produce the
@@ -33,6 +34,7 @@ machine's copies. A digest mismatch means you are not reproducing our numbers.
 | `role_bank.pt` | per-object crop-embedding bank, 1-NN role binding | 1432 vectors |
 | `role_prototypes.pt` | mean class prototypes, the weaker binder | — |
 | `goal_heads_dagger.pt` | v8 fine-tuned on the machine's **own** cream-task deployment viewpoints (collected seed 0). **Crosses the third object: 18/50 = 0.360 [0.24, 0.50]** on held-out seed 20 vs a same-seed control at 3/50, paired exact McNemar p=6.1e-05 | 0.24M |
+| `goal_heads_dagger_r2.pt` | **current best for the third object**: DAgger round 2, fine-tuned from the round-1 head on viewpoints it collected. **22/50 = 0.440 [0.31, 0.58]** held-out vs the 3/50 control (19/19 discordant one-way, p<0.0001). Not significantly better than round 1 (p=0.39); both cells reported | 0.24M |
 | `goal_heads_dagger_soup.pt` | the same procedure applied to the object that already works — 28/50 vs 27/50 control, **p=1.0000**. Shipped because its **null** result is the specificity evidence for the mechanism | 0.24M |
 
 `role_bank.pt` / `role_prototypes.pt` back binder cells that **did not**
