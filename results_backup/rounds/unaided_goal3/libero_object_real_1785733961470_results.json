@@ -1,0 +1,18 @@
+{
+  "suite": "libero_object",
+  "per_task": {
+    "pick_up_the_alphabet_soup_and_place_it_in_the_basket": 0.4
+  },
+  "mean_success": 0.4,
+  "n_trials": 10,
+  "telemetry_path": "eval_results/unaided_goal3/libero_object_real_1785733961470_telemetry.jsonl",
+  "intermediates": {
+    "src_detect_rate": 0.9100789617491071,
+    "src_conf_mean": 0.09783533648651285,
+    "grip_close_rate": 0.36700867104371915,
+    "eef_obj_dist_min": 0.028983701195659378,
+    "eef_obj_dist_at_20": 0.2589547154777312,
+    "eef_obj_dist_final": 0.09443933325462903
+  },
+  "render_size": 256
+}
