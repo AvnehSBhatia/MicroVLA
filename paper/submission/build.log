@@ -80,7 +80,7 @@ tex.map}]
 [2]
 [3 <../visuals/F3_protocol_by_head.png>]
 [4 <../visuals/F2_attribution_profiles.png>]
-Overfull \hbox (42.14018pt too wide) in paragraph at lines 287--302
+Overfull \hbox (42.14018pt too wide) in paragraph at lines 289--304
 \OT1/cmtt/m/n/10 GraspPointHead.forward \OT1/cmr/m/n/10 (-20) con-sumes only \O
 T1/cmtt/m/n/10 geom\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/10 box[]emb\OT1/cmr/m/
 n/10 (-20) , \OT1/cmtt/m/n/10 frame[]emb\OT1/cmr/m/n/10 (-20) , \OT1/cmtt/m/n/1
@@ -115,5 +115,5 @@ nts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025basic/texmf-dist
 dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2025basic/tex
 mf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025basic
 /texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on main.pdf (9 pages, 658135 bytes).
+Output written on main.pdf (9 pages, 666379 bytes).
 Transcript written on main.log.

@@ -52,8 +52,8 @@ alphabet soup), n=10 per cell and final at that n; zero-shot on the other
 nine tasks is 0.00 (n=3 each — memorized head, sibling v3, and the
 released head itself; §7). A dated addendum carries the multi-object
 campaign: a second object crossed and twice confirmed on never-scored
-seeds, a third crossed by intervention (18/50 [0.24, 0.50] vs a same-seed
-control at 3/50, exact McNemar p=6.1e-05), and a fourth whose teacher never
+seeds, a third crossed by intervention (22/50 [0.31, 0.58] vs a same-seed
+control at 3/50, exact McNemar p<1e-04), and a fourth whose teacher never
 reached a grasp — with five pre-registered predictions recorded
 and falsified and six instruments abandoned at their own calibration gates
 before a sixth, needing no ground truth, succeeded and **retracted our own
@@ -1395,7 +1395,7 @@ survives three tests:
 |---|---|
 | falsification | cream's deployment embeddings sit **3.1×** further from its corpus than soup's (NN-cos gap 0.0272 vs 0.0089); butter, predicted before running, has the smallest gap of all (0.0007) |
 | circularity | drift is **largest in ticks 0–100** (0.0441), shrinking 65% over the episode, while soup and butter show the opposite rising trend — it *precedes* the error |
-| intervention | DAgger on the machine's own viewpoints cuts lateral error **56%** (0.0697→0.0310 m, Mann-Whitney **p=0.020**) and **crosses cream: 18/50 = 0.360 [0.24, 0.50]** vs a same-seed control at 3/50, paired exact McNemar **p=6.1e-05** |
+| intervention | DAgger on the machine's own viewpoints cuts lateral error **56%** (0.0697→0.0310 m, Mann-Whitney **p=0.020**) and **crosses cream: 22/50 = 0.440 [0.31, 0.58]** after two DAgger rounds vs a same-seed control at 3/50, paired exact McNemar **p<1e-04** (round 1 alone: 18/50; round 2 vs round 1 n.s., p=0.39 — the repair is largely single-shot) |
 | specificity | the same procedure on the object that already works changes **nothing** — 28/50 vs 27/50 control, 21 discordant split 11–10, **p=1.0000**. Dose-response: drift +0.0272 → 6.0× effect; drift +0.0089 → 1.0× |
 
 Collection drew seed 0, evaluation seed 20 — no cell scored on its own band.

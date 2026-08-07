@@ -10295,3 +10295,23 @@ failed on a genuine regression it did not know about, which is the only
 evidence that distinguishes a guard from a decoration.
 
 Round 2's head is tracked, digest in the manifest, 616 tests pass.
+
+### Round 2 propagated; the figure now shows both rounds (2026-08-06)
+
+Updating the leaderboard and manifest to round 2 while leaving the submission
+and manuscript at round 1 created a real inconsistency across documents —
+caught by grepping for the stale cell rather than by noticing. Fixed in all
+four, and panel C of Figure~3 now plots **control → round 1 → round 2 →
+reference** with the honest statistics inline: round 1 and round 2 are each
+strongly better than control (15/15 and 19/19 one-way discordance,
+p = 1e-04 and p < 1e-04), while **round 2 vs round 1 is annotated n.s.
+(p = 0.39)** directly on the panel.
+
+Putting the non-significant comparison *inside the figure* is deliberate. A
+reader seeing four ascending points will naturally read a trend; the annotation
+says which step in that trend the data supports and which it does not. A figure
+that invites an inference the statistics do not license is a figure that
+misleads, however accurate its individual points.
+
+Final third-object position: **22/50 = 0.440 [0.31, 0.58]**, repair described
+as largely single-shot, both rounds reported and dated. 616 tests pass.

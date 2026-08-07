@@ -37,7 +37,8 @@ MISS = {                       # closest-approach residual, metres
 }
 CELLS = [                      # label, successes, n
     ("cream\nv8 control", 3, 50),
-    ("cream\n+DAgger", 18, 50),
+    ("cream\n+DAgger r1", 18, 50),
+    ("cream\n+DAgger r2", 22, 50),
     ("soup\n(reference)", 35, 50),
 ]
 COL = {"soup": "#2a6f97", "butter": "#61a5c2", "cream": "#c1121f",
@@ -94,7 +95,7 @@ xs = np.arange(len(CELLS))
 rates = [k / n for _, k, n in CELLS]
 los = [wilson(k, n)[0] for _, k, n in CELLS]
 his = [wilson(k, n)[1] for _, k, n in CELLS]
-cols = [COL["grey"], COL["ok"], COL["soup"]]
+cols = [COL["grey"], COL["ok"], COL["ok"], COL["soup"]]
 axC.errorbar(xs, rates, yerr=[np.array(rates) - np.array(los),
                               np.array(his) - np.array(rates)],
              fmt="o", ms=9, capsize=6, lw=2, color="k", ecolor="k", zorder=3)
@@ -103,11 +104,11 @@ for xi, r, c in zip(xs, rates, cols):
 for xi, (lab, k, n) in zip(xs, CELLS):
     axC.annotate(f"{k}/{n}", (xi, k / n), textcoords="offset points",
                  xytext=(12, -3), fontsize=9)
-axC.set_xticks(xs); axC.set_xticklabels([c[0] for c in CELLS], fontsize=9)
+axC.set_xticks(xs); axC.set_xticklabels([c[0] for c in CELLS], fontsize=8)
 axC.set_ylim(0, 0.9); axC.set_ylabel("held-out success rate (Wilson 95%)")
 axC.set_title("C  Repairing the drift crosses it", loc="left", fontweight="bold")
-axC.annotate("paired exact McNemar\n$p = 6.1\\times10^{-5}$\n15/15 discordant one-way",
-             xy=(0.5, 0.62), fontsize=8.5, ha="center", color=COL["ok"])
+axC.annotate("vs control, paired exact McNemar\nr1 $p{=}10^{-4}$ (15/15) · r2 $p{<}10^{-4}$ (19/19)\nr2 vs r1 n.s. ($p{=}0.39$)",
+             xy=(1.0, 0.70), fontsize=8, ha="center", color=COL["ok"])
 axC.spines[["top", "right"]].set_visible(False)
 
 fig.suptitle("Third object crossed: appearance drift precedes the grasp error, and repairing it works",

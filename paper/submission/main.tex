@@ -33,8 +33,8 @@ never moves. Three are repaired, each by \emph{data} rather than architecture:
 ten placement-teleported episodes, command coverage in training, and DAgger on
 the machine's own deployment viewpoints. The released head scores 0.700
 held-out (35/50 $[0.56,0.81]$) and 0.520 randomized (26/50) where free per-tick
-regression scores 0/56; a third object crosses at 18/50 $[0.24,0.50]$ against a
-same-seed control at 3/50 (exact McNemar $p{=}6.1\times10^{-5}$). Twin control
+regression scores 0/56; a third object crosses at 22/50 $[0.31,0.58]$ against a
+same-seed control at 3/50 (exact McNemar $p<10^{-4}$). Twin control
 cells scope that verification from both sides: the behavioural certificate is
 joint in \emph{(head, stack)}---a detector-stack rebuild inverts which head
 looks better.
@@ -277,10 +277,12 @@ crossing objects show the opposite trend; it precedes the error it explains.
 simulator's object pose---which the corpus cannot do for what the teacher never
 visited---and fine-tuning on them cuts the deployed lateral error \textbf{56\%}
 ($0.0697\to0.0310$\,m, Mann--Whitney $p{=}0.020$) and \textbf{crosses the
-blocked object}: at $n{=}50$ on held-out seeds it scores \textbf{18/50 $=$
-0.360} $[0.24,0.50]$ against a same-seed control arm at 3/50 $=$ 0.060
-$[0.02,0.16]$ --- 15 discordant pairs, \emph{all} favouring the repaired head,
-exact McNemar $p{=}6.1\times10^{-5}$, intervals disjoint, a $6\times$ ratio. The
+blocked object}. At $n{=}50$ on held-out seeds, round 1 scores 18/50 $[0.24,0.50]$
+and round 2 \textbf{22/50 $=$ 0.440} $[0.31,0.58]$, against a same-seed control
+at 3/50 $=$ 0.060 $[0.02,0.16]$ --- 19 discordant pairs, \emph{all} favouring
+the repaired head, exact McNemar $p<10^{-4}$, intervals disjoint. Round 2 is not
+significantly better than round 1 ($p{=}0.39$), so the repair is described as
+largely single-shot and both cells are reported. The
 crossing object is unharmed (3/6$\to$7/10). Collection drew seed 0 and both
 evaluation arms drew seed 20, so no cell is scored on its own band.
 
@@ -357,9 +359,10 @@ looks like. This is the circularity check that retired two earlier instruments.
 \emph{height} better than the crossing object's, which rules out a descent
 failure. \textbf{(C)} The intervention, $n{=}50$ per arm on identical seeds,
 Wilson 95\% intervals: fine-tuning the grasp head on the machine's own
-viewpoints takes the blocked object from 3/50 to 18/50 (paired exact McNemar
-$p{=}6.1\times10^{-5}$, 15/15 discordant one-way), against the crossing object's
-35/50 for reference.}
+viewpoints takes the blocked object from 3/50 to 18/50 after one round and
+22/50 after two (paired exact McNemar vs.\ control $p{=}10^{-4}$ and
+$p<10^{-4}$, both one-way; round 2 vs.\ round 1 is not significant at
+$p{=}0.39$), against the crossing object's 35/50 for reference.}
 \label{fig:third}
 \end{figure}
 
