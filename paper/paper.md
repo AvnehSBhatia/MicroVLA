@@ -10228,3 +10228,49 @@ training manifold — which is the mechanism doing exactly what it was claimed t
 do, observed from a fourth angle and without needing the task outcome.
 
 Round 2 drives that to 0.0171. Held-out n=50 evaluation running.
+
+### DAgger round 2 FINAL: the point estimate rises, the round-over-round gain does not reach significance (2026-08-06)
+
+| head | cell | Wilson 95% | vs control (paired) |
+|---|---|---|---|
+| v8 (control) | 3/50 = 0.060 | [0.02, 0.16] | — |
+| DAgger round 1 | 18/50 = 0.360 | [0.24, 0.50] | 15 discordant, **15/15 one-way, p = 0.0001** |
+| **DAgger round 2** | **22/50 = 0.440** | **[0.31, 0.58]** | 19 discordant, **19/19 one-way, p < 0.0001** |
+
+**Round 2 vs round 1: 12 discordant, 8 favouring round 2, exact p = 0.3877.**
+
+**What is claimed.** Round 2 lands at 22/50, **inside the registered 20–28/50
+prediction**, and its contrast against the control is stronger than round 1's
+(19/19 one-way discordance versus 15/15). The third object's cell is now
+**0.440 [0.31, 0.58]**.
+
+**What is not claimed, and this is the substantive limit.** That round 2 is
+*better than round 1*. p = 0.39 does not support it. The point estimate rose
+0.360 → 0.440, but at n=50 a difference that size is indistinguishable from
+noise, and I will not present a 1.22× point-estimate gain as an improvement
+when the paired test says it is not resolvable. **Both cells are reported,
+dated, with round 2 as the current best and round 1 kept beside it** — the
+stopping rule fixed before the round began.
+
+**The diminishing-returns prediction is confirmed by the shape, not by the
+test.** Round 1 gained 6.0× over control; round 2 gained 1.22× over round 1.
+That is the predicted pattern, and it has an independent corroboration that
+needs no task outcome: round 2's collection *started* at 0.0512 m error on its
+own viewpoints against round 1's 0.1120 m, so there was less than half the
+mismatch left to remove. The benefit tracks the drift remaining — the same
+dose-response that made the specificity null convincing, now visible *within*
+one object across iterations rather than across two objects.
+
+**Honest note on power.** Predicting diminishing returns was predicting a small
+effect, and a small effect at n=50 is one I cannot resolve. That was foreseeable
+when I registered the prediction and I did not flag it; the experiment was
+adequately powered for "does round 2 help at all versus control" and
+underpowered for "does round 2 beat round 1", which is the question it was
+actually asked to settle. The design should have been n=100, or the question
+should have been the one the design could answer.
+
+**Standing conclusion.** DAgger-on-own-viewpoints is a **largely single-shot**
+repair: one round removes most of the recoverable distribution mismatch, and a
+second round's marginal benefit is real in direction but not resolvable at this
+sample size. The method's bound stands as logged — it repairs covariate shift,
+only where viewpoints have drifted, and mostly in one pass.
