@@ -3,14 +3,16 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage{microtype}
+\usepackage{lmodern}   % scalable Type1; CM bitmaps break microtype expansion
+\usepackage[expansion=false]{microtype}
 \usepackage[hidelinks]{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{caption}
 \captionsetup{font=small}
 
 \title{\bfseries Learning Location, Not Looking:\\
-A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale}
+Auditing Placement Memorization in a 30M-Parameter\\
+Language-Conditioned Policy}
 \author{Anonymous submission}
 \date{}
 
@@ -19,11 +21,13 @@ A Placement-Memorization Audit and Ten-Episode Repair at the 30M Scale}
 
 \begin{abstract}
 Fixed-placement benchmarks let imitation policies learn \emph{location} instead
-of \emph{looking}. On LIBERO-Object we measure the preconditions exactly: the
-target's start pose is bit-identical across all 50 shipped init states in 6 of
-10 tasks, and the ten tasks between them use just \textbf{two} table positions,
-22\,cm apart. A policy that memorizes two coordinates can present as
-generalizing over ten.
+of \emph{looking}. On LIBERO-Object we measure the preconditions exactly, from
+the shipped init files: in 6 of 10 tasks the target's start position is constant
+to float64 rounding (two values, 1 ULP apart, ${\sim}3\times10^{-17}$\,m), its
+\emph{orientation} is bit-identical across all 50 states in \textbf{all ten},
+and the ten tasks between them use just \textbf{two} table positions, 22\,cm
+apart. A policy that memorizes two coordinates can present as generalizing over
+ten.
 
 We audit our own stack and find placement memorization at \textbf{four} layers:
 a calibrated expert whose offset constant encodes pose, an iteration-coupled
@@ -32,29 +36,42 @@ and a place head that memorized a command$\to$location map against a basket that
 never moves. Three are repaired, each by \emph{data} rather than architecture:
 ten placement-teleported episodes, command coverage in training, and DAgger on
 the machine's own deployment viewpoints. The released head scores 0.700
-held-out (35/50 $[0.56,0.81]$) and 0.520 randomized (26/50) where free per-tick
-regression scores 0/56; a third object crosses at 22/50 $[0.31,0.58]$ against a
+held-out (35/50 $[0.56,0.81]$) and 0.520 randomized (26/50) where \emph{our}
+free per-tick regression baseline, under matched trunk and corpus, scores
+0/56---a statement about that baseline, not about the policy class. A third
+object crosses at 22/50 $[0.31,0.58]$ against a
 same-seed control at 3/50 (exact McNemar $p<10^{-4}$). Twin control
 cells scope that verification from both sides: the behavioural certificate is
 joint in \emph{(head, stack)}---a detector-stack rebuild inverts which head
 looks better.
 
-The platform is 30.2\,M parameters deployed with \emph{no} language model---an
-open-vocabulary detector's own text tower supplies every text embedding---which
-makes it the smallest surveyed language-conditioned policy under both size
-conventions at once. Nothing below is attributed to size.
+The platform is 30.2\,M parameters deployed with \emph{no} language
+model---an open-vocabulary detector's own text tower supplies every text
+embedding. Size is the setting that makes an end-to-end trace feasible, not a
+claim; we discuss where it sits in the compact-VLA range in
+\S\ref{sec:rw-size}, and nothing below is attributed to it.
 
-Two annotation-free probes generalize past this artifact. Comparing two
-instructions' detections on one frame exposes a grounding stage that
-\emph{ignores} the instruction; swapping the instruction exposes one that
-\emph{memorized} it. Applied here they show that object selection, approach and
-grasping run with no language input at all: this system's entire language
-channel is one latched place coordinate.
+That VLAs ignore language is by now well established, and our system
+confirming it is not the contribution. What a system this small permits is
+saying \emph{where the language goes}. An annotation-free probe comparing two
+instructions' detections on one frame localizes the loss to the grounding
+stage; a 2$\times$2 decomposition driving detection prompts and place-head
+embedding from different instructions isolates it to one channel with no
+interaction. Object selection, approach and grasping run with \emph{no}
+language input at all, and the entire language channel reduces to a single
+cached place coordinate.
 
 All results are simulation, one task and one object per claimed cell. Seven
 pre-registered predictions were falsified and eight instruments retired at
 their own calibration gates; two proposed mechanisms were tested and retracted
-before reaching this paper.
+before reaching this paper. A third survived a confound we had missed: because
+the benchmark's two clusters align with which objects we trained, ``blocked''
+and ``22\,cm from the training position'' were perfectly confounded in our
+design. Measured over all ten objects, position predicts the effect weakly
+(Spearman $+0.19$, $p{=}0.60$) and \emph{teleporting each object 22\,cm moves it
+in the wrong direction} (exact sign test $p{=}1.0000$), while a different
+appearance property --- how well the frozen detector grounds the object ---
+predicts it ($-0.71$, $p{=}0.027$).
 \end{abstract}
 
 \section{Introduction}
@@ -65,14 +82,21 @@ can instead be \emph{location}: constants---in a benchmark's init files, in an
 expert's calibration, in a learned regressor's shortcut---that encode where the
 object always is, so that vision only ever gates an approach a memorized value
 finishes. On LIBERO-Object~\citep{liu2023libero} we measure the preconditions
-exactly: the target object's start pose is bit-identical across all 50 shipped
-init states in 6 of 10 tasks, and varies by only 0.25--0.58\,cm (std) in the
-other four. \emph{Across} tasks the structure is tighter still --- the ten
+exactly, by reading the shipped init files directly (Table~\ref{tab:pinning};
+\texttt{measure\_placement\_pinning.py --mode direct}, no simulator required).
+In 6 of 10 tasks the target's start position takes exactly \textbf{two} distinct
+float64 values, one ULP apart (${\sim}3\times10^{-17}$\,m) on a single axis ---
+constant to the precision the format can express, though not, as we previously
+wrote, bit-identical. Position varies by 0.25--0.58\,cm (std) in the other four.
+The target's \emph{orientation} is bit-identical across all 50 states in
+\textbf{all ten} tasks, including those four: rotation is pinned everywhere in
+LIBERO-Object. \emph{Across} tasks the structure is tighter still --- the ten
 targets occupy just \textbf{two} table positions, 22.0\,cm apart, five tasks
-each, agreeing to 0.0--0.7\,mm within a group. A policy that memorizes two
-coordinates can present as generalizing over ten tasks. A benchmark with
-${\lesssim}1$\,cm of within-task target variance and two positions between them
-admits position-memorizers, and we found them in every layer of our own system.
+each, agreeing to within 0.95\,mm (max pairwise euclidean) inside a group. A
+policy that memorizes two coordinates can present as generalizing over ten
+tasks. A benchmark with ${\lesssim}1$\,cm of within-task target variance, two
+positions between them, and no rotation at all admits position-memorizers, and
+we found them in every layer of our own system.
 
 The vehicle is MicroVLA, a deliberately small language-conditioned
 vision-language-action stack: ${\sim}30$M parameters deployed, with a frozen
@@ -95,15 +119,33 @@ certification. The protocol's twin control cells sharpen its scope:
 behavioural randomization separates memorized from repaired heads under
 identical draws on the deployment stack (1/10 vs.\ 4/10), and fails to
 separate them on a stack whose rebuild disables visual goals (6/10 vs.\ 0/10).
-\item \textbf{A controlled policy-class result.} With perception, trunk, and
-corpus regime fixed, free per-tick regression scores 0/56 (upper 95\% bound
-6.4\%) while goal-space supervision driving an engineered pick-and-place shell
-scores 4/10 dev, 7/10 held-out, 4/10 randomized---claimed strictly as a bundle,
-with the shell's share measured on both stacks.
-\item \textbf{Training--serving-skew instrumentation.} 29 worked defect
-instances at producer/consumer seams, split into disagreements catchable by
-parity testing and agreements-on-a-wrong-convention catchable only by
-provenance~\citep{sculley2015debt,breck2017mltest}.
+\item \textbf{A controlled comparison between two of our own designs.} With
+perception, trunk, and corpus regime fixed, \emph{our} free per-tick regression
+baseline scores 0/56 (upper 95\% bound 6.4\%) while goal-space supervision
+driving an engineered pick-and-place shell scores 4/10 dev, 7/10 held-out, 4/10
+randomized---claimed strictly as a bundle, with the shell's share measured on
+both stacks. We deliberately do \emph{not} state this as a policy-class result:
+one under-tuned end-to-end regressor of ours scoring zero establishes that our
+regressor failed, not that per-tick action prediction fails in general. The
+standard comparators (diffusion policy, action chunking, flow-matching heads)
+are absent, and we did not match tuning budget between the two arms.
+\item \textbf{Training--serving-skew instrumentation, and a taxonomy whose
+boundary is the finding.} Producer/consumer seams fail in two ways, and only
+one of them is testable the obvious way. \emph{Disagreements} --- the two
+paths differ on units, rates, defaults, camera or index conventions --- fall to
+parity testing: run both on one input, diff tensors
+(\texttt{eval/train\_vs\_deploy.py}). \emph{Agreements on a wrong convention}
+--- both sides consistent, both wrong --- are invisible to parity \emph{by
+construction} and fall only to provenance: corpora that describe themselves
+(\texttt{manifest.json} records camera, orientation, thresholds, rates,
+geometry) and an evaluator that refuses silently mismatched
+inputs~\citep{sculley2015debt,breck2017mltest}. Table~\ref{tab:defects}
+documents the instances this paper works through.
+\textbf{We withdraw the ``29 defects'' count} that earlier drafts asserted:
+the project log's running tally is not individually reproduced here, an
+earlier draft said 28, and a total we cannot enumerate is exactly the kind of
+unsourced constant this paper exists to object to. The taxonomy and the tabled
+instances are the claim.
 \item \textbf{A ground-truth-free test for identity-blind grounding, and the
 negative result it produced.} Open-vocabulary detectors are typically prompted
 with a fallback chain, so a policy can appear language-conditioned while every
@@ -112,15 +154,16 @@ instructions' selections on the same frame detects this without knowing which
 is correct---the property that let it succeed where six ground-truth-seeking
 instruments failed. Applied to our own stack it returns the same box for
 different objects (median centre distance $0.0001$), so our best cell's 0.700 is
-\emph{not} explained by binding the named object. Its behavioural companion is
-equally cheap: \textbf{swap the instruction to a different object and rescore
-against the original task}. Neither needs annotation, both need only a second
-forward pass, and they fail differently---the first exposes a grounding stage
-that ignores the instruction, the second a stage that memorized it. The swap is
-what found our fourth memorization layer, and it works precisely where a fixed
-benchmark cannot: when every task shares a target, a memorized
-command$\to$location map and a grounded one are behaviourally identical until
-the command is changed. Both ship as \texttt{eval/probes.py} with a test suite,
+\emph{not} explained by binding the named object. It pairs with the standard
+instruction swap, which we use but \textbf{do not claim}: swapping the
+instruction and rescoring against the original task is established practice in
+the instruction-blindness literature (\S\ref{sec:rw-prior}). The two fail
+differently---ours exposes a grounding stage that ignores the instruction, the
+swap a stage that memorized it---and the swap is what found our fourth
+memorization layer, working precisely where a fixed benchmark cannot: when
+every task shares a target, a memorized command$\to$location map and a grounded
+one are behaviourally identical until the command is changed. Both ship as
+\texttt{eval/probes.py} with a test suite,
 and their verdicts refuse the three over-claims this campaign got burned by:
 too few co-detected frames returns \textsc{inconclusive} rather than a rate; a
 discriminating result states that it cannot see whether the discrimination is
@@ -130,6 +173,60 @@ discriminating result states that it cannot see whether the discrimination is
 \noindent Both headline findings have one shape: apparent competence resting on
 a channel other than the claimed one---position where we claimed looking, shape
 where we claimed naming. The audit generalizes better than the artifact does.
+
+\subsection{What LIBERO-Object pins, measured}
+\label{sec:pinning}
+
+Table~\ref{tab:pinning} is the measurement the rest of the paper rests on, and
+it is cheap to check: each \texttt{.pruned\_init} is a torch-zip holding one
+float64 $(50,110)$ array laid out
+\texttt{[t $\mid$ 9 robot qpos $\mid$ 7 objects $\times$ 7 $\mid$ 51 qvel]}, and
+the target column follows from the BDDL's \texttt{:obj\_of\_interest} indexed
+against its \texttt{:objects} order. No simulator, no renderer, no detector.
+Reading the file rather than the simulator matters for a byte-exact question:
+\texttt{sim.forward()} perturbs positions at $10^{-17}$ even from identical
+\texttt{qpos}, which is why our earlier sim-based instrument had to adopt a
+tolerance and could not resolve the ULP structure below.
+
+\begin{table}[h]\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrrl}
+\toprule
+task & clu. & $x$ (cm) & $y$ (cm) & $\sigma_x,\sigma_y$ (cm) & \#pos & \#quat \\
+\midrule
+alphabet soup     & A & $-12.00$ & $-24.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+chocolate pudding & A & $-12.00$ & $-24.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+ketchup           & A & $-12.00$ & $-24.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+butter            & A & $-11.98$ & $-24.04$ & 0.261, 0.297 & 50 & 1 \\
+milk              & A & $-12.07$ & $-24.02$ & 0.304, 0.254 & 50 & 1 \\
+\midrule
+orange juice      & B & $+5.00$ & $-10.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+salad dressing    & B & $+5.00$ & $-10.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+tomato sauce      & B & $+5.00$ & $-10.00$ & 0.000, 0.000 & \textbf{2} & 1 \\
+cream cheese      & B & $+4.98$ & $-10.01$ & 0.273, 0.299 & 50 & 1 \\
+bbq sauce         & B & $+4.99$ & $-9.95$  & 0.579, 0.566 & 50 & 1 \\
+\bottomrule
+\end{tabular}
+\caption{LIBERO-Object target start poses, read directly from the shipped init
+files. \textbf{\#pos} counts \emph{distinct float64 positions} over the 50
+states; where it is 2 the two values differ by one ULP
+($\sim3\times10^{-17}$\,m) on a single axis (soup splits 23/27 on $y$; tomato
+sauce 18/32 on $x$). \textbf{\#quat} counts distinct orientation quaternions:
+\emph{one} in every task, so rotation is bit-identical suite-wide even where
+position jitters. Clusters are 22.04\,cm apart; within-cluster max pairwise
+separation is 0.95\,mm (A) and 0.63\,mm (B). The basket moves at most 4.04\,mm
+across all ten tasks. Per-task SHA-256 digests of the init arrays are in
+\texttt{results/placement\_pinning\_direct.json}; \texttt{.init} and
+\texttt{.pruned\_init} give identical target statistics.}
+\label{tab:pinning}
+\end{table}
+
+Two consequences set up the rest of the paper. A policy needs to distinguish
+only \emph{two} coordinates to cover the suite, which is what makes
+Section~\ref{sec:results}'s memorization layers reachable at all. And the
+cluster split is not merely descriptive: every object we successfully trained on
+lies in cluster A and the one object that resisted lies in cluster B, a
+confound we take up directly in \S\ref{sec:posvsapp}.
 
 \section{Platform}
 
@@ -141,7 +238,7 @@ at inference, frozen or trained.}
 component & params & status \\
 \midrule
 YOLO-World-S detector (vision \emph{and} the only text encoder) & 13.0\,M & frozen \\
-Tiny Recursive Model world model & 9.97\,M & frozen at deployment \\
+Tiny Recursive Model world model & 9.97\,M & loaded, frozen, \emph{causally inert} \\
 fusion + drift + relational + planner trunk heads & 7.0\,M & trained ($\le$9\,M cap) \\
 goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained \\
 \midrule
@@ -154,26 +251,183 @@ No separate language model exists anywhere in the stack: the command is parsed
 into source/target phrases, and CLIP embeddings for (command, source, target)
 are harvested once per task from the detector's own text tower. \textbf{The
 world model is causally inert in every nonzero number of this paper}---a
-persistence-TRM ablation reproduces the held-out cell exactly (0.700).
+persistence-TRM ablation reproduces the held-out cell exactly (0.700). It is
+loaded at inference, hence counted as deployed, but nothing here depends on it;
+under a load-bearing convention the trained count is 7.24\,M, not 17.2\,M.
+
+\section{Methods}
+\label{sec:methods}
+
+\paragraph{Environment and protocol.} LIBERO~\citep{liu2023libero} at commit
+\texttt{8f1084e3}, MuJoCo 2.3.7, robosuite 1.4.1, torch 2.8.0, ultralytics
+8.4.115, numpy 2.2.6, Python 3.10. Suite \texttt{libero\_object}; unless a cell
+says otherwise, task 0 (alphabet soup), the wrist camera
+(\texttt{robot0\_eye\_in\_hand\_image}) rendered at 256\,px, \textbf{600} env
+steps per episode, success as LIBERO's own predicate. Trials draw
+\texttt{set\_init\_state} from the shipped 50 in seeded order. \emph{Dev}
+$=$ seed 0 (states 0--9); \emph{held-out} $=$ seed 20 (states 10--19);
+\emph{randomized} $=$ seed 0 with the source object teleported by a uniform
+$\pm4$\,cm in $xy$ at episode start. Collection and evaluation never share a
+band: DAgger viewpoints are collected on seed 0 and every evaluation arm draws
+seed 20. The harness is deterministic --- re-running a cell reproduced all ten
+trials bit-identically on \texttt{steps}, detection rate, confidence, grip-close
+rate and all three \texttt{eef\_obj\_dist} fields --- so a changed number means a
+changed input, and every \texttt{results.json} embeds its own \texttt{argv} and
+git commit.
+
+\paragraph{Corpus.} Episodes come from a scripted expert, not from LIBERO's
+human demonstrations: a phase-structured visual-servo controller
+(approach $\to$ descend $\to$ grasp $\to$ lift $\to$ transport $\to$ release)
+that reads the simulator's object pose. 50 episodes per object per bake,
+subsampled to the model's 2\,Hz real-frame rate, stored as compressed
+\texttt{.npz} with frame embedding, per-role box embeddings and centres,
+class-agnostic proposals, proprioception, and the eef pose chunk. The expert is
+itself an audited object: it carried a hand-eye calibration constant that
+encoded the pinned placement, which is memorization layer one.
+
+\paragraph{Goal heads.} \texttt{GraspPointHead} (0.17\,M) maps
+$(\text{uv}, \text{confidence}, \text{proprio}, \text{box\_emb},
+\text{frame\_emb})$ --- note the absence of any text argument, which is the
+architectural half of \S\ref{sec:language} --- through two 256-unit GELU layers
+to an absolute world grasp point $(xy, z)$ expressed as
+$\text{eef}_{xy} + \Delta + \texttt{lever\_bias}$, plus a per-axis log-variance.
+The variance head reads \emph{detached} trunk features so calibration can
+describe error without shaping the representation; the loss is
+$10\times$ Huber ($\delta{=}0.05$) on the mean plus a Gaussian NLL on detached
+residuals. \texttt{PlaceHead} (0.07\,M) maps the command embedding to a place
+$xy$ --- a command$\to$location map, which is exactly why it can memorize.
+Adam, lr $10^{-3}$, batch 512, 300 epochs, 12\% validation split, seed 0.
+
+\paragraph{Shell.} Goals drive \texttt{GoalServoMachine}, a latched
+proportional servo over the phase graph above (P-gain 12.0, action clip 0.6,
+hover 0.25\,m, lift 0.30\,m, latch tolerance 1.5\,cm, latch after $k{=}3$
+consistent estimates). Vision does one job --- produce a grasp point --- and is
+ignored after latch. \textbf{The shell probes within a $\pm6$\,cm envelope},
+which bounds what the $\pm4$\,cm randomization can test; \S\ref{sec:results}
+states the consequence rather than deferring it to limitations.
+
+\paragraph{Repairs.} (i) \emph{Placement teleportation}: ten episodes re-baked
+with the source object displaced, breaking the expert's pose constant.
+(ii) \emph{Command coverage}: training the place head on all three commands
+rather than one. (iii) \emph{DAgger}: roll out the current head on seed 0,
+label the visited viewpoints from the simulator's object pose --- labels the
+scripted corpus cannot supply for viewpoints its teacher never visited --- and
+fine-tune. Two rounds; both reported.
+
+\paragraph{Terms used throughout.} \emph{Latch} --- the shell accepts a grasp
+point and stops listening to vision; \emph{latch correctness} is whether the
+latched point is on the commanded object. \emph{Early-latch} and
+\emph{anchor-band} are two shell configurations: the first latches on the first
+$k$ consistent estimates, the second additionally requires the estimate to fall
+within a band around a running anchor, which trades latch rate for latch
+correctness. \emph{Iteration-coupled selection loop} --- our own procedure
+defect, in which the checkpoint chosen at each round was selected on cells that
+later rounds reused, so selection pressure accumulated on one band (memorization
+layer two). \emph{Binder} --- any rule assigning a detected box to the source
+role: none (first prompt that fires), crop-CLIP rerank, mean class prototype, or
+1-NN over a bank of corpus crop embeddings. \emph{uv-tail extrapolation} --- the
+hypothesis that the grasp head fails on image positions in the tail of its
+training $uv$ distribution. \emph{Deployment stack} vs \emph{audit stack} --- the
+evaluation machine's exact software versions (\S\ref{sec:methods}) vs a later
+rebuild of them; the two are never pooled, because the rebuild inverts which
+head scores better.
+
+\paragraph{Seam defects.} Table~\ref{tab:defects} lists the producer/consumer
+defects this paper works through, with the measurement that found each and the
+cheaper instrument that would have caught it earlier.
+
+\begin{table}[h]\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.13\textwidth}p{0.44\textwidth}p{0.32\textwidth}}
+\toprule
+class & instance & instrument that would have caught it \\
+\midrule
+convention agreement & mirrored-jaw sign: the held-object check averaged two
+\emph{mirrored} finger joints $(+q,-q)$, so its signed mean is identically zero
+in every jaw state --- every physically successful grasp the project produced
+was discarded one tick before lift & one logged measurement of the quantity in
+two known states (open $\to$ 0.0001; holding $\to$ $-0.069$; unsigned 0.91 vs
+0.62, cleanly separable) \\
+convention agreement & corpus baked from a camera in which the detector is
+blind: the target role grounded on 1.4\% of 38{,}000 frames, consistently, on
+both sides & corpus manifest + a detection duty audit at bake time \\
+convention agreement & the deployed spatial adapter never saw the grid it was
+trained on --- consumer fell through to the raw SPPF map & self-describing
+corpora; shape assertion at the seam \\
+disagreement & one world-model step $\approx$ 10 env steps, applied every step
+& deployment-path diff against the training rollout \\
+disagreement & the detector threshold was two numbers, one at bake and one at
+eval & single source of truth in \texttt{cfg}; provenance in the manifest \\
+disagreement & consumer confidence floor 0.10 sat \emph{above} the object's
+real 0.03--0.09 detection band, zeroing all evidence & per-tick
+believed-vs-raw logging \\
+disagreement & role prompt chains fixed in the bake path but not the
+deployment path: the policy trained sighted and ran blind (source detected on
+0.0\% of real ticks against a 48\% corpus) & parity test on the prompt
+signature, now \texttt{tests/test\_prompt\_fallbacks.py} \\
+deployment-only & a real-tick detection miss silently held stale evidence &
+live-loop telemetry --- \emph{parity-blind}, because our parity harness forced
+real perception every tick \\
+\bottomrule
+\end{tabular}
+\caption{Producer/consumer seam defects worked through in this paper. The
+split matters more than the count: the top three are \emph{agreements} --- both
+sides consistent, both wrong --- which no parity test can detect, and which is
+why provenance rather than parity is the load-bearing instrument. The last row
+names parity's own limit: a harness that forces real perception every tick
+cannot see a defect that only exists on dream ticks.}
+\label{tab:defects}
+\end{table}
+
+\paragraph{Reporting.} Wilson 95\% intervals on every rate. Paired cells use
+exact McNemar on discordant pairs; unpaired use Fisher exact; continuous
+comparisons use Mann--Whitney $U$. Sample sizes: $n{=}50$ for every inferential
+cell; $n{=}10$ cells are exploratory and are labelled as such wherever they appear.
+The $n{=}56$ regression baseline is \emph{pooled across seven controlled
+rounds} --- a 23$\to$100-episode corpus-scale pair, a DAgger round, corpus
+aggregation, grasp-event reweighting, LoRA input adaptation, and a
+phase-progress objective --- of which two cells were truncated by
+infrastructure at 0/7 and 0/6, which is why the total is 56 and not 70. It is
+reported at its true size rather than padded or trimmed to a round number. No
+cell was stopped early or extended after inspection.
 
 \section{Results}
+\label{sec:results}
 
 \begin{figure}[t]\centering
 \includegraphics[width=\textwidth]{../visuals/F3_protocol_by_head.png}
-\caption{Protocol $\times$ head, Wilson 95\% intervals. The memorized head leads
-on \emph{dev} and collapses on held-out and randomized; the released head is
-flat across all three. The randomized panel's inset is the audit-stack control,
-where the separation \emph{inverts} (memorized 6/10, released 0/10) --- it is
-never pooled with the deployment-stack bars, which is why the behavioural
-certificate is joint in (head, stack). Free per-tick regression, same trunk and
-corpus regime, scores 0/56.}
+\caption{Protocol $\times$ head, Wilson 95\% intervals, \textbf{deployment
+stack only}. The memorized head leads on \emph{dev} and collapses on held-out
+and randomized; the released head is flat across all three. Our free per-tick
+regression baseline, same trunk and corpus regime, scores 0/56 (red rule).
+The audit-stack control is deliberately \emph{not} plotted here ---
+see Figure~\ref{fig:auditstack}.}
 \label{fig:protocol}
 \end{figure}
 
+\begin{figure}[t]\centering
+\includegraphics[width=0.42\textwidth]{../visuals/F6_audit_stack_control.png}
+\caption{The audit-stack control, on its own axes because it must not be read
+against Figure~\ref{fig:protocol}. Same protocol, same heads, same draws ---
+but a \emph{rebuilt} detector stack, on which the separation \textbf{inverts}:
+the memorized head scores 6/10 where the released head scores 0/10, the exact
+reverse of the deployment stack. This is why the behavioural certificate is
+joint in \emph{(head, stack)} rather than a property of the head. An earlier
+draft drew this as an inset inside Figure~\ref{fig:protocol}, which invited
+precisely the cross-stack comparison the result forbids.}
+\label{fig:auditstack}
+\end{figure}
+
 \begin{table}[h]\centering\small
-\caption{Protocol $\times$ head. All cells $k/10$ with Wilson 95\% intervals;
-task 0, wrist camera. Audit-stack cells are never pooled with deployment-stack
-cells (\S\,stack finding).}
+\caption{Protocol $\times$ head, \textbf{exploratory}: all cells $k/10$; task 0,
+wrist camera. Siblings A and B are the two training runs adjacent to the
+released head in the selection sweep (same corpus and objective, differing only
+in seed and epoch count), retained to show the pattern is not one run's
+accident. Audit-stack cells are never pooled with deployment-stack cells.
+\textbf{Read the pattern, not the cells}: Wilson intervals at $n{=}10$ overlap
+almost everywhere (7/10 is $[0.40,0.89]$, 4/10 is $[0.17,0.69]$) and we do
+\emph{not} test the head $\times$ protocol interaction the pattern suggests.
+Only the $n{=}50$ rows below are inferential.}
 \begin{tabular}{lcccc}
 \toprule
 protocol & memorized head & \textbf{flagship (released)} & sibling A & sibling B \\
@@ -188,6 +442,21 @@ randomized $\pm4$\,cm (audit stack) & 6/10 & 0/10 & --- & --- \\
 
 \noindent Confirmed at power: held-out \textbf{35/50 $=0.700$
 $[0.56,0.81]$}; randomized \textbf{26/50 $=0.520$ $[0.39,0.65]$}.
+
+\paragraph{Two qualifications that belong here, not in the limitations.}
+First, the held-out band is \textbf{not fresh}: those ten states were inspected
+across five disclosed selection looks, so 0.700 is a \emph{selected-band}
+estimate and should be read as an upper-leaning one. The addendum's cells meet
+a stricter standard --- collection on seed 0, evaluation on seed 20, two
+independent pre-registered fresh-seed confirmations --- and the flagship cell
+does not yet. Second, the $\pm4$\,cm randomization \textbf{sits inside the
+shell's own $\pm6$\,cm probe envelope}, so it perturbs placement without
+leaving the region the servo already searches. It therefore tests whether a
+head survives displacement the shell can absorb, which is weaker than testing
+de-memorization outright; a band outside the envelope would be the decisive
+version and we have not run it. Both facts qualify the randomized column, which
+is the column carrying the de-memorization claim, and a reader should have them
+before the number rather than after it.
 Across a detector-stack rebuild the repaired head reproduces in all three
 protocols while the memorized head's dev cell collapses $7/10\to2/10$ to its
 held-out floor: memorization is stack-coupled, \emph{visual} grounding---which
@@ -199,16 +468,23 @@ input the head reads---is what survived.
 predicted grasp point moves when one input is swapped between the two
 most-separated recorded episodes. The released head (v5) reads its \emph{visual}
 channels (1.1--1.8\,cm) and barely moves on proprioception (0.09\,cm) --- the
-repair's signature. The annotation carries the counterexample that motivates
-pairing probes with behavioural randomization: v2 and v2.1 have near-identical
-profiles on the jointly logged channels while scoring 0.000 and 0.700 deployed.
+repair's signature. \textbf{The counterexample that motivates pairing probes
+with behavioural randomization}: v2 and v2.1 have near-identical profiles on
+the jointly logged channels while scoring \textbf{0.000 and 0.700} deployed.
 A probe evaluated on teacher trajectories is an on-manifold instrument and
-cannot, alone, certify off-manifold behaviour.}
+cannot, alone, certify off-manifold behaviour. (The two text blocks inside the
+plot area restate this caption and the v1 note; they are redundant with it and
+should be dropped when the figure is regenerated --- see the reproducibility
+note in \S\ref{sec:limits}.) Hatched bars and $\times$ marks are channels not
+separately logged for that head, never zeros.}
 \label{fig:attribution}
 \end{figure}
 
 \section{The multi-object addendum: five falsified predictions, one mechanism
 retracted, and a fourth memorization layer}
+
+\subsection{Which objects cross}
+\label{sec:multiobj}
 
 A second object (butter) crosses: 10/10 under an early-latch configuration,
 6/10 with soup at 4/10 under a single anchor-band configuration with no
@@ -219,6 +495,9 @@ accurate where measurable (cream 1.58\,cm on-manifold, vs.\ 1.34 and 1.06 for
 the objects that work) while each failing teacher never leaves its visual-servo
 phase, at source-uv std ${\sim}0.30$, settling tens of centimetres from the
 target. Four objects were attempted; two crossed.
+
+\subsection{Role binding: a mechanism we proposed, tested, and retracted}
+\label{sec:probes}
 
 \noindent \textbf{A proposed mechanism, tested and retracted.} We previously
 located the failure at \emph{role binding}: the region-text head scores 0.000
@@ -261,6 +540,9 @@ Where it fails is grasp geometry: the miss is \textbf{94\% lateral} (6.9\,cm
 sideways, 0.4\,cm vertical---its \emph{height} is better than the crossing
 object's), systematic rather than scattered (coherence 0.976).
 
+\subsection{The blocked object: nine mechanisms, eight refuted}
+\label{sec:drift}
+
 \noindent \textbf{Nine mechanisms, eight refuted, one supported by
 intervention.} Tested and refuted by measurement: generic-tail
 indiscriminability, box-centre spread, proposal scarcity, misbinding, position
@@ -301,6 +583,123 @@ embedding and is genuinely language-conditioned. Every task in this suite
 places into the same basket, so all \emph{correct} instructions imply the same
 place target---which leaves the stack's one real language channel normally
 \emph{unexercised}, not inert. The swap below exercises it.
+
+\subsection{Is it appearance, or is it position?}
+\label{sec:posvsapp}
+
+The design above has a confound we did not see until a referee named it, and it
+is this paper's own thesis pointed back at the paper. LIBERO-Object's ten
+targets occupy two clusters 22\,cm apart (Table~\ref{tab:pinning}). Every object
+we trained successfully --- soup, butter --- lies in cluster A, and the one that
+resisted, cream cheese, is \textbf{the only cluster-B object we ever attempted}.
+``Blocked'' and ``22\,cm from the training position'' are therefore perfectly
+confounded, and the appearance mechanism above may be a \emph{position} effect:
+the object sits where this grasp head has never seen a target, so its viewpoints
+are off-manifold because of \emph{where} it is, not \emph{what} it looks like.
+On that reading the DAgger repair closes a position-coverage gap --- which is
+precisely our own diagnosis at every other layer.
+
+Note first what the confound cannot be. Within an object, corpus position
+\emph{is} deployment position: cream's corpus is cream at cluster B and its
+deployment is cream at cluster B, so absolute position is matched by
+construction and cannot create a gap directly. Two mediated routes remain.
+\textbf{(a)} The head aims at cluster A, the arm goes to the wrong place, and
+the resulting viewpoints are unlike the corpus --- a \emph{consequence} of the
+error, which the tick-band split already excludes, since the gap is largest in
+ticks 0--100 before the arm has acted. \textbf{(b)} At early ticks a cluster-B
+object is simply further from the home pose, so its crops are smaller and its
+embeddings noisier. This would \emph{also} be largest early and shrink on
+approach, so the tick-band check does \emph{not} separate it. Route (b) is the
+live alternative.
+
+We test it at the home pose, where arm pose is identical by construction across
+every cell: reset, read the wrist frame, run the detector under that object's
+own prompt chain, measure the NN-cosine gap against that object's own corpus.
+No policy, no rollout. Run over \textbf{all ten} objects at $n{=}50$ states
+each (\texttt{scripts/position\_vs\_appearance.py}). These cells are on the
+audit stack and their absolute magnitudes are therefore \emph{not} comparable to
+the gaps quoted earlier; all comparisons below are internal to this one
+experiment.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\textwidth]{../visuals/F7_position_vs_appearance.png}
+\caption{Separating object identity from table position, ten objects, $n{=}50$
+home-pose states each, audit stack. \textbf{(A)} At shipped positions the two
+clusters do not separate: means 0.0418 (A) vs 0.0503 (B), exact Mann--Whitney
+$U{=}18$, $p{=}0.3095$; within-cluster spread is $3.2\times$ (A) and $4.8\times$
+(B) the between-cluster difference. Distance from the training object's position
+predicts little (Spearman $+0.193$, exact permutation $p{=}0.5968$); detection
+confidence predicts a lot (Spearman $\mathbf{-0.709}$, $p{=}\mathbf{0.0268}$).
+The bracket marks the decisive pair --- 4.74\,mm apart, $2.42\times$ apart in
+gap. \textbf{(B)} Each object teleported 22\,cm to the other cluster, identity
+held constant. The position account predicts A$\to$B rises and B$\to$A falls;
+measured, A$\to$B is $-0.0026$ and B$\to$A is $+0.0058$, both opposite,
+concordance 5/10, exact sign test $p{=}1.0000$. Spearman(native, swapped)
+$={+}0.709$, $p{=}0.0268$: the ordering travels with the object. Displacement is
+not inert (mean $|\Delta|{=}0.0066$) but is unsystematic and small beside the
+identity contrasts (cream$-$soup 0.0142, cream$-$butter 0.0414).}
+\label{fig:posvsapp}
+\end{figure}
+
+\textbf{Cluster membership does not predict the gap} (exact Mann--Whitney,
+$U{=}18$, $p{=}0.3095$). \textbf{Distance from the training object's position
+does not either}: Spearman $+0.193$, exact permutation $p{=}0.5968$; the three
+objects at distance \emph{exactly} zero already span 0.0369--0.0555. The
+sharpest cell is a pair: orange juice and cream cheese sit \textbf{4.74\,mm}
+apart and their gaps differ by \textbf{$2.42\times$}, with the cluster-B orange
+juice scoring \emph{below} four of the five cluster-A objects. A position
+account must explain a $2.4\times$ difference across 4.7\,mm.
+
+\textbf{What does predict the gap is detector groundability}: Spearman(gap,
+mean detection confidence) $=\mathbf{-0.709}$, exact permutation
+$p{=}\mathbf{0.0268}$. The worse the frozen open-vocabulary detector grounds an
+object, the further that object's deployment embeddings sit from its own
+corpus; cream cheese has the \emph{lowest} confidence of all ten (0.042). This
+sharpens rather than rescues the original mechanism: ``appearance-side
+off-manifold drift'' named a symptom, and the property underneath it is how
+well this object's visual category grounds in the detector --- an appearance
+property, and not a positional one. Comparing the two candidate explanators on
+the same ten objects, groundability ($-0.709$, $p{=}0.027$) beats position
+($+0.193$, $p{=}0.597$).
+
+\paragraph{The causal test.} The above is observational. We also \emph{move}
+each object 22\,cm to the other cluster's centroid, holding identity exactly
+constant, and re-measure. The position account makes a directional prediction:
+into cluster B the gap should rise, out of it the gap should fall. Neither
+happens. A$\to$B mean $\Delta=\mathbf{-0.0026}$ and B$\to$A mean
+$\Delta=\mathbf{+0.0058}$, both \emph{opposite} to prediction; concordance is
+5/10, exact sign test $p{=}\mathbf{1.0000}$. The single sharpest cell:
+\textbf{cream cheese teleported onto the training cluster still has the highest
+gap of all ten objects} (0.0727, rank 1 of 10) and its gap rose rather than
+fell. And the ordering travels with the object --- Spearman(native, swapped)
+$=+0.709$, $p{=}0.0268$ --- so ranking the objects by gap, displacing every one
+of them, and re-ranking returns substantially the same order.
+
+Position is not inert: mean $|\Delta|$ is 0.0066 and one object shifted
+$+0.0264$. But it is unsystematic, and small next to the identity contrasts that
+matter --- cream$-$soup is 0.0142 ($2.2\times$) and cream$-$butter 0.0414
+($6.3\times$) on this same stack. Position is a nuisance term, not the driver.
+We state that rather than ``position does nothing,'' which the data would not
+support.
+
+The ordering of the three objects we actually trained also \textbf{survives a
+stack rebuild}: butter $<$ soup $<$ cream on the deployment stack in full
+rollouts ($+0.0007 < +0.0089 < +0.0272$) and butter $<$ soup $<$ cream here on
+the audit stack at the home pose ($+0.0282 < +0.0555 < +0.0697$). Given that
+this rebuild is the one that \emph{inverts} our head ranking
+(Figure~\ref{fig:auditstack}), an ordering that survives it is worth more than
+one measured once.
+
+\textbf{What this does not settle.} Every cell here measures the \emph{gap},
+never a success rate. It shows the gap is not positional; it does not show that
+a low-gap cluster-B object would \emph{cross}. Orange juice --- whose crossing
+would be the cheapest remaining falsification of the whole mechanism --- has
+never been trained or evaluated, and a comparable cell would have to be produced
+on the deployment stack. We record that as open rather than closing the argument
+on the four tests we did run.
+
+\subsection{Where the language actually goes}
+\label{sec:language}
 
 \noindent \textbf{Identity-blind is not language-blind.} Swapping the
 instruction to a different object---environment, physics and success criterion
@@ -366,6 +765,9 @@ $p{=}0.39$), against the crossing object's 35/50 for reference.}
 \label{fig:third}
 \end{figure}
 
+\subsection{Specificity of the repair, and what it scopes}
+\label{sec:specificity}
+
 \noindent \textbf{The repair is specific, which is the mechanism's best
 evidence.} Applying the identical procedure to the object that already
 \emph{works} changes nothing: 28/50 vs.\ a 27/50 same-seed control, 21
@@ -426,6 +828,65 @@ prediction, its falsification, and this attribution are retained rather than
 removed.
 
 \section{Related work}
+
+\subsection{Benchmark memorization and instruction-blindness}
+\label{sec:rw-prior}
+
+Both phenomena this paper reports have an established recent literature, and
+our contribution is smaller than a reader of our earlier draft would have
+concluded. LIBERO-PRO~\citep{zhou2025liberopro} perturbs objects, initial
+states, instructions and environments and finds that models exceeding 90\%
+under standard evaluation collapse to \textbf{0.0\%}, attributing it to ``rote
+memorization of action sequences and environment layouts.''
+LIBERO-Plus~\citep{fei2025liberoplus} perturbs seven dimensions across ten VLAs
+and reports that models ``tend to ignore language instructions completely.''
+LangGap~\citep{langgap2026} varies instruction semantics with the layout held
+fixed and reaches the same verdict for state-of-the-art models. Zhang and
+Bisk~\citep{zhang2026flatness} name the failure \emph{instruction blindness} and
+repair it optimizer-side; CAST~\citep{glossop2025cast} repairs it data-side with
+counterfactual labels, closely analogous to our command coverage.
+
+Three consequences we state plainly. \textbf{(i)} That VLAs ignore language is
+\emph{not} our finding; it is the consensus of this literature, and our
+system exhibiting it is confirmatory. \textbf{(ii)} The
+instruction-swap probe---change the instruction, hold the scene, rescore
+against the original task---is standard practice here and we withdraw it as a
+contribution. It remains in \texttt{eval/probes.py} because our
+\emph{implementation} of it is annotation-free and its verdicts refuse
+over-claims, but the instrument is not ours. \textbf{(iii)} Our repair being
+data-side places it beside CAST rather than ahead of it.
+
+What survives is narrower and, we think, still worth having. The
+cross-instruction \emph{detection-agreement} probe (\S\ref{sec:probes}) asks
+whether two instructions' prompt chains select the \emph{same box from the same
+frame}. It needs no annotation, no counterfactual scene and no ground truth, and
+it interrogates the grounding \emph{stage} rather than end-to-end behaviour ---
+which is why it returned a usable answer where six ground-truth instruments died
+at their calibration gates. The mechanistic localization is likewise new to our
+knowledge: prior work establishes \emph{that} language is ignored, while we
+show, for one system small enough to trace end to end, \emph{where the language
+goes} --- architecturally, in that \texttt{GraspPointHead.forward} takes no text
+argument at all, so the sole instruction$\to$grasp path is box selection and
+that selection is identity-blind; and behaviourally, in that driving the
+detection prompts and the place-head embedding from \emph{different}
+instructions isolates the collapse to one channel with no interaction (10/10
+per-trial agreement). The language channel of a working policy reduces to a
+\textbf{single cached $(x,y)$ coordinate}. Finally, the place-head layer and its
+repair are, as far as we can tell, unreported: a benchmark in which every task
+shares one basket cannot expose a memorized command$\to$location map, because
+memorized and grounded maps are behaviourally identical until the command
+changes.
+
+One measurement does survive intact, and it is the one a referee reproduced
+rather than doubted. LIBERO-PRO characterizes the baseline qualitatively ---
+variations ``so subtle as to be visually imperceptible'' --- and reports no
+per-task position statistics, no distinct-value counts, no clustering and no
+precision analysis. Prior work \emph{asserts} near-copying;
+Table~\ref{tab:pinning} \emph{measures} it, down to the ULP and including the
+orientation result that no prior work states.
+
+\subsection{Size}
+\label{sec:rw-size}
 
 Size is comparable only under a stated convention, and the two in common use
 disagree about which system is smallest, because published counts routinely
@@ -502,12 +963,15 @@ teacher is itself audited, caught encoding placement and detector version, and
 repaired.
 
 \section{Claims, non-claims, limitations}
+\label{sec:limits}
 
 \textbf{Claimed:} the pinning measurement in its scoped form; the released
 head's cells above; free per-tick regression at 0/56; the de-memorization
 mechanism at the head level (attribution shift, varied-label validation, and a
-paired jitter ablation, $0/10\to7/10$ dev, exact McNemar/sign $p\approx0.016$),
-scoped by the audit-stack control; 29 worked skew defects; the bounded size
+paired jitter ablation, $0/10\to7/10$ dev, exact McNemar/sign $p\approx0.016$;
+9 discordant pairs, 8 in the repaired head's favour, two-sided exact binomial),
+scoped by the audit-stack control; the seam defects of
+Table~\ref{tab:defects} and the taxonomy split; the bounded size
 result of Table~\ref{tab:size} (smallest of the surveyed systems under both the
 trained and the deployed convention simultaneously); and the identity-blindness
 of deployed role binding, together with its architectural corollary that no

@@ -56,26 +56,11 @@ for ax, (proto, ks) in zip(axes, CELLS.items()):
                 color="#cc3333", fontsize=7, ha="left")
     ax.spines[["top", "right"]].set_visible(False)
 
-# audit-stack inset on the randomized panel
-ins = axes[2].inset_axes([0.04, 0.71, 0.38, 0.27])
-for j, head in enumerate(["memorized", "flagship v5"]):
-    k = AUDIT[head]
-    lo, hi = wilson(k, 10)
-    p = k / 10
-    ins.bar(j, p, color=COLORS[HEADS.index(head)], edgecolor="black",
-            linewidth=0.8, width=0.6, hatch="//")
-    ins.errorbar(j, p, yerr=[[p - lo], [hi - p]], fmt="none", ecolor="black",
-                 elinewidth=0.9, capsize=2)
-    ins.text(j, 0.03, f"{k}/10", ha="center", fontsize=7)
-ins.set_xticks([0, 1])
-ins.set_xticklabels(["mem.", "v5"], fontsize=7)
-ins.set_ylim(0, 1.0)
-ins.set_yticks([])
-ins.set_title("audit stack (hatched)", fontsize=6.8)
-axes[2].annotate("rebuilt detector stack:\nseparation inverts; never\n"
-                 "compared to pod bars",
-                 xy=(0.99, 0.99), xycoords="axes fraction", fontsize=6.5,
-                 va="top", ha="right")
+# The audit-stack control is NOT drawn here. It used to be an inset on the
+# randomized panel, and a referee pointed out that this undercuts its whole
+# point: the cells are on a different detector stack and must never be read
+# alongside the deployment-stack bars, which is exactly what sharing an axis
+# invites. It now renders as its own figure (F6) with its own scale.
 axes[2].annotate("n=50 addendum: 26/50 [0.39, 0.65]",
                  xy=(1.35, 0.545), xycoords="data", fontsize=6.5,
                  ha="center", color="#1f77b4")
@@ -102,3 +87,28 @@ fig.suptitle("F3 — Protocol × head; memorized-randomized is the pod control "
 fig.tight_layout(rect=[0, 0, 1, 0.94])
 fig.savefig("paper/visuals/F3_protocol_by_head.png", dpi=180)
 print("wrote paper/visuals/F3_protocol_by_head.png")
+
+# ---- F6: the audit-stack control, deliberately on its own axes ----
+figa, axa = plt.subplots(figsize=(3.4, 3.2))
+for j, head in enumerate(["memorized", "flagship v5"]):
+    k = AUDIT[head]
+    lo, hi = wilson(k, 10)
+    p = k / 10
+    axa.bar(j, p, color=COLORS[HEADS.index(head)], edgecolor="black",
+            linewidth=0.9, width=0.6, hatch="//")
+    axa.errorbar(j, p, yerr=[[p - lo], [hi - p]], fmt="none", ecolor="black",
+                 elinewidth=1.0, capsize=3)
+    # White-on-bar only when there IS a bar; a 0/10 label was invisible.
+    axa.text(j, p + 0.03 if p < 0.15 else 0.04, f"{k}/10", ha="center",
+             fontsize=9, color="black" if p < 0.15 else "white",
+             fontweight="bold" if p < 0.15 else "normal")
+axa.set_xticks([0, 1])
+axa.set_xticklabels(["memorized", "flagship v5"], fontsize=9)
+axa.set_ylim(0, 1.0)
+axa.set_ylabel("success rate (Wilson 95%)")
+axa.set_title("F6 — audit stack, randomized $\\pm$4 cm\n"
+              "(rebuilt detector; separation INVERTS)", fontsize=9.5)
+axa.spines[["top", "right"]].set_visible(False)
+figa.tight_layout()
+figa.savefig("paper/visuals/F6_audit_stack_control.png", dpi=180)
+print("wrote paper/visuals/F6_audit_stack_control.png")

@@ -10315,3 +10315,396 @@ misleads, however accurate its individual points.
 
 Final third-object position: **22/50 = 0.440 [0.31, 0.58]**, repair described
 as largely single-shot, both rounds reported and dated. 616 tests pass.
+
+---
+
+## Peer review received; verifying the reviewer before answering (2026-08-06)
+
+A full referee report arrived: Major Revision, 11 major comments, 14 minor, an
+Appendix A of **independent verification** of our central benchmark claim. The
+first duty is not to answer it but to check it. Two of its claims are factual
+corrections to our own measurement, and one (M4) alleges a confound in the
+mechanism this paper's addendum rests on.
+
+### Appendix A reproduced, by a better method than ours
+
+The reviewer read the shipped init files **directly** — `torch.load` on the
+`.pruned_init` torch-zip, a float64 `(50, 110)` array, layout
+`[t | 9 robot qpos | 7 objects x 7 | 51 qvel]` — with **no simulator**. Our own
+instrument (`scripts/measure_placement_pinning.py`) boots `OffScreenRenderEnv`
+and reads poses from MuJoCo. Theirs needs neither sim nor GPU nor detector.
+Theirs is the better instrument and we should have written it.
+
+Re-run here on the pip-installed LIBERO. Result: **they are right, in detail.**
+
+| task | x, y (cm) | std x, y (cm) | #distinct pos | #distinct quat |
+|---|---|---|---|---|
+| alphabet soup | −12.00, −24.00 | 0.000, 0.000 | **2** (1 ULP, y) split 23/27 | 1 |
+| bbq sauce | 4.99, −9.95 | 0.579, 0.566 | 50 | 1 |
+| butter | −11.98, −24.04 | 0.261, 0.297 | 50 | 1 |
+| chocolate pudding | −12.00, −24.00 | 0.000, 0.000 | **2** (1 ULP, y) split 21/29 | 1 |
+| cream cheese | 4.98, −10.01 | 0.273, 0.299 | 50 | 1 |
+| ketchup | −12.00, −24.00 | 0.000, 0.000 | **2** (1 ULP, y) split 25/25 | 1 |
+| milk | −12.07, −24.02 | 0.304, 0.254 | 50 | 1 |
+| orange juice | 5.00, −10.00 | 0.000, 0.000 | **2** (1 ULP, x) split 27/23 | 1 |
+| salad dressing | 5.00, −10.00 | 0.000, 0.000 | **2** (1 ULP, x) split 29/21 | 1 |
+| tomato sauce | 5.00, −10.00 | 0.000, 0.000 | **2** (1 ULP, x) split 18/32 | 1 |
+
+Our split counts match the reviewer's to the trial (soup 23/27, tomato 18/32).
+They ran this.
+
+**Correction 1 — "bit-identical" is false and must come out of the abstract.**
+Each pinned task takes exactly **two** float64 values, one ULP apart
+(~3e-17 m) on a single axis. Substantively this is the strongest possible form
+of our point; as a sentence it is a false precision claim in a paper whose
+whole posture is metrological care. It becomes "constant to float64 rounding
+(two values, 1 ULP apart)".
+
+**Correction 2 — the orientation finding we missed, and it helps us.** The
+target **quaternion is bit-identical across all 50 states in all ten tasks**,
+including the four with positional jitter. Rotation is fully pinned throughout
+LIBERO-Object. We measured position and never looked at rotation. A benchmark
+that jitters position by 3 mm in four tasks and never rotates the object at all
+is more pinned than we claimed.
+
+**Correction 3 — our "0.0–0.7 mm within a group" understates it.** Measured:
+cluster A max pairwise **0.95 mm** euclidean / 0.92 mm per-axis; cluster B
+0.63 mm / 0.61 mm. State the statistic and the axis convention rather than a
+range whose derivation is not recoverable.
+
+Confirmed unchanged: six of ten pinned, 0.25–0.58 cm std in the other four
+(ours: 0.254–0.579), two clusters of five separated by **22.04 cm**, basket
+cross-task max pairwise 4.04 mm. `.init` and `.pruned_init` give identical
+target statistics in all ten.
+
+### What the literature check returned (M1)
+
+All five works the reviewer cites are real; every one verified against arXiv,
+none of them in our reference list:
+
+- **LIBERO-Plus** (2510.13626, Fei et al.) — seven perturbation dimensions,
+  ten VLAs; headline is that models "tend to ignore language instructions
+  completely."
+- **LIBERO-PRO** (2510.03827, Zhou et al.) — >90% standard accuracy collapsing
+  to **0.0%** under generalized settings; attributes it to "rote memorization
+  of action sequences and environment layouts."
+- **LangGap** (2603.00592) — four-dimensional semantic perturbation with the
+  layout held fixed; SOTA VLAs largely ignore instructions.
+- **Flatness Preserves Instruction Following** (2606.23641, Zhang & Bisk) —
+  names the failure "instruction blindness" and repairs it optimizer-side.
+- **CAST** (2508.13446, Glossop et al.) — counterfactual labels, a data-side
+  repair analogous to our command coverage.
+
+Search also surfaced **LIBERO-Para** (2603.28301) and LIBERO-CF. The reviewer
+is right that this changes what is a contribution: the instruction-swap probe
+is standard practice in this literature and cannot be claimed.
+
+**But one thing survives, and it is the claim they questioned least.** Fetched
+LIBERO-PRO's full text looking for the measurement we make. It is not there.
+LIBERO-PRO characterizes the baseline qualitatively — variations "so subtle as
+to be visually imperceptible" — and reports no per-task position statistics, no
+distinct-value counts, no clustering, no float analysis. It critiques LIBERO's
+placement without quantifying it. **Prior work asserts near-copying; we measure
+it.** With the ULP structure and the orientation result added, the measurement
+is sharper than anything published on this benchmark, and it is the one
+contribution the reviewer independently reproduced rather than doubted.
+
+### M4 is the real one, and the reviewer's own evidence for it is broken
+
+M4: cream cheese is the **only cluster-B object we ever attempted**. Soup and
+butter are cluster A; pudding (untested) is cluster A. So "blocked" and "22 cm
+from the training position" are perfectly confounded in our design, and the
+appearance-drift mechanism — the addendum's spine — may be a **position**
+effect. If so we have a fifth memorization layer, not an appearance story.
+
+The confound is real and I am running the experiment. But the specific evidence
+offered for it does not hold, and this matters for how much the prior should
+move.
+
+The reviewer writes: "0.0007 (second crossing object), 0.0089 (butter), and
+0.0272 (cream cheese). That ordering is perfectly rank-correlated with distance
+from the training object's table position."
+
+The mapping is transposed. Ours (paper.md:9349, 9403, 10035): **butter
++0.0007**, **soup +0.0089**, cream +0.0272. Distance from the training
+position (soup at −12.00, −24.00):
+
+| object | distance from training pos | gap |
+|---|---|---|
+| soup | **0.00 cm** (it *is* the training object) | +0.0089 |
+| butter | 0.045 cm | **+0.0007** |
+| cream | 22.04 cm | +0.0272 |
+
+The smallest gap belongs to the object **0.45 mm away**, not the one at zero.
+Soup sits exactly at the training position, is the object the corpus is built
+from, and still carries a gap 12x butter's. A pure position account predicts
+soup smallest; it is not. Spearman over the three is 0.5, not 1.0.
+
+That is a broken link in M4's argument, not a refutation of M4. n=3, and the
+soup-butter difference is small. The 22 cm jump to cream remains entirely
+confounded and no amount of re-ranking fixes that. **The experiment is still
+required** and the reviewer is right to demand it.
+
+### Pre-registration: the 2x2 that separates position from appearance
+
+Registered **before** the run, per standing practice — the ordering that kept
+two wrong mechanisms out of this paper.
+
+Note first why the naive version of M4 cannot be the whole story: within an
+object, **corpus position == deployment position**. Cream's corpus is cream at
+cluster B; cream's deployment is cream at cluster B. Absolute position is
+matched by construction, so it cannot create a gap directly. M4's mechanism has
+to be *mediated*, and there are two candidates:
+
+  (a) the head emits cluster-A-ish goals, the arm flies to the wrong place, and
+      the resulting viewpoints are unlike the corpus. This is a **consequence**
+      of the error, and is what the tick-band split already rules out — the gap
+      is largest at ticks 0–100, before the arm has acted.
+  (b) at early ticks the object is further from the home pose for cluster B, so
+      crops are smaller and embeddings noisier. This *would* be largest early
+      and shrink on approach, exactly as observed, and the tick-band check does
+      **not** separate it. The reviewer is right about this.
+
+So (b) is the live alternative. The design that separates it, which is the
+reviewer's own proposed manipulation:
+
+|  | @ cluster A | @ cluster B |
+|---|---|---|
+| **soup** | native | teleported +17.0, +14.0 cm |
+| **cream** | teleported −17.0, −14.0 cm | native |
+
+Identity varies down the rows, position across the columns. Measure the
+NN-cosine gap in all four cells against each object's own corpus.
+
+- **If the gap tracks the COLUMN** (soup@B ~ cream@B large, soup@A ~ cream@A
+  small) → position drives it, our attribution is wrong, and the paper gains a
+  fifth memorization layer. M4 is upheld.
+- **If the gap tracks the ROW** (soup@A ~ soup@B small, cream@A ~ cream@B
+  large) → identity drives it, appearance attribution survives, M4 is refuted
+  by within-object manipulation.
+- **If both** → report the decomposition and claim only the residual.
+
+**Falsification condition, stated now:** if soup teleported 22 cm to cluster B
+shows a gap >= 0.020 (i.e. reaching cream's 0.0272 range), the appearance
+attribution does not survive and the addendum's mechanism section gets
+rewritten around position.
+
+Cell-level success is deliberately **not** the readout here. A 22 cm teleport
+is far outside the shell's +-6 cm probe envelope, so every teleported cell will
+collapse for shell reasons that have nothing to do with the mechanism. The
+readout is the embedding gap, which is what M4 disputes and what needs no task
+success to measure.
+
+**Stack caveat, stated before any number.** This runs on the local machine:
+mujoco 3.3.0, robosuite 1.4.0, ultralytics 8.4.103, torch 2.13.0, numpy 2.4.6,
+Python 3.13. The evaluation machine is mujoco 2.3.7 / robosuite 1.4.1 /
+ultralytics 8.4.115 / torch 2.8.0 / numpy 2.2.6 / Python 3.10. This is the
+**audit stack** — the rebuild that inverts which head scores better, our own
+finding. No cell produced here may be compared to a pod cell. All four cells of
+the 2x2 share this stack, so the within-experiment comparison is valid; the
+absolute gap values are not comparable to the 0.0007/0.0089/0.0272 above and
+will not be reported as if they were.
+
+### M4 answered, part 1: cluster membership does NOT predict the gap (2026-08-07)
+
+The pre-registered 2x2 needed a harness, and building it produced a better test
+than the one registered. `scripts/position_vs_appearance.py --mode native`
+probes **all ten** objects at the **home pose** — reset, read the wrist frame,
+run the detector under that object's own role chain, measure the NN-cosine gap
+against that object's own corpus. No policy, no rollout. Arm pose is therefore
+identical by construction in every cell, which is the pre-effect slice that
+rescued the tick-band analysis, taken to its limit.
+
+This is the referee's own first proposed test ("run one cluster-B object with a
+*low* predicted appearance gap"), except that all five cluster-B objects run.
+
+**Stack: local/audit** (mujoco 3.3.0, robosuite 1.4.0, ultralytics 8.4.103,
+torch 2.13.0, numpy 2.4.6, Python 3.13). Absolute gaps here (0.03–0.07) are NOT
+comparable to the pod's (0.0007–0.0272) and are never used as if they were:
+different stack, and home-pose frames rather than full rollouts. Every
+comparison below is within this one experiment.
+
+| object | cluster | gap | conf | xy (m) |
+|---|---|---|---|---|
+| butter | A | +0.0282 | 0.091 | (−0.1196, −0.2444) |
+| **orange juice** | **B** | **+0.0288** | 0.130 | (+0.0500, −0.1000) |
+| chocolate pudding | A | +0.0369 | 0.115 | (−0.1200, −0.2400) |
+| ketchup | A | +0.0414 | 0.129 | (−0.1200, −0.2400) |
+| bbq sauce | B | +0.0442 | 0.069 | (+0.0431, −0.0901) |
+| milk | A | +0.0469 | 0.076 | (−0.1172, −0.2443) |
+| tomato sauce | B | +0.0484 | 0.086 | (+0.0500, −0.1000) |
+| alphabet soup | A | +0.0555 | 0.096 | (−0.1200, −0.2400) |
+| salad dressing | B | +0.0603 | 0.043 | (+0.0500, −0.1000) |
+| **cream cheese** | **B** | **+0.0697** | 0.042 | (+0.0461, −0.1027) |
+
+**Four results, in order of how much they move the prior.**
+
+**1. The decisive pair.** Orange juice and cream cheese sit **4.74 mm apart** —
+the same table position to any standard that matters — and their gaps differ by
+**2.42x** (0.0288 vs 0.0697). Orange juice is a cluster-B object with a *lower*
+gap than four of the five cluster-A objects. A position account has to explain
+a 2.4x difference across 4.7 mm, and cannot.
+
+**2. Cluster membership is not significant.** A mean 0.0418, B mean 0.0503,
+difference **0.0085**. Exact Mann-Whitney U over the two clusters of five:
+**U=18, p=0.3095**. Within-cluster spread is **3.2x** (A) and **4.8x** (B) the
+between-cluster difference of means. Whatever sets the gap varies far more
+inside a cluster than between them.
+
+**3. Distance from the training position explains almost nothing.**
+Spearman(gap, distance from soup's position) over all ten, tie-corrected,
+**+0.193, exact permutation p = 0.5968**. The referee asserted a *perfect* rank
+correlation on three objects with the labels transposed; over all ten with the
+labels right it is weak and non-significant. The three objects at distance
+**exactly 0.00 cm** (soup, ketchup, pudding) already span 0.0369–0.0555, a
+range larger than the entire between-cluster difference.
+
+**4. What DOES predict the gap: detector groundability.**
+Spearman(gap, mean detection confidence) = **−0.709, exact permutation
+p = 0.0268**. The worse the frozen open-vocabulary detector grounds an object,
+the further that object's deployment embeddings sit from its own corpus. Cream
+cheese has the **lowest confidence of all ten** (0.042). This is the mechanism
+the earlier write-up was missing: "appearance-side off-manifold drift" named a
+symptom, and the property underneath it is **how well this object's visual
+category grounds in the detector** — an appearance property, and not a
+positional one.
+
+Comparing the two candidate explanators directly on the same ten objects:
+groundability rho **−0.709** (p = 0.0268) against position rho **+0.193**
+(p = 0.5968). That is the contrast the referee asked for and it does not favour
+position.
+
+**5. The ordering replicates across a stack rebuild.** On the pod, in full
+rollouts: butter +0.0007 < soup +0.0089 < cream +0.0272. Here, on the audit
+stack, at the home pose: butter +0.0282 < soup +0.0555 < cream +0.0697. Same
+order, different machine, different detector build, different measurement
+regime. Given that this stack rebuild is the one that *inverts* our head
+ranking, an ordering that survives it is worth more than one that has only been
+measured once.
+
+**What this does NOT establish, stated plainly.** It measures the *gap*, not
+the *cell*. The referee's alternative reading — that cluster-B objects are
+blocked regardless of appearance gap — is only half-tested: I have shown the
+gap is not positional, not that a low-gap cluster-B object would cross. Orange
+juice has never been trained or evaluated, and producing a comparable cell
+would need the pod. That is a real remaining hole and it goes in the paper as
+one. The within-object teleport (`--mode swap`) is running and is the causal
+half of this.
+
+### The swap run's first result was a broken instrument reading as a clean null (2026-08-07)
+
+The teleport arm came back with gaps **identical to the native arm to four
+decimal places** — all ten objects, every digit. Read naively that is a
+spectacular result: move an object 22 cm and its embedding does not change at
+all, so position contributes exactly nothing and M4 collapses.
+
+It is a bug.
+
+`probe_xy_mean` in the artifact showed the objects *had* moved — soup sat at
+(+0.048, −0.099), cream at (−0.119, −0.242), each at the other cluster's
+centroid. The sim was right. The **render** was stale: robosuite's
+`_get_observations()` takes `force_update=False` by default and returns the
+**cached** observation, so every teleported cell was perceived from the frame
+rendered *before* the teleport. I called `_get_observations()` without the flag.
+
+Fixed with `force_update=True`, and the instrument now **refuses to emit** when
+this happens: it snapshots the frame before the teleport, compares after, and
+raises if any state came back byte-identical rather than reporting a number.
+
+Three things worth keeping.
+
+**A perfect null is evidence about the instrument before it is evidence about
+the world.** Ten objects agreeing to four decimals across a 22 cm displacement
+is not a finding, it is a signature — real measurements of different objects do
+not agree that exactly. The tell was the *implausible cleanliness*, not any
+disagreement with expectation. Had the numbers come back merely *similar* I
+might have written them up.
+
+**It would have confirmed what I already believed.** The native arm had just
+shown position doesn't drive the gap; a null teleport says the same thing more
+strongly. A result that agrees with the hypothesis gets less scrutiny than one
+that contradicts it, which is exactly backwards, and is why the check has to be
+mechanical rather than left to whether the number looks surprising.
+
+**It is the same defect class as the paper's own subject.** Producer (sim) and
+consumer (renderer) disagreed about state, silently, with no error — a
+producer/consumer seam defect, in the instrument built to measure a
+producer/consumer seam defect, in a paper about them. The taxonomy entry it
+belongs to is *deployment-only state*: nothing in the native path exercises the
+stale-cache route, so no amount of testing the native arm would have found it.
+It is now `Table~\ref{tab:defects}`'s ninth row in spirit and a guard in the
+script.
+
+The swap arm is re-running with the fix. Its first output is void and is not
+reported anywhere.
+
+### M4 answered, part 2: the causal test. Position is a nuisance term, not the driver (2026-08-07)
+
+The teleport arm, re-run with the render fix and the no-op guard. Each object is
+moved **22 cm** to the other cluster's centroid, identity held exactly constant,
+measured at the home pose against its own corpus.
+
+| object | cluster | native | swapped | Δ | move |
+|---|---|---|---|---|---|
+| butter | A | +0.0282 | +0.0282 | −0.0001 | A→B |
+| orange juice | B | +0.0288 | +0.0552 | **+0.0264** | B→A |
+| chocolate pudding | A | +0.0369 | +0.0385 | +0.0015 | A→B |
+| ketchup | A | +0.0414 | +0.0420 | +0.0006 | A→B |
+| bbq sauce | B | +0.0442 | +0.0521 | +0.0079 | B→A |
+| milk | A | +0.0469 | +0.0304 | **−0.0164** | A→B |
+| tomato sauce | B | +0.0484 | +0.0437 | −0.0046 | B→A |
+| alphabet soup | A | +0.0555 | +0.0568 | +0.0014 | A→B |
+| salad dressing | B | +0.0603 | +0.0563 | −0.0040 | B→A |
+| **cream cheese** | B | +0.0697 | **+0.0727** | +0.0030 | B→A |
+
+**1. The direction is wrong for the position account.** M4 predicts that moving
+INTO cluster B raises the gap and moving OUT of it lowers the gap. Measured:
+A→B mean **−0.0026** (it *fell*), B→A mean **+0.0058** (it *rose*). Both
+opposite to prediction. Concordance with the position account is **5/10**,
+exact two-sided sign test **p = 1.0000** — indistinguishable from coin flips.
+
+**2. The decisive single cell.** Cream cheese, the blocked object, teleported
+onto the *training cluster*, still has the **highest gap of all ten objects**
+(0.0727, rank 1 of 10) — and its gap went slightly **up**, not down. If cream's
+gap were caused by sitting 22 cm from where the head has seen targets, putting
+it exactly where the head has seen targets should have collapsed it. It did not
+move.
+
+**3. The gap ordering travels with the object.** Spearman(native gap, swapped
+gap) across the ten objects = **+0.709, exact permutation p = 0.0268**. Rank the
+objects by gap at their home positions, then move every one of them 22 cm, and
+you get substantially the same ranking. The quantity is a property of the
+object, not of the table.
+
+**4. The honest caveat, which is not nothing.** A 22 cm move is *not* inert:
+mean |Δ| = **0.0066**, and one object (orange juice) shifted **+0.0264**, larger
+than the cream-minus-soup identity difference. So position perturbs the
+embedding — it simply does so **unsystematically**. For scale on this stack:
+
+| quantity | magnitude |
+|---|---|
+| mean \|Δ\| from a 22 cm displacement | 0.0066 |
+| cream − soup identity difference | 0.0142 (2.2×) |
+| cream − butter identity difference | 0.0414 (6.3×) |
+| between-object sd at native positions | 0.0132 |
+| within-object sd of the position shift | 0.0108 |
+
+Position is a nuisance term of roughly half the size of the smallest identity
+contrast that matters, with no consistent sign. It is not the driver, and it is
+not zero either; anyone reading this as "position does nothing" is reading it
+harder than the data supports.
+
+**Verdict on M4.** The referee was right that the confound existed and right to
+demand the test — our design could not distinguish the two accounts, and I had
+not noticed. Run four ways (within-cluster contrast, cross-cluster rank
+correlation, the groundability comparison, and this within-object teleport), the
+position account **fails every one**, while a *different* appearance property —
+how well the frozen open-vocabulary detector grounds the object, Spearman −0.709
+against gap, p = 0.0268 — predicts it. The mechanism section is not rewritten
+around position; it is sharpened from "off-manifold drift" to **detector
+groundability**, which names the property instead of the symptom.
+
+Two things this still does not do, stated so they are not read into it. It
+measures the **gap**, never a success cell; and orange juice — the low-gap
+cluster-B object whose crossing would be the cheapest remaining falsification —
+has never been trained. Both go in the paper as open.

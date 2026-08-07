@@ -1,4 +1,4 @@
-\begin{thebibliography}{20}
+\begin{thebibliography}{25}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -39,10 +39,22 @@ Anthony Brohan et~al.
   robotic control.
 \newblock \emph{arXiv preprint arXiv:2307.15818}, 2023.
 
+\bibitem[Chen et~al.(2025)Chen, Wang, Chen, Cai, and Lu]{nanovla2025}
+Jiahong Chen, Jing Wang, Long Chen, Chuwei Cai, and Jinghui Lu.
+\newblock {NanoVLA}: Routing decoupled vision-language understanding for
+  nano-sized generalist robotic policies.
+\newblock \emph{arXiv preprint arXiv:2510.25122}, 2025.
+
 \bibitem[de~Haan et~al.(2019)de~Haan, Jayaraman, and Levine]{dehaan2019causal}
 Pim de~Haan, Dinesh Jayaraman, and Sergey Levine.
 \newblock Causal confusion in imitation learning.
 \newblock In \emph{NeurIPS}, 2019.
+
+\bibitem[Fei et~al.(2025)]{fei2025liberoplus}
+Senyu Fei et~al.
+\newblock Libero-plus: In-depth robustness analysis of vision-language-action
+  models.
+\newblock \emph{arXiv preprint arXiv:2510.13626}, 2025.
 
 \bibitem[Geirhos et~al.(2020)Geirhos, Jacobsen, Michaelis, Zemel, Brendel,
   Bethge, and Wichmann]{geirhos2020shortcut}
@@ -50,6 +62,19 @@ Robert Geirhos, J{\"o}rn-Henrik Jacobsen, Claudio Michaelis, Richard Zemel,
   Wieland Brendel, Matthias Bethge, and Felix~A. Wichmann.
 \newblock Shortcut learning in deep neural networks.
 \newblock \emph{Nature Machine Intelligence}, 2:\penalty0 665--673, 2020.
+
+\bibitem[Glossop et~al.(2025)Glossop, Chen, Bhorkar, Shah, and
+  Levine]{glossop2025cast}
+Catherine Glossop, William Chen, Arjun Bhorkar, Dhruv Shah, and Sergey Levine.
+\newblock Cast: Counterfactual labels improve instruction following in
+  vision-language-action models.
+\newblock \emph{arXiv preprint arXiv:2508.13446}, 2025.
+
+\bibitem[Hou et~al.(2026)]{langgap2026}
+Y.~Hou et~al.
+\newblock Langgap: Diagnosing and closing the language gap in
+  vision-language-action models.
+\newblock \emph{arXiv preprint arXiv:2603.00592}, 2026.
 
 \bibitem[Huang et~al.(2023)]{huang2023voxposer}
 Wenlong Huang et~al.
@@ -61,12 +86,6 @@ Wenlong Huang et~al.
 Moo~Jin Kim et~al.
 \newblock {OpenVLA}: An open-source vision-language-action model.
 \newblock \emph{arXiv preprint arXiv:2406.09246}, 2024.
-
-\bibitem[{LiteVLA authors}(2025)]{litevla2025}
-{LiteVLA authors}.
-\newblock {LiteVLA}: Efficient vision-language-action control on {CPU}-bound
-  edge robots.
-\newblock \emph{arXiv preprint arXiv:2511.05642}, 2025.
 
 \bibitem[Liu et~al.(2023)Liu, Zhu, Gao, Feng, Liu, Zhu, and
   Stone]{liu2023libero}
@@ -89,12 +108,6 @@ Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo Akinola, Yashraj Narang,
 \newblock {MimicGen}: A data generation system for scalable robot learning
   using human demonstrations.
 \newblock In \emph{CoRL}, 2023.
-
-\bibitem[{NanoVLA authors}(2025)]{nanovla2025}
-{NanoVLA authors}.
-\newblock {NanoVLA}: Routing decoupled vision-language understanding for
-  nano-sized generalist robotic policies.
-\newblock \emph{arXiv preprint arXiv:2510.25122}, 2025.
 
 \bibitem[{Octo Model Team} et~al.(2024)]{octo2024}
 {Octo Model Team} et~al.
@@ -126,10 +139,30 @@ Chuan Wen, Jierui Lin, Trevor Darrell, Dinesh Jayaraman, and Yang Gao.
   histories.
 \newblock In \emph{NeurIPS}, 2020.
 
+\bibitem[Williams et~al.(2025)Williams, Gupta, George, and Sarkar]{litevla2025}
+Justin Williams, Kishor~Datta Gupta, Roy George, and Mrinmoy Sarkar.
+\newblock {Lite VLA}: Efficient vision-language-action control on {CPU}-bound
+  edge robots.
+\newblock \emph{arXiv preprint arXiv:2511.05642}, 2025.
+
 \bibitem[Zeng et~al.(2020)]{zeng2020transporter}
 Andy Zeng et~al.
 \newblock Transporter networks: Rearranging the visual world for robotic
   manipulation.
 \newblock In \emph{CoRL}, 2020.
+
+\bibitem[Zhang and Bisk(2026)]{zhang2026flatness}
+Haochen Zhang and Yonatan Bisk.
+\newblock Flatness preserves instruction following in vision-language-action
+  models.
+\newblock \emph{arXiv preprint arXiv:2606.23641}, 2026.
+
+\bibitem[Zhou et~al.(2025)Zhou, Xu, Tie, Chen, Zhang, Chu, Zhou, and
+  Sun]{zhou2025liberopro}
+Xueyang Zhou, Yangming Xu, Guiyao Tie, Yongchao Chen, Guowen Zhang, Duanfeng
+  Chu, Pan Zhou, and Lichao Sun.
+\newblock Libero-pro: Towards robust and fair evaluation of
+  vision-language-action models beyond memorization.
+\newblock \emph{arXiv preprint arXiv:2510.03827}, 2025.
 
 \end{thebibliography}

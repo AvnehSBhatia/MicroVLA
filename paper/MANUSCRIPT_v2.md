@@ -20,9 +20,9 @@ looking. We document this on LIBERO-Object, whose target start poses are
 exactly pinned (measured) in 6 of 10 tasks and within ~±1 cm in the rest.
 The benchmark's across-task structure is tighter than its within-task pinning:
 the ten LIBERO-Object targets occupy just **two** table positions, 22.0 cm
-apart, five tasks each, agreeing to 0.0–0.7 mm within a group
-(`results/placement_pinning.json`). A policy memorizing two coordinates can
-present as generalizing over ten tasks.
+apart, five tasks each, agreeing to within 0.95 mm (max pairwise euclidean;
+cluster A) inside a group (`results/placement_pinning_direct.json`). A policy
+memorizing two coordinates can present as generalizing over ten tasks.
 
 First, an audit finds placement memorization at four layers: a calibrated
 expert whose offset constant encodes pose (sign-flipping under a software
@@ -73,10 +73,14 @@ can instead be *location*: constants — in a benchmark's init files, in an
 expert's calibration, in a learned regressor's shortcut — that encode where the
 object always is, so that vision only ever gates an approach a memorized value
 finishes. On LIBERO-Object, we measure the preconditions exactly: the target
-object's start pose is bit-identical across all 50 shipped init states in 6 of
-10 tasks, and varies by only 0.25–0.58 cm (std) in the other four (§3). A
-benchmark with ≲1 cm of target variance admits position-memorizers, and we
-found them in every layer of our own system.
+object's start POSITION is constant to float64 rounding across all 50 shipped
+init states in 6 of 10 tasks — exactly two distinct values, 1 ULP apart
+(~3e-17 m) on a single axis, which is *not* the "bit-identical" we wrote
+earlier — and varies by only 0.25–0.58 cm (std) in the other four (§3). The
+target's ORIENTATION is bit-identical across all 50 states in **all ten**
+tasks, including those four: rotation is pinned everywhere in LIBERO-Object. A
+benchmark with ≲1 cm of target variance and no rotation at all admits
+position-memorizers, and we found them in every layer of our own system.
 
 The vehicle is MicroVLA, a deliberately small language-conditioned
 vision-language-action (VLA) stack: ~30 M parameters deployed, with a frozen
@@ -198,9 +202,15 @@ quantifies the world model's own margins; §10 lists this under non-claims).
 hashes: App D), we measured the start pose of every task's target object
 across all 50 shipped init states and under fresh seeded resets. Task 0's
 alphabet-soup can starts at exactly (−0.120, −0.240), fixed quaternion, in
-every init state. Across the suite, 6 of 10 targets are bit-identical across
-all 50 states; the other four (bbq_sauce, butter, cream_cheese, milk) vary
-with std 0.25–0.58 cm — roughly ±1 cm. The mechanism is specific, not
+every init state. Across the suite, 6 of 10 targets hold position constant to
+float64 rounding across all 50 states (two values, 1 ULP apart on one axis:
+soup splits 23/27 on y, tomato sauce 18/32 on x); the other four (bbq_sauce,
+butter, cream_cheese, milk) vary with std 0.25–0.58 cm — roughly ±1 cm.
+Orientation is bit-identical in all ten. Read directly from the init files by
+`scripts/measure_placement_pinning.py --mode direct`, which needs no simulator
+— `sim.forward()` perturbs positions at 1e-17 even from identical qpos, which
+is why the earlier sim-based instrument needed a tolerance and could not
+resolve this. The mechanism is specific, not
 "degenerate regions": LIBERO's `TableRegionSampler` insets its sampling region
 by the object's radius, and when that radius reaches 2.5 cm it collapses the
 5×5 cm region to a point; each task's orientation is a single fixed

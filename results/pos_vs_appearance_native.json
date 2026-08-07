@@ -1,0 +1,249 @@
+{
+  "suite": "libero_object",
+  "mode": "native",
+  "states": 50,
+  "camera": "robot0_eye_in_hand_image",
+  "corpus": "data/libero_object_wrist",
+  "cluster_centroids": {
+    "A": [
+      -0.11934991671106014,
+      -0.24173095529525188
+    ],
+    "B": [
+      0.047840313212599184,
+      -0.0985495663388228
+    ]
+  },
+  "cluster_separation_m": 0.22012,
+  "cells": [
+    {
+      "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+      "obj": "alphabet_soup",
+      "cluster": "A",
+      "mode": "native",
+      "native_xy": [
+        -0.12,
+        -0.24
+      ],
+      "probe_xy_mean": [
+        -0.12,
+        -0.24
+      ],
+      "n_probe": 50,
+      "n_corpus": 405,
+      "corpus_self_nn": 0.979516,
+      "probe_nn_to_corpus": 0.924031,
+      "gap": 0.055485,
+      "mean_conf": 0.0959,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+      "obj": "cream_cheese",
+      "cluster": "B",
+      "mode": "native",
+      "native_xy": [
+        0.04607,
+        -0.10265
+      ],
+      "probe_xy_mean": [
+        0.04978,
+        -0.10014
+      ],
+      "n_probe": 50,
+      "n_corpus": 430,
+      "corpus_self_nn": 0.981461,
+      "probe_nn_to_corpus": 0.9118,
+      "gap": 0.069661,
+      "mean_conf": 0.0424,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+      "obj": "salad_dressing",
+      "cluster": "B",
+      "mode": "native",
+      "native_xy": [
+        0.05,
+        -0.1
+      ],
+      "probe_xy_mean": [
+        0.05,
+        -0.1
+      ],
+      "n_probe": 50,
+      "n_corpus": 567,
+      "corpus_self_nn": 0.982871,
+      "probe_nn_to_corpus": 0.922591,
+      "gap": 0.06028,
+      "mean_conf": 0.043,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+      "obj": "bbq_sauce",
+      "cluster": "B",
+      "mode": "native",
+      "native_xy": [
+        0.04313,
+        -0.0901
+      ],
+      "probe_xy_mean": [
+        0.04995,
+        -0.09953
+      ],
+      "n_probe": 50,
+      "n_corpus": 258,
+      "corpus_self_nn": 0.97819,
+      "probe_nn_to_corpus": 0.934027,
+      "gap": 0.044164,
+      "mean_conf": 0.069,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+      "obj": "ketchup",
+      "cluster": "A",
+      "mode": "native",
+      "native_xy": [
+        -0.12,
+        -0.24
+      ],
+      "probe_xy_mean": [
+        -0.12,
+        -0.24
+      ],
+      "n_probe": 50,
+      "n_corpus": 402,
+      "corpus_self_nn": 0.978533,
+      "probe_nn_to_corpus": 0.937141,
+      "gap": 0.041393,
+      "mean_conf": 0.1287,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+      "obj": "tomato_sauce",
+      "cluster": "B",
+      "mode": "native",
+      "native_xy": [
+        0.05,
+        -0.1
+      ],
+      "probe_xy_mean": [
+        0.05,
+        -0.1
+      ],
+      "n_probe": 50,
+      "n_corpus": 429,
+      "corpus_self_nn": 0.984019,
+      "probe_nn_to_corpus": 0.935651,
+      "gap": 0.048367,
+      "mean_conf": 0.086,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_butter_and_place_it_in_the_basket",
+      "obj": "butter",
+      "cluster": "A",
+      "mode": "native",
+      "native_xy": [
+        -0.11959,
+        -0.24436
+      ],
+      "probe_xy_mean": [
+        -0.11978,
+        -0.24041
+      ],
+      "n_probe": 50,
+      "n_corpus": 620,
+      "corpus_self_nn": 0.97937,
+      "probe_nn_to_corpus": 0.951139,
+      "gap": 0.028231,
+      "mean_conf": 0.0909,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_milk_and_place_it_in_the_basket",
+      "obj": "milk",
+      "cluster": "A",
+      "mode": "native",
+      "native_xy": [
+        -0.11716,
+        -0.2443
+      ],
+      "probe_xy_mean": [
+        -0.1207,
+        -0.24017
+      ],
+      "n_probe": 50,
+      "n_corpus": 485,
+      "corpus_self_nn": 0.978761,
+      "probe_nn_to_corpus": 0.931895,
+      "gap": 0.046866,
+      "mean_conf": 0.0762,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+      "obj": "chocolate_pudding",
+      "cluster": "A",
+      "mode": "native",
+      "native_xy": [
+        -0.12,
+        -0.24
+      ],
+      "probe_xy_mean": [
+        -0.12,
+        -0.24
+      ],
+      "n_probe": 50,
+      "n_corpus": 518,
+      "corpus_self_nn": 0.982205,
+      "probe_nn_to_corpus": 0.945287,
+      "gap": 0.036918,
+      "mean_conf": 0.1147,
+      "det_rate": 1.0
+    },
+    {
+      "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+      "obj": "orange_juice",
+      "cluster": "B",
+      "mode": "native",
+      "native_xy": [
+        0.05,
+        -0.1
+      ],
+      "probe_xy_mean": [
+        0.05,
+        -0.1
+      ],
+      "n_probe": 50,
+      "n_corpus": 468,
+      "corpus_self_nn": 0.981558,
+      "probe_nn_to_corpus": 0.952758,
+      "gap": 0.0288,
+      "mean_conf": 0.13,
+      "det_rate": 1.0
+    }
+  ],
+  "stack": {
+    "python": "3.13.2",
+    "platform": "macOS-26.6-arm64-arm-64bit-Mach-O",
+    "numpy": "2.4.6",
+    "torch": "2.13.0",
+    "ultralytics": "8.4.103",
+    "mujoco": "3.3.0",
+    "robosuite": "1.4.0",
+    "git_commit": "74d1da822554b43459e33ffdc2600fa6e5efb18e",
+    "argv": [
+      "scripts/position_vs_appearance.py",
+      "--mode",
+      "native",
+      "--states",
+      "50",
+      "--out",
+      "results/pos_vs_appearance_native.json"
+    ]
+  }
+}

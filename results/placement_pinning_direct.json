@@ -1,0 +1,473 @@
+{
+  "suite": "libero_object",
+  "mode": "direct",
+  "tasks": [
+    {
+      "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+      "target": "alphabet_soup_1",
+      "n_states": 50,
+      "init_states_sha256": "ca535ced3650d201129242f84d004def4139de36fdad2c2d671316851ef55f24",
+      "mean_xy_m": [
+        -0.12,
+        -0.24
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "y",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          23,
+          27
+        ],
+        "values": [
+          [
+            -0.12,
+            -0.24000000000000002,
+            0.015
+          ],
+          [
+            -0.12,
+            -0.24,
+            0.015
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        0.002329,
+        0.260494
+      ],
+      "basket_std_xy_cm": [
+        0.8092,
+        0.869
+      ],
+      "cluster": "A"
+    },
+    {
+      "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+      "target": "bbq_sauce_1",
+      "n_states": 50,
+      "init_states_sha256": "8c03708c5212d2bf0c622d35fd38b2fd1534f1b5c0110bd5048870aefc40e098",
+      "mean_xy_m": [
+        0.049947,
+        -0.099534
+      ],
+      "std_xyz_cm": [
+        0.5788,
+        0.5664,
+        0.0
+      ],
+      "n_distinct_positions": 50,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": null,
+      "basket_mean_xy_m": [
+        3.7e-05,
+        0.259145
+      ],
+      "basket_std_xy_cm": [
+        0.9593,
+        0.8544
+      ],
+      "cluster": "B"
+    },
+    {
+      "task": "pick_up_the_butter_and_place_it_in_the_basket",
+      "target": "butter_1",
+      "n_states": 50,
+      "init_states_sha256": "eb823f57a98a2189834ba5c2c0727db7657a9475f63f78facf8e7f77e60c5a07",
+      "mean_xy_m": [
+        -0.119784,
+        -0.240408
+      ],
+      "std_xyz_cm": [
+        0.261,
+        0.2969,
+        0.0
+      ],
+      "n_distinct_positions": 50,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": null,
+      "basket_mean_xy_m": [
+        0.001041,
+        0.258668
+      ],
+      "basket_std_xy_cm": [
+        0.758,
+        0.8071
+      ],
+      "cluster": "A"
+    },
+    {
+      "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+      "target": "chocolate_pudding_1",
+      "n_states": 50,
+      "init_states_sha256": "bc691a27f4a0df63fa68348236b951cbfbcbfa63aa5b14561bd2c67cec47933a",
+      "mean_xy_m": [
+        -0.12,
+        -0.24
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "y",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          21,
+          29
+        ],
+        "values": [
+          [
+            -0.12,
+            -0.24000000000000002,
+            0.034999999999999996
+          ],
+          [
+            -0.12,
+            -0.24,
+            0.034999999999999996
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        0.000738,
+        0.258595
+      ],
+      "basket_std_xy_cm": [
+        0.8221,
+        0.8513
+      ],
+      "cluster": "A"
+    },
+    {
+      "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+      "target": "cream_cheese_1",
+      "n_states": 50,
+      "init_states_sha256": "417d227174af473a4d044f5cccae90820c43b2ce8a1c6ecf6d3335a87215d08d",
+      "mean_xy_m": [
+        0.049784,
+        -0.10014
+      ],
+      "std_xyz_cm": [
+        0.2727,
+        0.2989,
+        0.0
+      ],
+      "n_distinct_positions": 50,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": null,
+      "basket_mean_xy_m": [
+        -0.001624,
+        0.259674
+      ],
+      "basket_std_xy_cm": [
+        0.8265,
+        0.7814
+      ],
+      "cluster": "B"
+    },
+    {
+      "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+      "target": "ketchup_1",
+      "n_states": 50,
+      "init_states_sha256": "6faad28d89216b0c77f86ad6778813a1d0f2f2e99032890e727e4e75b29db670",
+      "mean_xy_m": [
+        -0.12,
+        -0.24
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "y",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          25,
+          25
+        ],
+        "values": [
+          [
+            -0.12,
+            -0.24000000000000002,
+            0.034999999999999996
+          ],
+          [
+            -0.12,
+            -0.24,
+            0.034999999999999996
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        -0.00122,
+        0.260641
+      ],
+      "basket_std_xy_cm": [
+        0.8327,
+        0.8327
+      ],
+      "cluster": "A"
+    },
+    {
+      "task": "pick_up_the_milk_and_place_it_in_the_basket",
+      "target": "milk_1",
+      "n_states": 50,
+      "init_states_sha256": "82583c0d32fe9f1bfb699d3cbf7426c329ae615a41b2710baa7c36bfd7a87eaf",
+      "mean_xy_m": [
+        -0.120703,
+        -0.240168
+      ],
+      "std_xyz_cm": [
+        0.3042,
+        0.2536,
+        0.0
+      ],
+      "n_distinct_positions": 50,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": null,
+      "basket_mean_xy_m": [
+        -0.00091,
+        0.260037
+      ],
+      "basket_std_xy_cm": [
+        0.9397,
+        0.8324
+      ],
+      "cluster": "A"
+    },
+    {
+      "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+      "target": "orange_juice_1",
+      "n_states": 50,
+      "init_states_sha256": "a60c6b941e3289cc69112c8a3504a077f7d93cea7e1361c5972992d787b56a38",
+      "mean_xy_m": [
+        0.05,
+        -0.1
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "x",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          27,
+          23
+        ],
+        "values": [
+          [
+            0.05,
+            -0.1,
+            0.034999999999999996
+          ],
+          [
+            0.05000000000000001,
+            -0.1,
+            0.034999999999999996
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        -0.000107,
+        0.260154
+      ],
+      "basket_std_xy_cm": [
+        0.852,
+        0.8994
+      ],
+      "cluster": "B"
+    },
+    {
+      "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+      "target": "salad_dressing_1",
+      "n_states": 50,
+      "init_states_sha256": "2f5a7166ed3bd4ac6341f4e70802d5ecc7c479ea077e65b990ec95d160c2c91c",
+      "mean_xy_m": [
+        0.05,
+        -0.1
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "x",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          29,
+          21
+        ],
+        "values": [
+          [
+            0.05,
+            -0.1,
+            0.034999999999999996
+          ],
+          [
+            0.05000000000000001,
+            -0.1,
+            0.034999999999999996
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        -1e-05,
+        0.260889
+      ],
+      "basket_std_xy_cm": [
+        0.8499,
+        0.8732
+      ],
+      "cluster": "B"
+    },
+    {
+      "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+      "target": "tomato_sauce_1",
+      "n_states": 50,
+      "init_states_sha256": "914d1fc18e4cebe479835af13d69c855f2c3c87c37ee1fc64f77afa0136870df",
+      "mean_xy_m": [
+        0.05,
+        -0.1
+      ],
+      "std_xyz_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "n_distinct_positions": 2,
+      "n_distinct_quaternions": 1,
+      "position_bit_identical": false,
+      "orientation_bit_identical": true,
+      "ulp_structure": {
+        "axes_differing": [
+          {
+            "axis": "x",
+            "ulps": 1
+          }
+        ],
+        "split": [
+          18,
+          32
+        ],
+        "values": [
+          [
+            0.05,
+            -0.1,
+            0.034999999999999996
+          ],
+          [
+            0.05000000000000001,
+            -0.1,
+            0.034999999999999996
+          ]
+        ]
+      },
+      "basket_mean_xy_m": [
+        -0.001498,
+        0.259455
+      ],
+      "basket_std_xy_cm": [
+        0.8551,
+        0.874
+      ],
+      "cluster": "B"
+    }
+  ],
+  "summary": {
+    "n_tasks": 10,
+    "n_position_pinned": 6,
+    "n_orientation_bit_identical": 10,
+    "clusters": {
+      "A": {
+        "members": [
+          "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+          "pick_up_the_butter_and_place_it_in_the_basket",
+          "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+          "pick_up_the_ketchup_and_place_it_in_the_basket",
+          "pick_up_the_milk_and_place_it_in_the_basket"
+        ],
+        "centroid_xy_m": [
+          -0.120097,
+          -0.240115
+        ],
+        "max_pairwise_euclidean_mm": 0.95,
+        "max_pairwise_per_axis_mm": 0.919
+      },
+      "B": {
+        "members": [
+          "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+          "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+          "pick_up_the_orange_juice_and_place_it_in_the_basket",
+          "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+          "pick_up_the_tomato_sauce_and_place_it_in_the_basket"
+        ],
+        "centroid_xy_m": [
+          0.049946,
+          -0.099935
+        ],
+        "max_pairwise_euclidean_mm": 0.628,
+        "max_pairwise_per_axis_mm": 0.606
+      }
+    },
+    "cluster_separation_cm": 22.037,
+    "basket_max_pairwise_mm": 4.037
+  }
+}
