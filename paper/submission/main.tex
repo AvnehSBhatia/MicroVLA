@@ -698,37 +698,46 @@ per-object prompt engineering changes nothing (0/10).
 shape.} A same-box result is only evidence about the stack if the probe is
 capable of the other answer, and every same-box number we had published came
 from an instrument never shown \emph{not} firing. Running the identical function
-through the identical deployed perception object, on the same 20 home-pose wrist
-frames, against every other object in soup's scene splits cleanly in two:
+through the identical deployed perception object, on the same 60 home-pose wrist
+frames, against every other object in soup's scene splits cleanly in two
+(Table~\ref{tab:probectl}).
 
-\begin{center}\small
-\begin{tabular}{lll}
+\begin{table}[h]\centering\small
+\begin{tabular}{lrrl}
 \toprule
-counterpart chain & same-box rate & median centre distance \\
+counterpart chain & $n$ & same-box & median centre dist. \\
 \midrule
-cream cheese, butter, choc.\ pudding & \textbf{0.00} & 0.817--0.818 \\
-milk, orange juice & \textbf{0.00} & 0.573, 0.576 \\
+cream cheese      & 6 & \textbf{0.00} & 0.8175 \\
+butter            & 6 & \textbf{0.00} & 0.8179 \\
+chocolate pudding & 6 & \textbf{0.00} & 0.8175 \\
 \midrule
-tomato sauce & 1.00 & 0.00069 \\
-bbq sauce, salad dressing & 0.80 & 0.0043, 0.0047 \\
-ketchup & 0.60 & 0.0048 \\
+tomato sauce      & 4 & 1.00 & 0.00069 \\
+bbq sauce         & 5 & 0.80 & 0.00434 \\
+salad dressing    & 5 & 0.80 & 0.00469 \\
+ketchup           & 5 & 0.60 & 0.00483 \\
+\midrule
+milk / orange juice & 2, 1 & \multicolumn{2}{l}{below the 3-frame floor: not evaluable} \\
+basket            & 0 & \multicolumn{2}{l}{filtered by \texttt{source\_max\_area}: not evaluable} \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Positive control for the identity-blindness probe, 60 wrist frames at
+the home pose. $n$ counts frames in which \emph{both} chains detected. Rows below
+the floor are reported, never scored.}
+\label{tab:probectl}
+\end{table}
 
 \noindent So the probe registers difference when difference exists: the
 instrument is an instrument. The distances are bimodal --- collisions at
-${\sim}0.004$ and separations at $0.57$--$0.82$, with nothing between --- and a
+${\sim}0.004$ and separations at ${\sim}0.82$, with nothing between --- and a
 threshold sweep over $\{0.005, 0.01, 0.02, 0.05\}$ leaves every verdict
 unchanged, so no reading here rides on the 0.02 default. The split is also
 interpretable, and sharpens the claim: the chains that collide with ``alphabet
-soup'' are the cans and bottles (tomato sauce, bbq sauce, salad dressing,
-ketchup) and the chains that separate are the boxes and cartons. Deployed
-binding is not blind to everything --- it is blind \emph{within a shape class},
-which is precisely the regime LIBERO-Object's grocery objects occupy.
+soup'' are the cans and bottles and the chains that separate are the boxes.
+Deployed binding is not blind to everything --- it is blind \emph{within a shape
+class}, which is precisely the regime LIBERO-Object's grocery objects occupy.
 
-Two honest limits. Only 1--6 of 20 frames had both chains detecting, because at
-the home pose the source chain fires on 30\% of frames; these are small-$n$
+Two honest limits. Only 4--6 of 60 frames had both chains detecting, because at
+the home pose the source chain fires on 10\% of frames; these are small-$n$
 contrasts and we report them as a demonstration that the instrument
 discriminates, not as calibrated rates. And the contrast we originally
 designated the positive control --- the basket --- is not evaluable at all: the
@@ -901,6 +910,21 @@ substantially a selection artifact and the headline number must be restated;
 above 0.80 would mean the burn hurt rather than helped and our account of it is
 wrong. Both directions were nameable in advance, which is the only thing that
 makes the prediction worth recording.
+
+\paragraph{Result: \boldmath$20/30 = 0.667$ $[0.488, 0.808]$.} The prediction
+holds. Against the published held-out figure of 0.700 the difference is
+$-0.033$ with a Newcombe 95\% interval of $[-0.243, +0.164]$ on independent
+states --- no detected difference, and the interval is wide enough that we claim
+only that. The reference cell run first in the same queue returned 8/10, and
+0.700 lies inside its interval, so the machinery was behaving.
+
+What this buys is narrow and worth having: \textbf{the five disclosed selection
+looks at states 10--19 did not inflate the held-out number}. Thirty states that
+no look, ablation or debugging pass ever reached score within noise of it. That
+is the strongest form of this claim we can make, because a burn, if present,
+would have to be small enough to hide inside $\pm0.20$ --- we have not shown the
+burn is zero, only that it is not large. Reported as one pre-registered
+confirmatory cell, not as a replacement for the held-out figure.
 
 \subsection{Is it appearance, or is it position?}
 \label{sec:posvsapp}

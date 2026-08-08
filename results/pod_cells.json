@@ -24,11 +24,11 @@
   },
   "P1_E4_untouched": {
     "k": 20,
-    "n": 26,
-    "rate": 0.7692307692307693,
+    "n": 30,
+    "rate": 0.6666666666666666,
     "wilson": [
-      0.5795,
-      0.8897
+      0.4878,
+      0.8077
     ],
     "trials": {
       "0": false,
@@ -54,12 +54,39 @@
       "20": false,
       "21": true,
       "22": true,
+      "23": false,
+      "24": false,
       "25": true,
       "26": true,
-      "28": true
+      "27": false,
+      "28": true,
+      "29": false
     },
     "planned_n": 30,
-    "complete": false
+    "complete": true
+  },
+  "P2_E5_fixed": {
+    "k": 10,
+    "n": 10,
+    "rate": 1.0,
+    "wilson": [
+      0.7225,
+      1.0
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true,
+      "7": true,
+      "8": true,
+      "9": true
+    },
+    "planned_n": 10,
+    "complete": true
   },
   "P2_E5_oracle": {
     "k": 10,
@@ -83,5 +110,40 @@
     },
     "planned_n": 10,
     "complete": true
+  },
+  "P2_E5_random": {
+    "k": 0,
+    "n": 2,
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.6576
+    ],
+    "trials": {
+      "0": false,
+      "1": false
+    },
+    "planned_n": 10,
+    "complete": false
+  },
+  "P3_E8_base_cov": {
+    "k": 7,
+    "n": 7,
+    "rate": 1.0,
+    "wilson": [
+      0.6457,
+      1.0
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "7": true
+    },
+    "planned_n": 10,
+    "complete": false
   }
 }

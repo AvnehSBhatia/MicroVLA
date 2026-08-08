@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -645,53 +645,54 @@ line 636.
 
 [8 <../visuals/F3_protocol_by_head.png>]
 
+LaTeX Warning: Reference `tab:probectl' on page 9 undefined on input line 703.
+
+
+
 [9 <../visuals/F6_audit_stack_control.png>]
 
 [10 <../visuals/F2_attribution_profiles.png>]
-Overfull \hbox (44.53966pt too wide) in paragraph at lines 787--802
+Overfull \hbox (44.53966pt too wide) in paragraph at lines 796--811
 \OT1/lmtt/m/n/10 GraspPointHead.forward \OT1/lmr/m/n/10 con-sumes only \OT1/lmt
 t/m/n/10 geom\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 box[]emb\OT1/lmr/m/n/10 , \OT1/
 lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
  , as-sem-bled by \OT1/lmtt/m/n/10 build[]grasp[]features(uv,
  []
 
-LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 828.
 
 
 [11]
+LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
+(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 837.
+
 
 [12]
-<../visuals/F7_position_vs_appearance.png, id=244, 956.24622pt x 339.28864pt>
+<../visuals/F7_position_vs_appearance.png, id=245, 956.24622pt x 339.28864pt>
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 943.
+t line 967.
 (pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
 
 
 [13]
 
 [14 <../visuals/F7_position_vs_appearance.png>]
-<../visuals/F5_third_object.png, id=259, 966.61125pt x 298.11375pt>
+<../visuals/F5_third_object.png, id=262, 966.61125pt x 298.11375pt>
 File: ../visuals/F5_third_object.png Graphic file (type png)
 <use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 106
-8.
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 109
+2.
 (pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
 
 
-[15 <../visuals/F5_third_object.png>]
+[15]
 
-[16]
+[16 <../visuals/F5_third_object.png>]
 
-LaTeX Warning: `h' float specifier changed to `ht'.
+[17]
 
-
-
-[17] (./main.bbl
-
-[18]
+[18] (./main.bbl
 
 [19])
 
@@ -705,27 +706,24 @@ L3 programming layer <2025-01-18>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 
+LaTeX Warning: There were undefined references.
+
+
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
-
-Package rerunfilecheck Warning: File `main.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `main.out':
-(rerunfilecheck)             Before: 9790348C814AAD80969796D3BAE7151B;5204
-(rerunfilecheck)             After:  37788B06FD7E564ADA51C5B82399575E;5299.
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: 37788B06FD7E564ADA51C5B82399575E;5299.
  ) 
 Here is how much of TeX's memory you used:
- 14360 strings out of 474662
- 230544 string characters out of 5751110
- 678246 words of memory out of 5000000
- 37098 multiletter control sequences out of 15000+600000
- 634549 words of font info for 94 fonts, out of 8000000 for 9000
+ 14381 strings out of 474662
+ 230849 string characters out of 5751110
+ 678265 words of memory out of 5000000
+ 37111 multiletter control sequences out of 15000+600000
+ 636517 words of font info for 100 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,613s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1319b,599s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-pdfTeX warning (dest): name{table.caption.27} has been referenced but does not 
+pdfTeX warning (dest): name{table.caption.29} has been referenced but does not 
 exist, replaced by a fixed one
 
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.p
@@ -739,26 +737,27 @@ c/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025basic/tex
 mf-dist/fonts/type1/public/lm/lmmi5.pfb></usr/local/texlive/2025basic/texmf-dis
 t/fonts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/font
 s/type1/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type
-1/public/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publ
-ic/lm/lmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/
-lmr6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pf
-b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr
-/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/loca
-l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri7.pfb></usr/local/texl
-ive/2025basic/texmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/local/texlive/20
-25basic/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025bas
-ic/texmf-dist/fonts/type1/public/lm/lmsy6.pfb></usr/local/texlive/2025basic/tex
-mf-dist/fonts/type1/public/lm/lmsy7.pfb></usr/local/texlive/2025basic/texmf-dis
-t/fonts/type1/public/lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dist/font
-s/type1/public/lm/lmtk10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/typ
-e1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/pu
-blic/lm/lmtt8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/l
-m/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfont
-s/symbols/msam10.pfb>
-Output written on main.pdf (20 pages, 1311283 bytes).
+1/public/lm/lmmib10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/pu
+blic/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/l
+m/lmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr6
+.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pfb></
+usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr/loc
+al/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/te
+xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri7.pfb></usr/local/texlive/
+2025basic/texmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/local/texlive/2025ba
+sic/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/lm/lmsy6.pfb></usr/local/texlive/2025basic/texmf-d
+ist/fonts/type1/public/lm/lmsy7.pfb></usr/local/texlive/2025basic/texmf-dist/fo
+nts/type1/public/lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/ty
+pe1/public/lm/lmtk10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/p
+ublic/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public
+/lm/lmtt8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lm
+tt9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/sy
+mbols/msam10.pfb>
+Output written on main.pdf (20 pages, 1316954 bytes).
 PDF statistics:
- 495 PDF objects out of 1000 (max. 8388607)
- 395 compressed objects within 4 object streams
- 102 named destinations out of 1000 (max. 500000)
+ 504 PDF objects out of 1000 (max. 8388607)
+ 401 compressed objects within 5 object streams
+ 104 named destinations out of 1000 (max. 500000)
  14535 words of extra memory for PDF output out of 17280 (max. 10000000)
 
