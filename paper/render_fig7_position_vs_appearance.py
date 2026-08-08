@@ -1,4 +1,4 @@
-"""F7 --- is the appearance gap actually a position effect? (referee M4)
+"""is the appearance gap actually a position effect? (referee M4)
 
 Reads the two artifacts emitted by ``scripts/position_vs_appearance.py`` and
 draws the two tests that separate identity from table position:
@@ -87,7 +87,7 @@ axB.text(0.002, i_cc - 0.75,
          fontsize=8.5, color=CB, va="top", ha="left", linespacing=1.35)
 axB.spines[["top", "right"]].set_visible(False)
 
-fig.suptitle("F7 — The blocked object's appearance gap is a property of the object, not of the table",
+fig.suptitle("The blocked object's appearance gap is a property of the object, not of the table",
              fontsize=12, y=1.01)
 fig.tight_layout()
 OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,4 @@
-"""F4 --- the probe-only counterexample, promoted out of an annotation box.
+"""the probe-only counterexample, promoted out of an annotation box.
 
 Two heads trained the same way on the same 10-episode corpus. An on-manifold
 substitution probe cannot tell them apart --- their attribution profiles agree
@@ -72,7 +72,7 @@ axR.set_ylabel("deployed success (held-out)")
 axR.set_title("B  Deployment does", loc="left", fontweight="bold", fontsize=11)
 axR.spines[["top", "right"]].set_visible(False)
 
-fig.suptitle("F4 — Matched probe profiles, opposite deployed behaviour: "
+fig.suptitle("Matched probe profiles, opposite deployed behaviour: "
              "an on-manifold probe cannot certify off-manifold behaviour",
              fontsize=11.5, y=1.02)
 fig.tight_layout()

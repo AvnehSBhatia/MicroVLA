@@ -1,4 +1,4 @@
-"""F6 --- the place head's command->location map, drawn on the table.
+"""the place head's command->location map, drawn on the table.
 
 Layer 4 is currently an argument made of numbers in a paragraph. It is really a
 picture: the released head, asked for three different objects, emits three place
@@ -84,7 +84,7 @@ axB.text(-17, -16.6, f"spread across commands: {COVERAGE_SPREAD:.2f} cm\n"
 h = [plt.Line2D([], [], marker="o", ls="", color=c, ms=8) for c in COL.values()]
 axB.legend(h, list(COL), frameon=False, fontsize=7.8, loc="upper right")
 
-fig.suptitle("F6 — The place head learned command$\\rightarrow$location, not basket. "
+fig.suptitle("The place head learned command$\\rightarrow$location, not basket. "
              "All ten tasks share one basket, so this was invisible until the instruction changed.",
              fontsize=10.8, y=1.00)
 fig.tight_layout()

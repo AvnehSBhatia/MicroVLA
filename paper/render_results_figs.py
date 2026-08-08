@@ -82,7 +82,7 @@ axp.set_xticks([])
 axp.set_ylim(0, 1.0)
 axp.spines[["top", "right"]].set_visible(False)
 
-fig.suptitle("F3 — Protocol × head; memorized-randomized is the pod control "
+fig.suptitle("Protocol × head; memorized-randomized is the pod control "
              "(identical draws as the flagship bar)", fontsize=10, y=0.99)
 fig.tight_layout(rect=[0, 0, 1, 0.94])
 fig.savefig("paper/visuals/F3_protocol_by_head.png", dpi=180)
@@ -106,7 +106,7 @@ axa.set_xticks([0, 1])
 axa.set_xticklabels(["memorized", "flagship v5"], fontsize=9)
 axa.set_ylim(0, 1.0)
 axa.set_ylabel("success rate (Wilson 95%)")
-axa.set_title("F6 — audit stack, randomized $\\pm$4 cm\n"
+axa.set_title("audit stack, randomized $\\pm$4 cm\n"
               "(rebuilt detector; separation INVERTS)", fontsize=9.5)
 axa.spines[["top", "right"]].set_visible(False)
 figa.tight_layout()

@@ -1,4 +1,4 @@
-"""F1 --- what each LIBERO suite actually pins (referee E3 / F1).
+"""what each LIBERO suite actually pins (referee E3 / F1).
 
 The referee's note was fair: the paper's most visual claim --- that
 LIBERO-Object's targets occupy two table positions --- had no figure. This draws
@@ -145,7 +145,7 @@ axC.spines[["top", "right"]].set_visible(False)
 
 n_quat = sum(D["suites"][s]["n_target_orientation_bit_identical"] for s in suites)
 n_res = sum(D["suites"][s]["n_resolvable_tasks"] for s in suites)
-fig.suptitle("F1 — LIBERO-Object is the outlier: its targets are pinned, the other suites' are not "
+fig.suptitle("LIBERO-Object is the outlier: its targets are pinned, the other suites' are not "
              f"(orientation is bit-identical in {n_quat}/{n_res} resolvable tasks across all four)",
              fontsize=11, y=1.02)
 fig.tight_layout()

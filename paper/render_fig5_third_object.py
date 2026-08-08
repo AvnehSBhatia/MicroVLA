@@ -1,4 +1,4 @@
-"""F5 — how the third object crossed: drift precedes error, and repairing it works.
+"""how the third object crossed: drift precedes error, and repairing it works.
 
 Three panels, all measured (2026-08-06, artifact-verified; see paper.md):
 
