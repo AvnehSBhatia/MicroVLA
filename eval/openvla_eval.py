@@ -68,10 +68,19 @@ def predict(processor, model, frame: np.ndarray, instruction: str, device: str,
     from PIL import Image
 
     prompt = f"In: What action should the robot take to {instruction.lower()}?\nOut:"
-    inputs = processor(prompt, Image.fromarray(frame)).to(device, dtype=torch.bfloat16)
+    inputs = processor(prompt, Image.fromarray(frame).convert("RGB")).to(
+        device, dtype=torch.bfloat16)
     with torch.no_grad():
         action = model.predict_action(**inputs, unnorm_key=unnorm_key, do_sample=False)
-    return np.asarray(action, dtype=np.float64).reshape(-1)
+    a = np.asarray(action, dtype=np.float64).reshape(-1).copy()
+    # OpenVLA's own LIBERO post-processing, and it is load-bearing: the model
+    # emits the gripper in [0, 1] with 1 = CLOSE, while robosuite wants
+    # [-1, +1] with -1 = close. Skipping it leaves the jaw open for the whole
+    # episode -- the policy never grasps and scores 0, which we measured before
+    # adding this and would have published as OpenVLA's baseline.
+    a[-1] = np.sign(2.0 * a[-1] - 1.0)      # normalize_gripper_action(binarize)
+    a[-1] = -a[-1]                           # invert_gripper_action
+    return a
 
 
 def run(args) -> dict:
@@ -119,6 +128,11 @@ def run(args) -> dict:
                 # still scored on the real task.
                 instr = args.override_instruction or task.language
                 t0, done = time.time(), False
+                # Their eval lets the scene settle before the policy acts; acting
+                # into a still-falling scene is not the protocol the checkpoint
+                # was evaluated under.
+                for _ in range(args.settle_steps):
+                    obs, _, _, _ = env.step([0, 0, 0, 0, 0, 0, -1])
                 for step in range(args.max_steps):
                     # 180-degree rotation, NOT a vertical flip. This is
                     # OpenVLA's own LIBERO preprocessing
@@ -159,6 +173,9 @@ def main() -> None:
     p.add_argument("--n-trials", type=int, default=10)
     p.add_argument("--trial-offset", type=int, default=0)
     p.add_argument("--max-steps", type=int, default=600)
+    p.add_argument("--settle-steps", type=int, default=10,
+                   help="dummy steps before the policy acts, matching OpenVLA's "
+                        "own LIBERO eval (num_steps_wait).")
     p.add_argument("--seed", type=int, default=20)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--unnorm-key", default="libero_object")
