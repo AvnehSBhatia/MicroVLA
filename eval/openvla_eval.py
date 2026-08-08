@@ -134,13 +134,17 @@ def run(args) -> dict:
                 for _ in range(args.settle_steps):
                     obs, _, _, _ = env.step([0, 0, 0, 0, 0, 0, -1])
                 for step in range(args.max_steps):
-                    # 180-degree rotation, NOT a vertical flip. This is
-                    # OpenVLA's own LIBERO preprocessing
-                    # (experiments/robot/libero/libero_utils.py::get_libero_image);
-                    # feeding their policy our convention would hand it images
-                    # its training never saw and manufacture a weak baseline,
-                    # which would flatter our probe rather than test it.
-                    frame = np.ascontiguousarray(obs[CAMERA][::-1, ::-1])
+                    # Row flip only. OpenVLA's own LIBERO helper rotates 180
+                    # (`img[::-1, ::-1]`), but that was written against a
+                    # robosuite whose framebuffer handedness differs from this
+                    # one: applied here it leaves the scene upright and
+                    # MIRRORED, and a mirrored scene makes the policy drive
+                    # hard toward where it thinks the object is. Rendering all
+                    # three candidate orientations and looking at them settles
+                    # it -- the row flip (our `upright()`, validated by every
+                    # cell in this paper) is the upright one on this stack.
+                    from microvla.utils.camera import upright
+                    frame = upright(obs[CAMERA], CAMERA)
                     a = predict(processor, model, frame, instr, args.device, args.unnorm_key)
                     obs, _r, done, info = env.step(a.tolist())
                     # Same success extraction as eval/libero_eval.py. `done` is

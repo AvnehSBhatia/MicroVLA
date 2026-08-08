@@ -11170,3 +11170,42 @@ survives is qualitative and now checkable: v5 moves more on its visual channels
 (3.43 / 6.57 cm) than on proprioception (1.93 cm), and v2/v2.1 are
 indistinguishable to the probe. **The specific magnitudes previously printed
 should not be relied on**, and the paper now says so in the caption.
+
+---
+
+## 2026-08-08 — E2 (external validation): four harness bugs, all biased the same way
+
+Built `eval/openvla_eval.py` to run our two behavioural probes against
+`openvla/openvla-7b-finetuned-libero-object` — a checkpoint from another lab,
+another architecture (7B autoregressive VLM, no detector, no shell). 15 GB
+fetched in ~80 s; a separate venv inheriting the deployment stack's torch so
+`transformers` cannot perturb the versions our own cells depend on.
+
+**The baseline came back 0/1 on a checkpoint published near 0.9.** That is a
+harness bug, not a finding, and I treated it as one. Four bugs found so far:
+
+1. **Image orientation.** Their helper rotates 180 (`img[::-1, ::-1]`); I first
+   flipped vertically only. Then rendering all three candidate orientations and
+   *looking at them* showed the decisive thing: on this robosuite version the
+   180 rotation leaves the scene upright **and mirrored**. Our own `upright()`
+   (row flip) is correct here. Evidence it matters: before the fix the actions
+   were saturated in one direction (mean |y| = 0.75, same sign every step);
+   after, they vary (−0.77 to +0.8). A mirrored scene makes the policy drive
+   hard toward where it thinks the object is.
+2. **Gripper convention.** OpenVLA emits the gripper in [0,1] with 1 = close;
+   robosuite wants [−1,+1] with −1 = close. Their eval applies
+   `normalize_gripper_action` + `invert_gripper_action`. Without it the jaw
+   never closes and the policy **cannot** grasp — 0 by construction.
+3. **Success extraction.** I read the env's `done` flag. `done` also fires on
+   horizon. Our own harness reads `info["success"]` with an `env.check_success()`
+   fallback; the OpenVLA path now does the same.
+4. **SIGTERM shield** missing — caught by our own test suite, which scans every
+   CLI in `train/`, `eval/`, `preprocess/`.
+
+**Every one of these biases in the same direction: it makes the external
+checkpoint look terrible.** A weak baseline would make our instruments look
+powerful for entirely the wrong reason, which is the single easiest way to
+fabricate an external-validation result without meaning to. Hence the rule I
+applied: **no E2 number gets reported until the baseline reproduces**. If it
+does not, E2 is reported as attempted and not validated, and the harness ships
+so someone else can finish it.
