@@ -3,7 +3,8 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage{lmodern}   % scalable Type1; CM bitmaps break microtype expansion
+\usepackage{lmodern}
+\usepackage{multirow}   % scalable Type1; CM bitmaps break microtype expansion
 \usepackage[expansion=false]{microtype}
 \usepackage[hidelinks]{hyperref}
 \usepackage[numbers,sort&compress]{natbib}
@@ -849,6 +850,44 @@ embedding and is genuinely language-conditioned. Every task in this suite
 places into the same basket, so all \emph{correct} instructions imply the same
 place target---which leaves the stack's one real language channel normally
 \emph{unexercised}, not inert. The swap below exercises it.
+
+\subsection{Cells added in revision}
+\label{sec:newcells}
+
+Table~\ref{tab:newcells} collects every cell run for this revision, on one
+rebuilt deployment stack in one session, with per-trial outcomes released in
+\texttt{results/pod\_cells.json} and per-job wall times and exit statuses in
+\texttt{results/pod\_run\_ledger.txt}. Two of them cost us claims we had made,
+and both are in the table rather than in a footnote.
+
+\begin{table}[h]\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llll}
+\toprule
+cell & result & Wilson 95\% & what it settles \\
+\midrule
+reference (seed 20) & 8/10 & $[0.49, 0.94]$ & rebuild reproduces published 7/10 \\
+\textbf{untouched 20--49} & \textbf{20/30} & $[0.49, 0.81]$ & selection looks did not inflate 0.700 \\
+\midrule
+shell $+$ oracle goals & 10/10 & $[0.72, 1.00]$ & envelope is not the binding constraint \\
+shell $+$ \textbf{random} goals & \textbf{0/10} & $[0.00, 0.28]$ & \textbf{shell cannot do it alone} \\
+shell $+$ fixed constant & 10/10 & $[0.72, 1.00]$ & a memorizer beats the released head \\
+\midrule
+flagship, swapped instr. & \textbf{0/20} & $[0.00, 0.16]$ & collapse survives powering up \\
+coverage head, baseline & 9/10 & $[0.60, 0.98]$ & --- \\
+coverage head, swapped & 4/10 & $[0.17, 0.69]$ & \textbf{non-collapse does not replicate} \\
+\midrule
+randomized $\pm2$\,cm & 7/10 & $[0.40, 0.89]$ & \multirow{3}{*}{degrades toward the envelope} \\
+randomized $\pm6$\,cm & 2/10 & $[0.06, 0.51]$ & \\
+randomized $\pm8$\,cm & 3/10 & $[0.11, 0.60]$ & \\
+\bottomrule
+\end{tabular}
+\caption{Cells added in revision. All on \texttt{libero\_object} task 0, 600
+steps, wrist camera, on a rebuilt stack pinned to the platform table with
+\texttt{MUJOCO\_GL=osmesa}. Anchor and swap rows draw seed 20 (states 10--19);
+the untouched row draws seed 40 (states 20--49); sweep rows draw seed 0.}
+\label{tab:newcells}
+\end{table}
 
 \subsection{Reproduction on a rebuilt stack, and one unpinned component}
 \label{sec:thirdstack}

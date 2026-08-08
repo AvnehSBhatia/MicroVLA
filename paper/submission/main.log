@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -203,25 +203,32 @@ LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 (Font)                  OT1/cmtt/m/n --> OT1/lmtt/m/n on input line 38.
 )
+(/Users/avneh/Library/texmf/tex/latex/multirow/multirow.sty
+Package: multirow 2024/11/12 v2.9 Span multiple rows of a table
+\multirow@colwidth=\skip54
+\multirow@cntb=\count289
+\multirow@dima=\skip55
+\bigstrutjot=\dimen174
+)
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.sty
 Package: microtype 2025/02/11 v3.2a Micro-typographical refinements (RS)
 
 (/Users/avneh/Library/texmf/tex/latex/etoolbox/etoolbox.sty
 Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count289
+\etb@tempcnta=\count290
 )
 \MT@toks=\toks24
 \MT@tempbox=\box54
-\MT@count=\count290
+\MT@count=\count291
 LaTeX Info: Redefining \noprotrusionifhmode on input line 1087.
 LaTeX Info: Redefining \leftprotrusion on input line 1088.
 \MT@prot@toks=\toks25
 LaTeX Info: Redefining \rightprotrusion on input line 1107.
 LaTeX Info: Redefining \textls on input line 1449.
-\MT@outer@kern=\dimen174
+\MT@outer@kern=\dimen175
 LaTeX Info: Redefining \microtypecontext on input line 2053.
 LaTeX Info: Redefining \textmicrotypecontext on input line 2070.
-\MT@listname@count=\count291
+\MT@listname@count=\count292
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype-pdftex.d
 ef
@@ -229,7 +236,7 @@ File: microtype-pdftex.def 2025/02/11 v3.2a Definitions specific to pdftex (RS)
 
 LaTeX Info: Redefining \lsstyle on input line 944.
 LaTeX Info: Redefining \lslig on input line 944.
-\MT@outer@space=\skip54
+\MT@outer@space=\skip56
 )
 Package microtype Info: Loading configuration file microtype.cfg.
  (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.cfg
@@ -278,15 +285,15 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/kvoptions/kvoptions.sty
 Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
 ))
-\c@section@level=\count292
+\c@section@level=\count293
 )
 (/usr/local/texlive/2025basic/texmf-dist/tex/generic/stringenc/stringenc.sty
 Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
 )
 )
-\@linkdim=\dimen175
-\Hy@linkcounter=\count293
-\Hy@pagecounter=\count294
+\@linkdim=\dimen176
+\Hy@linkcounter=\count294
+\Hy@pagecounter=\count295
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/pd1enc.def
 File: pd1enc.def 2024-11-05 v7.01l Hyperref: PDFDocEncoding definition (HO)
@@ -296,7 +303,7 @@ Now handling font encoding PD1 ...
 (/usr/local/texlive/2025basic/texmf-dist/tex/generic/intcalc/intcalc.sty
 Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 )
-\Hy@SavedSpaceFactor=\count295
+\Hy@SavedSpaceFactor=\count296
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/puenc.def
 File: puenc.def 2024-11-05 v7.01l Hyperref: PDF Unicode definition (HO)
@@ -310,14 +317,14 @@ Package hyperref Info: Plain pages OFF on input line 4172.
 Package hyperref Info: Backreferencing OFF on input line 4177.
 Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
 Package hyperref Info: Bookmarks ON on input line 4424.
-\c@Hy@tempcnt=\count296
+\c@Hy@tempcnt=\count297
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/url/url.sty
 \Urlmuskip=\muskip18
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 LaTeX Info: Redefining \url on input line 4763.
-\XeTeXLinkMargin=\dimen176
+\XeTeXLinkMargin=\dimen177
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/generic/bitset/bitset.sty
 Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
@@ -326,9 +333,9 @@ Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
 Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
 )
 ))
-\Fld@menulength=\count297
-\Field@Width=\dimen177
-\Fld@charsize=\dimen178
+\Fld@menulength=\count298
+\Field@Width=\dimen178
+\Fld@charsize=\dimen179
 Package hyperref Info: Hyper figures OFF on input line 6042.
 Package hyperref Info: Link nesting OFF on input line 6047.
 Package hyperref Info: Hyper index ON on input line 6050.
@@ -340,9 +347,9 @@ Package hyperref Info: PDF/A mode OFF on input line 6072.
 Package: atbegshi-ltx 2021/01/10 v1.0c Emulation of the original atbegshi
 package with kernel methods
 )
-\Hy@abspage=\count298
-\c@Item=\count299
-\c@Hfootnote=\count300
+\Hy@abspage=\count299
+\c@Item=\count300
+\c@Hfootnote=\count301
 )
 Package hyperref Info: Driver (autodetected): hpdftex.
 
@@ -354,8 +361,8 @@ Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atveryend pac
 kage
 with kernel methods
 )
-\Fld@listcount=\count301
-\c@bookmark@seq@number=\count302
+\Fld@listcount=\count302
+\c@bookmark@seq@number=\count303
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/rerunfilecheck/rerunfilechec
 k.sty
@@ -368,35 +375,35 @@ Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
 Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 85.
 )
-\Hy@SectionHShift=\skip55
+\Hy@SectionHShift=\skip57
 ) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/natbib/natbib.sty
 Package: natbib 2010/09/13 8.31b (PWD, AO)
-\bibhang=\skip56
-\bibsep=\skip57
+\bibhang=\skip58
+\bibsep=\skip59
 LaTeX Info: Redefining \cite on input line 694.
-\c@NAT@ctr=\count303
+\c@NAT@ctr=\count304
 )
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/caption/caption.sty
 Package: caption 2023/08/05 v3.6o Customizing captions (AR)
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/caption/caption3.sty
 Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
-\caption@tempdima=\dimen179
-\captionmargin=\dimen180
-\caption@leftmargin=\dimen181
-\caption@rightmargin=\dimen182
-\caption@width=\dimen183
-\caption@indent=\dimen184
-\caption@parindent=\dimen185
-\caption@hangindent=\dimen186
+\caption@tempdima=\dimen180
+\captionmargin=\dimen181
+\caption@leftmargin=\dimen182
+\caption@rightmargin=\dimen183
+\caption@width=\dimen184
+\caption@indent=\dimen185
+\caption@parindent=\dimen186
+\caption@hangindent=\dimen187
 Package caption Info: Standard document class detected.
 )
-\c@caption@flags=\count304
-\c@continuedfloat=\count305
+\c@caption@flags=\count305
+\c@continuedfloat=\count306
 Package caption Info: hyperref package is loaded.
 )
-LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 1
-9.
+LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 2
+0.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -404,29 +411,29 @@ File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/l3backend/l3backend-pdftex.d
 ef
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count306
+\l__color_backend_stack_int=\count307
 \l__pdf_internal_box=\box55
 ) (./main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 19.
-LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -464,16 +471,16 @@ LaTeX Font Info:    ... okay on input line 19.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count307
-\scratchdimen=\dimen187
+\scratchcounter=\count308
+\scratchdimen=\dimen188
 \scratchbox=\box56
-\nofMPsegments=\count308
-\nofMParguments=\count309
+\nofMPsegments=\count309
+\nofMParguments=\count310
 \everyMPshowfont=\toks26
-\MPscratchCnt=\count310
-\MPscratchDim=\dimen188
-\MPnumerator=\count311
-\makeMPintoPDFobject=\count312
+\MPscratchCnt=\count311
+\MPscratchDim=\dimen189
+\MPnumerator=\count312
+\makeMPintoPDFobject=\count313
 \everyMPtoPDFconversion=\toks27
 )
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.s
@@ -486,13 +493,13 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Info: Redefining \microtypecontext on input line 19.
-Package microtype Info: Applying patch `item' on input line 19.
-Package microtype Info: Applying patch `toc' on input line 19.
-Package microtype Info: Applying patch `eqnum' on input line 19.
-Package microtype Info: Applying patch `footnote' on input line 19.
-Package microtype Info: Applying patch `verbatim' on input line 19.
-LaTeX Info: Redefining \microtypesetup on input line 19.
+LaTeX Info: Redefining \microtypecontext on input line 20.
+Package microtype Info: Applying patch `item' on input line 20.
+Package microtype Info: Applying patch `toc' on input line 20.
+Package microtype Info: Applying patch `eqnum' on input line 20.
+Package microtype Info: Applying patch `footnote' on input line 20.
+Package microtype Info: Applying patch `verbatim' on input line 20.
+LaTeX Info: Redefining \microtypesetup on input line 20.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -504,7 +511,7 @@ Package microtype Info: No adjustment of character kerning.
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-Package hyperref Info: Link coloring OFF on input line 19.
+Package hyperref Info: Link coloring OFF on input line 20.
 
 (./main.out) (./main.out)
 \@outlinefile=\write3
@@ -513,30 +520,30 @@ Package hyperref Info: Link coloring OFF on input line 19.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: End \AtBeginDocument code.
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 2
-1.
+2.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-21.
+22.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-21.
+22.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 21.
+(Font)              <12> on input line 22.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 21.
+(Font)              <8> on input line 22.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 21.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 21.
+(Font)              <6> on input line 22.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 22.
 
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -545,7 +552,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 21.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 22.
 
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -555,11 +562,11 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 26.
+(Font)              <9> on input line 27.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 26.
+(Font)              <5> on input line 27.
 LaTeX Font Info:    Trying to load font information for OT1+lmtt on input line 
-55.
+56.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ot1lmtt.fd
 File: ot1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -569,15 +576,15 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 6
-1.
+2.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 97.
+(Font)              <10> on input line 98.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 97.
+(Font)              <7> on input line 98.
 
 
 [1
@@ -593,19 +600,19 @@ exlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc}{/usr/local/texlive/
 
 [3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc}]
 LaTeX Font Info:    Trying to load font information for OMS+lmtt on input line 
-313.
-LaTeX Font Info:    No file OMSlmtt.fd. on input line 313.
+314.
+LaTeX Font Info:    No file OMSlmtt.fd. on input line 314.
 
 
 LaTeX Font Warning: Font shape `OMS/lmtt/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 313.
+(Font)              for symbol `textbraceleft' on input line 314.
 
-<../visuals/F1_placement_forensics.png, id=156, 867.62036pt x 341.19048pt>
+<../visuals/F1_placement_forensics.png, id=160, 867.62036pt x 341.19048pt>
 File: ../visuals/F1_placement_forensics.png Graphic file (type png)
 <use ../visuals/F1_placement_forensics.png>
 Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
-ine 318.
+ine 319.
 (pdftex.def)             Requested size: 469.75502pt x 184.7347pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -622,17 +629,17 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [6]
 
 [7]
-<../visuals/F3_protocol_by_head.png, id=213, 758.835pt x 332.442pt>
+<../visuals/F3_protocol_by_head.png, id=217, 758.835pt x 332.442pt>
 File: ../visuals/F3_protocol_by_head.png Graphic file (type png)
 <use ../visuals/F3_protocol_by_head.png>
 Package pdftex.def Info: ../visuals/F3_protocol_by_head.png  used on input line
- 609.
+ 610.
 (pdftex.def)             Requested size: 469.75502pt x 205.80247pt.
-<../visuals/F6_audit_stack_control.png, id=216, 245.718pt x 231.264pt>
+<../visuals/F6_audit_stack_control.png, id=220, 245.718pt x 231.264pt>
 File: ../visuals/F6_audit_stack_control.png Graphic file (type png)
 <use ../visuals/F6_audit_stack_control.png>
 Package pdftex.def Info: ../visuals/F6_audit_stack_control.png  used on input l
-ine 620.
+ine 621.
 (pdftex.def)             Requested size: 197.29623pt x 185.69955pt.
 
 
@@ -641,11 +648,11 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 [8 <../visuals/F3_protocol_by_head.png>]
-<../visuals/F2_attribution_profiles.png, id=232, 645.00975pt x 284.56313pt>
+<../visuals/F2_attribution_profiles.png, id=236, 645.00975pt x 284.56313pt>
 File: ../visuals/F2_attribution_profiles.png Graphic file (type png)
 <use ../visuals/F2_attribution_profiles.png>
 Package pdftex.def Info: ../visuals/F2_attribution_profiles.png  used on input 
-line 677.
+line 678.
 (pdftex.def)             Requested size: 469.75502pt x 207.24738pt.
 
 
@@ -654,48 +661,56 @@ line 677.
 [10 <../visuals/F2_attribution_profiles.png>]
 
 [11]
-Overfull \hbox (44.53966pt too wide) in paragraph at lines 837--852
+Overfull \hbox (44.53966pt too wide) in paragraph at lines 838--853
 \OT1/lmtt/m/n/10 GraspPointHead.forward \OT1/lmr/m/n/10 con-sumes only \OT1/lmt
 t/m/n/10 geom\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 box[]emb\OT1/lmr/m/n/10 , \OT1/
 lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
  , as-sem-bled by \OT1/lmtt/m/n/10 build[]grasp[]features(uv,
  []
 
-LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 878.
+
+Overfull \hbox (52.53844pt too wide) in paragraph at lines 857--862
+\OT1/lmr/m/n/10 out-comes re-leased in \OT1/lmtt/m/n/10 results/pod[]cells.json
+ \OT1/lmr/m/n/10 and per-job wall times and exit sta-tuses in \OT1/lmtt/m/n/10 
+results/pod[]run[]ledger.txt\OT1/lmr/m/n/10 .
+ []
+
 
 
 [12]
+LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
+(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 917.
 
-[13]
-
-[14]
-<../visuals/F7_position_vs_appearance.png, id=278, 956.24622pt x 339.28864pt>
-File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
-<use ../visuals/F7_position_vs_appearance.png>
-Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 1087.
-(pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
-
-
-[15 <../visuals/F7_position_vs_appearance.png>]
-
-[16]
-<../visuals/F5_third_object.png, id=292, 966.61125pt x 298.11375pt>
-File: ../visuals/F5_third_object.png Graphic file (type png)
-<use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 124
-4.
-(pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
-
-
-[17 <../visuals/F5_third_object.png>]
-
-[18]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
+
+[13]
+
+[14]
+<../visuals/F7_position_vs_appearance.png, id=281, 956.24622pt x 339.28864pt>
+File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
+<use ../visuals/F7_position_vs_appearance.png>
+Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
+t line 1126.
+(pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
+
+
+[15]
+
+[16 <../visuals/F7_position_vs_appearance.png>]
+<../visuals/F5_third_object.png, id=298, 966.61125pt x 298.11375pt>
+File: ../visuals/F5_third_object.png Graphic file (type png)
+<use ../visuals/F5_third_object.png>
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 128
+3.
+(pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
+
+
+[17]
+
+[18 <../visuals/F5_third_object.png>]
 
 [19]
 
@@ -713,16 +728,16 @@ L3 programming layer <2025-01-18>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 37788B06FD7E564ADA51C5B82399575E;5299.
+(rerunfilecheck)             Checksum: 9C7DC97563C8AD42669B4604D0946C03;5482.
  ) 
 Here is how much of TeX's memory you used:
- 14393 strings out of 474662
- 231003 string characters out of 5751110
- 677688 words of memory out of 5000000
- 37116 multiletter control sequences out of 15000+600000
+ 14464 strings out of 474662
+ 232242 string characters out of 5751110
+ 678666 words of memory out of 5000000
+ 37181 multiletter control sequences out of 15000+600000
  641113 words of font info for 102 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,605s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1319b,588s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9
 .pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb>
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr
@@ -754,10 +769,10 @@ mtk10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10
 /usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/l
 ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pf
 b>
-Output written on main.pdf (22 pages, 1362635 bytes).
+Output written on main.pdf (22 pages, 1364340 bytes).
 PDF statistics:
- 553 PDF objects out of 1000 (max. 8388607)
- 441 compressed objects within 5 object streams
- 109 named destinations out of 1000 (max. 500000)
- 15559 words of extra memory for PDF output out of 17280 (max. 10000000)
+ 559 PDF objects out of 1000 (max. 8388607)
+ 447 compressed objects within 5 object streams
+ 111 named destinations out of 1000 (max. 500000)
+ 15567 words of extra memory for PDF output out of 17280 (max. 10000000)
 
