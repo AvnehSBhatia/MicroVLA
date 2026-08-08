@@ -122,29 +122,49 @@ ins.set_ylim(-30, -4)
 ins.set_title("cm, 8× zoom — every task labelled", fontsize=6, pad=2)
 ins.set_facecolor("#fafafa")
 
-# ---- C: entropy per suite --------------------------------------------------
-suites = [s for s in D["suites"] if D["suites"][s]["mean_target_entropy_bits_at_1mm"] is not None]
-H = [D["suites"][s]["mean_target_entropy_bits_at_1mm"] for s in suites]
-ceil = D["suites"][suites[0]]["entropy_ceiling_bits"]
-cols = [PIN if s == "libero_object" else "#9aa5b1" for s in suites]
-y = np.arange(len(suites))
-axC.barh(y, H, color=cols, height=0.6)
-axC.axvline(ceil, color="black", ls="--", lw=1.1)
-axC.text(ceil - 0.10, -0.45, f"ceiling {ceil:.2f} bits\n(50 distinct placements)",
-         fontsize=7.4, ha="right", va="bottom")
-for yi, s in zip(y, suites):
-    d = D["suites"][s]
-    axC.text(H[yi] + 0.08, yi, f"{H[yi]:.2f}  ({d['mean_target_distinct_at_1mm']:.0f} distinct)",
-             va="center", fontsize=7.6)
+# ---- C: placement diameter per task ----------------------------------------
+# Panel C used to plot placement entropy at a 1 mm grid quantisation. That
+# measure was retired: grid binning is not translation invariant, so a cluster
+# straddling a cell boundary splits and a pinned task scores as diverse. What
+# replaces it is the quantity the proposition actually needs -- the diameter,
+# the largest distance between any two shipped placements of a task's target --
+# which has no origin, no grid and no free parameter, and which is what a
+# reader can compare against the controller's tolerance directly.
+DIAM = json.loads((REPO / "results/placement_diameter.json").read_text())
+DELTA_CM = 2.5                       # the tolerance sec:sweep shows the controller has
+order = ["libero_object", "libero_spatial", "libero_goal", "libero_10"]
+order = [s for s in order if s in DIAM]
+y = np.arange(len(order))
+for yi, s in zip(y, order):
+    vals = np.asarray(DIAM[s], dtype=float)
+    col = PIN if s == "libero_object" else "#9aa5b1"
+    jit = (np.arange(len(vals)) % 5 - 2) * 0.055
+    axC.scatter(vals, np.full(len(vals), yi) + jit, s=26, color=col,
+                edgecolor="white", linewidth=0.5, zorder=3)
+    n_adm = int((vals <= DELTA_CM).sum())
+    axC.text(9.3, yi, f"{n_adm}/{len(vals)}", va="center", ha="right",
+             fontsize=8.2, fontweight="bold" if n_adm else "normal",
+             color=PIN if n_adm else "#5b6670")
+axC.axvline(DELTA_CM, color="black", ls="--", lw=1.1, zorder=2)
+axC.text(DELTA_CM + 0.15, len(order) - 0.35,
+         f"$\\delta$ = {DELTA_CM:g} cm\n(controller tolerance)",
+         fontsize=7.4, va="top")
+axC.text(9.3, len(order) - 0.62, "tasks with\n$D \\leq \\delta$", fontsize=7.2,
+         ha="right", va="top", color="#5b6670")
 axC.set_yticks(y)
-axC.set_yticklabels([s.replace("libero_", "") for s in suites], fontsize=9)
-axC.set_xlim(0, ceil * 1.42)
-axC.set_xlabel("target placement entropy (bits/task, 1 mm quantisation)")
-axC.set_title("C  Only one suite pins its target", loc="left", fontweight="bold", fontsize=10)
+axC.set_yticklabels([s.replace("libero_", "").replace("10", "long")
+                     for s in order], fontsize=9)
+axC.set_ylim(-0.6, len(order) - 0.18)
+axC.set_xlim(-0.3, 10.0)
+axC.set_xlabel("placement diameter $D$ per task (cm)")
+axC.set_title("C  One suite is lookup-admissible; no other task is",
+              loc="left", fontweight="bold", fontsize=10)
 axC.spines[["top", "right"]].set_visible(False)
 
-n_quat = sum(D["suites"][s]["n_target_orientation_bit_identical"] for s in suites)
-n_res = sum(D["suites"][s]["n_resolvable_tasks"] for s in suites)
+_qs = [s for s in D["suites"]
+       if D["suites"][s].get("n_target_orientation_bit_identical") is not None]
+n_quat = sum(D["suites"][s]["n_target_orientation_bit_identical"] for s in _qs)
+n_res = sum(D["suites"][s]["n_resolvable_tasks"] for s in _qs)
 fig.suptitle("LIBERO-Object is the outlier: its targets are pinned, the other suites' are not "
              f"(orientation is bit-identical in {n_quat}/{n_res} resolvable tasks across all four)",
              fontsize=11, y=1.02)

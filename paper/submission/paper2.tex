@@ -60,7 +60,9 @@ and flips $40\%$ of the individual episodes.
 
 \section{The question}
 
-A policy scores $0.700$ on a manipulation benchmark. What has been certified?
+A policy scores $0.700$ on a manipulation benchmark --- $35$ successes in $50$
+trials on one LIBERO-Object task; it is our own policy, and every number in
+this paper is traceable to a file we ship. What has been certified?
 
 The intended reading is a capability claim: the policy perceives the named
 object, locates it, and manipulates it. The reading this paper is about is
@@ -106,11 +108,13 @@ the others their meaning.
 
 \paragraph{Contributions.}
 \begin{enumerate}\itemsep2pt
-\item \textbf{Admissibility, defined and measured} (\S\ref{sec:adm}). Placement
-entropy $H$, a per-task quantity computed from the benchmark's shipped files
-alone --- no policy, no simulator, no training. Measured for all four LIBERO
-suites, with per-task tables and file digests. LIBERO-Object is the outlier by a
-factor of $2.6$ in bits.
+\item \textbf{Admissibility, defined and measured} (\S\ref{sec:adm}). The
+placement diameter $D$ and placement entropy $H_\delta$: per-task quantities
+computed from a benchmark's shipped files alone --- no policy, no simulator, no
+training --- with a proposition saying exactly what $D \le \delta$ licenses.
+Measured for all four LIBERO suites with per-task tables and file digests.
+LIBERO-Object is admissible on all ten tasks and no other suite on any of its
+twenty-eight.
 \item \textbf{The proposition instantiated} (\S\ref{sec:constant}). A goal
 supply carrying one position read at reset --- no vision, no language, no
 learning thereafter --- is statistically indistinguishable from our released
@@ -292,14 +296,20 @@ Goal & 3.65 & 4.94 & 5.59 & 1.53 & \textbf{0/8} \\
 Long & 6.21 & 6.57 & 5.63 & 4.27 & \textbf{0/10} \\
 \bottomrule
 \end{tabular}
-\caption{Placement entropy of every LIBERO suite, $50$ shipped states per task,
-ceiling $\log_2 50 = 5.644$ bits, swept over tolerance. \emph{spread} is the
-mean over tasks of the largest deviation of any shipped placement from its task
-mean --- a physical statistic with no definitional choices at all, which
-separates the suites by $6.5$--$10.6\times$ on its own. Denominators are
-\emph{resolvable} tasks: two LIBERO-Goal tasks name a fixture with no free
-joint and have no placement to measure, so they are excluded and counted rather
-than scored as unpinned. Artifact:
+\caption{Every LIBERO suite, measured from its shipped initial states alone
+($50$ per task) --- no policy, no simulator, no training. The \textbf{diameter}
+$D$ is the largest distance between any two shipped positions of a task's
+target; it is the quantity Proposition~\ref{prop:lookup} needs, and it has no
+free parameter. The \textbf{entropy} $H_\delta$ says how the variation inside a
+diameter is arranged (ceiling $\log_2 50 = 5.644$ bits), and does have one.
+The last column counts tasks admissible at the $\delta = 2.5$\,cm the
+controller demonstrably has (\S\ref{sec:sweep}): \textbf{LIBERO-Object is
+admissible on all ten of its tasks and no other suite on any of its
+twenty-eight}, and LIBERO-Object's \emph{largest} diameter is smaller than
+every other suite's \emph{mean}. Denominators are \emph{resolvable} tasks: two
+LIBERO-Goal tasks name a fixture with no free joint and so have no placement to
+measure; they are excluded and counted rather than scored as unpinned.
+Artifacts: \texttt{results/placement\_diameter.json},
 \texttt{results/placement\_entropy.json}.}
 \label{tab:suites}
 \end{table}
@@ -372,11 +382,94 @@ SHA-256 digests of every init-state array are in
 \label{fig:forensics}
 \end{figure*}
 
+\section{A glass-box stack}
+\label{sec:platform}
+
+The artifact is an instrument, not a contribution. It is built to be traceable
+end to end, and its size ($30.2$\,M deployed) is what makes an end-to-end trace
+feasible rather than a claim about efficiency.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lrll}
+\toprule
+component & params & trained & deployed \\
+\midrule
+YOLO-World-S detector & 13.0\,M & never & frozen \\
+world model (TRM) & 9.97\,M & stage A & frozen, inert$^\dagger$ \\
+trunk heads & 7.0\,M & stage A & frozen \\
+goal heads $+$ gates & 0.24\,M & stage B & frozen \\
+\midrule
+\textbf{deployed} & \textbf{30.2\,M} & 17.2\,M trained & all frozen \\
+\bottomrule
+\end{tabular}
+\caption{Parameter ledger. There is \emph{no} language model: the
+open-vocabulary detector's own text tower supplies every text embedding, so one
+frozen network is the only vision encoder \emph{and} the only text encoder.
+$^\dagger$Inert in the one cell we have ablated: a persistence baseline
+reproduces the held-out cell exactly. We state it for that cell only.}
+\label{tab:ledger}
+\end{table}
+
+Text is parsed into source/target phrases; the detector is prompted with them
+and returns a source box. A grasp head maps
+$(\text{uv}, \text{conf}, \text{proprio}, \text{box\_emb}, \text{frame\_emb})$
+to a world grasp point --- note the absence of any text argument, which is
+Figure~\ref{fig:dataflow}'s point and \S\ref{sec:cert}'s architectural evidence.
+A place head maps the command embedding to a place $(x,y)$, latched once per
+episode inside \texttt{reset()} and never re-read. A non-learned state machine
+converts goals into servo commands within a $\pm6$\,cm probe envelope.
+
+\paragraph{Protocol, and exactly which states compose each cell.} Three words
+are used throughout and are worth pinning down here. A \emph{cell} is one
+evaluation: a fixed (head, flags, seed, $n$) tuple run to completion, always
+quoted with its $n$ and its interval. A \emph{band} is the set of shipped
+initial states a cell replays, which the harness fixes rather than samples. A
+band is \emph{burned} once we have looked at results on it and let that look
+influence a choice --- a checkpoint, a flag, a threshold --- because from that
+moment it no longer measures generalisation, and no amount of re-running
+un-burns it. LIBERO at
+commit \texttt{8f1084e3}, MuJoCo $2.3.7$, robosuite $1.4.1$, torch $2.8.0$,
+ultralytics $8.4.115$, numpy $2.2.6$, Python $3.10$, \texttt{MUJOCO\_GL=osmesa}
+(\S\ref{sec:cert} explains why that last entry is not boilerplate). The harness
+sets $\texttt{trial\_seed} = \texttt{seed}\cdot 1{,}000{,}003 + \texttt{trial}$
+and indexes state $\texttt{trial\_seed} \bmod 50$; since
+$1{,}000{,}003 \equiv 3 \pmod{50}$, trial $i$ uses state $(3\,\text{seed}+i)
+\bmod 50$. Every cell's state set is therefore derivable from its command line:
+
+\begin{table}[h]\centering\small
+\begin{tabular}{lll}
+\toprule
+cell & seed, $n$ & states \\
+\midrule
+dev & 0, 10 & 0--9 \\
+held-out & 20, 10 & 10--19 \\
+held-out $n{=}50$ & 20, 50 & \textbf{0--49} \\
+untouched & 40, 30 & \textbf{20--49} \\
+\bottomrule
+\end{tabular}
+\caption{Which of the $50$ shipped initial states composes each evaluation
+cell, derived from the harness's seeding rule rather than logged. Because
+$\texttt{trial\_seed} = \texttt{seed}\cdot 1{,}000{,}003 + \texttt{trial}$ and
+$1{,}000{,}003 \equiv 3 \pmod{50}$, trial $i$ at seed $s$ replays state
+$(3s+i) \bmod 50$. The bolded rows are the ones that matter: an $n{=}50$ cell
+is the entire state set and therefore \emph{contains} the dev and held-out
+bands rather than being disjoint from them.}
+\label{tab:bands}
+\end{table}
+
+\noindent The answer is not flattering: \textbf{the $n{=}50$ cells are not
+disjoint from the dev and held-out bands --- they contain them.} Fifty trials over fifty shipped states is
+the whole set. The untouched band exists to supply one clean cell, and
+\S\ref{sec:repairs} reports it.
+
 \section{The constant that saturates the benchmark}
 \label{sec:constant}
 
-Proposition~\ref{prop:lookup} says a lookup table suffices on a zero-entropy
-suite. This section runs one.
+Proposition~\ref{prop:lookup} says that on a suite whose placement diameter
+falls below the embodiment's tolerance, a table indexed on the task index
+suffices. \S\ref{sec:adm} showed LIBERO-Object is such a suite. This section
+executes the policy the proposition describes and reports what it scores.
 
 The vehicle is our own stack (\S\ref{sec:platform}): a learned goal head that
 emits a world grasp point, driving a non-learned pick-and-place controller. That
@@ -468,84 +561,55 @@ $p = 0.50$, and we will not call that a difference.
 random arm is therefore a \emph{conservative} floor --- an upper bound on how
 badly a truly uninformed goal supply would do --- and we read it as such.
 
-\section{Recommendation to benchmark authors}
+\section{What the released policy actually is}
+\label{sec:fullsuite}
 
-Placement entropy is cheap to compute and cheap to report, and the measurement
-suggests three concrete practices. \textbf{Publish $H_\delta$ per task} with the
-suite; it costs a script and it tells a reader what a score can certify.
-\textbf{Set a floor.} A suite whose tasks are individuated by identity should
-still randomise placement, because otherwise identity is never load-bearing;
-LIBERO-Spatial does this by necessity and LIBERO-Object could do it by choice.
-\textbf{Ship a randomised tier.} Our own randomisation sweep
-(\S\ref{sec:sweep}) shows that where a policy degrades depends on the
-displacement magnitude relative to the controller's envelope, so a single
-perturbation radius is a calibration, not a result --- a tier of radii would let
-the community report a curve instead of a point.
-
-\section{A glass-box stack}
-\label{sec:platform}
-
-The artifact is an instrument, not a contribution. It is built to be traceable
-end to end, and its size ($30.2$\,M deployed) is what makes an end-to-end trace
-feasible rather than a claim about efficiency.
+The previous section's cells are one task, and so is every confirmatory cell in
+this paper. Before we audit that policy it is worth stating plainly what it is,
+because the number that names it is not the one a suite-level score would
+report. Running the released head across seven of the suite's ten tasks ---
+taken in index order, not chosen by outcome --- gives that number:
 
 \begin{table}[h]\centering\small
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lrll}
-\toprule
-component & params & training & deployment \\
-\midrule
-YOLO-World-S detector & 13.0\,M & never trained & frozen \\
-world model (TRM) & 9.97\,M & stage A & frozen, inert$^\dagger$ \\
-trunk heads & 7.0\,M & stage A & frozen \\
-goal heads $+$ gates & 0.24\,M & stage B & frozen \\
-\midrule
-\textbf{deployed} & \textbf{30.2\,M} & 17.2\,M trained & all frozen \\
-\bottomrule
-\end{tabular}
-\caption{Parameter ledger. There is \emph{no} language model: the
-open-vocabulary detector's own text tower supplies every text embedding, so one
-frozen network is the only vision encoder \emph{and} the only text encoder.
-$^\dagger$Inert in the one cell we have ablated: a persistence baseline
-reproduces the held-out cell exactly. We state it for that cell only.}
-\label{tab:ledger}
-\end{table}
-
-Text is parsed into source/target phrases; the detector is prompted with them
-and returns a source box. A grasp head maps
-$(\text{uv}, \text{conf}, \text{proprio}, \text{box\_emb}, \text{frame\_emb})$
-to a world grasp point --- note the absence of any text argument, which is
-Figure~\ref{fig:dataflow}'s point and \S\ref{sec:cert}'s architectural evidence.
-A place head maps the command embedding to a place $(x,y)$, latched once per
-episode inside \texttt{reset()} and never re-read. A non-learned state machine
-converts goals into servo commands within a $\pm6$\,cm probe envelope.
-
-\paragraph{Protocol, and exactly which states compose each cell.} LIBERO at
-commit \texttt{8f1084e3}, MuJoCo $2.3.7$, robosuite $1.4.1$, torch $2.8.0$,
-ultralytics $8.4.115$, numpy $2.2.6$, Python $3.10$, \texttt{MUJOCO\_GL=osmesa}
-(\S\ref{sec:cert} explains why that last entry is not boilerplate). The harness
-sets $\texttt{trial\_seed} = \texttt{seed}\cdot 1{,}000{,}003 + \texttt{trial}$
-and indexes state $\texttt{trial\_seed} \bmod 50$; since
-$1{,}000{,}003 \equiv 3 \pmod{50}$, trial $i$ uses state $(3\,\text{seed}+i)
-\bmod 50$. Every cell's state set is therefore derivable from its command line:
-
-\begin{center}\small
 \begin{tabular}{lll}
 \toprule
-cell & seed, $n$ & states \\
+task & score & Wilson 95\% \\
 \midrule
-dev & 0, 10 & 0--9 \\
-held-out & 20, 10 & 10--19 \\
-held-out $n{=}50$ & 20, 50 & \textbf{0--49} \\
-untouched & 40, 30 & \textbf{20--49} \\
+0 (alphabet soup, trained) & \textbf{8/10} & $[0.49,0.94]$ \\
+1--6 (six other objects) & \textbf{0/10} each & $[0.00,0.28]$ \\
+\midrule
+total, seven tasks & \textbf{8/70} & $[0.06,0.21]$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{The released head across seven of LIBERO-Object's ten tasks, taken in
+index order rather than chosen by outcome, $n{=}10$ each. Every success falls
+on the single object the head was trained for. This is the number that puts the
+rest of the paper's cells in proportion: the artifact is a one-object solution
+that a suite-level score would have reported as a policy. Three tasks were
+still running when the compute window closed and are omitted; every cell shown
+reached its planned $n$.}
+\label{tab:fullsuite}
+\end{table}
 
-\noindent The answer is not flattering: \textbf{the $n{=}50$ cells are not
-disjoint from the dev and held-out bands --- they contain them.} Fifty trials over fifty shipped states is
-the whole set. The untouched band exists to supply one clean cell, and
-\S\ref{sec:repairs} reports it.
+\noindent \textbf{Eight successes in seventy trials, and every one of them on
+the single object the head was trained for.} Seven of the suite's ten tasks: the
+remaining three were still running when the compute window closed, and we report
+completed cells only --- every cell here is at its planned $n{=}10$. We report this because it is the
+honest scale of the artifact and because it is the admissibility argument
+turning on its author: a suite of ten tasks that share two placements and one
+basket let a single-object solution be described as a policy with a suite-level
+score. The number a reader should carry away from this paper is not $0.700$; it
+is $0.700$ \emph{on task 0}, with $0.000$ next to it three times.
+
+It also bounds in advance what the audit and repairs of
+\S\ref{sec:audit}--\S\ref{sec:repairs} can have bought. They made one object
+work and made the failures on the others legible --- the drift case study
+(Table~\ref{tab:audit}, last row) is one of those objects, lifted from $3/50$
+to $22/50$ by DAgger on the policy's own viewpoints. They did not produce a
+general policy, and no cell in this paper should be read as claiming one. We
+put this section before the audit rather than after it so that no reader
+reaches the repairs holding a larger idea of the artifact than the artifact
+supports.
 
 \section{The audit: four layers}
 \label{sec:audit}
@@ -579,12 +643,12 @@ process fix; bands frozen &
 untouched band $20/30$ vs $0.700$: no detected inflation.
 \textbf{Bounded, not removed} \\
 \addlinespace
-3. grasp-head proprioception & \texttt{GraspPointHead} &
+3. grasp-head proprio. & \texttt{GraspPointHead} &
 prediction tracks the eef, flat under uv sweeps &
 same teleported episodes &
 attribution flips to visual. \textbf{Repaired} \\
 \addlinespace
-4. place-head command$\to$location & \texttt{PlaceHead} &
+4. place-head cmd$\to$location & \texttt{PlaceHead} &
 correct basket for the trained command, $14.5$/$13.0$\,cm off for the other
 two; swap $8/10 \to \mathbf{0/20}$, $p{=}0.0078$ &
 command coverage &
@@ -694,16 +758,23 @@ on a band where the head was already mostly failing --- and a swap cannot
 visibly break a cell that is already broken. Re-run on a band where the coverage
 head scores well, and taken to $n{=}30$:
 
-\begin{center}\small
+\begin{table}[h]\centering\small
 \begin{tabular}{llll}
 \toprule
 head & baseline & swapped & paired McNemar \\
 \midrule
-flagship & 8/10 & \textbf{0/20} & $p=0.0078$ \\
+released head & 8/10 & \textbf{0/20} & $p=0.0078$ \\
 coverage & 23/30 & \textbf{13/30} & $p=0.031$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Substituting a different task's instruction, on a band where each head
+scores well and at a power the original cell did not have. Both heads lose
+accuracy, so command coverage does not eliminate the instruction dependence it
+was built to remove; it halves it. Paired McNemar over matched trial indices
+(same seed, same initial states, same renderer --- only the instruction
+differs), exact two-sided.}
+\label{tab:swap}
+\end{table}
 
 \noindent At $n{=}10$ this contrast was $p=0.125$ and we would have called it
 unresolved; at $n{=}30$ it is $p=0.031$. \textbf{The coverage head collapses
@@ -711,7 +782,7 @@ too.} A swap cannot visibly break a cell that is already mostly broken, which is
 why the original $4/10$ baseline hid the effect.
 
 What replaces the withdrawn claim is more useful than it was. Coverage does not
-eliminate the failure, it roughly \emph{halves} it: the flagship loses its
+eliminate the failure, it roughly \emph{halves} it: the released head loses its
 entire cell ($0.800 \to 0.000$, every discordant pair one way), the coverage
 head about a third ($0.767 \to 0.433$). And the repair to the place
 \emph{point} is not in doubt --- $14.15 \to 0.78$\,cm
@@ -721,42 +792,6 @@ aims and does not fully fix what it does.} A residual command$\to$location
 dependence survives training on all three commands. That is a sharper statement
 of layer 4 than we had, and no cell we ran before could have detected it.
 
-\subsection{What the released policy actually is}
-\label{sec:fullsuite}
-
-The cells above are one task. Running the released head across seven of the
-suite's ten tasks --- taken in index order, not chosen by outcome --- gives the
-number that puts them in proportion:
-
-\begin{center}\small
-\begin{tabular}{lll}
-\toprule
-task & score & Wilson 95\% \\
-\midrule
-0 (alphabet soup, trained) & \textbf{8/10} & $[0.49,0.94]$ \\
-1--6 (six other objects) & \textbf{0/10} each & $[0.00,0.28]$ \\
-\midrule
-total, seven tasks & \textbf{8/70} & $[0.06,0.21]$ \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\noindent \textbf{Eight successes in seventy trials, and every one of them on
-the single object the head was trained for.} Seven of the suite's ten tasks: the
-remaining three were still running when the compute window closed, and we report
-completed cells only --- every cell here is at its planned $n{=}10$. We report this because it is the
-honest scale of the artifact and because it is the admissibility argument
-turning on its author: a suite of ten tasks that share two placements and one
-basket let a single-object solution be described as a policy with a suite-level
-score. The number a reader should carry away from this paper is not $0.700$; it
-is $0.700$ \emph{on task 0}, with $0.000$ next to it three times.
-
-This also bounds what \S\ref{sec:audit}'s repairs bought. They made one object
-work and made the failures on the others legible --- the drift case study
-(Table~\ref{tab:audit}, last row) is one of those objects, lifted from $3/50$
-to $22/50$ by DAgger on the policy's own viewpoints. They did not produce a
-general policy, and no cell in this paper should be read as claiming one.
-
 \subsection{Randomisation is a curve, not a point}
 \label{sec:sweep}
 
@@ -764,7 +799,7 @@ Our $\pm4$\,cm radius was chosen to sit inside the controller's $\pm6$\,cm probe
 envelope --- a perturbation calibrated to the system under test. Sweeping it on
 the same draws separates two things that single number confounded:
 
-\begin{center}\small
+\begin{table}[h]\centering\small
 \begin{tabular}{lll}
 \toprule
 displacement & released head & Wilson 95\% \\
@@ -776,7 +811,13 @@ $\pm6$\,cm (envelope edge) & 2/10 & $[0.06,0.51]$ \\
 $\pm8$\,cm (outside) & 3/10 & $[0.11,0.60]$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Sweeping the placement-randomisation radius on the same draws.
+Randomisation robustness is a curve, and at $n{=}10$ this curve is not even
+monotone --- the undisplaced cell sits \emph{below} $\pm2$\,cm, which cannot be
+a real benefit of displacement. Reporting any single radius as ``passes
+randomisation'' would quote a number this sample does not resolve.}
+\label{tab:sweep}
+\end{table}
 
 \noindent Read conservatively, because $n{=}10$ supports no more: clearly worse
 at $\pm6$--$\pm8$ than at $\pm2$, but every interval is ${\sim}0.5$ wide and the
@@ -808,7 +849,7 @@ score $0.000$ and $0.700$. Regenerated by
 \label{fig:counterexample}
 \end{figure*}
 
-\begin{center}\small
+\begin{table}[h]\centering\small
 \begin{tabular}{lrrrr}
 \toprule
 head & uv & proprio & box\_emb & frame\_emb \\
@@ -818,9 +859,15 @@ v2.1 & 0.71 & 2.13 & 6.26 & 7.58 \\
 v5 (released) & 0.97 & 1.93 & 3.43 & 6.57 \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Substitution-probe attribution, in cm of movement of the predicted
+grasp \emph{offset}, per input channel. The counterexample is the first two
+rows: v2 and v2.1 agree to within $0.73$\,cm on every channel and score
+$0.000$ and $0.700$ when deployed. A probe evaluated on teacher trajectories
+cannot, on its own, certify off-manifold behaviour.}
+\label{tab:probe}
+\end{table}
 
-\noindent Movement in cm of the predicted grasp \emph{offset}. The offset, not
+\noindent The offset, not
 the absolute point: the head emits $\text{eef}_{xy} + \Delta$, so substituting
 proprioception moves the absolute prediction by the entire arm displacement for
 \emph{any} head, and profiling that quantity reports ${\sim}24$\,cm of
@@ -846,18 +893,30 @@ chains select the \emph{same box from the same frame}; a high same-box rate says
 the grounding stage carries no object identity. Every published number from it
 was a firing. Running it against every other object in the scene splits cleanly:
 
-\begin{center}\small
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lrrl}
 \toprule
 counterpart & $n$ & same-box & median dist. \\
 \midrule
-cream cheese, butter, choc.\ pudding & 6 & \textbf{0.00} & $0.817$--$0.818$ \\
+cream cheese, butter, pudding & 6 & \textbf{0.00} & $0.817$--$0.818$ \\
 tomato sauce & 4 & 1.00 & $0.00069$ \\
 bbq sauce, salad dressing & 5 & $0.80$ & $0.0043$ \\
 ketchup & 5 & $0.60$ & $0.0048$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{The positive control our detection-agreement instrument had never been
+given. ``Same-box'' is the fraction of frames on which two objects' prompt
+chains select the identical box; a high rate means the grounding stage carries
+no object identity. Run against \emph{every} counterpart rather than only the
+ones that fire, the instrument separates cleanly --- and the split is
+interpretable: the chains that collide are the cans and bottles, the ones that
+separate are the boxes. Deployed binding is blind \emph{within} a shape class,
+which is the regime LIBERO-Object's groceries occupy. Small $n$ (only $4$--$6$
+of $60$ frames have both chains detecting) makes these demonstrations of
+discrimination, not calibrated rates.}
+\label{tab:poscontrol}
+\end{table}
 
 \noindent The instrument registers difference when difference exists. The
 distances are bimodal --- collisions at ${\sim}0.004$, separations at
@@ -887,7 +946,7 @@ Reproducing the \emph{rate} is not reproducing the \emph{experiment}. Holding
 seed, trial, weights and every package version fixed and changing only the
 OpenGL backend MuJoCo renders through:
 
-\begin{center}\small
+\begin{table}[h]\centering\small
 \begin{tabular}{lll}
 \toprule
 & \texttt{osmesa} & \texttt{egl} \\
@@ -896,7 +955,14 @@ success rate & 8/10 & 8/10 \\
 per-trial outcomes & \multicolumn{2}{l}{\textbf{4 of 10 disagree} (2 each way)} \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Changing only the OpenGL backend MuJoCo renders through --- same
+seed, same trials, same weights, same package versions. The aggregate is
+identical and $40\%$ of the individual episodes are not. Matching a published
+rate is therefore weak evidence of having reproduced an experiment, and any
+paired statistic computed across a renderer change is invalid, because pairing
+assumes the trials are the same trials.}
+\label{tab:renderer}
+\end{table}
 
 \noindent \textbf{The aggregate is identical and $40\%$ of the episodes are
 not.} Thread count, by contrast, changes nothing --- two \texttt{osmesa} runs at
@@ -955,7 +1021,7 @@ they were built on.
 their outcomes. Five earlier ones, all falsified. Two from the confound test
 (\S\ref{sec:confound}). Seven registered for this revision, of which five held
 --- the untouched band, the oracle ceiling, the uninformed floor, the constant,
-and the flagship swap --- and two failed: that the coverage head's swap cell
+and the released head's swap --- and two failed: that the coverage head's swap cell
 would hold (it does not, $p{=}0.031$) and that the released head would be at
 floor once displacement left the controller's envelope ($3/10$, not $\approx0$).
 
@@ -1057,6 +1123,21 @@ an external policy is \textbf{unestablished} (\S\ref{sec:transfer}). Placement
 entropy is defined for suites that ship enumerable initial states and would need
 restating for procedurally generated ones.
 
+
+\subsection{Recommendation to benchmark authors}
+
+Placement entropy is cheap to compute and cheap to report, and the measurement
+suggests three concrete practices. \textbf{Publish $H_\delta$ per task} with the
+suite; it costs a script and it tells a reader what a score can certify.
+\textbf{Set a floor.} A suite whose tasks are individuated by identity should
+still randomise placement, because otherwise identity is never load-bearing;
+LIBERO-Spatial does this by necessity and LIBERO-Object could do it by choice.
+\textbf{Ship a randomised tier.} Our own randomisation sweep
+(\S\ref{sec:sweep}) shows that where a policy degrades depends on the
+displacement magnitude relative to the controller's envelope, so a single
+perturbation radius is a calibration, not a result --- a tier of radii would let
+the community report a curve instead of a point.
+
 \section{Conclusion}
 
 A manipulation benchmark score is not a measurement of capability until the
@@ -1078,7 +1159,7 @@ The quantisation $\delta$ is a modelling choice, so the finding must not depend
 on it. Recomputing placement entropy across four tolerances spanning an order of
 magnitude:
 
-\begin{center}\small
+\begin{table}[h]\centering\small
 \begin{tabular}{lrrrrr}
 \toprule
 suite & $0.5$mm & $2$mm & $5$mm & $1$cm & $5$cm \\
@@ -1089,7 +1170,15 @@ Goal & 5.59 & 5.08 & 1.53 & 0.02 & 0.00 \\
 Long & 5.63 & 5.40 & 4.27 & 0.37 & 0.00 \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Mean placement entropy $H_\delta$ in bits, swept over an order of
+magnitude in the tolerance $\delta$. LIBERO-Object is lowest at every
+tolerance, so the ordering does not depend on the modelling choice --- but
+every suite reaches zero by $\delta = 5$\,cm, which is a statement about coarse
+resolution rather than about LIBERO. That degeneracy is why the paper's claim
+is licensed on the diameter $D$ (Table~\ref{tab:suites}), which has no such
+parameter. Artifact: \texttt{results/placement\_entropy.json}.}
+\label{tab:deltasweep}
+\end{table}
 
 \noindent The ordering is unchanged wherever the measure discriminates at all.
 Coarsening $\delta$ lowers every suite's entropy, as it must --- coarser radii
