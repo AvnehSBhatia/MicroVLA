@@ -690,6 +690,52 @@ threshold-insensitive. Deployed binding carries no object identity, and
 \textbf{soup's 35/50 is not explained by binding the named object}, and
 per-object prompt engineering changes nothing (0/10).
 
+\noindent \textbf{The instrument can return ``different'', and what separates is
+shape.} A same-box result is only evidence about the stack if the probe is
+capable of the other answer, and every same-box number we had published came
+from an instrument never shown \emph{not} firing. Running the identical function
+through the identical deployed perception object, on the same 20 home-pose wrist
+frames, against every other object in soup's scene splits cleanly in two:
+
+\begin{center}\small
+\begin{tabular}{lll}
+\toprule
+counterpart chain & same-box rate & median centre distance \\
+\midrule
+cream cheese, butter, choc.\ pudding & \textbf{0.00} & 0.817--0.818 \\
+milk, orange juice & \textbf{0.00} & 0.573, 0.576 \\
+\midrule
+tomato sauce & 1.00 & 0.00069 \\
+bbq sauce, salad dressing & 0.80 & 0.0043, 0.0047 \\
+ketchup & 0.60 & 0.0048 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent So the probe registers difference when difference exists: the
+instrument is an instrument. The distances are bimodal --- collisions at
+${\sim}0.004$ and separations at $0.57$--$0.82$, with nothing between --- and a
+threshold sweep over $\{0.005, 0.01, 0.02, 0.05\}$ leaves every verdict
+unchanged, so no reading here rides on the 0.02 default. The split is also
+interpretable, and sharpens the claim: the chains that collide with ``alphabet
+soup'' are the cans and bottles (tomato sauce, bbq sauce, salad dressing,
+ketchup) and the chains that separate are the boxes and cartons. Deployed
+binding is not blind to everything --- it is blind \emph{within a shape class},
+which is precisely the regime LIBERO-Object's grocery objects occupy.
+
+Two honest limits. Only 1--6 of 20 frames had both chains detecting, because at
+the home pose the source chain fires on 30\% of frames; these are small-$n$
+contrasts and we report them as a demonstration that the instrument
+discriminates, not as calibrated rates. And the contrast we originally
+designated the positive control --- the basket --- is not evaluable at all: the
+deployed \texttt{source\_max\_area} filter rejects basket-sized boxes by
+construction, so that pair compares zero frames. Our first version of the script
+read \texttt{same\_rate}${=}0$ off that empty comparison and reported
+``instrument discriminates''. It now refuses a verdict below three comparable
+frames. We record this because it is the same defect class the paper collects: a
+statistic computed over an empty set, printed with the same confidence as one
+computed over data.
+
 \noindent \textbf{But identity-blindness does not explain the blocked object,
 and a world-space probe shows why.} Asking \emph{which} body the gripper
 actually reaches needs no camera projection---the step that broke the six

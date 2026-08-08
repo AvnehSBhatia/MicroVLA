@@ -1,0 +1,178 @@
+{
+  "task_id": 0,
+  "instruction": "pick up the alphabet soup and place it in the basket",
+  "n_frames": 20,
+  "camera": "robot0_eye_in_hand_image",
+  "det_conf": 0.02,
+  "target": "alphabet_soup",
+  "tolerances": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1
+  ],
+  "contrasts": [
+    {
+      "pair": "alphabet_soup vs cream_cheese",
+      "kind": "distractor",
+      "n_compared": 6,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.817492,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 1.0,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.3333
+      }
+    },
+    {
+      "pair": "alphabet_soup vs butter",
+      "kind": "distractor",
+      "n_compared": 6,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.817913,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 1.0,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.3333
+      }
+    },
+    {
+      "pair": "alphabet_soup vs milk",
+      "kind": "distractor",
+      "n_compared": 2,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.573204,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.15,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.0
+      }
+    },
+    {
+      "pair": "alphabet_soup vs tomato_sauce",
+      "kind": "distractor",
+      "n_compared": 4,
+      "same_rate_at_0.02": 1.0,
+      "median_distance": 0.00069,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.2,
+      "same_rate_by_tol": {
+        "0.005": 1.0,
+        "0.01": 1.0,
+        "0.02": 1.0,
+        "0.05": 1.0,
+        "0.1": 1.0
+      }
+    },
+    {
+      "pair": "alphabet_soup vs ketchup",
+      "kind": "distractor",
+      "n_compared": 5,
+      "same_rate_at_0.02": 0.6,
+      "median_distance": 0.004827,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.9,
+      "same_rate_by_tol": {
+        "0.005": 0.6,
+        "0.01": 0.6,
+        "0.02": 0.6,
+        "0.05": 0.6,
+        "0.1": 0.6
+      }
+    },
+    {
+      "pair": "alphabet_soup vs orange_juice",
+      "kind": "distractor",
+      "n_compared": 1,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.575574,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.1,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.0
+      }
+    },
+    {
+      "pair": "alphabet_soup vs bbq_sauce",
+      "kind": "distractor",
+      "n_compared": 5,
+      "same_rate_at_0.02": 0.8,
+      "median_distance": 0.004345,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.9,
+      "same_rate_by_tol": {
+        "0.005": 0.8,
+        "0.01": 0.8,
+        "0.02": 0.8,
+        "0.05": 0.8,
+        "0.1": 0.8
+      }
+    },
+    {
+      "pair": "alphabet_soup vs salad_dressing",
+      "kind": "distractor",
+      "n_compared": 5,
+      "same_rate_at_0.02": 0.8,
+      "median_distance": 0.004689,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.9,
+      "same_rate_by_tol": {
+        "0.005": 0.8,
+        "0.01": 0.8,
+        "0.02": 0.8,
+        "0.05": 0.8,
+        "0.1": 0.8
+      }
+    },
+    {
+      "pair": "alphabet_soup vs chocolate_pudding",
+      "kind": "distractor",
+      "n_compared": 6,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.817538,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 1.0,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.3333
+      }
+    },
+    {
+      "pair": "alphabet_soup vs basket",
+      "kind": "positive control",
+      "n_compared": 0,
+      "same_rate_at_0.02": 0.0,
+      "median_distance": 0.0,
+      "detect_rate_a": 0.3,
+      "detect_rate_b": 0.0,
+      "same_rate_by_tol": {
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0,
+        "0.1": 0.0
+      }
+    }
+  ],
+  "verdict": "INSTRUMENT DISCRIMINATES: the basket contrast returns different boxes, so a same-box result elsewhere is evidence about the stack."
+}
