@@ -10957,3 +10957,51 @@ that does not exist. The paired 10-trial EGL arm remains queued to quantify it.
 restating 0.700 as non-portable and describing a "third stack". That text is
 replaced. The lesson generalises the one from the cached-render null: a too-clean
 result needs its *sampling* checked, not only its instrument.
+
+---
+
+## 2026-08-08 — E4 and E5 complete: the untouched band holds, and a constant beats the released head
+
+**E4 (blocking).** Untouched init states 20-49, seed 40, n=30, pre-registered
+before the run: **20/30 = 0.667 [0.488, 0.808]**. Against the published held-out
+0.700 the difference is -0.033, Newcombe 95% [-0.243, +0.164] on independent
+states. Within the pre-registered [0.50, 0.75]. The reference cell run first in
+the same queue returned 8/10 with 0.700 inside its interval.
+
+Claim, deliberately narrow: **the five disclosed selection looks did not inflate
+the held-out figure.** Not that the burn is zero -- only that it is small enough
+to hide inside +-0.20, which is what n=30 buys.
+
+**E5 (blocking).** Same shell, trunk, states and draws; only the goal supply
+changes. Paired per trial against the learned head, exact McNemar:
+
+| goal supply | score | Wilson 95% | vs learned |
+|---|---|---|---|
+| oracle (true pose every tick) | 10/10 | [0.72, 1.00] | p=0.50 |
+| fixed (one look at reset)     | 10/10 | [0.72, 1.00] | p=0.50 |
+| **learned head**              | 8/10  | [0.49, 0.94] | — |
+| random (uninformed draw)      | **0/10** | [0.00, 0.28] | **p=0.0078** |
+
+Three readings:
+
+1. **Floor is zero.** 0/10, eight discordant pairs all one way, p=0.0078. The
+   shell does not solve the task by itself, so the 0/56 free-regression figure is
+   not being flattered by a shell that would have succeeded anyway. The bundle
+   survives its own floor control -- which is what M3 asked for.
+2. **Ceiling is one.** 10/10 with the true pose, so the +-6 cm envelope is NOT
+   the binding constraint and the head leaves ~2 trials on the table. The gap
+   itself is not established at n=10 (2 discordant, p=0.50); ceiling located, gap
+   not measured.
+3. **A constant matches the ceiling.** `fixed` -- one privileged look at reset,
+   then no vision, no language, no learning -- scores 10/10, **above the released
+   head's 8/10**. On a task whose target takes one float64 value across all 50
+   shipped states this is exactly what the admissibility argument predicts, and
+   it converts that argument from a claim into a running program. It is also the
+   most uncomfortable sentence in the paper: the head we spent the whole audit
+   repairing is beaten on this cell by a constant.
+
+A precision note recorded because the first draft was sloppy: `fixed` is not a
+blind hardcoded constant, it is one privileged read of the true pose at reset.
+On a pinned task the two are numerically identical, which is the point, but the
+mechanism differs and the text now says so. The gap between `fixed` and `oracle`
+is exactly the value of tracking the object during the episode -- here, zero.

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 AUG 2026 23:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -645,10 +645,6 @@ line 636.
 
 [8 <../visuals/F3_protocol_by_head.png>]
 
-LaTeX Warning: Reference `tab:probectl' on page 9 undefined on input line 703.
-
-
-
 [9 <../visuals/F6_audit_stack_control.png>]
 
 [10 <../visuals/F2_attribution_profiles.png>]
@@ -666,27 +662,31 @@ LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 837.
 
 
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+
 [12]
-<../visuals/F7_position_vs_appearance.png, id=245, 956.24622pt x 339.28864pt>
+
+[13]
+<../visuals/F7_position_vs_appearance.png, id=257, 956.24622pt x 339.28864pt>
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 967.
+t line 1015.
 (pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
 
 
-[13]
-
 [14 <../visuals/F7_position_vs_appearance.png>]
-<../visuals/F5_third_object.png, id=262, 966.61125pt x 298.11375pt>
-File: ../visuals/F5_third_object.png Graphic file (type png)
-<use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 109
-2.
-(pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
-
 
 [15]
+<../visuals/F5_third_object.png, id=270, 966.61125pt x 298.11375pt>
+File: ../visuals/F5_third_object.png Graphic file (type png)
+<use ../visuals/F5_third_object.png>
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 114
+0.
+(pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
+
 
 [16 <../visuals/F5_third_object.png>]
 
@@ -694,9 +694,11 @@ Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 109
 
 [18] (./main.bbl
 
-[19])
+[19]
 
-[20] (./main.aux)
+[20])
+
+[21] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -706,24 +708,21 @@ L3 programming layer <2025-01-18>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 
-LaTeX Warning: There were undefined references.
-
-
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 37788B06FD7E564ADA51C5B82399575E;5299.
  ) 
 Here is how much of TeX's memory you used:
- 14381 strings out of 474662
- 230849 string characters out of 5751110
- 678265 words of memory out of 5000000
- 37111 multiletter control sequences out of 15000+600000
+ 14384 strings out of 474662
+ 230885 string characters out of 5751110
+ 678480 words of memory out of 5000000
+ 37112 multiletter control sequences out of 15000+600000
  636517 words of font info for 100 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,599s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1319b,617s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-pdfTeX warning (dest): name{table.caption.29} has been referenced but does not 
+pdfTeX warning (dest): name{table.caption.31} has been referenced but does not 
 exist, replaced by a fixed one
 
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.p
@@ -754,10 +753,10 @@ ublic/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public
 /lm/lmtt8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lm
 tt9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/sy
 mbols/msam10.pfb>
-Output written on main.pdf (20 pages, 1316954 bytes).
+Output written on main.pdf (21 pages, 1319408 bytes).
 PDF statistics:
- 504 PDF objects out of 1000 (max. 8388607)
- 401 compressed objects within 5 object streams
- 104 named destinations out of 1000 (max. 500000)
+ 512 PDF objects out of 1000 (max. 8388607)
+ 408 compressed objects within 5 object streams
+ 106 named destinations out of 1000 (max. 500000)
  14535 words of extra memory for PDF output out of 17280 (max. 10000000)
 

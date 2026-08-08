@@ -113,25 +113,33 @@
   },
   "P2_E5_random": {
     "k": 0,
-    "n": 2,
+    "n": 10,
     "rate": 0.0,
     "wilson": [
       0.0,
-      0.6576
+      0.2775
     ],
     "trials": {
       "0": false,
-      "1": false
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
     },
     "planned_n": 10,
-    "complete": false
+    "complete": true
   },
   "P3_E8_base_cov": {
-    "k": 7,
-    "n": 7,
+    "k": 9,
+    "n": 9,
     "rate": 1.0,
     "wilson": [
-      0.6457,
+      0.7009,
       1.0
     ],
     "trials": {
@@ -141,7 +149,39 @@
       "3": true,
       "4": true,
       "5": true,
-      "7": true
+      "6": true,
+      "7": true,
+      "8": true
+    },
+    "planned_n": 10,
+    "complete": false
+  },
+  "P3_E8_swap_cov": {
+    "k": 2,
+    "n": 2,
+    "rate": 1.0,
+    "wilson": [
+      0.3424,
+      1.0
+    ],
+    "trials": {
+      "1": true,
+      "3": true
+    },
+    "planned_n": 10,
+    "complete": false
+  },
+  "P4_E7_v5_r02": {
+    "k": 2,
+    "n": 2,
+    "rate": 1.0,
+    "wilson": [
+      0.3424,
+      1.0
+    ],
+    "trials": {
+      "1": true,
+      "2": true
     },
     "planned_n": 10,
     "complete": false

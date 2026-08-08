@@ -599,9 +599,14 @@ def _make_goal_anchor(env, mode: str, rng):
         what the engineered machinery scores when the goal carries no
         information about where the object actually is.
     ``fixed``
-        The task's own mean shipped target position, held constant --- the
-        degenerate memorizer written by hand. On a suite that pins placement
-        this should score like a competent policy, which is the point.
+        The true target position read ONCE at episode start and held for the
+        rest of the episode, never re-read. Say precisely what this is: it is
+        not a blind constant compiled into the code, it is one privileged look
+        at reset. On a task whose placement is pinned the two are numerically
+        identical --- the shipped position takes one value across all 50 states
+        --- and that identity is the point: it is the degenerate memorizer the
+        benchmark admits, made executable. The gap between this and ``oracle``
+        is exactly the value of tracking the object during the episode.
 
     Deliberately NOT a policy: no learning, no detector, no text. The whole
     value of the anchor is that it changes one thing.
