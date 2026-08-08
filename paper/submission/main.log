@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:42
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -620,6 +620,10 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 [3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
+Overfull \hbox (26.6864pt too wide) in paragraph at lines 315--327
+ [][] 
+ []
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
@@ -633,239 +637,240 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 <../visuals/F3_threat_model.png, id=195, 903.375pt x 453.77953pt>
 File: ../visuals/F3_threat_model.png Graphic file (type png)
 <use ../visuals/F3_threat_model.png>
-Package pdftex.def Info: ../visuals/F3_threat_model.png  used on input line 502
+Package pdftex.def Info: ../visuals/F3_threat_model.png  used on input line 509
 .
 (pdftex.def)             Requested size: 469.75502pt x 235.9667pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 528--528
+Underfull \hbox (badness 10000) in paragraph at lines 535--535
 []\OT1/lmr/m/n/9 1. ex-pert
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 528--528
+Underfull \hbox (badness 10000) in paragraph at lines 535--535
 \OT1/lmr/m/n/9 cal-i-bra-tion
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 529--529
+Underfull \hbox (badness 10000) in paragraph at lines 536--536
 []\OT1/lmr/m/n/9 scripted ex-pert
  []
 
 
-Underfull \hbox (badness 2990) in paragraph at lines 530--531
+Underfull \hbox (badness 2990) in paragraph at lines 537--538
 []\OT1/lmr/m/n/9 hand-eye con-stant en-
  []
 
 
-Underfull \hbox (badness 1292) in paragraph at lines 532--532
+Underfull \hbox (badness 1292) in paragraph at lines 539--539
 []\OT1/lmr/m/n/9 placement tele-por-ta-
  []
 
 
-Underfull \hbox (badness 1902) in paragraph at lines 532--532
+Underfull \hbox (badness 1902) in paragraph at lines 539--539
 \OT1/lmr/m/n/9 tion: re-bake with
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 533--534
+Underfull \hbox (badness 10000) in paragraph at lines 540--541
 []\OT1/lmr/m/n/9 0/10$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 7/10 dev,
  []
 
 
-Underfull \hbox (badness 2057) in paragraph at lines 535--535
+Underfull \hbox (badness 2057) in paragraph at lines 542--542
 []\OT1/lmr/m/n/9 2. iteration-
  []
 
 
-Underfull \hbox (badness 5133) in paragraph at lines 535--535
+Underfull \hbox (badness 5133) in paragraph at lines 542--542
 \OT1/lmr/m/n/9 coupled se-lec-
  []
 
 
-Underfull \hbox (badness 5878) in paragraph at lines 536--536
+Underfull \hbox (badness 5878) in paragraph at lines 543--543
 []\OT1/lmr/m/n/9 our own pro-ce-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 537--538
+Underfull \hbox (badness 10000) in paragraph at lines 544--545
 \OT1/lmr/m/n/9 pres-sure ac-cu-mu-lated
  []
 
 
-Underfull \hbox (badness 2073) in paragraph at lines 539--539
+Underfull \hbox (badness 2073) in paragraph at lines 546--546
 []\OT1/lmr/m/n/9 process fix: bands
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 539--539
+Underfull \hbox (badness 10000) in paragraph at lines 546--546
 \OT1/lmr/m/n/9 frozen, looks dis-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 540--542
+Underfull \hbox (badness 10000) in paragraph at lines 547--549
 []\OT1/lmr/m/n/9 untouched band
  []
 
 
-Underfull \hbox (badness 3884) in paragraph at lines 540--542
+Underfull \hbox (badness 3884) in paragraph at lines 547--549
 \OT1/lmr/m/n/9 20/30 vs 0.700, no
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 540--542
+Underfull \hbox (badness 10000) in paragraph at lines 547--549
 \OT1/lmr/m/n/9 de-tected in-fla-tion
  []
 
 
-Underfull \hbox (badness 6944) in paragraph at lines 540--542
+Underfull \hbox (badness 6944) in paragraph at lines 547--549
 \OT1/lmr/m/n/9 (\TS1/lmr/m/n/9 §[]\OT1/lmr/m/n/9 5.8[]). \OT1/lmr/bx/n/9 Bounde
 d,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 543--543
+Underfull \hbox (badness 10000) in paragraph at lines 550--550
 \OT1/lmr/m/n/9 pro-pri-o-cep-tion
  []
 
 
-Underfull \hbox (badness 1953) in paragraph at lines 545--546
+Underfull \hbox (badness 1953) in paragraph at lines 552--553
 \OT1/lmr/m/n/9 flat un-der $\OML/lmm/m/it/9 uv$ \OT1/lmr/m/n/9 sweeps;
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 547--547
+Underfull \hbox (badness 10000) in paragraph at lines 554--554
 []\OT1/lmr/m/n/9 same tele-ported
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 548--550
+Underfull \hbox (badness 10000) in paragraph at lines 555--557
 []\OT1/lmr/m/n/9 attribution flips to
  []
 
 
-Underfull \hbox (badness 1701) in paragraph at lines 548--550
+Underfull \hbox (badness 1701) in paragraph at lines 555--557
 \OT1/lmr/m/n/9 vi-sual (1.1--1.8cm vs
  []
 
 
-Overfull \hbox (20.67188pt too wide) in paragraph at lines 551--551
+Overfull \hbox (20.67188pt too wide) in paragraph at lines 558--558
 \OT1/lmr/m/n/9 command$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 location
  []
 
 
-Underfull \hbox (badness 1014) in paragraph at lines 553--554
+Underfull \hbox (badness 1014) in paragraph at lines 560--561
 []\OT1/lmr/m/n/9 correct bas-ket for the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 553--554
+Underfull \hbox (badness 10000) in paragraph at lines 560--561
 \OT1/lmr/m/n/9 trained com-mand,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 553--554
+Underfull \hbox (badness 10000) in paragraph at lines 560--561
 \OT1/lmr/m/n/9 14.5/13.0cm off for
  []
 
 
-Underfull \hbox (badness 2990) in paragraph at lines 553--554
+Underfull \hbox (badness 2990) in paragraph at lines 560--561
 \OT1/lmr/m/n/9 the other two; swap
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 555--555
+Underfull \hbox (badness 10000) in paragraph at lines 562--562
 []\OT1/lmr/m/n/9 command cov-er-age:
  []
 
 
-Underfull \hbox (badness 5893) in paragraph at lines 555--555
+Underfull \hbox (badness 5893) in paragraph at lines 562--562
 \OT1/lmr/m/n/9 on all three com-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 556--558
+Underfull \hbox (badness 10000) in paragraph at lines 563--565
 []\OT1/lmr/m/n/9 place \OT1/lmr/m/it/9 point
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 556--558
+Underfull \hbox (badness 10000) in paragraph at lines 563--565
 \OT1/lmr/m/n/9 14.15$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 0.78cm \OT1/lmr/bx/n/9 re
 -
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 556--558
+Underfull \hbox (badness 10000) in paragraph at lines 563--565
 \OT1/lmr/bx/n/9 paired\OT1/lmr/m/n/9 ; swap \OT1/lmr/m/it/9 be-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 556--558
+Underfull \hbox (badness 10000) in paragraph at lines 563--565
 \OT1/lmr/m/it/9 haviour \OT1/lmr/m/n/9 9/10$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 4/
 10,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 556--558
+Underfull \hbox (badness 10000) in paragraph at lines 563--565
 \OML/lmm/m/it/9 p[]\OT1/lmr/m/n/9 0\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 125$ --- \OT
 1/lmr/bx/n/9 un-re-
  []
 
 
-Underfull \hbox (badness 7397) in paragraph at lines 559--559
+Underfull \hbox (badness 7397) in paragraph at lines 566--566
 []\OT1/lmr/m/it/9 (separate) \OT1/lmr/m/n/9 ap-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 560--560
+Underfull \hbox (badness 10000) in paragraph at lines 567--567
 \OT1/lmr/m/n/9 points, not a
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 560--560
+Underfull \hbox (badness 10000) in paragraph at lines 567--567
 \OT1/lmr/m/n/9 mem-o-riza-tion
  []
 
 
-Underfull \hbox (badness 3758) in paragraph at lines 561--561
+Underfull \hbox (badness 3758) in paragraph at lines 568--568
 \OT1/lmr/m/n/9 ma-chine's own tra-jec-
  []
 
 
-Underfull \hbox (badness 1400) in paragraph at lines 563--565
+Underfull \hbox (badness 1400) in paragraph at lines 570--572
 []\OT1/lmr/m/n/9 3/50$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 22/50 vs 3/50
  []
 
 
-Underfull \hbox (badness 2237) in paragraph at lines 563--565
+Underfull \hbox (badness 2237) in paragraph at lines 570--572
 \OT1/lmr/m/n/9 con-trol, $\OML/lmm/m/it/9 p < \OT1/lmr/m/n/9 10[]$;
  []
 
 
 LaTeX Font Warning: Font shape `OT1/lmr/bx/sc' undefined
-(Font)              using `OT1/lmr/bx/n' instead on input line 621.
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
+(Font)              using `OT1/lmr/bx/n' instead on input line 628.
 
 
 
 [7 <../visuals/F3_threat_model.png>]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 
 [8]
 <../visuals/F3_protocol_by_head.png, id=232, 758.835pt x 332.442pt>
 File: ../visuals/F3_protocol_by_head.png Graphic file (type png)
 <use ../visuals/F3_protocol_by_head.png>
 Package pdftex.def Info: ../visuals/F3_protocol_by_head.png  used on input line
- 727.
+ 734.
 (pdftex.def)             Requested size: 469.75502pt x 205.80247pt.
 <../visuals/F6_audit_stack_control.png, id=235, 245.718pt x 231.264pt>
 File: ../visuals/F6_audit_stack_control.png Graphic file (type png)
 <use ../visuals/F6_audit_stack_control.png>
 Package pdftex.def Info: ../visuals/F6_audit_stack_control.png  used on input l
-ine 738.
+ine 745.
 (pdftex.def)             Requested size: 197.29623pt x 185.69955pt.
 
 
@@ -878,13 +883,13 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 File: ../visuals/F2_attribution_profiles.png Graphic file (type png)
 <use ../visuals/F2_attribution_profiles.png>
 Package pdftex.def Info: ../visuals/F2_attribution_profiles.png  used on input 
-line 795.
+line 802.
 (pdftex.def)             Requested size: 469.75502pt x 207.24738pt.
 <../visuals/F4_probe_counterexample.png, id=267, 830.34427pt x 319.1291pt>
 File: ../visuals/F4_probe_counterexample.png Graphic file (type png)
 <use ../visuals/F4_probe_counterexample.png>
 Package pdftex.def Info: ../visuals/F4_probe_counterexample.png  used on input 
-line 817.
+line 824.
 (pdftex.def)             Requested size: 432.17375pt x 166.1039pt.
 
 
@@ -897,7 +902,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [11 <../visuals/F3_protocol_by_head.png>]
 
 [12 <../visuals/F6_audit_stack_control.png>]
-Overfull \hbox (44.53966pt too wide) in paragraph at lines 980--995
+Overfull \hbox (44.53966pt too wide) in paragraph at lines 987--1002
 \OT1/lmtt/m/n/10 GraspPointHead.forward \OT1/lmr/m/n/10 con-sumes only \OT1/lmt
 t/m/n/10 geom\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 box[]emb\OT1/lmr/m/n/10 , \OT1/
 lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
@@ -907,7 +912,7 @@ lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
 
 
 [13 <../visuals/F2_attribution_profiles.png>]
-Overfull \hbox (52.53844pt too wide) in paragraph at lines 999--1004
+Overfull \hbox (52.53844pt too wide) in paragraph at lines 1006--1011
 \OT1/lmr/m/n/10 out-comes re-leased in \OT1/lmtt/m/n/10 results/pod[]cells.json
  \OT1/lmr/m/n/10 and per-job wall times and exit sta-tuses in \OT1/lmtt/m/n/10 
 results/pod[]run[]ledger.txt\OT1/lmr/m/n/10 .
@@ -917,7 +922,7 @@ results/pod[]run[]ledger.txt\OT1/lmr/m/n/10 .
 
 [14 <../visuals/F4_probe_counterexample.png>]
 LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 1085.
+(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 1092.
 
 
 
@@ -930,7 +935,7 @@ LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 1293.
+t line 1300.
 (pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
 
 
@@ -939,7 +944,7 @@ t line 1293.
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
-e 1373.
+e 1380.
 (pdftex.def)             Requested size: 469.75502pt x 203.01817pt.
 
 
@@ -948,23 +953,23 @@ e 1373.
 File: ../visuals/F6_place_point_map.png Graphic file (type png)
 <use ../visuals/F6_place_point_map.png>
 Package pdftex.def Info: ../visuals/F6_place_point_map.png  used on input line 
-1464.
+1471.
 (pdftex.def)             Requested size: 441.57086pt x 213.70786pt.
 <../visuals/F5_third_object.png, id=351, 966.61125pt x 298.11375pt>
 File: ../visuals/F5_third_object.png Graphic file (type png)
 <use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 147
-7.
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 148
+4.
 (pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
 
 
 [20]
-Underfull \hbox (badness 10000) in paragraph at lines 1549--1550
+Underfull \hbox (badness 10000) in paragraph at lines 1556--1557
 []\OT1/lmr/m/n/7 wrong way,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1557--1558
+Underfull \hbox (badness 10000) in paragraph at lines 1564--1565
 []\OT1/lmr/m/n/7 0.90$\OMS/lmsy/m/n/7 !$\OT1/lmr/m/n/7 0.40,
  []
 
@@ -1000,7 +1005,7 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 Here is how much of TeX's memory you used:
  14565 strings out of 474662
  234730 string characters out of 5751110
- 694192 words of memory out of 5000000
+ 695192 words of memory out of 5000000
  37251 multiletter control sequences out of 15000+600000
  649070 words of font info for 106 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
@@ -1042,7 +1047,7 @@ xmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texlive/2025basic/texmf-di
 st/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist/fon
 ts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025basic/texmf
 -dist/fonts/type1/public/amsfonts/symbols/msam7.pfb>
-Output written on main.pdf (27 pages, 2008906 bytes).
+Output written on main.pdf (27 pages, 2009517 bytes).
 PDF statistics:
  676 PDF objects out of 1000 (max. 8388607)
  530 compressed objects within 6 object streams

@@ -303,18 +303,25 @@ a canonical target rotation suite-wide and never be contradicted.
 \section{Platform}
 
 \begin{table}[h]\centering\small
-\caption{Deployed parameter ledger. ``Deployed'' counts every parameter loaded
-at inference, frozen or trained.}
-\begin{tabular}{lrl}
+\caption{Deployed parameter ledger, with training phase and deployment status
+separated so ``17.2\,M trained'' and ``frozen at deployment'' no longer have to
+be reconciled by the reader. \emph{Deployed} counts every parameter loaded at
+inference, whether or not it was ever trained; every row is frozen when the
+policy runs. The $\le$9\,M cap on trunk heads is a budget we set for the target
+device (a Raspberry Pi 5 class board) and enforce in CI, not a claim about what
+the task requires. Under a load-bearing convention --- counting only what any
+measured number depends on --- the trained total is 7.24\,M, since the world
+model is inert in every cell we ablated.}
+\begin{tabular}{lrll}
 \toprule
-component & params & status \\
+component & params & training phase & at deployment \\
 \midrule
-YOLO-World-S detector (vision \emph{and} the only text encoder) & 13.0\,M & frozen \\
-Tiny Recursive Model world model & 9.97\,M & loaded, frozen, \emph{inert where ablated} \\
-fusion + drift + relational + planner trunk heads & 7.0\,M & trained ($\le$9\,M cap) \\
-goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained \\
+YOLO-World-S detector (vision \emph{and} the only text encoder) & 13.0\,M & never trained & frozen \\
+Tiny Recursive Model world model & 9.97\,M & trained (stage A) & frozen, \emph{inert where ablated} \\
+fusion + drift + relational + planner trunk heads & 7.0\,M & trained (stage A) & frozen \\
+goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained (stage B) & frozen \\
 \midrule
-\textbf{deployed total} & \textbf{30.2\,M} & \\
+\textbf{deployed total} & \textbf{30.2\,M} & \textbf{17.2\,M trained} & all frozen \\
 \bottomrule
 \end{tabular}
 \end{table}
