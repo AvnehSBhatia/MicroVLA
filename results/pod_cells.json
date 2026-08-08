@@ -1,0 +1,87 @@
+{
+  "P0_ref_heldout": {
+    "k": 8,
+    "n": 10,
+    "rate": 0.8,
+    "wilson": [
+      0.4902,
+      0.9433
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": false,
+      "7": false,
+      "8": true,
+      "9": true
+    },
+    "planned_n": 10,
+    "complete": true
+  },
+  "P1_E4_untouched": {
+    "k": 20,
+    "n": 26,
+    "rate": 0.7692307692307693,
+    "wilson": [
+      0.5795,
+      0.8897
+    ],
+    "trials": {
+      "0": false,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": false,
+      "6": true,
+      "7": true,
+      "8": true,
+      "9": true,
+      "10": true,
+      "11": false,
+      "12": true,
+      "13": true,
+      "14": false,
+      "15": false,
+      "16": true,
+      "17": true,
+      "18": true,
+      "19": true,
+      "20": false,
+      "21": true,
+      "22": true,
+      "25": true,
+      "26": true,
+      "28": true
+    },
+    "planned_n": 30,
+    "complete": false
+  },
+  "P2_E5_oracle": {
+    "k": 10,
+    "n": 10,
+    "rate": 1.0,
+    "wilson": [
+      0.7225,
+      1.0
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true,
+      "7": true,
+      "8": true,
+      "9": true
+    },
+    "planned_n": 10,
+    "complete": true
+  }
+}
