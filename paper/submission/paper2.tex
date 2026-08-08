@@ -665,6 +665,21 @@ grounding, whatever its leaderboard is titled. We report the head--oracle gap as
 \emph{located} rather than measured: two discordant pairs at $n{=}10$ is
 $p = 0.50$, and we will not call that a difference.
 
+\paragraph{A single-variable ablation, obtained by accident.} The reset-oracle
+and blind arms turn out to differ in \emph{one} quantity. Their grasp goals
+coincide, because task $0$'s shipped target pose is constant across all fifty
+states on all three axes (per-axis standard deviation $0.00$\,cm), so reading it
+from the simulator at reset and reading it from the files return the same
+point --- up to whatever the simulator does between loading a state and the
+first observation, and the blind arm's $2$\,mm approach in all ten trials bounds
+that. What differs is the container: the reset-oracle is handed the true basket,
+the blind arm a constant one.
+
+\textbf{$10/10 \to 6/10$, and the only thing that changed is the one quantity
+this suite randomises.} Four discordant pairs, all favouring the true
+container. We did not design this contrast; it fell out of a suite that pins
+one sub-goal and randomises the other.
+
 \paragraph{Where the corollary does \emph{not} apply, and why that matters.}
 A reviewer should press on the blind arm here, and the honest answer is that
 $p = 0.50$ at $n{=}10$ does \emph{not} by itself establish indistinguishability
