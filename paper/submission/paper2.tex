@@ -36,11 +36,12 @@ position --- and no function of episode outcomes can distinguish it from a
 policy that perceives.
 
 Measuring all four LIBERO suites~\citep{liu2023libero}, exactly one is
-lookup-admissible: every LIBERO-Object task has $D \le 2.34$\,cm, and no task in
-any other suite does ($0$ of $28$; their mean diameters are $3.65$--$6.21$\,cm).
-LIBERO-Object's largest diameter is smaller than every other suite's mean. Six
-of its ten targets take just two \texttt{float64} values, one unit in the last
-place apart, across all fifty shipped states.
+lookup-admissible. Every LIBERO-Object task has $D \le 2.34$\,cm; the smallest
+diameter among the other suites' $28$ tasks is $2.98$\,cm. \emph{Every} $\delta$
+in that gap returns the same verdict, $10/10$ against $0/28$, so no choice of
+threshold is doing the work. Six of LIBERO-Object's ten targets take just two
+\texttt{float64} values, one unit in the last place apart, across all fifty
+shipped states.
 
 We then run the policy the proposition describes. It reads the task index,
 opens the benchmark's own shipped files, emits two constants, and consults the
