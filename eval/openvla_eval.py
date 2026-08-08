@@ -142,15 +142,25 @@ def run(args) -> dict:
                     # which would flatter our probe rather than test it.
                     frame = np.ascontiguousarray(obs[CAMERA][::-1, ::-1])
                     a = predict(processor, model, frame, instr, args.device, args.unnorm_key)
-                    obs, _, done, _ = env.step(a.tolist())
-                    if done:
+                    obs, _r, done, info = env.step(a.tolist())
+                    # Same success extraction as eval/libero_eval.py. `done` is
+                    # NOT the success flag -- it also fires on horizon, and
+                    # reading it as success scores every timeout as a failure
+                    # AND every success-at-horizon as one too. Measured the hard
+                    # way: it reported 0/1 on a checkpoint that should score
+                    # ~0.9, which would have been published as OpenVLA's
+                    # baseline.
+                    ok = bool(info.get("success", False)) if isinstance(info, dict) else False
+                    if not ok and hasattr(env, "check_success"):
+                        ok = bool(env.check_success())
+                    if ok or done:
                         break
-                succ += int(bool(done))
+                succ += int(ok)
                 out["trials"].append({"task": task.name, "trial": trial,
-                                      "success": bool(done), "steps": step + 1,
+                                      "success": bool(ok), "steps": step + 1,
                                       "instruction_given": instr,
                                       "seconds": round(time.time() - t0, 1)})
-                print(f"[ovla] {task.name[:44]:<46} trial {trial}: success={bool(done)} "
+                print(f"[ovla] {task.name[:44]:<46} trial {trial}: success={bool(ok)} "
                       f"steps={step+1} ({time.time()-t0:.0f}s)", flush=True)
         finally:
             env.close()
