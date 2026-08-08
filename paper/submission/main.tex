@@ -461,7 +461,39 @@ layer two). \emph{Binder} --- any rule assigning a detected box to the source
 role: none (first prompt that fires), crop-CLIP rerank, mean class prototype, or
 1-NN over a bank of corpus crop embeddings. \emph{uv-tail extrapolation} --- the
 hypothesis that the grasp head fails on image positions in the tail of its
-training $uv$ distribution. \emph{Deployment stack} vs \emph{audit stack} --- the
+training $uv$ distribution. \emph{Crosses} --- an object for which the policy
+completes the LIBERO success predicate at a nonzero rate, i.e.\ picks it and
+places it in the basket; used because ``works'' overstates a 0.44 rate.
+\emph{The machine} --- the deployed policy, shell included; we use ``policy''
+in this revision and keep the term only where a log quotation requires it.
+\emph{Selection look} --- one occasion on which a checkpoint was chosen using a
+cell's outcome, which burns that cell for later inferential use; five are
+disclosed. \emph{Calibration gate} --- a pass/fail criterion written down
+\emph{before} an instrument is trusted, on a case whose answer is already known;
+six instruments failed theirs and were retired. \emph{Source-uv} --- the
+normalized image coordinate of the box assigned to the source role; its
+per-trial standard deviation measures how much the assignment flickers between
+boxes. \emph{NN-cosine gap} --- (mean cosine distance from a corpus embedding to
+its nearest corpus neighbour) minus (mean cosine distance from a deployment
+embedding to its nearest corpus neighbour); larger means the deployed viewpoint
+sits further off the corpus manifold. \emph{On-/off-manifold} --- inputs that
+resemble the training corpus, versus ones the policy's own trajectory produces
+and the corpus never contained. \emph{Shell} --- the engineered, non-learned
+pick-and-place state machine that converts a goal point into servo commands.
+\emph{Gates} --- the two tiny learned classifiers deciding when to close the
+jaw and whether a grasp is held. \emph{Trunk heads} --- fusion, drift and
+planner, trained then frozen at deployment. \emph{Placement-teleported episode}
+--- a re-baked demonstration in which the source object was displaced before
+recording, so the expert's constant no longer predicts its position.
+\emph{Per-tick regression} --- predicting a raw action every control step,
+the unstructured baseline. \emph{Goal-space supervision} --- predicting a world
+goal point instead, which the shell then executes. \emph{Latched place
+coordinate} --- the single $(x,y)$ the place head emits once per episode.
+\emph{Parity vs.\ provenance} --- two classes of training--serving skew: a
+parity defect is a disagreement two sides can be tested against each other to
+find, a provenance defect is the two sides \emph{agreeing} on a convention that
+is wrong. \emph{Persistence-TRM} --- an ablation replacing the world model with
+one that predicts no change, used to test whether it affects any number. \emph{Deployment stack} vs \emph{audit stack} --- the
 evaluation machine's exact software versions (\S\ref{sec:methods}) vs a later
 rebuild of them; the two are never pooled, because the rebuild inverts which
 head scores better.
