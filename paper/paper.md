@@ -11110,7 +11110,7 @@ differs.
 | | osmesa | egl |
 |---|---|---|
 | success rate | **8/10** | **8/10** |
-| per-trial outcomes | \multicolumn — **4 of 10 disagree** (2 each way, McNemar p=1.0) |
+| per-trial outcomes | **4 of 10 disagree** (2 each way, McNemar p=1.0) ||
 
 Trial-level: osmesa `1111110011`, egl `1011010111` — trials 1 and 4 succeed only
 under osmesa, trials 6 and 7 only under egl.
