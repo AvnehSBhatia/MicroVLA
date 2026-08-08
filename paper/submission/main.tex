@@ -350,7 +350,7 @@ at inference, frozen or trained.}
 component & params & status \\
 \midrule
 YOLO-World-S detector (vision \emph{and} the only text encoder) & 13.0\,M & frozen \\
-Tiny Recursive Model world model & 9.97\,M & loaded, frozen, \emph{causally inert} \\
+Tiny Recursive Model world model & 9.97\,M & loaded, frozen, \emph{inert where ablated} \\
 fusion + drift + relational + planner trunk heads & 7.0\,M & trained ($\le$9\,M cap) \\
 goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained \\
 \midrule
@@ -362,10 +362,14 @@ goal heads (grasp 0.17\,M + place 0.07\,M) + learned gates & 0.24\,M & trained \
 No separate language model exists anywhere in the stack: the command is parsed
 into source/target phrases, and CLIP embeddings for (command, source, target)
 are harvested once per task from the detector's own text tower. \textbf{The
-world model is causally inert in every nonzero number of this paper}---a
-persistence-TRM ablation reproduces the held-out cell exactly (0.700). It is
-loaded at inference, hence counted as deployed, but nothing here depends on it;
-under a load-bearing convention the trained count is 7.24\,M, not 17.2\,M.
+world model is causally inert in the cells we have ablated}: replacing it with a
+persistence baseline reproduces the held-out cell exactly (0.700). We previously
+wrote ``inert in every nonzero number of this paper'', which was a universal
+quantifier resting on one ablation, and a referee was right to object; the claim
+is now scoped to the cells actually tested, and the ablation is being extended.
+The component is loaded at inference, hence counted as deployed, but nothing we
+have measured depends on it; under a load-bearing convention the trained count
+is 7.24\,M, not 17.2\,M.
 
 \section{Methods}
 \label{sec:methods}
@@ -978,6 +982,12 @@ and where the shell's own envelope stops the episode regardless of the head. We
 report the sweep in place of the single radius, and treat any cell at
 $\pm8$\,cm --- outside the envelope --- as measuring the shell, not the head.
 
+The sweep draws seed 0, the same band and the same teleport draws as the
+published randomized cell, so the radii are comparable to each other and to it.
+That band is the dev band, whose states selection did look at; this is
+acceptable here because every radius shares those states, making the sweep a
+within-band comparison rather than a generalization claim.
+
 \subsection{The untouched band: a cell no selection look reached}
 \label{sec:untouched}
 
@@ -1395,7 +1405,7 @@ model at all, because the detector's own text tower supplies every text
 embedding---so the frozen encoder that the other rows pay for twice (once in
 memory, once in the convention mismatch) does not exist here. Of MicroVLA's
 17.2\,M trained parameters only 7.24\,M are causally load-bearing, since the
-9.97\,M world model is inert in every nonzero number of this paper.
+9.97\,M world model is inert in every cell we have ablated (\S\ref{sec:methods}).
 No number here is comparable to
 community-protocol LIBERO scores (600 steps, $n{=}10$, wrist-only,
 scripted-expert corpora). Predicting \emph{where} rather than \emph{how} is
@@ -1430,7 +1440,7 @@ text embedding reaches the grasp head---claimed as a property \emph{of this
 system}, and offered as a test other detector-grounded policies can run, not as
 a claim about them.
 \textbf{Not claimed:} any task-success contribution from the world model
-(causally inert in every nonzero number); end-to-end learned motor control (the
+(causally inert in every cell we have ablated); end-to-end learned motor control (the
 shell is engineered); head-level grounding from the randomized column alone,
 stack-free; object-level generalization beyond the addendum's two crossed
 objects (four attempted, three crossed; the fourth's scripted teacher never
