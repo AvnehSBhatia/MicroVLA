@@ -26,31 +26,36 @@
 \begin{abstract}
 \noindent
 A manipulation success rate can be made of \emph{location} instead of
-\emph{looking}. We make that precise. We define the \emph{placement entropy} of
-a benchmark task --- the entropy of its target's start pose over the states it
-ships --- and prove the trivial but consequential fact that a suite with zero
-placement entropy is solved, at the demonstrator's own rate, by a lookup table
-indexed on the task. Measuring all four LIBERO
-suites~\citep{liu2023libero}, exactly one is \emph{lookup-admissible}: at the
-$5$\,mm tolerance that governs whether a parallel jaw closes on a grocery item,
-all ten LIBERO-Object tasks have placement entropy exactly zero, while Spatial,
-Goal and Long carry $2.04$, $1.53$ and $4.27$ bits. We then
-make the proposition executable. On LIBERO-Object, a hand-written constant ---
-one privileged read of the object's pose at reset, then no vision, no language
-and no learning --- scores $10/10$, \emph{above} our own released policy at
-$8/10$ --- statistically indistinguishable ($p = 0.50$), which is the point ---
-while the same machinery given uninformed goals scores $0/10$. The task is not
-trivial; the benchmark is. Across seven of the suite's ten tasks that
-released policy scores $8$ of $70$, every success on the one object it was
-trained for, which is the argument turning on its author. We then audit a deliberately transparent
-$30$M-parameter stack and locate where such a shortcut is read: four layers,
-two of them outside the model. Repairs are data-side and paired; one of our own
-is withdrawn here after powering it up. Finally, certification: probes alone
-cannot certify (two heads with attribution profiles agreeing to $0.73$\,cm score
-$0.000$ and $0.700$), and certificates are joint in \emph{(head, stack)} ---
-holding weights, seed and every package version fixed and changing only the
-renderer leaves the success \emph{rate} identical and flips $40\%$ of the
-individual episodes.
+\emph{looking}. We make that precise. Define a task's \emph{placement diameter}
+$D$ as the largest distance between any two of the target positions the
+benchmark ships, and call a suite \emph{lookup-admissible} at tolerance $\delta$
+when a table indexed on the task index alone reproduces every shipped position
+to within $\delta$. If $D \le \delta$ and the embodiment cannot resolve
+$\delta$, that table achieves whatever the controller achieves given the true
+position --- and no function of episode outcomes can distinguish it from a
+policy that perceives.
+
+Measuring all four LIBERO suites~\citep{liu2023libero}, exactly one is
+lookup-admissible: every LIBERO-Object task has $D \le 2.34$\,cm, and no task in
+any other suite does ($0$ of $28$; their mean diameters are $3.65$--$6.21$\,cm).
+LIBERO-Object's largest diameter is smaller than every other suite's mean. Six
+of its ten targets take just two \texttt{float64} values, one unit in the last
+place apart, across all fifty shipped states.
+
+We then instantiate the proposition. A goal supply carrying \emph{one} position
+read at reset --- no vision, no language, no learning thereafter --- scores
+$10/10$, statistically indistinguishable from our released policy at $8/10$
+($p = 0.50$), which is exactly what the corollary predicts; the same machinery
+given uninformed goals scores $0/10$. The task is not trivial; the benchmark is.
+Across seven of the suite's ten tasks that released policy scores $8$ of $70$,
+every success on the one object it was trained for.
+
+Finally, certification. Probes alone cannot certify: two heads whose attribution
+profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
+behavioural certificate is joint in \emph{(head, stack)} down to a component no
+requirements file pins --- holding weights, seeds and every package version
+fixed and changing only the renderer leaves the success \emph{rate} identical
+and flips $40\%$ of the individual episodes.
 \end{abstract}
 
 \section{The question}
@@ -106,10 +111,13 @@ entropy $H$, a per-task quantity computed from the benchmark's shipped files
 alone --- no policy, no simulator, no training. Measured for all four LIBERO
 suites, with per-task tables and file digests. LIBERO-Object is the outlier by a
 factor of $2.6$ in bits.
-\item \textbf{The proposition made executable} (\S\ref{sec:constant}). A
-two-constant memoriser that beats our released policy on the suite it was
-released for, bracketed by an oracle ceiling ($10/10$) and an uninformed floor
-($0/10$) that together show the task is hard and the benchmark is not.
+\item \textbf{The proposition instantiated} (\S\ref{sec:constant}). A goal
+supply carrying one position read at reset --- no vision, no language, no
+learning thereafter --- is statistically indistinguishable from our released
+policy, bracketed by an oracle ceiling ($10/10$) and an uninformed floor
+($0/10$) that together show the task is hard and the benchmark is not. The
+strictly-blind policy the proposition describes is implemented and unrun, and we
+say so.
 \item \textbf{A four-layer mechanism audit} (\S\ref{sec:audit}), including two
 layers outside the model --- a scripted expert's calibration constant and our
 own checkpoint-selection loop --- which black-box perturbation cannot reach.
@@ -312,7 +320,8 @@ other suite does} --- $0$ of $28$.
 and Corollary~\ref{cor:sep} applies to it without qualification. The margin is
 not narrow: LIBERO-Object's \emph{largest} diameter ($2.34$\,cm) is smaller than
 every other suite's \emph{mean} ($3.65$--$6.21$\,cm), and six of its ten tasks
-have $D = 0$ exactly --- the target occupies one position, to \texttt{float64}.
+have $D = 0$ to the precision \texttt{float64} expresses (two values, one ULP
+apart, ${\sim}3\times10^{-17}$\,m).
 
 The entropy columns say how the variation inside a diameter is arranged, and add
 one fact the diameter cannot: at $\delta = 5$\,mm the six pinned tasks and the
@@ -325,8 +334,10 @@ quantities and license the claim on the one that supports it.
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} distinct \texttt{float64} values, one
 unit in the last place apart ($\sim3\times10^{-17}$\,m) on a single axis ---
-constant to the precision the format can express. The remaining four vary by
-$0.26$--$0.58$\,cm, which is why they too are at $H_{5\text{mm}} = 0$. Across
+constant to the precision the format can express. The remaining four have per-axis standard deviations of $0.25$--$0.58$\,cm and
+diameters of $1.19$--$2.34$\,cm --- still inside the $2.5$\,cm tolerance, which
+is why the suite is uniformly lookup-admissible there, and a reminder that a
+standard deviation is not a bound. Across
 tasks the structure is tighter still: the ten targets occupy two table positions
 $22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
 \emph{two}-constant table covers the whole suite --- order-2
@@ -380,10 +391,10 @@ The controller's \emph{ceiling}.
 \item \textbf{random} --- a draw from the observed extent of the scene's own
 objects, re-drawn per episode. The controller's \emph{floor}: what the
 machinery scores when the goal carries no information about where the object is.
-\item \textbf{constant} --- one privileged read of the true pose at reset, held
-for the episode and never re-read. On a task whose placement is pinned this is
-numerically identical to a hardcoded constant, which is the point: it is
-Proposition~\ref{prop:lookup}'s lookup policy, made executable.
+\item \textbf{reset-oracle} --- the true target position read \emph{once} at
+reset and held. On a task with $D = 0$ this is numerically identical to a
+per-task constant, but it still reads the simulator; it is \textbf{not}
+Proposition~\ref{prop:lookup}'s policy, and the gap is stated below.
 \item \textbf{learned head} --- our released policy, for reference.
 \end{itemize}
 
@@ -412,11 +423,23 @@ constant achieves, it does not achieve it because the controller would have
 succeeded anyway. This is the control that makes the rest of the table mean
 something.
 
-\paragraph{The constant saturates the benchmark, and is statistically
+\paragraph{What we ran, and what we did not.} The arm above still reads the
+simulator, twice: the target position once at reset, and the container position
+--- which is the half of this task the suite genuinely randomises
+($D = 3.66$\,cm, $5.60$ bits). Proposition~\ref{prop:lookup}'s policy reads
+\emph{neither}: it takes the task index and emits two constants derived from the
+suite's shipped files. That policy is implemented
+(\texttt{eval/libero\_eval.py}, \texttt{-{}-goal-anchor blind}) and
+\textbf{was not run} --- our compute window closed before it executed. We
+therefore do not claim to have run a memoriser, and every sentence below is about
+the reset-oracle, which is strictly \emph{more} informed than the policy the
+proposition describes. The experiment that would close this gap is one flag, and
+it is the first thing we would run next.
+
+\paragraph{The reset-oracle saturates the benchmark, and is statistically
 indistinguishable from the policy.} The oracle scores $10/10$, so the
-controller's envelope is not the binding constraint. The constant \emph{also}
-scores $10/10$, against the released head's $8/10$ --- and the paired test
-returns $p = 0.50$.
+controller's envelope is not the binding constraint. The reset-oracle \emph{also} scores $10/10$, against the released head's
+$8/10$ --- and the paired test returns $p = 0.50$.
 
 We do not report that $p$ as a limitation of the cell. \textbf{It is
 Corollary~\ref{cor:sep} arriving on schedule.} On a suite whose target never
@@ -428,7 +451,8 @@ content is not ``the constant won''. It is that a benchmark scored a
 task-indexed constant and a trained policy the same, which is what
 Proposition~\ref{prop:lookup} and Corollary~\ref{cor:sep} jointly predict, and
 it is the difference between arguing that a benchmark is lookup-admissible and
-running the lookup.
+supplying a goal that carries no perceptual work. It is not yet the difference
+between that and running a pure lookup, which requires the blind arm.
 
 \paragraph{What this licenses, and what it does not.} It does not show our
 released head is a memoriser; \S\ref{sec:audit} shows what it actually reads,
@@ -580,7 +604,35 @@ deliberately not marked repaired.}
 \label{tab:audit}
 \end{table*}
 
-\subsection{Where the language goes}
+Three of the four are described here; the fourth, being the one the instruments
+found rather than confirmed, gets its own subsection.
+
+\paragraph{Layer 1: the expert's calibration constant.} The scripted
+demonstrator carried a hand-eye offset fitted once, on a scene whose target
+never moved. That constant therefore \emph{encoded} the pinned placement, and
+every demonstration inherited it --- so the corpus taught the pose before any
+network saw a pixel. Detected by reading the expert, not the policy. Repaired by
+re-baking ten episodes with the source object displaced, which breaks the
+constant's validity and forces the demonstrator to look; the repaired corpus
+lifts the dev cell from $0/10$ to $7/10$ on the same episodes.
+
+\paragraph{Layer 2: the selection loop.} Our own procedure, not the artifact's:
+at each round we chose a checkpoint using cells that later rounds reused, so
+selection pressure accumulated on one band of initial states. This is invisible
+to any measurement of the model and is the reason \S\ref{sec:repairs} runs an
+untouched band at all. It is \emph{bounded} rather than repaired --- one cannot
+un-look at data --- and the bound is that thirty never-inspected states score
+within noise of the burned ones.
+
+\paragraph{Layer 3: the grasp head's proprioceptive shortcut.} Substitution
+attribution showed the predicted grasp point tracking the end-effector and
+barely moving under $uv$ substitution: the head had learned to predict where the
+object is from where the arm is, which on a pinned suite is a sufficient
+statistic. The same teleported episodes repair it, and the released head's
+profile inverts --- it now moves further on its visual channels
+($3.43$/$6.57$\,cm) than on proprioception ($1.93$\,cm).
+
+\subsection{Layer 4: where the language goes}
 \label{sec:language}
 
 \begin{figure*}[t]\centering
@@ -624,8 +676,13 @@ legibility.}
 so we ran the released head on states $20$--$49$, which no selection look ever
 reached, with the prediction recorded before the run ($[0.50,0.75]$, falsifiers
 named in both directions). Result: $\mathbf{20/30 = 0.667}$ $[0.49,0.81]$,
-against the published $0.700$ a difference of $-0.033$ with a Newcombe interval
-of $[-0.24,+0.16]$ on independent states. The five disclosed selection looks did
+against the published $0.700$ ($35/50$) a difference of $-0.033$, Newcombe
+$[-0.24,+0.16]$. That interval assumes independent samples and the samples are
+\emph{not} independent --- the $n{=}50$ cell spans states $0$--$49$ and so
+contains all thirty untouched states. The interval is therefore conservative in
+the wrong direction and we use it only to bound the effect as small; the clean
+comparison, untouched-$30$ against the twenty genuinely burned states, is the one
+we would run next. The five disclosed selection looks did
 not inflate the held-out figure. We claim only that: not that the burn is zero,
 but that it is small enough to hide inside $\pm 0.20$, which is what $n{=}30$
 buys.
@@ -773,7 +830,12 @@ difference between a probe that answers ``does this channel change where the
 head thinks the object is'' and one that measures the parameterisation.
 
 \textbf{v2 and v2.1 differ by at most $0.73$\,cm on any channel and score
-$0.000$ and $0.700$ deployed} (Figure~\ref{fig:counterexample}). A probe evaluated on teacher trajectories is an
+$0.000$ and $0.700$ deployed} (Figure~\ref{fig:counterexample}). One caveat we
+state rather than let a reader discover: the substitution is between a
+\emph{single} pair of recorded ticks --- the two most separated in $uv$ out of
+$329$ --- with no resampling over pairs and therefore no interval on the
+$0.73$\,cm. It is a existence proof that two heads can be probe-identical and
+behaviourally opposite, not an estimate of how often that happens. A probe evaluated on teacher trajectories is an
 on-manifold instrument and cannot, alone, certify off-manifold behaviour. Probe
 evidence must be paired with behavioural randomisation.
 
@@ -919,6 +981,27 @@ each object $22$\,cm moves it in the wrong direction} (exact sign test
 $p{=}1.0$), while detector groundability predicts it ($-0.71$, $p{=}0.027$).
 The mechanism is appearance, not position --- position is a nuisance term with
 mean $|\Delta| = 0.0066$, which is not zero either.
+
+\paragraph{This does not contradict \S\ref{sec:adm}, and the distinction is
+worth stating.} Those sections answer different questions. Placement is what the
+suite fails to randomise and therefore what a policy \emph{may exploit}: that is
+a property of the benchmark, established from its shipped files, and it is what
+layers 1 and 3 were caught doing. Appearance is what limits \emph{transfer to a
+new object} once the placement shortcut is repaired: that is a property of the
+frozen detector, and it is why the released head works on one object and not on
+six (\S\ref{sec:fullsuite}). A benchmark can be lookup-admissible and a policy
+can still fail for an unrelated reason; both are true here, and neither weakens
+the other. What would have been a contradiction --- position explaining
+\emph{both} --- is what the confound test ruled out.
+
+We also report the caveats on this cell rather than only its conclusion. Both
+nulls are $n{=}10$, which is the size we decline to accept elsewhere
+(\S\ref{sec:repairs}); the groundability predictor and the outcome are two
+statistics of the same detector forward pass, so their correlation is closer to
+a self-consistency check than to an independent prediction; and $p = 0.027$
+across three tests does not survive a Bonferroni correction. The confound is
+\emph{disconfirmed as a sufficient explanation}, which is what the design can
+support, and not more.
 
 \subsection{Three ways a result fooled us}
 
