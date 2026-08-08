@@ -383,6 +383,37 @@ rate and all three \texttt{eef\_obj\_dist} fields --- so a changed number means 
 changed input, and every \texttt{results.json} embeds its own \texttt{argv} and
 git commit.
 
+\paragraph{Which states compose each cell, exactly.} The harness sets
+\texttt{trial\_seed} $=$ \texttt{seed}$\,\cdot\,1{,}000{,}003 + $\texttt{trial}
+and indexes \texttt{init\_states[trial\_seed \% 50]}. Since
+$1{,}000{,}003 \equiv 3 \pmod{50}$, the state index of trial $t$ is
+$(3\,\text{seed}+t) \bmod 50$ --- so every cell's state set is derivable from
+its command line, and we give them rather than describing them:
+
+\begin{center}\small
+\begin{tabular}{llll}
+\toprule
+cell & seed, $n$ & states & overlap with dev\,/\,held-out \\
+\midrule
+dev & 0, 10 & 0--9 & 10\,/\,0 \\
+held-out & 20, 10 & 10--19 & 0\,/\,10 \\
+held-out $n{=}50$ & 20, 50 & \textbf{0--49} & \textbf{10\,/\,10} \\
+randomized $n{=}50$ & 0, 50 & \textbf{0--49} & \textbf{10\,/\,10} \\
+untouched (\S\ref{sec:untouched}) & 40, 30 & \textbf{20--49} & \textbf{0\,/\,0} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This answers a question we had not previously answered in print, and the answer
+is not the flattering one: \textbf{the two $n{=}50$ cells are not disjoint from
+the dev and held-out bands --- they contain them.} Fifty trials over fifty
+shipped states is the whole set, so 20 of the 50 trials in each headline cell
+land on states that selection looked at. The cells are still paired,
+same-draw and honestly reported, but they are not clean-room confirmations, and
+we no longer describe them as if they were. The untouched band exists precisely
+to supply one that is: seed 40 places trial $t$ at state $20+t$, giving 30
+states no selection look ever reached.
+
 \paragraph{Corpus.} Episodes come from a scripted expert, not from LIBERO's
 human demonstrations: a phase-structured visual-servo controller
 (approach $\to$ descend $\to$ grasp $\to$ lift $\to$ transport $\to$ release)
@@ -405,6 +436,33 @@ $10\times$ Huber ($\delta{=}0.05$) on the mean plus a Gaussian NLL on detached
 residuals. \texttt{PlaceHead} (0.07\,M) maps the command embedding to a place
 $xy$ --- a command$\to$location map, which is exactly why it can memorize.
 Adam, lr $10^{-3}$, batch 512, 300 epochs, 12\% validation split, seed 0.
+
+\paragraph{Head lineage.} Every head named anywhere in this paper, with the file
+that is it. The ``v'' numbers are internal iteration labels, not a sequence: no
+\texttt{v4} or \texttt{v6} artifact exists, because those iterations were
+discarded without a retained checkpoint and we would rather say so than
+construct a lineage after the fact. ``Sibling'' means only ``a head trained on a
+smaller corpus of the same kind'', and we now use the version names instead.
+
+\begin{center}\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llll}
+\toprule
+name in text & file & corpus & role \\
+\midrule
+memorized (v1) & \texttt{goal\_heads\_v10\_goal3\_goal4.pt} & 111 ep, fixed placement & the shortcut, un-repaired \\
+v2 & \texttt{goal\_heads\_v2\_partial10.pt} & 10 ep, teleported & probe-only counterexample \\
+v2.1 & \texttt{goal\_heads\_v21.pt} & 10 ep, teleported & its twin: matched profile, 0.700 \\
+v3 & \texttt{goal\_heads\_v3.pt} & 27 ep, teleported & dose step \\
+\textbf{flagship (v5)} & \texttt{goal\_heads\_v5.pt} & 49 ep, teleported & \textbf{released} \\
+v7 & \texttt{goal\_heads\_v7.pt} & $+$ butter & multi-object addendum \\
+coverage (v8) & \texttt{goal\_heads\_v8.pt} & $+$ cream cheese & command coverage \\
+DAgger r1 & \texttt{goal\_heads\_dagger.pt} & v8 $+$ own viewpoints & drift repair, 18/50 \\
+DAgger r2 & \texttt{goal\_heads\_dagger\_r2.pt} & r1 $+$ own viewpoints & drift repair, 22/50 \\
+DAgger (soup) & \texttt{goal\_heads\_dagger\_soup.pt} & same recipe, working object & the specificity \emph{null} \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \paragraph{Shell.} Goals drive \texttt{GoalServoMachine}, a latched
 proportional servo over the phase graph above (P-gain 12.0, action clip 0.6,
@@ -691,6 +749,35 @@ embedding and is genuinely language-conditioned. Every task in this suite
 places into the same basket, so all \emph{correct} instructions imply the same
 place target---which leaves the stack's one real language channel normally
 \emph{unexercised}, not inert. The swap below exercises it.
+
+\subsection{Randomization: one radius was a calibration, not a result}
+\label{sec:sweep}
+
+The $\pm4$\,cm figure was chosen to sit inside the shell's $\pm6$\,cm probe
+envelope, so ``passes randomization'' was a statement calibrated to the system
+under test. Sweeping the radius on the same draws separates the two things that
+single number confounded: how far the head's grounding survives displacement,
+and where the shell's own envelope stops the episode regardless of the head. We
+report the sweep in place of the single radius, and treat any cell at
+$\pm8$\,cm --- outside the envelope --- as measuring the shell, not the head.
+
+\subsection{The untouched band: a cell no selection look reached}
+\label{sec:untouched}
+
+Both $n{=}50$ cells span all fifty shipped states and therefore contain the ten
+dev and ten burned held-out states. This cell does not. Seed 40 places trial $t$
+at state $20+t$, so 30 trials cover states 20--49 and nothing else --- a band no
+selection look, ablation or debugging pass ever reached.
+
+\paragraph{Pre-registered before the run.} Recorded with the launch command, not
+after: we predicted the untouched cell would fall in $[0.50, 0.75]$, i.e.\ at or
+modestly below the 0.700 held-out figure, on the reasoning that the held-out
+band is partially burned and a burned band should flatter the head. We named the
+falsification conditions in advance: below 0.40 would mean the 0.700 is
+substantially a selection artifact and the headline number must be restated;
+above 0.80 would mean the burn hurt rather than helped and our account of it is
+wrong. Both directions were nameable in advance, which is the only thing that
+makes the prediction worth recording.
 
 \subsection{Is it appearance, or is it position?}
 \label{sec:posvsapp}
@@ -984,6 +1071,29 @@ repair are, as far as we can tell, unreported: a benchmark in which every task
 shares one basket cannot expose a memorized command$\to$location map, because
 memorized and grounded maps are behaviourally identical until the command
 changes.
+
+\paragraph{How our perturbation regime relates to theirs.} The two are doing
+different jobs and should not be read as competing magnitudes. LIBERO-PRO and
+LIBERO-Plus perturb \emph{from outside}: many dimensions (objects, layouts,
+viewpoints, instructions, environments) across many policies, to establish that
+the scores collapse. Ours perturbs \emph{one} dimension --- the source object's
+$xy$ placement --- on one policy, because the point is not to demonstrate
+collapse but to isolate a mechanism and then show a repair moving that
+mechanism. A multi-dimension sweep would reintroduce exactly the confound the
+single-dimension design removes.
+
+The honest limitation is the magnitude, and it is ours rather than theirs.
+$\pm4$\,cm was chosen to sit inside the shell's $\pm6$\,cm probe envelope ---
+i.e.\ the perturbation was calibrated to the system under test, which caps what
+``passes randomization'' can mean. We therefore no longer report a single
+radius: \S\ref{sec:sweep} sweeps $\pm2/4/6/8$\,cm on the same draws so the
+reader sees where each head degrades and where the envelope, rather than the
+head, becomes the binding constraint. Note also that a placement perturbation is
+the one axis on which LIBERO-Object has \emph{no} headroom to be perturbed from
+inside: \S\ref{sec:suites} shows its targets carry 2.11 bits of placement
+entropy against a 5.644-bit ceiling, so any placement variation at all must be
+introduced by the experimenter. On LIBERO-Spatial the same protocol would be
+redundant, since the suite already randomizes placement to ceiling.
 
 One measurement does survive intact, and it is the one a referee reproduced
 rather than doubted. LIBERO-PRO characterizes the baseline qualitatively ---

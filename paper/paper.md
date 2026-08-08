@@ -10815,3 +10815,52 @@ Paper: new SS "The other three suites", Table 2, Figure 1
 start**, inside `MicroVLAPolicy.reset()`, from the command embedding alone —
 not at first detection. There is no re-latch, so re-latching cannot change the
 swap result.
+
+---
+
+## 2026-08-08 — PRE-REGISTRATION, recorded before the runs return
+
+An L40S pod was made available for ~3 h. The deployment stack was rebuilt to the
+exact versions in `models/README.md` (LIBERO `8f1084e3`, torch 2.8.0+cu128,
+numpy 2.2.6, mujoco 2.3.7, robosuite 1.4.1, ultralytics 8.4.115, Python 3.10)
+and both load-bearing checkpoints verified by md5 against the manifest
+(`goal_heads_v5.pt` `01ff8728`, `full_stageB_rec_fix.pt` `a8ea1cda`), so cells
+from this pod are comparable to the published ones rather than to the audit
+stack. `yolov8s-worldv2.pt` sha256 matches too (`9b2c17ab`).
+
+**Job P0 is a reference cell, deliberately first in the queue**: the published
+deployment-stack dev band (seed 20, trials 0-9) whose recorded value is 7/10. If
+this pod does not reproduce it, no new cell here is comparable and that is what
+gets reported. Anchoring first is the whole point of running it before the
+experiments rather than after.
+
+**E4, untouched band.** State index is `(3*seed + t) mod 50` (from
+`trial_seed = seed*1_000_003 + trial`, and `1_000_003 = 3 mod 50`). Seed 40 puts
+trial t at state 20+t, so n=30 covers states 20-49 exactly.
+*Prediction:* 0.50-0.75, at or modestly below the 0.700 held-out figure, because
+the held-out band is partially burned and a burned band should flatter the head.
+*Falsifiers, named now:* <0.40 means the 0.700 is substantially a selection
+artifact and the headline must be restated; >0.80 means the burn hurt rather
+than helped and our account of it is wrong.
+
+**E5, shell anchors.** `--goal-anchor oracle|random|fixed` replaces the learned
+goal heads and changes nothing else.
+*Predictions:* oracle 0.80-1.00 (if it is not >=0.80 the shell's envelope, not
+the supervision, is the binding constraint and contribution 2 must be restated);
+random 0.00-0.10; fixed >=0.60 on a suite that pins placement — a hand-written
+two-constant memoriser should look like a competent policy, which is the
+admissibility claim made executable.
+
+**E8.** Swap collapse at n=30 (flagship) and the coverage head's non-collapse.
+*Prediction:* flagship swap <=0.10; coverage head swap within 0.20 of its own
+baseline.
+
+**E7.** Randomization sweep +-2/4/6/8 cm, released vs memorized, same draws.
+*Prediction:* released degrades gracefully and stays above memorized at every
+radius; both approach zero by +-8 cm, which is outside the shell's +-6 cm probe
+envelope.
+
+Queue is priority-ordered, so if the clock runs out the missing work is the
+low-priority tail (E7/E11), never a blocking experiment. Shards are 10 trials
+each and every shard is a self-contained, exactly-specified subset of trials, so
+a partial harvest is still a reportable cell with an honest n.
