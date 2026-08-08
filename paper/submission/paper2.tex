@@ -163,6 +163,13 @@ them.}
 \label{tab:contrib}
 \end{table}
 
+\paragraph{Every number is regenerable.} Each artifact cited below is a JSON
+file in the repository, and \texttt{scripts/verify\_paper\_numbers.py}
+re-derives all $55$ load-bearing values in this paper from those files and
+fails on any disagreement. We wrote it because manuscripts drift --- a value is
+recomputed, the JSON updates, the sentence quoting it does not --- and it
+caught two such drifts in this revision.
+
 \paragraph{Scope, stated once and up front.} All results are simulation. Every
 confirmatory cell is one task and one object unless stated. Cell sizes are given
 with every number and no cell is quoted without its interval. Our external
