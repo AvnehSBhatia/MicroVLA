@@ -11005,3 +11005,42 @@ blind hardcoded constant, it is one privileged read of the true pose at reset.
 On a pinned task the two are numerically identical, which is the point, but the
 mechanism differs and the text now says so. The gap between `fixed` and `oracle`
 is exactly the value of tracking the object during the episode -- here, zero.
+
+---
+
+## 2026-08-08 — E8/E7: the coverage head's swap "non-collapse" does not replicate on a high-baseline band
+
+Uncomfortable result, recorded because it weakens one of our three repair
+claims.
+
+**Published cell:** coverage head, swap 3/10 vs its own 4/10 baseline, exact
+p=1.0 — read as "the repair holds". **Re-run on the held-out band** (seed 20,
+n=10 each, paired, three-object head `goal_heads_v8.pt`):
+
+| cell | value | Wilson 95% |
+|---|---|---|
+| coverage head, real instruction | **9/10** | [0.60, 0.98] |
+| coverage head, swapped instruction | **4/10** | [0.17, 0.69] |
+
+Paired: 6 successes lost, 1 gained, exact McNemar **p=0.125**.
+
+Not significant at n=10, and I will not call p=0.125 a collapse. But the point
+estimate moves from "no effect" to losing two thirds of the cell, in the same
+direction the flagship moves. The published cell's baseline was 4/10 — a swap
+cannot visibly break a cell that is already mostly broken, which is exactly the
+referee's objection that this is an equivalence claim at n=10.
+
+**What I now stand behind, and what I don't.** Command coverage demonstrably
+repairs the place *point*: 14.15 cm -> 0.78 cm spread, directly measured, not
+inferred from behaviour. Whether it repairs the swap *behaviour* is
+**unresolved**: one band says it holds at a low baseline, another says it may not
+at a high one, and neither is powered. The paper now says exactly that.
+
+Two provenance caveats I cannot close: I cannot confirm `goal_heads_v8.pt` is
+byte-identical to the checkpoint behind the original 3/10 vs 4/10 cell, and the
+two cells are on different bands (dev vs held-out). Both are the same class of
+defect the paper's Table 5 collects.
+
+**Sweep (E7), partial.** Flagship on the dev band, same draws: no randomization
+8/10, +-2 cm 7/10 (paired: 3 lost, 2 gained, p=1.0000). +-6 and +-8 cm cells
+were still running when the clock ran out and are not reported.
