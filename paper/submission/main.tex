@@ -48,7 +48,11 @@ object crosses at 22/50 $[0.31,0.58]$ against a
 same-seed control at 3/50 (exact McNemar $p<10^{-4}$). Twin control
 cells scope that verification from both sides: the behavioural certificate is
 joint in \emph{(head, stack)}---a detector-stack rebuild inverts which head
-looks better.
+looks better. A second, faithful rebuild with every package pinned reproduces
+the reference band (8/10 vs a recorded 7/10), but exposes a component no
+requirements file pins: holding seed, trial and weights fixed and changing only
+MuJoCo's GL backend moves the episode (246 vs 250 steps), so
+\texttt{MUJOCO\_GL} belongs in any reported stack.
 
 The platform is 30.2\,M parameters deployed with \emph{no} language
 model---an open-vocabulary detector's own text tower supplies every text
@@ -796,7 +800,7 @@ places into the same basket, so all \emph{correct} instructions imply the same
 place target---which leaves the stack's one real language channel normally
 \emph{unexercised}, not inert. The swap below exercises it.
 
-\subsection{A third stack, and what it does to 0.700}
+\subsection{Reproduction on a rebuilt stack, and one unpinned component}
 \label{sec:thirdstack}
 
 We rebuilt the deployment stack on fresh hardware to run the experiments in this
@@ -805,47 +809,38 @@ torch 2.8.0+cu128, numpy 2.2.6, MuJoCo 2.3.7, robosuite 1.4.1, ultralytics
 8.4.115, Python 3.10) and verifying both load-bearing checkpoints by digest
 against the release manifest. The first job in the queue was deliberately not an
 experiment but a \emph{reference cell}: the published held-out band, seed 20,
-which the evaluation machine recorded at \textbf{7/10}.
+which the evaluation machine recorded at 7/10.
 
-The rebuild returns \textbf{7/7} on that band, and \textbf{15/15} on the
-untouched band. This is not a harvesting artifact --- the episodes are real and
-varied (244--250 steps, source detection 0.77--0.96), and the same trial run
-before and after the harness changes in this section agrees at 246 steps on
-every logged field. The same weights, on pinned versions, score differently on
-different machines.
+The rebuild returns \textbf{8/10} $[0.49, 0.94]$ --- one trial from the
+recorded value, and well inside its interval. The cell reproduces, and the
+experiments below are read against it.
 
-We can name a mechanism, though not yet prove it accounts for the whole gap. The
-one component the platform table never pinned is the renderer. Holding seed,
-trial, weights and every package fixed and changing \emph{only} MuJoCo's
-OpenGL backend moves the episode: \texttt{osmesa} completes trial 0 in 246 steps
-and \texttt{egl} in 250, with source detection 0.919 vs 0.920. Thread count, by
-contrast, changes nothing at all --- two \texttt{osmesa} runs at 4 and 128
-threads agree to every logged digit, which also re-confirms harness determinism.
-Software and GPU rasterisation do not produce identical pixels; the detector is
-not invariant to the difference; and in this stack the detector is the only
-encoder. \textbf{\texttt{MUJOCO\_GL} is a behavioural parameter and belongs in
-the stack table beside the package versions.} It was not there.
+\paragraph{The renderer is a behavioural parameter, and was never pinned.}
+Reproducing the \emph{rate} is not the same as reproducing the \emph{episode}.
+Holding seed, trial, weights and every package version fixed, and changing only
+the OpenGL backend MuJoCo renders through, moves the trajectory:
+\texttt{osmesa} completes trial 0 in 246 steps and \texttt{egl} in 250, at
+source detection 0.919 vs 0.920. Thread count, by contrast, changes nothing ---
+two \texttt{osmesa} runs at 4 and 128 threads agree on every logged field, which
+also re-confirms harness determinism. Software and GPU rasterisation do not
+produce identical pixels, the detector is not invariant to that difference, and
+in this stack the detector is the only encoder. \textbf{\texttt{MUJOCO\_GL}
+belongs in the reported stack table beside the package versions.} It was not
+there, in ours or in any LIBERO evaluation we have read. This is a
+provenance-class skew defect: two configurations agreeing on a wrong convention,
+namely that the renderer is an implementation detail.
 
-Three consequences, stated rather than buried. \textbf{(i)} Cells produced on
-the rebuild are compared only against each other and never pooled with published
-cells, the same discipline we already apply to the audit stack. \textbf{(ii)}
-This is now the \emph{third} stack on which the same head yields a different
-number, which is more evidence for the joint-certificate claim
-(\S\ref{sec:results}) than against it: a behavioural certificate is a property
-of (head, stack), and ``stack'' reaches below the packages a requirements file
-can pin. \textbf{(iii)} The reader should treat 0.700 as this head's score
-\emph{on the evaluation machine}, not as a portable constant. We are not
-withdrawing it --- it is what that machine measured, reproducibly, with its
-artifact --- but we are no longer presenting it as if the number travelled.
-
-A ceiling effect follows, and it costs us a planned result. With the reference
-band at 7/7 the rebuild has no headroom, so the untouched band's 15/15
-\emph{cannot} test whether selection inflated the held-out figure: at ceiling,
-a burn advantage and no burn advantage look the same. What the cell does
-establish is the weaker, still-worth-having statement that the 30 never-inspected
-states are not harder than the ten inspected ones. The pre-registered prediction
-(0.50--0.75) is falsified in its literal form; it assumed stack equivalence,
-which is exactly the assumption this section retires.
+\paragraph{A censoring trap in reading runs, which caught us.} An earlier
+reading of this same reference cell, taken while its remaining trials were still
+executing, showed 7/7 --- and we briefly wrote it up as a failure to reproduce.
+It was an artifact of \emph{when} we looked. A success ends the episode at
+${\sim}246$ steps; a failure runs the full 600 and takes ${\sim}2.4\times$ as
+long. The trials finished at any interim moment are therefore biased toward
+successes, and a partial harvest is a censored sample rather than a small one.
+The harvester now reports every cell against its planned $n$ and refuses to
+report an incomplete one. We record it because the failure mode is invisible in
+the artifact --- every individual trial was real, varied and correctly scored,
+and the aggregate was still wrong.
 
 \subsection{Unbundling the shell from the head}
 \label{sec:anchors}

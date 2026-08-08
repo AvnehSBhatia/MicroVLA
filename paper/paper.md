@@ -10910,3 +10910,50 @@ E4 pre-registration, which predicted 0.50-0.75 against a 0.700 anchor,
 implicitly assumed stack equivalence and is falsified in its literal form. The
 comparison that survives is the within-stack one: burned band vs untouched band,
 same stack, same head, same day.
+
+---
+
+## 2026-08-08 — RETRACTION: the reference cell DID reproduce; I read a censored sample
+
+The entry above ("the rebuild does not reproduce the published reference cell",
+7/7 and 15/15) is **wrong and is withdrawn**. With every trial in:
+
+| cell | complete value | published |
+|---|---|---|
+| P0 reference (seed 20, states 10-19) | **8/10** [0.49, 0.94] | 7/10 |
+| E4 untouched (seed 40, states 20-49) | in progress | — |
+
+8/10 against 7/10 is one trial. It reproduces.
+
+**The mechanism of my error, because it is the interesting part.** I harvested
+while the wave was still running and treated the finished trials as a small
+sample. They are not a small sample, they are a **censored** one: a success
+terminates the episode at ~246 steps, a failure runs the full 600 and takes
+~2.4x longer. So at any interim moment the completed trials are biased toward
+successes. 7/7 was not the cell; it was the fast half of the cell.
+
+What makes this worth logging is that **every check I ran passed**. I did
+suspect the too-clean result and I did interrogate the instrument: the episodes
+were real, varied (244-250 steps, detect 0.77-0.96), the pre- and post-patch
+trial 0 agreed at 246 steps, the harvester grouped cells correctly, the
+checkpoints hashed correctly. All true, and all irrelevant — the defect was not
+in any trial, it was in **when I looked**. Verifying the instrument does not
+verify the sampling.
+
+Fix is mechanical, not attentional: the harvester now reads the planned n from
+the joblist and prints `INCOMPLETE k/n -- CENSORED, do not report` for any cell
+that is not finished. It can no longer hand me an interim number that looks like
+a result.
+
+**What survives from the retracted entry.** The `MUJOCO_GL` finding is
+unaffected: it is a paired within-trial comparison (same seed, same trial, same
+weights, same packages; osmesa 246 steps / detect 0.919 vs egl 250 / 0.920, with
+two osmesa thread counts agreeing to every digit). That still shows the render
+backend is a behavioural parameter that no requirements file pins, and it is now
+reported as a reproducibility caveat rather than as the explanation of a gap
+that does not exist. The paired 10-trial EGL arm remains queued to quantify it.
+
+**And what I nearly did to the paper.** I had already written a subsection
+restating 0.700 as non-portable and describing a "third stack". That text is
+replaced. The lesson generalises the one from the cached-render null: a too-clean
+result needs its *sampling* checked, not only its instrument.
