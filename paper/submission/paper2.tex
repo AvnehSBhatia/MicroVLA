@@ -174,13 +174,24 @@ reproduce.
 \section{Admissibility}
 \label{sec:adm}
 
+We want a property of a \emph{benchmark}, computable before any model exists,
+that says how much of a score a lookup table could have taken. Two quantities
+give it: how far a target moves across the states a suite ships, and how that
+movement is arranged.
+
 \subsection{Definition}
 
 Fix a benchmark task $t$ that ships a finite set $S_t$ of initial states, and
 let $x_t(s) \in \mathbb{R}^3$ be the pose of the task's target object in state
 $s \in S_t$. Poses are compared at a physical tolerance $\delta$, below which
-two placements are not distinguishable by the embodiment under test; we use
-$\delta = 1$\,mm throughout, and report sensitivity to it.
+two placements are not distinguishable by the embodiment under test.
+
+$\delta$ does two jobs and we keep them apart. As a \emph{reporting} tolerance
+it is a modelling choice, so we sweep it from $0.5$\,mm to $5$\,cm rather than
+pick one (Appendix~\ref{app:delta}). As an \emph{admissibility} threshold it is
+a physical property of the embodiment, not a choice: $\delta = 2.5$\,cm is the
+tolerance our controller demonstrably has, measured in \S\ref{sec:sweep}, and
+it is the value used wherever this paper calls a task admissible.
 
 \begin{definition}[Placement diameter]
 \label{def:D}
@@ -287,7 +298,7 @@ apart but \emph{identically distributed} in what the benchmark observes.
 
 Proposition~\ref{prop:lookup} is trivial as mathematics and is stated because
 its contrapositive is what benchmark scores are usually read as asserting. A
-suite with $H_\delta = 0$ cannot, by any score it reports, distinguish a policy
+suite with $D \le \delta$ cannot, by any score it reports, distinguish a policy
 that perceives from one that looks up --- and the gap between them is exactly
 the capability the score is normally taken to certify. Note what the proposition
 does \emph{not} say: it does not say the task is easy. The controller's own
@@ -817,6 +828,10 @@ legibility.}
 \section{Repairs, and one we withdraw}
 \label{sec:repairs}
 
+Three of the four layers admit a repair, and we report what each bought. One
+claim from the previous version does not survive being run at power, and we
+retract it here rather than leave it standing.
+
 \paragraph{The untouched band.} Both $n{=}50$ cells contain the burned states,
 so we ran the released head on states $20$--$49$, which no selection look ever
 reached, with the prediction recorded before the run ($[0.50,0.75]$, falsifiers
@@ -1106,6 +1121,10 @@ they were built on.
 \section{Negative results and registries}
 \label{sec:neg}
 
+A paper that only reports what worked cannot be checked. This section is the
+ledger: what we predicted before running, what failed, which instruments we
+retired, and the three ways our own results fooled us.
+
 \paragraph{Pre-registration.} Fourteen predictions are on record with
 their outcomes. Five earlier ones, all falsified. Two from the confound test
 (\S\ref{sec:confound}). Seven registered for this revision, of which five held
@@ -1197,9 +1216,10 @@ planned $n$ and refuses to report an incomplete one.}
 
 \section{Discussion}
 
-\paragraph{What a score certifies.} On a suite with $H_\delta \approx 0$, a
-success rate certifies that the policy can execute a manipulation given a
-correct target pose --- and nothing about how it obtained one. That is not a
+\paragraph{What a score certifies.} On a suite whose placement diameter sits
+below the embodiment's tolerance, a success rate certifies that the policy can
+execute a manipulation \emph{given} a correct target pose --- and nothing
+whatever about how it obtained one. That is not a
 rhetorical claim: on LIBERO-Object a constant achieves the ceiling and an
 uninformed goal achieves zero, so the score's entire dynamic range sits between
 ``has the pose'' and ``does not'', with grounding never tested. Placement
