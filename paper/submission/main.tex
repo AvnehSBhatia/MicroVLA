@@ -1608,6 +1608,20 @@ Bisk~\citep{zhang2026flatness} name the failure \emph{instruction blindness} and
 repair it optimizer-side; CAST~\citep{glossop2025cast} repairs it data-side with
 counterfactual labels, closely analogous to our command coverage.
 
+This paper's shape --- a benchmark artifact that makes a model look
+competent, found by measuring the data rather than the model --- is an old one
+outside robotics. Dataset bias was named by Torralba and
+Efros~\citep{torralba2011bias}; NLI benchmarks were shown solvable from
+hypothesis-only artifacts~\citep{gururangan2018artifacts} and from syntactic
+heuristics~\citep{mccoy2019hans}; ImageNet accuracy was shown to be partly a
+property of one test set~\citep{recht2019imagenet}. In manipulation
+specifically, robomimic~\citep{mandlekar2021robomimic} established that
+offline-demonstration results hinge on dataset and protocol details, and THE
+COLOSSEUM~\citep{pumacay2024colosseum} perturbs manipulation environments
+systematically to measure generalization. We take the same posture one level in:
+those works perturb or re-collect from outside, and we ask which stage inside a
+single stack the artifact is being read by.
+
 Three consequences we state plainly. \textbf{(i)} That VLAs ignore language is
 \emph{not} our finding; it is the consensus of this literature, and our
 system exhibiting it is confirmatory. \textbf{(ii)} The

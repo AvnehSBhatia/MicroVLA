@@ -1,4 +1,4 @@
-\begin{thebibliography}{25}
+\begin{thebibliography}{31}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -70,6 +70,13 @@ Catherine Glossop, William Chen, Arjun Bhorkar, Dhruv Shah, and Sergey Levine.
   vision-language-action models.
 \newblock \emph{arXiv preprint arXiv:2508.13446}, 2025.
 
+\bibitem[Gururangan et~al.(2018)Gururangan, Swayamdipta, Levy, Schwartz,
+  Bowman, and Smith]{gururangan2018artifacts}
+Suchin Gururangan, Swabha Swayamdipta, Omer Levy, Roy Schwartz, Samuel~R.
+  Bowman, and Noah~A. Smith.
+\newblock Annotation artifacts in natural language inference data.
+\newblock In \emph{Proceedings of NAACL-HLT}, 2018.
+
 \bibitem[Hou et~al.(2026)]{langgap2026}
 Y.~Hou et~al.
 \newblock Langgap: Diagnosing and closing the language gap in
@@ -109,10 +116,37 @@ Ajay Mandlekar, Soroush Nasiriany, Bowen Wen, Iretiayo Akinola, Yashraj Narang,
   using human demonstrations.
 \newblock In \emph{CoRL}, 2023.
 
+\bibitem[Mandlekar et~al.(2021)]{mandlekar2021robomimic}
+Ajay Mandlekar et~al.
+\newblock What matters in learning from offline human demonstrations for robot
+  manipulation.
+\newblock In \emph{CoRL}, 2021.
+
+\bibitem[McCoy et~al.(2019)McCoy, Pavlick, and Linzen]{mccoy2019hans}
+R.~Thomas McCoy, Ellie Pavlick, and Tal Linzen.
+\newblock Right for the wrong reasons: Diagnosing syntactic heuristics in
+  natural language inference.
+\newblock In \emph{Proceedings of the Association for Computational Linguistics
+  (ACL)}, 2019.
+
 \bibitem[{Octo Model Team} et~al.(2024)]{octo2024}
 {Octo Model Team} et~al.
 \newblock Octo: An open-source generalist robot policy.
 \newblock In \emph{RSS}, 2024.
+
+\bibitem[Pumacay et~al.(2024)Pumacay, Singh, Duan, Krishna, Thomason, and
+  Fox]{pumacay2024colosseum}
+Wilbert Pumacay, Ishika Singh, Jiafei Duan, Ranjay Krishna, Jesse Thomason, and
+  Dieter Fox.
+\newblock {THE COLOSSEUM}: A benchmark for evaluating generalization for
+  robotic manipulation.
+\newblock In \emph{Robotics: Science and Systems (RSS)}, 2024.
+
+\bibitem[Recht et~al.(2019)Recht, Roelofs, Schmidt, and
+  Shankar]{recht2019imagenet}
+Benjamin Recht, Rebecca Roelofs, Ludwig Schmidt, and Vaishaal Shankar.
+\newblock Do imagenet classifiers generalize to imagenet?
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2019.
 
 \bibitem[Sculley et~al.(2015)Sculley, Holt, Golovin, Davydov, Phillips, Ebner,
   Chaudhary, Young, Crespo, and Dennison]{sculley2015debt}
@@ -132,6 +166,12 @@ Mustafa Shukor et~al.
 \newblock {SmolVLA}: A vision-language-action model for affordable and
   efficient robotics.
 \newblock \emph{arXiv preprint arXiv:2506.01844}, 2025.
+
+\bibitem[Torralba and Efros(2011)]{torralba2011bias}
+Antonio Torralba and Alexei~A. Efros.
+\newblock Unbiased look at dataset bias.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2011.
 
 \bibitem[Wen et~al.(2020)Wen, Lin, Darrell, Jayaraman, and Gao]{wen2020copycat}
 Chuan Wen, Jierui Lin, Trevor Darrell, Dinesh Jayaraman, and Yang Gao.
