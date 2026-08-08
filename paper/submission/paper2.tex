@@ -318,17 +318,10 @@ $H_\delta$ is computed from the benchmark's shipped files. No policy, no
 simulator and no training are involved, which is what makes it a property of the
 benchmark rather than of anyone's system.
 
-LIBERO ships each task's initial states as a MuJoCo flattened state
-$[\,t \mid q \mid \dot q\,]$; every shipped $\dot q$ is zero, so the columns
-that vary across states are exactly the position degrees of freedom the suite
-randomises.
-
-Recovering \emph{which} object owns which column requires care. The fixed layout $[\,t \mid 9 \mid N\!\times\!7 \mid \dot q\,]$ that works for
-LIBERO-Object predicts a width of $19+13N$ and fails for every suite containing
-an articulated fixture (LIBERO-Spatial ships width $92$ against $5$ declared
-objects). We therefore compile each task's model and read
-\texttt{jnt\_qposadr} with the joint names, which maps every column onto a named
-body. The two passes agree where both apply.
+Extracting a target's position from a shipped state is not quite mechanical ---
+a naive fixed-column layout is wrong for every suite containing an articulated
+fixture --- so we compile each task's model and read \texttt{jnt\_qposadr}.
+Appendix~\ref{app:columns} gives the procedure and the cross-check.
 
 \begin{table}[t]\centering\small
 \setlength{\tabcolsep}{3.5pt}
@@ -540,18 +533,14 @@ factorisation is what makes the experiment clean --- we can replace the
 protocol, same seeds, same initial states; only where the goal comes from
 differs.
 
-\begin{itemize}\itemsep1pt
-\item \textbf{oracle} --- the simulator's true target pose, re-read every tick.
-The controller's \emph{ceiling}.
-\item \textbf{random} --- a draw from the observed extent of the scene's own
-objects, re-drawn per episode. The controller's \emph{floor}: what the
-machinery scores when the goal carries no information about where the object is.
-\item \textbf{reset-oracle} --- the true target position read \emph{once} at
-reset and held. On a task with $D = 0$ this is numerically identical to a
-per-task constant, but it still reads the simulator; it is \textbf{not}
-Proposition~\ref{prop:lookup}'s policy, and the gap is stated below.
-\item \textbf{learned head} --- our released policy, for reference.
-\end{itemize}
+Figure~\ref{fig:ladder}B lists the five arms and what each may read. Two need a
+word beyond that. \textbf{random} draws from the observed extent of the scene's
+own objects, re-drawn per episode --- the controller's floor, what the machinery
+scores when the goal carries no information about where the object is.
+\textbf{reset-oracle} reads the true position \emph{once} at reset and holds it;
+on a task with $D = 0$ that is numerically a per-task constant, but it still
+reads the simulator, so it is \textbf{not} Proposition~\ref{prop:lookup}'s
+policy. The arm that is appears below.
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.97\linewidth]{../visuals/F7_ladder.png}
@@ -1361,6 +1350,23 @@ first, localise the stage second, repair with data third, certify jointly in
 survive being powered up.
 
 \appendix
+
+\section{Recovering which column owns which object}
+\label{app:columns}
+
+LIBERO ships each task's initial states as a MuJoCo flattened state
+$[\,t \mid q \mid \dot q\,]$; every shipped $\dot q$ is zero, so the columns
+that vary across states are exactly the position degrees of freedom the suite
+randomises. Recovering \emph{which} object owns which column requires care. The
+fixed layout $[\,t \mid 9 \mid N\!\times\!7 \mid \dot q\,]$ that works for
+LIBERO-Object predicts a width of $19+13N$ and fails for every suite containing
+an articulated fixture --- LIBERO-Spatial ships width $92$ against $5$ declared
+objects. We therefore run two passes: the fixed-layout one, and one that
+compiles each task's model and reads \texttt{jnt\_qposadr} with the joint names,
+mapping every column onto a named body. \textbf{The two agree wherever both
+apply}, and only the second is used for suites the first cannot parse.
+Artifacts: \texttt{results/suite\_forensics\_columns.json} (digests),
+\texttt{results/suite\_forensics\_joints.json} (per-object positions).
 
 \section{Sensitivity of $H_\delta$ to the tolerance}
 \label{app:delta}
