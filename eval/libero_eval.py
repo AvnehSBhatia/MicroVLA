@@ -639,7 +639,9 @@ def _make_goal_anchor(env, mode: str, rng):
     if mode == "blind":
         # Derived from the benchmark's shipped files, never from this episode.
         import json as _json
-        fp = REPO / "results" / "suite_forensics_joints.json"
+        from pathlib import Path as _Path
+        fp = _Path(__file__).resolve().parent.parent / "results" / \
+            "suite_forensics_joints.json"
         tasks = _json.loads(fp.read_text())["suites"]["libero_object"]["tasks"]
         rec = next((t for t in tasks
                     if any(o["object"] == tgt for o in t["objects"])), None)
@@ -655,6 +657,17 @@ def _make_goal_anchor(env, mode: str, rng):
 
         def grasp(_c=((cx, cy), cz)):
             return _c
+
+        # The destination too. Supplying the true container while calling the
+        # arm "blind" would leave a live read in the one place the suite
+        # actually randomises -- the basket carries 5.6 bits at 1 mm -- and the
+        # whole point of this arm is that NOTHING is read from the episode.
+        dst = next((o for o in rec["objects"]
+                    if o["is_target"] and o["object"] != tgt), None)
+        if dst is not None:
+            place_xy = (float(dst["mean_xyz_m"][0]), float(dst["mean_xyz_m"][1]))
+            logger.info("goal anchor blind: place constant %s from shipped files",
+                        place_xy)
     elif mode == "oracle":
         def grasp():
             p = sim.data.body_xpos[body_ids[tgt]]

@@ -31,7 +31,12 @@ OUT = Path(__file__).resolve().parent / "visuals" / "F6_place_point_map.png"
 #: Basket (true destination) and the head's emitted place point per command,
 #: in cm relative to the basket centre. Radii are the manuscript's measured
 #: errors; the directions are illustrative and the caption says so.
-BASKET_JITTER = 0.40          # max basket motion across all ten tasks, cm
+# Per-task diameter of the basket's OWN shipped positions, from
+# results/suite_forensics_joints.json. The earlier value here (0.40 cm) was the
+# spread of per-task MEAN basket positions -- a between-task statistic quoted as
+# if it described within-task motion, understating it ~10x. The basket is
+# re-placed every episode; it is the randomised half of this task.
+BASKET_DIAM = 3.90
 RELEASED = {"alphabet soup\n(trained)": 0.36, "butter": 14.5, "cream cheese": 13.0}
 COVERAGE_SPREAD = 0.78        # place-point spread after command coverage, cm
 RELEASED_SPREAD = 14.15
@@ -53,8 +58,9 @@ for ax, title in ((axA, "A  Released head: one point per COMMAND"),
     ax.set_title(title, loc="left", fontweight="bold", fontsize=11)
     # the basket: the thing a grounded head would aim at, and it barely moves
     ax.add_patch(plt.Circle((0, 0), 6.0, fill=False, lw=2.0, color="#333333"))
-    ax.add_patch(plt.Circle((0, 0), BASKET_JITTER, color="#333333", zorder=5))
-    ax.text(0, 7.0, "basket (moves $\\leq$0.40 cm\nacross all ten tasks)",
+    ax.add_patch(plt.Circle((0, 0), BASKET_DIAM / 2, fill=False, ls=":",
+                            lw=1.4, color="#333333", zorder=5))
+    ax.text(0, 7.0, "basket, re-placed every episode\n(diameter 3.9 cm, dotted)",
             ha="center", fontsize=7.8, color="#333333")
 axA.set_ylabel("cm from basket centre")
 

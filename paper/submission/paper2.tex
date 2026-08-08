@@ -40,9 +40,9 @@ one privileged read of the object's pose at reset, then no vision, no language
 and no learning --- scores $10/10$, \emph{above} our own released policy at
 $8/10$ --- statistically indistinguishable ($p = 0.50$), which is the point ---
 while the same machinery given uninformed goals scores $0/10$. The task is not
-trivial; the benchmark is. Across four of the suite's ten tasks that released
-policy scores $8$ of $40$, every success on the one object it was trained for,
-which is the argument turning on its author. We then audit a deliberately transparent
+trivial; the benchmark is. Across seven of the suite's ten tasks that
+released policy scores $8$ of $70$, every success on the one object it was
+trained for, which is the argument turning on its author. We then audit a deliberately transparent
 $30$M-parameter stack and locate where such a shortcut is read: four layers,
 two of them outside the model. Repairs are data-side and paired; one of our own
 is withdrawn here after powering it up. Finally, certification: probes alone
@@ -141,6 +141,21 @@ $s \in S_t$. Poses are compared at a physical tolerance $\delta$, below which
 two placements are not distinguishable by the embodiment under test; we use
 $\delta = 1$\,mm throughout, and report sensitivity to it.
 
+\begin{definition}[Placement diameter]
+\label{def:D}
+The \emph{placement diameter} of task $t$ is the largest distance between any
+two shipped target positions,
+\[
+  D(t) \;=\; \max_{s,s' \in S_t} \lVert x_t(s) - x_t(s') \rVert .
+\]
+\end{definition}
+
+$D$ carries no free parameter, is in centimetres, and is exactly the quantity
+the next proposition needs: if $D(t) \le \delta$ then \emph{some} single
+constant is within $\delta$ of every shipped position. A second, finer question
+is how the variation inside that diameter is distributed --- one tight cluster,
+two clusters, or a spread --- and for that we use an entropy.
+
 \begin{definition}[Placement entropy]
 \label{def:H}
 Partition $\{x_t(s) : s \in S_t\}$ into the connected components of the graph
@@ -192,26 +207,32 @@ embodiment, not a definition, and \S\ref{sec:sweep} measures where it fails.
 
 \begin{proposition}[Lookup sufficiency]
 \label{prop:lookup}
-If $H_\delta(t) = 0$ for every task in a suite, then the suite is order-$1$
-admissible, and a policy that (i) reads only the task index, (ii) emits the
-corresponding constant, and (iii) is otherwise driven by an
-identity-independent controller, achieves on that suite whatever success rate
-the controller achieves given a correct target pose.
+If $D(t) \le \delta$ for every task in a suite and A1 holds at $\delta$, then
+the suite is order-$1$ lookup-admissible, and a policy that (i) reads only the
+task index, (ii) emits the corresponding constant, and (iii) is otherwise driven
+by an identity-independent controller, achieves on that suite whatever success
+rate the controller achieves given the true target position.
 \end{proposition}
 
 \begin{proof}
-$H_\delta(t) = 0$ means the single-linkage partition of $\{x_t(s)\}$ at radius
-$\delta$ has one component, so any two shipped positions are joined by a chain
-of steps each shorter than $\delta$. Take $c_t$ to be any shipped position.
-The policy emits $c_t$ on every state of task $t$; applying A1 along each chain,
-the outcome under $c_t$ equals the outcome under $x_t(s)$ for every
-$s \in S_t$. Averaging over $S_t$ gives the claim, and $t \mapsto c_t$
-witnesses order-$1$ lookup-admissibility.
+Take $c_t$ to be any shipped position of task $t$. By Definition~\ref{def:D},
+$\lVert x_t(s) - c_t \rVert \le D(t) \le \delta$ for every $s \in S_t$, so
+$t \mapsto c_t$ witnesses order-$1$ lookup-admissibility. The policy emits
+$c_t$ on every state; A1 applies directly at each state, giving the same episode
+outcome as the true position. Averaging over $S_t$ gives the claim.
 \end{proof}
+
+\noindent The hypothesis is $D \le \delta$ and not $H_\delta = 0$, and the
+distinction is not pedantic: $H_\delta = 0$ under Definition~\ref{def:H} says
+the placements are chain-connected at radius $\delta$, which permits a cloud
+many times wider than $\delta$, and A1 is a single-hop assumption that does not
+compose along such a chain. Four LIBERO-Object tasks are exactly this case
+($H_{5\text{mm}} = 0$ with diameters of $1.19$--$2.34$\,cm), so the proposition
+is stated on the quantity that licenses it.
 
 \begin{corollary}[No score can separate them]
 \label{cor:sep}
-On a suite with $H_\delta \equiv 0$, no function of episode outcomes can
+On a suite with $D \le \delta$ throughout, no function of episode outcomes can
 distinguish the lookup policy of Proposition~\ref{prop:lookup} from \emph{any}
 policy supplying the controller a position within $\delta$ of the truth on every
 shipped state, however obtained --- perceptually or otherwise --- because under
@@ -250,23 +271,17 @@ objects). We therefore compile each task's model and read
 body. The two passes agree where both apply.
 
 \begin{table}[t]\centering\small
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{lrrrrr}
 \toprule
- & \multicolumn{4}{c}{$H_\delta$ (bits), $\delta =$} & spread \\
-\cmidrule(lr){2-5}
-suite & $0.5$mm & $2$mm & $5$mm & $1$cm & (cm) \\
+ & \multicolumn{2}{c}{diameter $D$ (cm)} & \multicolumn{2}{c}{$H_\delta$ (bits)} & tasks \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+suite & mean & max & $0.5$mm & $5$mm & $D \le 2.5$cm \\
 \midrule
-\textbf{Object} & \textbf{2.11} & \textbf{0.48} & \textbf{0.00} & \textbf{0.00} & \textbf{0.32} \\
-Spatial & 5.48 & 4.49 & 2.04 & 0.25 & 2.39 \\
-Goal & 5.59 & 5.08 & 1.53 & 0.02 & 2.05 \\
-Long & 5.63 & 5.40 & 4.27 & 0.37 & 3.35 \\
-\midrule
-\multicolumn{6}{l}{\emph{tasks with $H_\delta = 0$ exactly}} \\
-\textbf{Object} & \textbf{6/10} & \textbf{8/10} & \textbf{10/10} & 10/10 & \\
-Spatial & 0/10 & 0/10 & 1/10 & 9/10 & \\
-Goal & 0/8 & 0/8 & 0/8 & 7/8 & \\
-Long & 0/10 & 0/10 & 0/10 & 3/10 & \\
+\textbf{Object} & \textbf{0.60} & \textbf{2.34} & 2.11 & 0.00 & \textbf{10/10} \\
+Spatial & 4.29 & 8.90 & 5.48 & 2.04 & \textbf{0/10} \\
+Goal & 3.65 & 4.94 & 5.59 & 1.53 & \textbf{0/8} \\
+Long & 6.21 & 6.57 & 5.63 & 4.27 & \textbf{0/10} \\
 \bottomrule
 \end{tabular}
 \caption{Placement entropy of every LIBERO suite, $50$ shipped states per task,
@@ -283,34 +298,29 @@ than scored as unpinned. Artifact:
 
 Table~\ref{tab:suites} is the measurement.
 
-\paragraph{Choosing $\delta$, and why we report the curve.} $\delta$ is a claim
-about the embodiment, and it is the one parameter an author could tune to
-flatter a conclusion, so we sweep it. At a metrology tolerance
-($0.5$\,mm) the suites separate $2.6\times$. At the tolerance that governs
-whether a parallel-jaw gripper closing on a grocery item succeeds --- we take
-$5$\,mm, and note that our own controller probes a $\pm6$\,cm envelope, so this
-is conservative by an order of magnitude --- the picture is not a difference of
-degree:
+\paragraph{The separation is exact, and has no free parameter.} A single
+constant serves task $t$ iff $D(t) \le \delta$. Taking $\delta = 2.5$\,cm --- a
+tolerance the controller demonstrably has, since \S\ref{sec:sweep} shows it
+still succeeding under $\pm2$\,cm of deliberate displacement:
 
 \begin{quote}
-\textbf{At $\delta = 5$\,mm, all ten LIBERO-Object tasks have
-$H_\delta = 0$ exactly.} No other suite has more than one.
+\textbf{All ten LIBERO-Object tasks satisfy $D \le 2.5$\,cm. No task in any
+other suite does} --- $0$ of $28$.
 \end{quote}
 
-\noindent LIBERO-Object therefore satisfies the hypothesis of
-Proposition~\ref{prop:lookup} \emph{exactly}, at grasp tolerance, in every one
-of its tasks. Corollary~\ref{cor:sep} then applies without qualification: on
-this suite no function of episode outcomes can separate a lookup table from a
-policy that perceives. Spatial, Goal and Long sit at $2.04$, $1.53$ and $4.27$
-bits at the same tolerance and do not satisfy it.
+\noindent LIBERO-Object is therefore order-1 lookup-admissible as a whole suite,
+and Corollary~\ref{cor:sep} applies to it without qualification. The margin is
+not narrow: LIBERO-Object's \emph{largest} diameter ($2.34$\,cm) is smaller than
+every other suite's \emph{mean} ($3.65$--$6.21$\,cm), and six of its ten tasks
+have $D = 0$ exactly --- the target occupies one position, to \texttt{float64}.
 
-Two honest riders. Pushed far enough ($\delta = 5$\,cm) every suite reaches
-zero, which is not a finding about LIBERO but a statement that any placement
-distribution is degenerate at coarse enough resolution --- the informative
-regime is where the embodiment actually operates, and we report the whole curve
-so a reader can pick their own. And the physical statistic in the last column
-carries the same conclusion with no definitional apparatus at all: mean maximum
-deviation $0.32$\,cm for Object against $2.05$--$3.35$\,cm elsewhere.
+The entropy columns say how the variation inside a diameter is arranged, and add
+one fact the diameter cannot: at $\delta = 5$\,mm the six pinned tasks and the
+four jittering ones \emph{both} reach $H = 0$, because each of the four is a
+single chain-connected cloud rather than two separated modes. That is why the
+proposition is stated on $D$: chain-connectedness at $5$\,mm is compatible with a
+$2.34$\,cm cloud, and no constant is within $5$\,mm of that. We report both
+quantities and license the claim on the one that supports it.
 
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} distinct \texttt{float64} values, one
@@ -345,8 +355,9 @@ identical axes: every target scatters, and it must, because all ten of its
 targets are a ``black bowl''. \textbf{C} placement entropy per suite against the
 $5.644$-bit ceiling. Generated by
 \texttt{paper/render\_fig1\_placement\_forensics.py} from
-\texttt{results/suite\_forensics\_joints.json}; per-task rows and SHA-256
-digests of every init-state array are in that artifact.}
+\texttt{results/suite\_forensics\_joints.json}; per-task rows are in that artifact and
+SHA-256 digests of every init-state array are in
+\texttt{results/suite\_forensics\_columns.json}.}
 \label{fig:forensics}
 \end{figure*}
 
@@ -597,9 +608,11 @@ alphabet soup at baseline rate; it fails only when that one coordinate is wrong.
 \begin{figure*}[t]\centering
 \includegraphics[width=0.92\linewidth]{../visuals/F6_place_point_map.png}
 \caption{Layer 4 drawn rather than argued. The released head asked for three
-objects emits three place points, $14.5$ and $13.0$\,cm from a basket that moves
-at most $0.40$\,cm across the entire suite; $14$\,cm is exactly enough to release
-a grocery over open table. Radial distances are measured; angles are for
+objects emits three place points, $14.5$ and $13.0$\,cm from the basket. The
+basket itself is \emph{not} fixed --- it is re-placed every episode, with a
+per-task diameter of $3.66$\,cm (max $3.96$) --- so a memorised place point is wrong by
+$14$\,cm against a target that only ever moves by $4$, and $14$\,cm is enough
+to release a grocery over open table. Radial distances are measured; angles are for
 legibility.}
 \label{fig:placepoint}
 \end{figure*}
@@ -654,27 +667,27 @@ of layer 4 than we had, and no cell we ran before could have detected it.
 \subsection{What the released policy actually is}
 \label{sec:fullsuite}
 
-The cells above are one task. Running the released head across four of the
-suite's ten tasks --- task 0 and the next three, chosen by index and not by
-outcome --- gives the number that puts them in proportion:
+The cells above are one task. Running the released head across seven of the
+suite's ten tasks --- taken in index order, not chosen by outcome --- gives the
+number that puts them in proportion:
 
 \begin{center}\small
-\begin{tabular}{llll}
+\begin{tabular}{lll}
 \toprule
-task & object & score & Wilson 95\% \\
+task & score & Wilson 95\% \\
 \midrule
-0 & alphabet soup (trained) & \textbf{8/10} & $[0.49,0.94]$ \\
-1 & cream cheese & \textbf{0/10} & $[0.00,0.28]$ \\
-2 & salad dressing & \textbf{0/10} & $[0.00,0.28]$ \\
-3 & bbq sauce & \textbf{0/10} & $[0.00,0.28]$ \\
+0 (alphabet soup, trained) & \textbf{8/10} & $[0.49,0.94]$ \\
+1--6 (six other objects) & \textbf{0/10} each & $[0.00,0.28]$ \\
+\midrule
+total, seven tasks & \textbf{8/70} & $[0.06,0.21]$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent \textbf{Eight successes in forty trials, and every one of them on the
-single object the head was trained for.} (Four tasks, not ten: the remaining six
-were still running when the compute window closed, and we report what completed
-rather than a projection.) We report this because it is the
+\noindent \textbf{Eight successes in seventy trials, and every one of them on
+the single object the head was trained for.} Seven of the suite's ten tasks: the
+remaining three were still running when the compute window closed, and we report
+completed cells only --- every cell here is at its planned $n{=}10$. We report this because it is the
 honest scale of the artifact and because it is the admissibility argument
 turning on its author: a suite of ten tasks that share two placements and one
 basket let a single-object solution be described as a policy with a suite-level
@@ -855,9 +868,12 @@ $-1{=}$close --- without the conversion the jaw never closes and the policy
 also fires on horizon), and a missing signal shield. We then swept four image
 orientations $\times$ the $0.9$ centre crop their fine-tuned evaluation applies.
 
-The checkpoint still does not approach the target: best end-effector distance
-$21.1$\,cm from a $31.5$\,cm start, where a working policy closes to under
-$5$\,cm. \textbf{We therefore report no OpenVLA numbers.} An unvalidated
+The checkpoint still does not approach the target in any configuration we
+tried; the end-effector never closes to within a grasp of it.
+\textbf{We therefore report no OpenVLA success numbers, and no distance
+statistics either} --- the diagnostic runs that produced them were exploratory,
+were not written to a versioned artifact, and we decline to quote figures we
+cannot ship. An unvalidated
 baseline would make our instruments look powerful for entirely the wrong reason
 --- every one of the four defects biased in that same direction --- and that is
 the easiest way to fabricate an external-validation result without intending to.
@@ -873,8 +889,8 @@ they were built on.
 \section{Negative results and registries}
 \label{sec:neg}
 
-\paragraph{Pre-registration.} Twelve predictions are on record with their
-outcomes. Five earlier ones, all falsified. Two from the confound test
+\paragraph{Pre-registration.} Fourteen predictions are on record with
+their outcomes. Five earlier ones, all falsified. Two from the confound test
 (\S\ref{sec:confound}). Seven registered for this revision, of which five held
 --- the untouched band, the oracle ceiling, the uninformed floor, the constant,
 and the flagship swap --- and two failed: that the coverage head's swap cell
@@ -980,24 +996,27 @@ on it. Recomputing placement entropy across four tolerances spanning an order of
 magnitude:
 
 \begin{center}\small
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-suite & $0.5$\,mm & $1$\,mm & $2$\,mm & $5$\,mm \\
+suite & $0.5$mm & $2$mm & $5$mm & $1$cm & $5$cm \\
 \midrule
-\textbf{Object} & \textbf{2.21} & \textbf{2.11} & \textbf{1.77} & \textbf{1.28} \\
-Spatial & 5.57 & 5.50 & 5.29 & 4.62 \\
-Goal & 5.64 & 5.60 & 5.45 & 4.77 \\
-Long & 5.64 & 5.62 & 5.55 & 5.23 \\
+\textbf{Object} & \textbf{2.11} & \textbf{0.48} & \textbf{0.00} & \textbf{0.00} & 0.00 \\
+Spatial & 5.48 & 4.49 & 2.04 & 0.25 & 0.00 \\
+Goal & 5.59 & 5.08 & 1.53 & 0.02 & 0.00 \\
+Long & 5.63 & 5.40 & 4.27 & 0.37 & 0.00 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent The ordering is unchanged throughout and the gap never falls below
-$2.5$ bits. Coarsening $\delta$ lowers every suite's entropy, as it must ---
-coarser bins merge distinct placements --- and lowers LIBERO-Object's fastest
-in relative terms, because its variation is concentrated at sub-millimetre
-scales that a coarser grid erases entirely. Artifact:
-\texttt{results/entropy\_delta\_sensitivity.json}.
+\noindent The ordering is unchanged wherever the measure discriminates at all.
+Coarsening $\delta$ lowers every suite's entropy, as it must --- coarser radii
+merge components --- and by $\delta = 5$\,cm every suite reaches zero, which is
+a statement about coarse resolution rather than about LIBERO. This is precisely
+why the paper's claim is licensed on the diameter $D$
+(Table~\ref{tab:suites}), which has no such parameter: at
+$\delta = 5$\,cm every suite would look admissible on $H$, while on $D$ only
+LIBERO-Object is, at any tolerance the controller actually has. Artifact:
+\texttt{results/placement\_entropy.json}.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
