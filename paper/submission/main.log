@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:11
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:20
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -561,12 +561,8 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 27.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 27.
 LaTeX Font Info:    Trying to load font information for OT1+lmtt on input line 
-62.
+52.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ot1lmtt.fd
 File: ot1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -575,90 +571,307 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 54.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 54.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 54.
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 6
 8.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 104.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 104.
-
 
 [1
 
 {/Users/avneh/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdfte
 x.map}{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{/u
-sr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/lo
-cal/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/local/t
-exlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc}{/usr/local/texlive/
-2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
+sr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc}{/usr/loca
+l/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/local/tex
+live/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
 
-[2]
-
-[3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc}]
+[2{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/u
+sr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc}]
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <9> on input line 201.
 LaTeX Font Info:    Trying to load font information for OMS+lmtt on input line 
-323.
-LaTeX Font Info:    No file OMSlmtt.fd. on input line 323.
+273.
+LaTeX Font Info:    No file OMSlmtt.fd. on input line 273.
 
 
 LaTeX Font Warning: Font shape `OMS/lmtt/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 323.
+(Font)              for symbol `textbraceleft' on input line 273.
 
-<../visuals/F1_placement_forensics.png, id=160, 867.62036pt x 341.19048pt>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+<../visuals/F1_placement_forensics.png, id=146, 867.62036pt x 341.19048pt>
 File: ../visuals/F1_placement_forensics.png Graphic file (type png)
 <use ../visuals/F1_placement_forensics.png>
 Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
-ine 328.
+ine 278.
 (pdftex.def)             Requested size: 469.75502pt x 184.7347pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-[4{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
+[3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
 
-[5 <../visuals/F1_placement_forensics.png>]
+LaTeX Warning: `h' float specifier changed to `ht'.
 
-[6]
 
-[7]
-<../visuals/F3_protocol_by_head.png, id=217, 758.835pt x 332.442pt>
-File: ../visuals/F3_protocol_by_head.png Graphic file (type png)
-<use ../visuals/F3_protocol_by_head.png>
-Package pdftex.def Info: ../visuals/F3_protocol_by_head.png  used on input line
- 619.
-(pdftex.def)             Requested size: 469.75502pt x 205.80247pt.
-<../visuals/F6_audit_stack_control.png, id=220, 245.718pt x 231.264pt>
-File: ../visuals/F6_audit_stack_control.png Graphic file (type png)
-<use ../visuals/F6_audit_stack_control.png>
-Package pdftex.def Info: ../visuals/F6_audit_stack_control.png  used on input l
-ine 630.
-(pdftex.def)             Requested size: 197.29623pt x 185.69955pt.
+
+[4 <../visuals/F1_placement_forensics.png>]
+
+[5]
+Underfull \hbox (badness 10000) in paragraph at lines 483--483
+[]\OT1/lmr/m/n/9 1. ex-pert
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 483--483
+\OT1/lmr/m/n/9 cal-i-bra-tion
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 484--484
+[]\OT1/lmr/m/n/9 scripted ex-pert
+ []
+
+
+Underfull \hbox (badness 2990) in paragraph at lines 485--486
+[]\OT1/lmr/m/n/9 hand-eye con-stant en-
+ []
+
+
+Underfull \hbox (badness 1292) in paragraph at lines 487--487
+[]\OT1/lmr/m/n/9 placement tele-por-ta-
+ []
+
+
+Underfull \hbox (badness 1902) in paragraph at lines 487--487
+\OT1/lmr/m/n/9 tion: re-bake with
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 488--489
+[]\OT1/lmr/m/n/9 0/10$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 7/10 dev,
+ []
+
+
+Underfull \hbox (badness 2057) in paragraph at lines 490--490
+[]\OT1/lmr/m/n/9 2. iteration-
+ []
+
+
+Underfull \hbox (badness 5133) in paragraph at lines 490--490
+\OT1/lmr/m/n/9 coupled se-lec-
+ []
+
+
+Underfull \hbox (badness 5878) in paragraph at lines 491--491
+[]\OT1/lmr/m/n/9 our own pro-ce-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 492--493
+\OT1/lmr/m/n/9 pres-sure ac-cu-mu-lated
+ []
+
+
+Underfull \hbox (badness 2073) in paragraph at lines 494--494
+[]\OT1/lmr/m/n/9 process fix: bands
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 494--494
+\OT1/lmr/m/n/9 frozen, looks dis-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 495--497
+[]\OT1/lmr/m/n/9 untouched band
+ []
+
+
+Underfull \hbox (badness 3884) in paragraph at lines 495--497
+\OT1/lmr/m/n/9 20/30 vs 0.700, no
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 495--497
+\OT1/lmr/m/n/9 de-tected in-fla-tion
+ []
+
+
+Underfull \hbox (badness 6944) in paragraph at lines 495--497
+\OT1/lmr/m/n/9 (\TS1/lmr/m/n/9 §[]\OT1/lmr/m/n/9 5.8[]). \OT1/lmr/bx/n/9 Bounde
+d,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 498--498
+\OT1/lmr/m/n/9 pro-pri-o-cep-tion
+ []
+
+
+Underfull \hbox (badness 1953) in paragraph at lines 500--501
+\OT1/lmr/m/n/9 flat un-der $\OML/lmm/m/it/9 uv$ \OT1/lmr/m/n/9 sweeps;
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 502--502
+[]\OT1/lmr/m/n/9 same tele-ported
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 503--505
+[]\OT1/lmr/m/n/9 attribution flips to
+ []
+
+
+Underfull \hbox (badness 1701) in paragraph at lines 503--505
+\OT1/lmr/m/n/9 vi-sual (1.1--1.8cm vs
+ []
+
+
+Overfull \hbox (20.67188pt too wide) in paragraph at lines 506--506
+\OT1/lmr/m/n/9 command$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 location
+ []
+
+
+Underfull \hbox (badness 1014) in paragraph at lines 508--509
+[]\OT1/lmr/m/n/9 correct bas-ket for the
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 508--509
+\OT1/lmr/m/n/9 trained com-mand,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 508--509
+\OT1/lmr/m/n/9 14.5/13.0cm off for
+ []
+
+
+Underfull \hbox (badness 2990) in paragraph at lines 508--509
+\OT1/lmr/m/n/9 the other two; swap
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 510--510
+[]\OT1/lmr/m/n/9 command cov-er-age:
+ []
+
+
+Underfull \hbox (badness 5893) in paragraph at lines 510--510
+\OT1/lmr/m/n/9 on all three com-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--513
+[]\OT1/lmr/m/n/9 place \OT1/lmr/m/it/9 point
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--513
+\OT1/lmr/m/n/9 14.15$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 0.78cm \OT1/lmr/bx/n/9 re
+-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--513
+\OT1/lmr/bx/n/9 paired\OT1/lmr/m/n/9 ; swap \OT1/lmr/m/it/9 be-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--513
+\OT1/lmr/m/it/9 haviour \OT1/lmr/m/n/9 9/10$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 4/
+10,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--513
+\OML/lmm/m/it/9 p[]\OT1/lmr/m/n/9 0\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 125$ --- \OT
+1/lmr/bx/n/9 un-re-
+ []
+
+
+Underfull \hbox (badness 7397) in paragraph at lines 514--514
+[]\OT1/lmr/m/it/9 (separate) \OT1/lmr/m/n/9 ap-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 515--515
+\OT1/lmr/m/n/9 points, not a
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 515--515
+\OT1/lmr/m/n/9 mem-o-riza-tion
+ []
+
+
+Underfull \hbox (badness 3758) in paragraph at lines 516--516
+\OT1/lmr/m/n/9 ma-chine's own tra-jec-
+ []
+
+
+Underfull \hbox (badness 1400) in paragraph at lines 518--520
+[]\OT1/lmr/m/n/9 3/50$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 22/50 vs 3/50
+ []
+
+
+Underfull \hbox (badness 2237) in paragraph at lines 518--520
+\OT1/lmr/m/n/9 con-trol, $\OML/lmm/m/it/9 p < \OT1/lmr/m/n/9 10[]$;
+ []
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-[8 <../visuals/F3_protocol_by_head.png>]
-<../visuals/F2_attribution_profiles.png, id=236, 645.00975pt x 284.56313pt>
+[6]
+
+[7]
+<../visuals/F3_protocol_by_head.png, id=223, 758.835pt x 332.442pt>
+File: ../visuals/F3_protocol_by_head.png Graphic file (type png)
+<use ../visuals/F3_protocol_by_head.png>
+Package pdftex.def Info: ../visuals/F3_protocol_by_head.png  used on input line
+ 631.
+(pdftex.def)             Requested size: 469.75502pt x 205.80247pt.
+<../visuals/F6_audit_stack_control.png, id=226, 245.718pt x 231.264pt>
+File: ../visuals/F6_audit_stack_control.png Graphic file (type png)
+<use ../visuals/F6_audit_stack_control.png>
+Package pdftex.def Info: ../visuals/F6_audit_stack_control.png  used on input l
+ine 642.
+(pdftex.def)             Requested size: 197.29623pt x 185.69955pt.
+
+
+[8]
+<../visuals/F2_attribution_profiles.png, id=239, 645.00975pt x 284.56313pt>
 File: ../visuals/F2_attribution_profiles.png Graphic file (type png)
 <use ../visuals/F2_attribution_profiles.png>
 Package pdftex.def Info: ../visuals/F2_attribution_profiles.png  used on input 
-line 687.
+line 699.
 (pdftex.def)             Requested size: 469.75502pt x 207.24738pt.
 
 
-[9 <../visuals/F6_audit_stack_control.png>]
+[9 <../visuals/F3_protocol_by_head.png>]
 
-[10 <../visuals/F2_attribution_profiles.png>]
+LaTeX Warning: `h' float specifier changed to `ht'.
 
-[11]
-Overfull \hbox (44.53966pt too wide) in paragraph at lines 847--862
+
+
+[10 <../visuals/F6_audit_stack_control.png>]
+
+[11 <../visuals/F2_attribution_profiles.png>]
+Overfull \hbox (44.53966pt too wide) in paragraph at lines 859--874
 \OT1/lmtt/m/n/10 GraspPointHead.forward \OT1/lmr/m/n/10 con-sumes only \OT1/lmt
 t/m/n/10 geom\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 box[]emb\OT1/lmr/m/n/10 , \OT1/
 lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
@@ -666,17 +879,20 @@ lmtt/m/n/10 frame[]emb\OT1/lmr/m/n/10 , \OT1/lmtt/m/n/10 eef[]xy\OT1/lmr/m/n/10
  []
 
 
-Overfull \hbox (52.53844pt too wide) in paragraph at lines 866--871
+Overfull \hbox (52.53844pt too wide) in paragraph at lines 878--883
 \OT1/lmr/m/n/10 out-comes re-leased in \OT1/lmtt/m/n/10 results/pod[]cells.json
  \OT1/lmr/m/n/10 and per-job wall times and exit sta-tuses in \OT1/lmtt/m/n/10 
 results/pod[]run[]ledger.txt\OT1/lmr/m/n/10 .
  []
 
 
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 
 [12]
 LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 952.
+(Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 964.
 
 
 [13]
@@ -684,28 +900,32 @@ LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 [14]
 
 [15]
-<../visuals/F7_position_vs_appearance.png, id=288, 956.24622pt x 339.28864pt>
+<../visuals/F7_position_vs_appearance.png, id=293, 956.24622pt x 339.28864pt>
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
-t line 1160.
+t line 1172.
 (pdftex.def)             Requested size: 469.75502pt x 166.6774pt.
 
 
 [16 <../visuals/F7_position_vs_appearance.png>]
 
 [17]
-<../visuals/F5_third_object.png, id=304, 966.61125pt x 298.11375pt>
+<../visuals/F5_third_object.png, id=309, 966.61125pt x 298.11375pt>
 File: ../visuals/F5_third_object.png Graphic file (type png)
 <use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 131
-7.
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 132
+9.
 (pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
 
 
 [18 <../visuals/F5_third_object.png>]
 
 [19]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 
 [20] (./main.bbl
 
@@ -722,17 +942,20 @@ L3 programming layer <2025-01-18>
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 9C7DC97563C8AD42669B4604D0946C03;5482.
  ) 
 Here is how much of TeX's memory you used:
- 14465 strings out of 474662
- 232249 string characters out of 5751110
- 678666 words of memory out of 5000000
- 37181 multiletter control sequences out of 15000+600000
+ 14470 strings out of 474662
+ 232343 string characters out of 5751110
+ 691115 words of memory out of 5000000
+ 37184 multiletter control sequences out of 15000+600000
  641113 words of font info for 102 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,615s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1319b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9
 .pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb>
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr
@@ -764,10 +987,10 @@ mtk10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10
 /usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/l
 ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pf
 b>
-Output written on main.pdf (23 pages, 1366119 bytes).
+Output written on main.pdf (23 pages, 1365982 bytes).
 PDF statistics:
- 563 PDF objects out of 1000 (max. 8388607)
- 450 compressed objects within 5 object streams
- 112 named destinations out of 1000 (max. 500000)
+ 568 PDF objects out of 1000 (max. 8388607)
+ 454 compressed objects within 5 object streams
+ 114 named destinations out of 1000 (max. 500000)
  15567 words of extra memory for PDF output out of 17280 (max. 10000000)
 
