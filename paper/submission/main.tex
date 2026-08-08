@@ -528,6 +528,57 @@ not replicate when powered up (\S\ref{sec:language}).}
 \label{tab:audit}
 \end{table*}
 
+\paragraph{Probe protocols.} Both instruments are annotation-free: they need no
+ground-truth pose, no counterfactual scene and no labels. Stated as procedures
+so they can be run on a stack that is not ours.
+
+\begin{figure}[h]
+\centering
+\fbox{\begin{minipage}{0.95\linewidth}\footnotesize
+\textbf{Probe 1 --- cross-instruction detection agreement (``identity
+blindness'').} \emph{Applies to: detector-grounded policies only.}
+\begin{enumerate}\itemsep0pt\parsep0pt
+\item Collect $F$ frames from the \emph{deployed} viewpoint (not corpus frames).
+\item For object $A$ and object $B$ in the same scene, run each one's full
+prompt chain --- the chain the policy deploys, including its fallback tail ---
+through the policy's own perception object, on the identical frames.
+\item Keep frames where \emph{both} chains returned a source box. Call this
+$n$. \textbf{If $n < 3$, return \textsc{inconclusive}}; a rate over an empty or
+near-empty comparison is not a measurement.
+\item Report the fraction of kept frames whose two box centres lie within
+$\tau$ (normalized frame units; we use $\tau{=}0.02$) and the median centre
+distance. Sweep $\tau$ and report whether the verdict moves.
+\end{enumerate}
+\textbf{Reads as:} high same-box rate $\Rightarrow$ this stage carries no object
+identity. \textbf{Assumptions:} the two objects are both present and both
+detectable; low detection rate shrinks $n$ and is the main failure mode.
+\textbf{Positive control required:} at least one pair the stack \emph{should}
+separate must return different boxes, or the null is uninformative.
+\medskip
+
+\textbf{Probe 2 --- instruction swap.} \emph{Applies to: any
+instruction-conditioned policy.}
+\begin{enumerate}\itemsep0pt\parsep0pt
+\item Run the paired baseline: task $T$, seeds $S$, the policy told $T$'s own
+instruction.
+\item Run the swapped arm: \textbf{same} task, \textbf{same} seeds, \textbf{same}
+initial states, \textbf{same} success predicate --- the policy is told a
+\emph{different} task's instruction. Nothing about the environment changes.
+\item Score both on the \emph{real} task $T$. Compare with exact McNemar on
+discordant pairs; the arms must be paired or the test does not apply.
+\end{enumerate}
+\textbf{Reads as:} no drop $\Rightarrow$ the policy is not using the
+instruction. A drop $\Rightarrow$ it is using it, and the 2$\times$2 (prompts
+vs.\ embeddings from different instructions) says through which channel.
+\textbf{Failure mode:} an equivalence claim from a low-scoring baseline is
+uninformative --- a swap cannot break a cell that is already broken, which is
+how our own coverage-head cell misled us (\S\ref{sec:language}).
+\end{minipage}}
+\caption{The two behavioural probes, as protocols. Implementation and tests:
+\texttt{eval/probes.py}.}
+\label{fig:probebox}
+\end{figure}
+
 \paragraph{Seam defects.} Table~\ref{tab:defects} lists the producer/consumer
 defects this paper works through, with the measurement that found each and the
 cheaper instrument that would have caught it earlier.
