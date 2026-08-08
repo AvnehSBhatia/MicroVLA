@@ -11209,3 +11209,36 @@ fabricate an external-validation result without meaning to. Hence the rule I
 applied: **no E2 number gets reported until the baseline reproduces**. If it
 does not, E2 is reported as attempted and not validated, and the harness ships
 so someone else can finish it.
+
+---
+
+## 2026-08-08 — E8 at n=30 OVERTURNS our own repair claim
+
+The coverage head's swap cell, taken from n=10 to n=30 on the held-out band:
+
+| head | baseline | swapped | paired exact McNemar |
+|---|---|---|---|
+| flagship | 8/10 | **0/20** [0.00, 0.16] | **p=0.0078** (8 lost, 0 gained) |
+| coverage | 23/30 [0.59, 0.88] | **13/30** [0.27, 0.61] | **p=0.031** (14 lost, 4 gained) |
+
+At n=10 this was p=0.125 and I called it unresolved. At n=30 it is **p=0.031**:
+**the coverage head collapses too.** The published claim that command coverage
+repairs the swap behaviour is **withdrawn**. It was an equivalence claim read off
+an underpowered cell on a band where the head only scored 4/10 — a swap cannot
+visibly break a cell that is already mostly broken. Exactly the error the
+referee predicted, and powering it up is exactly what exposed it.
+
+**What replaces it is better than what it replaces.** Coverage does not
+eliminate the failure, it roughly halves it: the flagship loses its entire cell
+(0.800 → 0.000, every discordant pair one way), the coverage head loses about a
+third of its own (0.767 → 0.433). And the place-*point* repair is not in doubt —
+14.15 cm → 0.78 cm, measured directly rather than inferred from behaviour.
+
+So the precise claim is: **command coverage fixes where the head aims, and does
+not fully fix what it does.** A residual command→location dependence survives
+training on all three commands. That is a sharper statement of layer 4 than we
+had, and no cell we ran before this session could have detected it.
+
+Propagated to the abstract, the master audit table (row L4 now reads "halved,
+not fixed"), the test registry (row reclassified confirmatory/withdrawn) and the
+pre-registration registry (the prediction is recorded as failed).

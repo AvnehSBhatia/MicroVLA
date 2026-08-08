@@ -561,7 +561,7 @@ correct basket for the trained command, 14.5/13.0\,cm off for the other two;
 swap 8/10$\to$\textbf{0/20}, $p{=}0.0078$ &
 command coverage: train the place head on all three commands &
 place \emph{point} 14.15$\to$0.78\,cm \textbf{repaired}; swap \emph{behaviour}
-9/10$\to$4/10, $p{=}0.125$ --- \textbf{unresolved} \\
+$0.767\to0.433$ at $n{=}30$, $p{=}0.031$ --- \textbf{halved, not fixed} \\
 \midrule
 \emph{(separate)} appearance drift &
 deployment viewpoints, not a memorization layer &
@@ -1023,8 +1023,8 @@ shell $+$ \textbf{random} goals & \textbf{0/10} & $[0.00, 0.28]$ & \textbf{shell
 shell $+$ fixed constant & 10/10 & $[0.72, 1.00]$ & a memorizer beats the released head \\
 \midrule
 flagship, swapped instr. & \textbf{0/20} & $[0.00, 0.16]$ & collapse survives powering up \\
-coverage head, baseline & 9/10 & $[0.60, 0.98]$ & --- \\
-coverage head, swapped & 4/10 & $[0.17, 0.69]$ & \textbf{non-collapse does not replicate} \\
+coverage head, baseline & 23/30 & $[0.59, 0.88]$ & --- \\
+coverage head, swapped & \textbf{13/30} & $[0.27, 0.61]$ & \textbf{collapses too ($p{=}0.031$)} \\
 \midrule
 randomized $\pm2$\,cm & 7/10 & $[0.40, 0.89]$ & \multirow{3}{*}{degrades toward the envelope} \\
 randomized $\pm6$\,cm & 2/10 & $[0.06, 0.51]$ & \\
@@ -1441,27 +1441,44 @@ magnitude tighter than the original $p=0.016$ and with an upper bound now below
 0.17. This contrast is the one that survives powering up, and it is the one
 that carries the layer-4 argument.
 
-\paragraph{A re-run that does not support the strong reading, reported here
-rather than omitted.} The cell above is the coverage head on a band where it
-scores 4/10, and a swap cannot visibly break a cell that is already mostly
-broken --- the referee's objection that this is an equivalence claim at $n{=}10$
-is exactly right. Re-running the same manipulation on the \emph{held-out} band,
-where the three-object head scores well, gives a different picture: 9/10
-baseline against \textbf{4/10} swapped, six successes lost and one gained,
-exact McNemar $p=0.125$ on paired trials. The drop is not statistically
-established at $n{=}10$ --- and we will not call $p=0.125$ a collapse --- but the
-point estimate moves from ``no effect'' to a loss of two thirds of the cell, in
-the direction the flagship moves.
+\paragraph{Powered up, the coverage head's ``non-collapse'' does not survive.}
+The cell above is the coverage head on a band where it scores 4/10, and a swap
+cannot visibly break a cell that is already mostly broken --- the referee's
+objection that this is an equivalence claim at $n{=}10$ is exactly right. We
+re-ran the same manipulation on the \emph{held-out} band, where the three-object
+head scores well, and took it to $n{=}30$:
 
-So the honest statement is weaker than the one above: \textbf{command coverage
-demonstrably repairs the place \emph{point} (14.15\,cm $\to$ 0.78\,cm spread,
-directly measured) but we have not established that it repairs the swap
-\emph{behaviour}}. One band says it holds at a low baseline, another says it may
-not at a high one, and neither is powered. The place-point measurement is the
-claim we stand behind; the behavioural non-collapse is downgraded to
-unresolved pending the $n{=}50$ cells. We also cannot confirm that the
-checkpoint we re-ran is byte-identical to the one behind the original cell,
-which is itself a provenance defect of the kind Table~\ref{tab:defects} collects. It also answers generalization: the mechanism reproduces on a second
+\begin{center}\small
+\begin{tabular}{llll}
+\toprule
+head & baseline & swapped instruction & paired exact McNemar \\
+\midrule
+flagship & 8/10 & \textbf{0/20} $[0.00,0.16]$ & $p=0.0078$ (8 lost, 0 gained) \\
+coverage & 23/30 $[0.59,0.88]$ & \textbf{13/30} $[0.27,0.61]$ & $p=0.031$ (14 lost, 4 gained) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent At $n{=}10$ this contrast was $p=0.125$ and we would have called it
+unresolved. At $n{=}30$ it is $p=0.031$: \textbf{the coverage head collapses
+too}. We therefore withdraw the claim that command coverage repairs the swap
+behaviour --- it was an equivalence claim read off an underpowered cell on a
+weak band, exactly the error the referee predicted.
+
+What replaces it is quantitative and, we think, more useful. Coverage does not
+eliminate the failure; it \emph{halves} it. The flagship loses its entire cell
+($0.800 \to 0.000$, every discordant pair one way); the coverage head loses
+about a third of its own ($0.767 \to 0.433$). And the repair to the place
+\emph{point} is not in doubt --- 14.15\,cm $\to$ 0.78\,cm, measured directly
+rather than inferred from behaviour. So: \textbf{command coverage demonstrably
+fixes where the head aims, and demonstrably does not fully fix what it does}.
+A residual command$\to$location dependence survives training on all three
+commands, which is a sharper statement of the layer-4 defect than we had before
+and is not one our earlier cells could have detected.
+
+One provenance caveat stands: we cannot confirm the checkpoint we re-ran is
+byte-identical to the one behind the original cell, which is the defect class
+Table~\ref{tab:defects} collects. It also answers generalization: the mechanism reproduces on a second
 task with a different head, in both directions. This layer was invisible to
 every earlier probe because all ten tasks share one basket, so a memorized and
 a grounded place map are behaviourally identical \emph{until the instruction is
