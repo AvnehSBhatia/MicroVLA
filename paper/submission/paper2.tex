@@ -501,34 +501,22 @@ Proposition~\ref{prop:lookup}'s policy, and the gap is stated below.
 \item \textbf{learned head} --- our released policy, for reference.
 \end{itemize}
 
-\begin{table}[h]\centering\footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llll}
-\toprule
-goal supply & reads & score & vs.\ learned \\
-\midrule
-oracle & sim, every tick & 10/10 & $p=0.50$ \\
-reset-oracle & sim, once & \textbf{10/10} & $p=0.50$ \\
-learned head & camera + text & 8/10 & --- \\
-\textbf{blind} & \textbf{shipped files} & \textbf{6/10} & $\mathbf{p=0.50}$ \\
-random & nothing informative & \textbf{0/10} & $\mathbf{p=0.0078}$ \\
-\bottomrule
-\end{tabular}
-\caption{The goal-supply ladder on the held-out band: identical states, identical
-draws, identical controller, identical trunk --- only where the goal comes from
-differs. The \emph{reads} column is the whole experiment. Descending it removes
-information: from the simulator every tick, to the simulator once, to a camera
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F7_ladder.png}
+\caption{\textbf{The goal-supply ladder.} Five arms, one controller, one trunk,
+one protocol, one set of initial states; the only difference is where the goal
+comes from. \textbf{B} is the experiment: descending the ladder removes
+information, from the simulator every tick, to the simulator once, to a camera
 and a sentence, to nothing but the benchmark's own published files, to nothing.
-\textbf{The benchmark separates only the last step.} Every arm above
-\texttt{random} is within $p=0.50$ of the trained policy by exact McNemar on
-matched trials; \texttt{blind} beats \texttt{random} at $p=0.031$. Wilson
-intervals: oracle and reset-oracle $[0.72,1.00]$, learned $[0.49,0.94]$, blind
-$[0.31,0.83]$, random $[0.00,0.28]$. Per-trial outcomes:
+\textbf{A} is the result: the benchmark resolves only the final step. Every arm
+above \texttt{random} is within $p = 0.50$ of the trained policy under exact
+McNemar on matched trials, and \texttt{blind} --- which never reads the episode
+--- beats \texttt{random} at $p = 0.031$. Artifacts:
 \texttt{results/pod\_cells.json}, \texttt{results/blind\_cells.json}.}
-\label{tab:anchors}
-\end{table}
+\label{fig:ladder}
+\end{figure*}
 
-\paragraph{The floor is zero.} With an uninformed goal (Table~\ref{tab:anchors})
+\paragraph{The floor is zero.} With an uninformed goal (Figure~\ref{fig:ladder})
 the machinery scores
 $0/10$ $[0.00, 0.28]$: eight discordant pairs, all favouring the learned head,
 exact McNemar $p = 0.0078$. \textbf{The task is not trivial.} Whatever the
@@ -564,14 +552,30 @@ end-effector-to-object distance of $\mathbf{0.002}$\,m. The blind constant
 \emph{never} missed the object. All four failures ran to the $300$-step cap
 with the object still $8$\,mm from the gripper --- grasped, never placed.
 
-That is the admissibility argument making a within-task prediction and the
-measurement meeting it. This task has two sub-goals with two different
-diameters: the target object, pinned at $D \le 2.34$\,cm, and the basket, which
-the suite genuinely randomises at $D = 3.66$\,cm, $5.60$ bits. A constant is
-sufficient for the first --- $10/10$ on reaching --- and insufficient for the
-second, and the $6/10$ is the composition of those two facts. The quantity we
-compute from the shipped files before running anything predicts, sub-goal by
-sub-goal inside a single task, where lookup suffices. Per-trial outcomes and
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F8_subgoal.png}
+\caption{\textbf{Admissibility predicts sub-goal by sub-goal, inside one task.}
+\textbf{A} ``Pick up the alphabet soup and place it in the basket'' has two
+sub-goals with two diameters: the soup occupies the \emph{same} \texttt{float64}
+position in all fifty shipped states ($D = 0.00$\,cm), the basket does not
+($D = 3.37$\,cm). \textbf{B} What the blind constant did, per trial. It closed
+on the object to within $2$\,mm in \emph{all ten}, failures included; the four
+failures ran to the step cap with the object still $8$\,mm from the gripper ---
+grasped, never placed. The same constant-driven controller performed both
+sub-goals, so the diameter is the only thing distinguishing them. Artifacts:
+\texttt{results/suite\_forensics\_joints.json},
+\texttt{results/blind\_logs/blind\_t0\_trials.txt}.}
+\label{fig:subgoal}
+\end{figure*}
+
+That is the admissibility argument making a \emph{within-task} prediction and
+the measurement meeting it. This task carries two sub-goals with two diameters
+(Figure~\ref{fig:subgoal}): the alphabet soup, whose fifty shipped positions are
+the \emph{same float}, $D = 0.000$\,cm; and the basket, which the suite
+genuinely randomises, $D = 3.37$\,cm. A constant is sufficient for the first and
+insufficient for the second, and $6/10$ is the composition of those two facts.
+The quantity we compute from the shipped files before running anything predicts,
+sub-goal by sub-goal inside a single task, where lookup suffices. Per-trial outcomes and
 the paired tests are in \texttt{results/blind\_cells.json}.
 
 \paragraph{The reset-oracle saturates the benchmark, and is statistically
