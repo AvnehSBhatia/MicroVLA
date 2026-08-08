@@ -49,14 +49,16 @@ It scores $6/10$ against our released policy's $8/10$, and an exact paired test
 returns $p = 0.50$: \textbf{the benchmark cannot separate a trained policy from
 one that has never seen the episode}, which is what the corollary says no score
 can do. The same machinery given uninformed goals scores $0/10$, so the task is
-not trivial; the benchmark is. The failures are the tell. In all ten trials the
-blind constant closed on the object to within $2$\,mm, and every failure ended
-at the step cap still holding it ($8$\,mm from the gripper). What a constant
-cannot do here is the \emph{basket} --- the one sub-goal this suite actually
-randomises. The
-diameter predicts where lookup suffices sub-goal by sub-goal inside a single
-task. Across seven of ten tasks that released policy scores $8$ of $70$, every
-success on the one object it was trained for.
+not trivial; the benchmark is.
+
+The failures are the tell. In all ten trials the blind constant closed on the
+object to within $2$\,mm, and every failure ended at the step cap still holding
+it. What a constant cannot do here is the \emph{basket} --- the one sub-goal
+this suite randomises. \textbf{The diameter predicts where lookup suffices
+sub-goal by sub-goal inside a single task.}
+
+Across seven of ten tasks that released policy scores $8$ of $70$, every success
+on the one object it was trained for.
 
 Finally, certification. Probes alone cannot certify: two heads whose attribution
 profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
@@ -80,31 +82,44 @@ of looking harder at the policy --- two policies can be indistinguishable to a
 probe and opposite in the world, and we exhibit such a pair --- but of first
 measuring the benchmark.
 
-Recent perturbation studies have established the phenomenon at the level of
-scores. LIBERO-PRO~\citep{zhou2025liberopro} perturbs objects, initial states
-and instructions and reports models above $90\%$ collapsing to $0.0\%$;
-LIBERO-Plus~\citep{fei2025liberoplus} perturbs seven dimensions across ten VLAs
-and concludes that models ``tend to ignore language instructions completely.''
-That VLAs ignore language is not our finding, and our system exhibiting it is
-confirmatory rather than novel.
 
-\paragraph{The methodology is not new; the metric is.} Measuring a
-benchmark's degeneracy before crediting a model is standard practice outside
-robotics. Dataset bias was named by Torralba and
-Efros~\citep{torralba2011bias}; natural-language inference was shown solvable
-from hypothesis-only artifacts~\citep{gururangan2018artifacts} and from
-syntactic heuristics~\citep{mccoy2019hans}; ImageNet accuracy was shown partly
-a property of one test set~\citep{recht2019imagenet}; and the general statement
-is Geirhos et al.'s shortcut learning~\citep{geirhos2020shortcut}. Our
-\emph{constant} arm (\S\ref{sec:constant}) is the manipulation instance of the
-hypothesis-only baseline and we claim no novelty for the move. What that
-literature lacks, and what manipulation makes possible, is a metric
-\emph{computable from a benchmark's shipped files before any model is
-trained} --- because the prior here is not a class frequency but a physical
-coordinate, and a physical coordinate can be measured exactly. Evaluation rigour
-in robotics has been pressed by robomimic~\citep{mandlekar2021robomimic} and
-COLOSSEUM~\citep{pumacay2024colosseum}; both perturb or re-collect from the
-outside, where we ask what the shipped files already permit.
+\begin{table}[t]\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{2.35cm}p{2.5cm}p{2.65cm}}
+\toprule
+& probes from & cannot say \\
+\midrule
+\multicolumn{3}{l}{\emph{Benchmark degeneracy, outside robotics}} \\
+Torralba \& Efros~\citep{torralba2011bias} & dataset identity & --- \\
+HANS~\citep{mccoy2019hans}, artifacts~\citep{gururangan2018artifacts} & hypothesis only & where in a stack \\
+ImageNet-v2~\citep{recht2019imagenet} & a second test set & --- \\
+Shortcuts~\citep{geirhos2020shortcut} & general statement & --- \\
+\addlinespace
+\multicolumn{3}{l}{\emph{Perturbation, in robotics}} \\
+LIBERO-PRO~\citep{zhou2025liberopro} & re-running with perturbed scenes & how much was gameable \emph{a priori} \\
+LIBERO-Plus~\citep{fei2025liberoplus} & seven axes, ten VLAs & which stage reads the shortcut \\
+robomimic~\citep{mandlekar2021robomimic}, COLOSSEUM~\citep{pumacay2024colosseum} & re-collection, perturbation & what the shipped files already permit \\
+\addlinespace
+\textbf{This paper} & \textbf{shipped files, before training} & \textbf{---} \\
+\bottomrule
+\end{tabular}
+\caption{Every prior entry needs a trained model and a run to say anything.
+Placement diameter is computed from the benchmark's own initial-state files
+with no policy, no simulator and no training, which is what lets it bound
+what a score \emph{could} certify rather than report what one model did.}
+\label{tab:related}
+\end{table}
+
+\paragraph{The methodology is not new; the metric is.} Table~\ref{tab:related}
+places this work. Measuring a benchmark's degeneracy before crediting a model is
+standard outside robotics, and our \emph{blind} arm is the manipulation instance
+of the hypothesis-only baseline; we claim no novelty for the move. That VLAs
+ignore language is likewise not our finding.
+
+What that literature lacks, and what manipulation makes possible, is a metric
+\emph{computable from a benchmark's shipped files before any model is trained}.
+The prior here is not a class frequency but a physical coordinate, and a
+physical coordinate can be measured exactly.
 
 What those results leave open is the part a practitioner needs. They show
 \emph{that} scores collapse under perturbation. They do not say how much a given
@@ -114,35 +129,39 @@ as showing that it had been. This paper answers those four questions for one
 suite and one stack, in that order, and the first answer is the one that gives
 the others their meaning.
 
-\paragraph{Contributions.}
-\begin{enumerate}\itemsep2pt
-\item \textbf{Admissibility, defined and measured} (\S\ref{sec:adm}). The
-placement diameter $D$ and placement entropy $H_\delta$: per-task quantities
-computed from a benchmark's shipped files alone --- no policy, no simulator, no
-training --- with a proposition saying exactly what $D \le \delta$ licenses.
-Measured for all four LIBERO suites with per-task tables and file digests.
-LIBERO-Object is admissible on all ten tasks and no other suite on any of its
-twenty-eight.
-\item \textbf{The proposition instantiated} (\S\ref{sec:constant}). A goal
-supply carrying one position read at reset --- no vision, no language, no
-learning thereafter --- is statistically indistinguishable from our released
-policy, bracketed by an oracle ceiling ($10/10$) and an uninformed floor
-($0/10$) that together show the task is hard and the benchmark is not. The
-strictly-blind policy the proposition describes --- task index and shipped
-files, nothing from the episode --- scores $6/10$, indistinguishable from the
-trained policy at $p = 0.50$, and misses the object in \emph{zero} of ten
-trials.
-\item \textbf{A four-layer mechanism audit} (\S\ref{sec:audit}), including two
-layers outside the model --- a scripted expert's calibration constant and our
-own checkpoint-selection loop --- which black-box perturbation cannot reach.
-\item \textbf{Certification methodology} (\S\ref{sec:cert}): a counterexample to
-probe-only certification, two annotation-free probes stated as protocols with
-their inconclusive conditions, and the demonstration that a behavioural
-certificate is joint in \emph{(head, stack)} down to the renderer.
-\item \textbf{Falsification record} (\S\ref{sec:neg}). Every prediction we
-registered, including the two that failed; every instrument retired at its
-calibration gate; and the repair claim of our own that this revision withdraws.
-\end{enumerate}
+\paragraph{Contributions.} Table~\ref{tab:contrib} is the map; each row names
+the section that measures it and the artifact it is measured from.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{0.32cm}p{3.15cm}p{3.75cm}}
+\toprule
+& contribution & the number \\
+\midrule
+1 & Admissibility defined and measured (\S\ref{sec:adm}) &
+LIBERO-Object: $10/10$ tasks admissible. Every other suite: $0/28$ \\
+\addlinespace
+2 & The proposition executed (\S\ref{sec:constant}) &
+shipped-files constant $6/10$ vs.\ trained policy $8/10$, $p = 0.50$ \\
+\addlinespace
+3 & The prediction made \emph{within} a task (\S\ref{sec:constant}) &
+pinned sub-goal $10/10$, randomised sub-goal $6/10$, same controller \\
+\addlinespace
+4 & Four-layer mechanism audit, two layers outside the model (\S\ref{sec:audit}) &
+a scripted expert's constant, and our own checkpoint-selection loop \\
+\addlinespace
+5 & Certification is joint in (head, stack) (\S\ref{sec:cert}) &
+probe-identical heads score $0.000$/$0.700$; the renderer flips $40\%$ of episodes \\
+\addlinespace
+6 & Falsification record (\S\ref{sec:neg}) &
+two registered predictions failed; one repair claim withdrawn \\
+\bottomrule
+\end{tabular}
+\caption{What this paper claims, where it is measured, and the number that
+carries it. Rows 1--3 are the argument; rows 4--6 are what it took to trust
+them.}
+\label{tab:contrib}
+\end{table}
 
 \paragraph{Scope, stated once and up front.} All results are simulation. Every
 confirmatory cell is one task and one object unless stated. Cell sizes are given
@@ -284,8 +303,9 @@ benchmark rather than of anyone's system.
 LIBERO ships each task's initial states as a MuJoCo flattened state
 $[\,t \mid q \mid \dot q\,]$; every shipped $\dot q$ is zero, so the columns
 that vary across states are exactly the position degrees of freedom the suite
-randomises. Recovering \emph{which} object owns which column requires care: the
-fixed layout $[\,t \mid 9 \mid N\!\times\!7 \mid \dot q\,]$ that works for
+randomises.
+
+Recovering \emph{which} object owns which column requires care. The fixed layout $[\,t \mid 9 \mid N\!\times\!7 \mid \dot q\,]$ that works for
 LIBERO-Object predicts a width of $19+13N$ and fails for every suite containing
 an articulated fixture (LIBERO-Spatial ships width $92$ against $5$ declared
 objects). We therefore compile each task's model and read
@@ -354,11 +374,13 @@ quantities and license the claim on the one that supports it.
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} distinct \texttt{float64} values, one
 unit in the last place apart ($\sim3\times10^{-17}$\,m) on a single axis ---
-constant to the precision the format can express. The remaining four have per-axis standard deviations of $0.25$--$0.58$\,cm and
-diameters of $1.19$--$2.34$\,cm --- still inside the $2.5$\,cm tolerance, which
-is why the suite is uniformly lookup-admissible there, and a reminder that a
-standard deviation is not a bound. Across
-tasks the structure is tighter still: the ten targets occupy two table positions
+constant to the precision the format can express.
+
+The remaining four have per-axis standard deviations of $0.25$--$0.58$\,cm but
+diameters of $1.19$--$2.34$\,cm --- still inside the $2.5$\,cm tolerance, and a
+reminder that a standard deviation is not a bound.
+
+Across tasks the structure is tighter still: the ten targets occupy two table positions
 $22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
 \emph{two}-constant table covers the whole suite --- order-2
 lookup-admissibility, in the language of Definition~2.
@@ -430,22 +452,27 @@ A place head maps the command embedding to a place $(x,y)$, latched once per
 episode inside \texttt{reset()} and never re-read. A non-learned state machine
 converts goals into servo commands within a $\pm6$\,cm probe envelope.
 
-\paragraph{Protocol, and exactly which states compose each cell.} Three words
-are used throughout and are worth pinning down here. A \emph{cell} is one
-evaluation: a fixed (head, flags, seed, $n$) tuple run to completion, always
-quoted with its $n$ and its interval. A \emph{band} is the set of shipped
-initial states a cell replays, which the harness fixes rather than samples. A
-band is \emph{burned} once we have looked at results on it and let that look
-influence a choice --- a checkpoint, a flag, a threshold --- because from that
-moment it no longer measures generalisation, and no amount of re-running
-un-burns it. LIBERO at
-commit \texttt{8f1084e3}, MuJoCo $2.3.7$, robosuite $1.4.1$, torch $2.8.0$,
-ultralytics $8.4.115$, numpy $2.2.6$, Python $3.10$, \texttt{MUJOCO\_GL=osmesa}
-(\S\ref{sec:cert} explains why that last entry is not boilerplate). The harness
-sets $\texttt{trial\_seed} = \texttt{seed}\cdot 1{,}000{,}003 + \texttt{trial}$
-and indexes state $\texttt{trial\_seed} \bmod 50$; since
-$1{,}000{,}003 \equiv 3 \pmod{50}$, trial $i$ uses state $(3\,\text{seed}+i)
-\bmod 50$. Every cell's state set is therefore derivable from its command line:
+\paragraph{Three words, used throughout.}
+\begin{itemize}\itemsep1pt \parskip0pt \topsep2pt \leftmargin0pt
+\item \textbf{cell} --- one evaluation: a fixed (head, flags, seed, $n$) run to
+completion, always quoted with its $n$ and its interval.
+\item \textbf{band} --- the set of shipped initial states a cell replays. The
+harness fixes it; it is not sampled.
+\item \textbf{burned} --- a band we have looked at and let influence a choice.
+From that moment it no longer measures generalisation, and no amount of
+re-running un-burns it.
+\end{itemize}
+
+\paragraph{Protocol.} LIBERO at commit \texttt{8f1084e3}, MuJoCo $2.3.7$,
+robosuite $1.4.1$, torch $2.8.0$, ultralytics $8.4.115$, numpy $2.2.6$,
+Python $3.10$, \texttt{MUJOCO\_GL=osmesa} --- \S\ref{sec:cert} explains why
+that last entry is not boilerplate.
+
+Which states compose a cell is derivable from its command line, not logged.
+The harness sets $\texttt{trial\_seed} = \texttt{seed}\cdot 1{,}000{,}003 +
+\texttt{trial}$ and indexes state $\texttt{trial\_seed} \bmod 50$; since
+$1{,}000{,}003 \equiv 3 \pmod{50}$, trial $i$ at seed $s$ replays state
+$(3s+i) \bmod 50$:
 
 \begin{table}[h]\centering\small
 \begin{tabular}{lll}
@@ -531,19 +558,22 @@ The \textbf{blind} arm takes the task index, opens the benchmark's own shipped
 initial-state files, and emits two constants --- the mean shipped position of
 the target and of the container --- and then never consults the episode again.
 No simulator read, no camera, no detector, no text, no learned parameter
-anywhere in the goal supply. On task $0$ those constants are
-$(-0.1200, -0.2400, 0.0150)$ and $(0.0023, 0.2605)$, printed by the run and
-reproducible from the files without a simulator installed.
+anywhere in the goal supply.
+
+On task $0$ those constants are $(-0.1200, -0.2400, 0.0150)$ and
+$(0.0023, 0.2605)$: printed by the run, and reproducible from the shipped files
+without a simulator installed.
 
 \textbf{It scores $6/10$} $[0.31, 0.83]$ on the same held-out band. Against the
 released head's $8/10$ the two discordant pairs both favour the head and exact
 McNemar returns $p = 0.50$: \textbf{the benchmark cannot separate our trained
 policy from a policy that has never seen the episode.} Against the uninformed
-floor's $0/10$ the six discordant pairs all favour blind, $p = 0.031$, so the
-constants are carrying real information and not merely riding a lucky
-controller. Against the reset-oracle's $10/10$, four discordant pairs all
-favour the oracle at $p = 0.125$ --- one privileged look at reset does buy
-something the shipped-file mean does not, and $n{=}10$ cannot resolve how much.
+floor's $0/10$ the six discordant pairs all favour blind, $p = 0.031$: the
+constants carry real information and are not riding a lucky controller.
+
+Against the reset-oracle's $10/10$, four discordant pairs all favour the oracle
+at $p = 0.125$. One privileged look at reset does buy something the
+shipped-file mean does not, and $n{=}10$ cannot resolve how much.
 
 \paragraph{Where it fails is where the suite randomises.} The per-trial
 telemetry says something sharper than the rate does. In \textbf{all ten}
@@ -586,15 +616,13 @@ $8/10$ --- and the paired test returns $p = 0.50$.
 We do not report that $p$ as a limitation of the cell. \textbf{It is
 Corollary~\ref{cor:sep} arriving on schedule.} On a suite whose target never
 moves, the score is not a low-powered instrument for separating lookup from
-perception; it is not an instrument for it at all. A larger $n$ would not help,
-because the two policies are not merely hard to tell apart --- under A1 they are
-identically distributed in everything the benchmark observes. The experiment's
-content is not ``the constant won''. It is that a benchmark scored a
-task-indexed constant and a trained policy the same, which is what
-Proposition~\ref{prop:lookup} and Corollary~\ref{cor:sep} jointly predict, and
-it is the difference between arguing that a benchmark is lookup-admissible and
-supplying a goal that carries no perceptual work. It is not yet the difference
-between that and running a pure lookup, which requires the blind arm.
+perception; it is not an instrument for it at all. A larger $n$ would not help.
+Under A1 the two policies are not merely hard to tell apart --- they are
+identically distributed in everything the benchmark observes.
+
+So the experiment's content is not ``the constant won''. It is that a benchmark
+scored a task-indexed constant and a trained policy the same, which is what
+Proposition~\ref{prop:lookup} and Corollary~\ref{cor:sep} jointly predict.
 
 \paragraph{What this licenses, and what it does not.} It does not show our
 released head is a memoriser; \S\ref{sec:audit} shows what it actually reads,
@@ -643,12 +671,13 @@ reached its planned $n$.}
 \noindent \textbf{Eight successes in seventy trials, and every one of them on
 the single object the head was trained for.} Seven of the suite's ten tasks: the
 remaining three were still running when the compute window closed, and we report
-completed cells only --- every cell here is at its planned $n{=}10$. We report this because it is the
-honest scale of the artifact and because it is the admissibility argument
-turning on its author: a suite of ten tasks that share two placements and one
-basket let a single-object solution be described as a policy with a suite-level
-score. The number a reader should carry away from this paper is not $0.700$; it
-is $0.700$ \emph{on task 0}, with $0.000$ next to it three times.
+completed cells only --- every cell here is at its planned $n{=}10$.
+
+This is the admissibility argument turning on its author. A suite of ten tasks
+sharing two placements and one basket let a single-object solution be described
+as a policy with a suite-level score. \textbf{The number a reader should carry
+away from this paper is not $0.700$; it is $0.700$ on task 0, with $0.000$ next
+to it six times.}
 
 It also bounds in advance what the audit and repairs of
 \S\ref{sec:audit}--\S\ref{sec:repairs} can have bought. They made one object
@@ -760,12 +789,15 @@ edge terminates in one $(x,y)$ latched once per episode and never re-read.}
 Swapping the instruction while holding the scene and the success predicate fixed
 collapses the released head from $8/10$ to $\mathbf{0/20}$ $[0.00,0.16]$; on the
 ten trials that pair with the reference cell, eight discordant pairs all one way,
-exact McNemar $p = 0.0078$. Telemetry places the failure \emph{downstream of
-approach}: the policy still reaches the true object as closely as baseline while
-the grip-close rate falls from ${\sim}0.67$ to ${\sim}0.26$. Driving the
-detection prompts and the place-head embedding from \emph{different}
-instructions isolates the collapse to one channel with no interaction. Combined
-with the architecture: \textbf{object selection, approach and grasping run with
+exact McNemar $p = 0.0078$.
+
+Telemetry places the failure \emph{downstream of approach}: the policy still
+reaches the true object as closely as baseline while the grip-close rate falls
+from ${\sim}0.67$ to ${\sim}0.26$. Driving the detection prompts and the
+place-head embedding from \emph{different} instructions isolates the collapse to
+one channel, with no interaction.
+
+Combined with the architecture: \textbf{object selection, approach and grasping run with
 no language input at all, and the entire language channel is a single cached
 $(x,y)$}. Ask this policy for the butter and it finds, approaches and grasps the
 alphabet soup at baseline rate; it fails only when that one coordinate is wrong.
@@ -791,14 +823,15 @@ reached, with the prediction recorded before the run ($[0.50,0.75]$, falsifiers
 named in both directions). Result: $\mathbf{20/30 = 0.667}$ $[0.49,0.81]$,
 against the published $0.700$ ($35/50$) a difference of $-0.033$, Newcombe
 $[-0.24,+0.16]$. That interval assumes independent samples and the samples are
-\emph{not} independent --- the $n{=}50$ cell spans states $0$--$49$ and so
-contains all thirty untouched states. The interval is therefore conservative in
-the wrong direction and we use it only to bound the effect as small; the clean
-comparison, untouched-$30$ against the twenty genuinely burned states, is the one
-we would run next. The five disclosed selection looks did
-not inflate the held-out figure. We claim only that: not that the burn is zero,
-but that it is small enough to hide inside $\pm 0.20$, which is what $n{=}30$
-buys.
+\emph{not} independent: the $n{=}50$ cell spans states $0$--$49$ and so contains
+all thirty untouched states.
+
+The interval is therefore conservative in the wrong direction, and we use it
+only to bound the effect as small. The clean comparison --- untouched-$30$
+against the twenty genuinely burned states --- is the one we would run next.
+
+We claim exactly this much: not that the burn is zero, but that it is small
+enough to hide inside $\pm 0.20$, which is what $n{=}30$ buys.
 
 \paragraph{A repair we withdraw.} Command coverage was reported as repairing
 the instruction-swap behaviour on the strength of $3/10$ against a $4/10$
@@ -836,10 +869,12 @@ entire cell ($0.800 \to 0.000$, every discordant pair one way), the coverage
 head about a third ($0.767 \to 0.433$). And the repair to the place
 \emph{point} is not in doubt --- $14.15 \to 0.78$\,cm
 (Figure~\ref{fig:placepoint}), measured directly rather than inferred from
-behaviour. So: \textbf{command coverage fixes where the head
-aims and does not fully fix what it does.} A residual command$\to$location
-dependence survives training on all three commands. That is a sharper statement
-of layer 4 than we had, and no cell we ran before could have detected it.
+behaviour.
+
+So: \textbf{command coverage fixes where the head aims and does not fully fix
+what it does.} A residual command$\to$location dependence survives training on
+all three commands --- a sharper statement of layer 4 than we had, and one no
+cell we ran before could have detected.
 
 \subsection{Randomisation is a curve, not a point}
 \label{sec:sweep}
@@ -930,10 +965,12 @@ $0.000$ and $0.700$ deployed} (Figure~\ref{fig:counterexample}). One caveat we
 state rather than let a reader discover: the substitution is between a
 \emph{single} pair of recorded ticks --- the two most separated in $uv$ out of
 $329$ --- with no resampling over pairs and therefore no interval on the
-$0.73$\,cm. It is a existence proof that two heads can be probe-identical and
-behaviourally opposite, not an estimate of how often that happens. A probe evaluated on teacher trajectories is an
-on-manifold instrument and cannot, alone, certify off-manifold behaviour. Probe
-evidence must be paired with behavioural randomisation.
+$0.73$\,cm. It is an existence proof that two heads can be probe-identical and
+behaviourally opposite, not an estimate of how often that happens.
+
+A probe evaluated on teacher trajectories is an on-manifold instrument and
+cannot, alone, certify off-manifold behaviour. Probe evidence must be paired
+with behavioural randomisation.
 
 \subsection{An instrument only ever shown firing is not yet an instrument}
 
@@ -1039,8 +1076,9 @@ same harness, the same trial$\to$state map and the same success predicate.
 
 We report a negative, and the discipline that produced it matters more than the
 outcome. The baseline returned $0/1$ on a checkpoint published near $0.9$. That
-is a harness defect, not a finding about OpenVLA, and we treated it as one. Four
-defects were found and fixed: image orientation, the gripper convention (their
+is a harness defect, not a finding about OpenVLA, and we treated it as one.
+
+Four defects were found and fixed: image orientation, the gripper convention (their
 model emits $[0,1]$ with $1{=}$close, robosuite wants $[-1,+1]$ with
 $-1{=}$close --- without the conversion the jaw never closes and the policy
 \emph{cannot} grasp), success extraction (the environment's \texttt{done} flag
@@ -1104,12 +1142,14 @@ worth stating.} Those sections answer different questions. Placement is what the
 suite fails to randomise and therefore what a policy \emph{may exploit}: that is
 a property of the benchmark, established from its shipped files, and it is what
 layers 1 and 3 were caught doing. Appearance is what limits \emph{transfer to a
-new object} once the placement shortcut is repaired: that is a property of the
-frozen detector, and it is why the released head works on one object and not on
-six (\S\ref{sec:fullsuite}). A benchmark can be lookup-admissible and a policy
-can still fail for an unrelated reason; both are true here, and neither weakens
-the other. What would have been a contradiction --- position explaining
-\emph{both} --- is what the confound test ruled out.
+new object} once that shortcut is repaired: a property of the frozen detector,
+and why the released head works on one object and not on six
+(\S\ref{sec:fullsuite}).
+
+A benchmark can be lookup-admissible and a policy can still fail for an
+unrelated reason. Both are true here, neither weakens the other, and what
+\emph{would} have been a contradiction --- position explaining both --- is what
+the confound test ruled out.
 
 We also report the caveats on this cell rather than only its conclusion. Both
 nulls are $n{=}10$, which is the size we decline to accept elsewhere
@@ -1122,27 +1162,38 @@ support, and not more.
 
 \subsection{Three ways a result fooled us}
 
-Recorded because the failure modes generalise and none was caught by a
-conventional check.
+Recorded because the failure modes generalise and \emph{none} was caught by a
+conventional check --- in all three the instrument was correct and the defect
+was elsewhere (Table~\ref{tab:fooled}).
 
-\textbf{A perfect null was a stale render.} A teleport arm returned gaps
-identical to control for all ten objects to four decimals. The cause was a
-cached observation: the renderer returned the pre-teleport frame. The tell was
-implausible cleanliness. The fix is mechanical --- the script now compares
-frames before and after the intervention and \emph{raises} rather than emitting.
-
-\textbf{An unsourced retraction is an unsourced claim.} We withdrew a defect
-count as unsupported after failing to find its appendix. The appendix existed.
-``I could not find it'' is a claim about a search, not about a corpus.
-
-\textbf{A clean interim number was a censored sample.} Harvesting a cell while
-its trials were still running gave $7/7$ against a published $7/10$, and we
-began writing up a failure to reproduce. The complete cell is $8/10$. Successes
-end episodes early and failures run to the horizon, so the trials finished at
-any interim moment are biased toward successes. Every check we ran had passed;
-the defect was in \emph{when} we looked. \textbf{Verifying the instrument does
-not verify the sampling.} The harvester now reports every cell against its
-planned $n$ and refuses to report an incomplete one.
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{1.75cm}p{2.2cm}p{2.95cm}}
+\toprule
+what we saw & what it was & the general lesson \\
+\midrule
+a perfect null: teleport gaps identical to control for all ten objects, to four decimals &
+a cached observation --- the renderer returned the \emph{pre}-teleport frame &
+implausible cleanliness is a symptom. The script now compares frames across the
+intervention and \emph{raises} rather than emitting \\
+\addlinespace
+a defect count withdrawn as unsupported &
+the appendix we could not find existed &
+``I could not find it'' is a claim about a search, not about a corpus \\
+\addlinespace
+$7/7$ against a published $7/10$; we began writing up a failure to reproduce &
+a censored sample. The complete cell is $\mathbf{8/10}$ &
+successes end episodes early and failures run to the horizon, so any interim
+harvest is biased toward successes. \textbf{Verifying the instrument does not
+verify the sampling} \\
+\bottomrule
+\end{tabular}
+\caption{Three self-inflicted errors and their repairs. The third is the one we
+would most expect others to hit: every check we ran had passed, and the defect
+was in \emph{when} we looked. The harvester now reports each cell against its
+planned $n$ and refuses to report an incomplete one.}
+\label{tab:fooled}
+\end{table}
 
 \section{Discussion}
 
@@ -1177,29 +1228,40 @@ restating for procedurally generated ones.
 
 \subsection{Recommendation to benchmark authors}
 
-Placement entropy is cheap to compute and cheap to report, and the measurement
-suggests three concrete practices. \textbf{Publish $H_\delta$ per task} with the
-suite; it costs a script and it tells a reader what a score can certify.
-\textbf{Set a floor.} A suite whose tasks are individuated by identity should
-still randomise placement, because otherwise identity is never load-bearing;
-LIBERO-Spatial does this by necessity and LIBERO-Object could do it by choice.
-\textbf{Ship a randomised tier.} Our own randomisation sweep
-(\S\ref{sec:sweep}) shows that where a policy degrades depends on the
-displacement magnitude relative to the controller's envelope, so a single
-perturbation radius is a calibration, not a result --- a tier of radii would let
-the community report a curve instead of a point.
+Both quantities are cheap to compute and cheap to report.
+Table~\ref{tab:recs} is what we would ask of a suite.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{1.6cm}p{2.35cm}p{3.2cm}}
+\toprule
+practice & cost & why \\
+\midrule
+publish $D$ and $H_\delta$ per task & one script, no training & tells a reader what a score can certify \\
+\addlinespace
+set a floor on $D$ & re-sample the init files & a suite individuated by identity must randomise placement, or identity is never load-bearing \\
+\addlinespace
+ship a tier of radii & $k$ extra eval configs & where a policy degrades depends on displacement relative to the controller's envelope (Table~\ref{tab:sweep}); one radius is a calibration, not a result \\
+\bottomrule
+\end{tabular}
+\caption{Three practices, in increasing order of what they cost a benchmark's
+authors. LIBERO-Spatial already satisfies the second by necessity --- all ten
+of its targets are the same bowl --- and LIBERO-Object could satisfy it by
+choice.}
+\label{tab:recs}
+\end{table}
 
 \section{Conclusion}
 
 A manipulation benchmark score is not a measurement of capability until the
 benchmark's admissibility has been measured. We gave the measurement, showed
-that exactly one LIBERO suite fails it, and ran the constant that its failure
-predicts --- which beats the policy we released for that suite. Where a real
-policy reads such a shortcut is then answerable, and we answered it at four
-layers, two outside the model. What survives is not the artifact but the
-procedure: measure the benchmark first, localise the stage second, repair with
-data third, and certify jointly in \emph{(head, stack)} --- reporting, as we
-have here, the repairs that did not survive being powered up.
+that exactly one LIBERO suite fails it, and ran the policy its failure
+predicts --- which the benchmark cannot tell apart from the one we trained.
+
+What survives is not the artifact but the procedure: measure the benchmark
+first, localise the stage second, repair with data third, certify jointly in
+\emph{(head, stack)} --- and report, as we have, the repairs that did not
+survive being powered up.
 
 \appendix
 
