@@ -49,8 +49,8 @@ LAYERS = [
      "prediction tracks the eef,\nflat under uv sweeps",
      "teleported episodes", "repaired", OK),
     (3, "L4  place head memorized command$\\rightarrow$location",
-     "14.5/13.0 cm off for the two\ncommands it never trained on",
-     "command coverage", "point repaired,\nbehaviour unresolved", PART),
+     "14.5/13.0 cm off for two commands;\nswap 0.767->0.433 at n=30, p=0.031",
+     "command coverage", "point repaired,\nbehaviour HALVED", PART),
 ]
 
 fig, ax = plt.subplots(figsize=(12.6, 6.4))

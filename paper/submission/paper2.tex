@@ -37,7 +37,9 @@ make the proposition executable. On LIBERO-Object, a hand-written constant ---
 one privileged read of the object's pose at reset, then no vision, no language
 and no learning --- scores $10/10$, \emph{above} our own released policy at
 $8/10$, while the same machinery given uninformed goals scores $0/10$. The task
-is not trivial; the benchmark is. We then audit a deliberately transparent
+is not trivial; the benchmark is. Run across the suite, that same released
+policy scores $8$ of $40$ --- every success on the one object it was trained
+for, which is the admissibility argument turning on its author. We then audit a deliberately transparent
 $30$M-parameter stack and locate where such a shortcut is read: four layers,
 two of them outside the model. Repairs are data-side and paired; one of our own
 is withdrawn here after powering it up. Finally, certification: probes alone
@@ -532,6 +534,39 @@ than inferred from behaviour. So: \textbf{command coverage fixes where the head
 aims and does not fully fix what it does.} A residual command$\to$location
 dependence survives training on all three commands. That is a sharper statement
 of layer 4 than we had, and no cell we ran before could have detected it.
+
+\subsection{What the released policy actually is}
+\label{sec:fullsuite}
+
+The cells above are one task. Running the released head across the suite gives
+the number that puts them in proportion:
+
+\begin{center}\small
+\begin{tabular}{llll}
+\toprule
+task & object & score & Wilson 95\% \\
+\midrule
+0 & alphabet soup (trained) & \textbf{8/10} & $[0.49,0.94]$ \\
+1 & cream cheese & \textbf{0/10} & $[0.00,0.28]$ \\
+2 & salad dressing & \textbf{0/10} & $[0.00,0.28]$ \\
+3 & bbq sauce & \textbf{0/10} & $[0.00,0.28]$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent \textbf{Eight successes in forty trials, and every one of them on the
+single object the head was trained for.} We report this because it is the
+honest scale of the artifact and because it is the admissibility argument
+turning on its author: a suite of ten tasks that share two placements and one
+basket let a single-object solution be described as a policy with a suite-level
+score. The number a reader should carry away from this paper is not $0.700$; it
+is $0.700$ \emph{on task 0}, with $0.000$ next to it three times.
+
+This also bounds what \S\ref{sec:audit}'s repairs bought. They made one object
+work and made the failures on the others legible --- the drift case study
+(Table~\ref{tab:audit}, last row) is one of those objects, lifted from $3/50$
+to $22/50$ by DAgger on the policy's own viewpoints. They did not produce a
+general policy, and no cell in this paper should be read as claiming one.
 
 \subsection{Randomisation is a curve, not a point}
 \label{sec:sweep}
