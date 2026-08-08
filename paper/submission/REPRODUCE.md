@@ -36,9 +36,17 @@ Both use one task (`libero_object` task 0, alphabet soup), the wrist camera, and
 600 steps. The only difference is the protocol: held-out draws seed 20;
 randomized draws seed 0 and teleports the source object ±4 cm.
 
+`MUJOCO_GL=osmesa` below is **load-bearing, not cosmetic**. Switching it to
+`egl` changes the trajectory (task 0 / seed 20 / trial 0: 246 steps under
+`osmesa`, 250 under `egl`), because the two rasterisers do not produce identical
+pixels and the detector — this stack's only encoder — is not invariant to the
+difference. Thread count, by contrast, does not matter: `OMP_NUM_THREADS` 4 and
+128 agree on every logged field. If you reproduce with a different backend,
+expect small differences and say which one you used.
+
 ```bash
 export PYTHONPATH=/path/to/LIBERO:$PWD
-export MUJOCO_GL=osmesa
+export MUJOCO_GL=osmesa          # behavioural: see note above
 
 FLAGS="--checkpoint models/full_stageB_rec_fix.pt \
   --norm-stats eval/identity_norm_stats.json \

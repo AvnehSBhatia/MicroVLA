@@ -64,6 +64,22 @@ Read off the evaluation machine, not from documentation:
 | robosuite | 1.4.1 |
 | numpy | 2.2.6 |
 | Python | 3.10 |
+| **`MUJOCO_GL`** | **`osmesa`** |
+
+**`MUJOCO_GL` is a behavioural parameter, not an environment detail.** Added
+2026-08-08 after measuring it. Holding seed, trial, weights and every version
+above fixed, and changing only MuJoCo's OpenGL backend, moves the episode:
+`osmesa` completes task 0 / seed 20 / trial 0 in **246** steps at source
+detection 0.919, `egl` in **250** at 0.920. Thread count, by contrast, changes
+nothing at all — `osmesa` at `OMP_NUM_THREADS` 4 and 128 agrees on every logged
+field. Software and GPU rasterisation do not produce identical pixels, the
+detector is not invariant to that difference, and the detector is this stack's
+only encoder. Pin it, and report it, or the numbers will not be comparable.
+
+A faithful rebuild of the full table above (fresh L40S host, 2026-08-08,
+`osmesa`) reproduced the reference cell: **8/10** on the seed-20 held-out band
+against the 7/10 recorded here, with 0.700 inside the new cell's Wilson
+interval.
 
 **The stack matters more than usual for this paper.** A rebuild of these
 components shifted detector behaviour enough to invert which head scores
