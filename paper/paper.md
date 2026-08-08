@@ -11066,3 +11066,36 @@ That non-monotonicity is the honest measure of how much n=10 can resolve. The
 usable statement is directional and bounded: **performance degrades as the
 displacement approaches and exceeds the shell's +-6 cm probe envelope**, and no
 single radius should be quoted as "passes randomization".
+
+---
+
+## 2026-08-08 — E8 flagship swap at n=20: 0/20, and the contrast tightens
+
+The load-bearing swap cell, re-run at double the published n on the same head
+and band:
+
+| cell | value | Wilson 95% |
+|---|---|---|
+| flagship, real instruction (reference) | 8/10 | [0.49, 0.94] |
+| **flagship, swapped instruction** | **0/20** | **[0.000, 0.161]** |
+
+On the ten trials that pair with the reference cell: 8/10 -> 0/10, **8
+discordant pairs all one way, exact McNemar p=0.0078** (published: 7/10 -> 0/10,
+p=0.016). Upper bound on the swapped rate is now below 0.17.
+
+So of the two cells the referee asked us to power up, they came apart:
+
+- **flagship collapse — survives and strengthens.** 0/20, p=0.0078.
+- **coverage-head non-collapse — does not survive.** 9/10 -> 4/10 on the
+  held-out band, p=0.125 (previous entry).
+
+That asymmetry is worth stating plainly, because it is the shape of an honest
+power upgrade: the contrast that was real got sharper, and the contrast that was
+an equivalence claim at n=10 stopped looking like one. The layer-4 *diagnosis*
+(a memorized command->location map destroys the cell) is now better supported
+than before; the layer-4 *repair* (command coverage fixes the behaviour) is less
+well supported than we wrote.
+
+**GL arm running.** Ten paired trials under `MUJOCO_GL=egl` against the same
+osmesa trials, to put an n on the renderer finding rather than the single
+episode we had.
