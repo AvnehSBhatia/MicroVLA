@@ -176,6 +176,9 @@ def run(args) -> dict:
 
 
 def main() -> None:
+    from microvla.utils.signals import ignore_sigterm
+
+    ignore_sigterm()          # repo convention: the host reaper sends SIGTERM
     p = argparse.ArgumentParser()
     p.add_argument("--checkpoint", default="/workspace/openvla-libero-object")
     p.add_argument("--suite", default="libero_object")
