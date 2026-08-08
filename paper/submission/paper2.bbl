@@ -1,0 +1,22 @@
+\begin{thebibliography}{2}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Fei et~al.(2025)]{fei2025liberoplus}
+Senyu Fei et~al.
+\newblock Libero-plus: In-depth robustness analysis of vision-language-action
+  models.
+\newblock \emph{arXiv preprint arXiv:2510.13626}, 2025.
+
+\bibitem[Zhou et~al.(2025)Zhou, Xu, Tie, Chen, Zhang, Chu, Zhou, and
+  Sun]{zhou2025liberopro}
+Xueyang Zhou, Yangming Xu, Guiyao Tie, Yongchao Chen, Guowen Zhang, Duanfeng
+  Chu, Pan Zhou, and Lichao Sun.
+\newblock Libero-pro: Towards robust and fair evaluation of
+  vision-language-action models beyond memorization.
+\newblock \emph{arXiv preprint arXiv:2510.03827}, 2025.
+
+\end{thebibliography}
