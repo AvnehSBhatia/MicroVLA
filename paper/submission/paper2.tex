@@ -966,14 +966,17 @@ cannot, on its own, certify off-manifold behaviour.}
 \label{tab:probe}
 \end{table}
 
-\noindent The offset, not
-the absolute point: the head emits $\text{eef}_{xy} + \Delta$, so substituting
-proprioception moves the absolute prediction by the entire arm displacement for
-\emph{any} head, and profiling that quantity reports ${\sim}24$\,cm of
-``proprioception attribution'' even for a repaired one. We made exactly this
-error when regenerating the measurement, and record it because it is the
-difference between a probe that answers ``does this channel change where the
-head thinks the object is'' and one that measures the parameterisation.
+\noindent One detail in Table~\ref{tab:probe} decides whether the probe means
+anything: it profiles the grasp \emph{offset}, not the absolute point. The head
+emits $\text{eef}_{xy} + \Delta$, so substituting proprioception moves the
+absolute prediction by the entire arm displacement for \emph{any} head, and
+profiling that quantity reports ${\sim}24$\,cm of ``proprioception
+attribution'' even for a repaired one.
+
+We made exactly this error when regenerating the measurement. We record it
+because it is the difference between a probe that answers ``does this channel
+change where the head thinks the object is'' and one that measures the
+parameterisation.
 
 \textbf{v2 and v2.1 differ by at most $0.73$\,cm on any channel and score
 $0.000$ and $0.700$ deployed} (Figure~\ref{fig:counterexample}). One caveat we
@@ -1227,11 +1230,13 @@ planned $n$ and refuses to report an incomplete one.}
 \paragraph{What a score certifies.} On a suite whose placement diameter sits
 below the embodiment's tolerance, a success rate certifies that the policy can
 execute a manipulation \emph{given} a correct target pose --- and nothing
-whatever about how it obtained one. That is not a
-rhetorical claim: on LIBERO-Object a constant achieves the ceiling and an
-uninformed goal achieves zero, so the score's entire dynamic range sits between
-``has the pose'' and ``does not'', with grounding never tested. Placement
-entropy makes this checkable before any policy is trained.
+whatever about how it obtained one.
+
+That is not a rhetorical claim. On LIBERO-Object a constant read from the
+benchmark's own files scores within $p = 0.50$ of our trained policy and an
+uninformed goal scores zero, so the score's entire dynamic range sits between
+``has the pose'' and ``does not'' --- with grounding never tested. The
+placement diameter makes this checkable before any policy is trained.
 
 \paragraph{Shortcuts live in pipelines, not only in models.} Two of our four
 layers are outside the network: a scripted expert's calibration constant and our
@@ -1245,13 +1250,21 @@ randomisation. And the certificate is joint in \emph{(head, stack)} down to a
 component no requirements file pins: the same weights on the same seeds give the
 same rate and a different $40\%$ of episodes under a different renderer.
 
-\paragraph{Limitations.} One simulator, one benchmark suite, one robot; wrist
-camera only; confirmatory cells are one task and one object; the held-out band
-is partially burned and the disclosure is in \S\ref{sec:platform}; the on-manifold
-limit of substitution probes is a limit on our own instruments; and transfer to
-an external policy is \textbf{unestablished} (\S\ref{sec:transfer}). Placement
-entropy is defined for suites that ship enumerable initial states and would need
-restating for procedurally generated ones.
+\paragraph{Limitations.}
+\begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
+\item One simulator, one benchmark suite, one robot, wrist camera only.
+\item Every confirmatory cell is one task and one object at $n \le 30$,
+including the blind arm ($n{=}10$). The suite-level claims (\S\ref{sec:adm})
+are the ones computed from files and do not have this limit.
+\item The held-out band is partially burned; the disclosure is in
+\S\ref{sec:platform} and the bound in \S\ref{sec:repairs}.
+\item The on-manifold limit of substitution probes is a limit on our own
+instruments, not only on others'.
+\item Transfer to an external policy is \textbf{unestablished}
+(\S\ref{sec:transfer}).
+\item $D$ and $H_\delta$ are defined for suites shipping enumerable initial
+states, and would need restating for procedurally generated ones.
+\end{itemize}
 
 
 \subsection{Recommendation to benchmark authors}
