@@ -750,6 +750,88 @@ places into the same basket, so all \emph{correct} instructions imply the same
 place target---which leaves the stack's one real language channel normally
 \emph{unexercised}, not inert. The swap below exercises it.
 
+\subsection{A third stack, and what it does to 0.700}
+\label{sec:thirdstack}
+
+We rebuilt the deployment stack on fresh hardware to run the experiments in this
+section, pinning every version in the platform table (LIBERO \texttt{8f1084e3},
+torch 2.8.0+cu128, numpy 2.2.6, MuJoCo 2.3.7, robosuite 1.4.1, ultralytics
+8.4.115, Python 3.10) and verifying both load-bearing checkpoints by digest
+against the release manifest. The first job in the queue was deliberately not an
+experiment but a \emph{reference cell}: the published held-out band, seed 20,
+which the evaluation machine recorded at \textbf{7/10}.
+
+The rebuild returns \textbf{7/7} on that band, and \textbf{15/15} on the
+untouched band. This is not a harvesting artifact --- the episodes are real and
+varied (244--250 steps, source detection 0.77--0.96), and the same trial run
+before and after the harness changes in this section agrees at 246 steps on
+every logged field. The same weights, on pinned versions, score differently on
+different machines.
+
+We can name a mechanism, though not yet prove it accounts for the whole gap. The
+one component the platform table never pinned is the renderer. Holding seed,
+trial, weights and every package fixed and changing \emph{only} MuJoCo's
+OpenGL backend moves the episode: \texttt{osmesa} completes trial 0 in 246 steps
+and \texttt{egl} in 250, with source detection 0.919 vs 0.920. Thread count, by
+contrast, changes nothing at all --- two \texttt{osmesa} runs at 4 and 128
+threads agree to every logged digit, which also re-confirms harness determinism.
+Software and GPU rasterisation do not produce identical pixels; the detector is
+not invariant to the difference; and in this stack the detector is the only
+encoder. \textbf{\texttt{MUJOCO\_GL} is a behavioural parameter and belongs in
+the stack table beside the package versions.} It was not there.
+
+Three consequences, stated rather than buried. \textbf{(i)} Cells produced on
+the rebuild are compared only against each other and never pooled with published
+cells, the same discipline we already apply to the audit stack. \textbf{(ii)}
+This is now the \emph{third} stack on which the same head yields a different
+number, which is more evidence for the joint-certificate claim
+(\S\ref{sec:results}) than against it: a behavioural certificate is a property
+of (head, stack), and ``stack'' reaches below the packages a requirements file
+can pin. \textbf{(iii)} The reader should treat 0.700 as this head's score
+\emph{on the evaluation machine}, not as a portable constant. We are not
+withdrawing it --- it is what that machine measured, reproducibly, with its
+artifact --- but we are no longer presenting it as if the number travelled.
+
+A ceiling effect follows, and it costs us a planned result. With the reference
+band at 7/7 the rebuild has no headroom, so the untouched band's 15/15
+\emph{cannot} test whether selection inflated the held-out figure: at ceiling,
+a burn advantage and no burn advantage look the same. What the cell does
+establish is the weaker, still-worth-having statement that the 30 never-inspected
+states are not harder than the ten inspected ones. The pre-registered prediction
+(0.50--0.75) is falsified in its literal form; it assumed stack equivalence,
+which is exactly the assumption this section retires.
+
+\subsection{Unbundling the shell from the head}
+\label{sec:anchors}
+
+The comparison ``free per-tick regression 0/56 versus goal-space supervision
+driving an engineered shell'' bundles three things: the action abstraction, the
+shell's own motor competence, and the learned head. We claimed it as a bundle,
+which was honest but not sufficient --- a reader cannot tell whether the head
+does the interesting work or merely rides a competent shell.
+
+So we replaced \emph{only} the goal supply and changed nothing else --- same
+shell, same trunk, same protocol, same draws, same states
+(\texttt{--goal-anchor}, \S\ref{sec:untouched}'s harness):
+
+\begin{itemize}\itemsep1pt
+\item \textbf{oracle} --- the simulator's true target-object pose, read fresh
+every tick. The shell's \emph{ceiling}. If this is not high, the shell's
+envelope rather than the supervision is the binding constraint, and the
+policy-class claim must be restated.
+\item \textbf{random} --- a uniform draw from the scene's own object extent,
+redrawn per episode. The shell's \emph{floor}: what the machinery scores when
+the goal carries no information about where the object is.
+\item \textbf{fixed} --- the task's own constant placement, held. A
+hand-written two-constant memorizer, which on a suite that pins placement is the
+admissibility argument made executable rather than argued.
+\end{itemize}
+
+One asymmetry to state rather than bury: the anchors replace the \emph{grasp}
+goal only; the place target is the true container in all three arms. The random
+arm is therefore a \emph{conservative} floor --- an upper bound on how badly a
+truly uninformed goal supply would do --- and we read it as such.
+
 \subsection{Randomization: one radius was a calibration, not a result}
 \label{sec:sweep}
 

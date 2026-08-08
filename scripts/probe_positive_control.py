@@ -11,19 +11,22 @@ So this runs the identical function, through the identical deployed perception
 object, on pairs chosen so a working grounder MUST separate them, and on the
 pair the paper reports, on the same frames in one process:
 
-  contrast   pair                          what a working grounder should do
-  ---------  ----------------------------  ---------------------------------
-  positive   target object vs the BASKET   separate them (different shape,
-                                           different size, different place)
-  positive   target vs each distractor     separate them
-  reported   the paper's own pair          (whatever it does)
+It runs the commanded object's prompt chain against every other object's chain
+on the same frames in one process, and reports each contrast separately.
 
-If the positive contrasts return "different boxes" and the reported one does
-not, the probe registers difference when difference exists, and the paper's null
-is evidence about the stack. If the positive contrasts ALSO return "same box",
-the probe cannot distinguish and every same-box number in the paper must be
-withdrawn as uninformative. Both outcomes are reportable; only one is
-comfortable, which is the point of running it.
+If SOME contrast returns "different boxes", the probe registers difference when
+difference exists, and a same-box result elsewhere is evidence about the stack.
+If NO contrast separates, the probe cannot distinguish and every same-box number
+in the paper must be withdrawn as uninformative. Both outcomes are reportable;
+only one is comfortable, which is the point of running it.
+
+One correction worth recording, because the first version of this script made
+exactly the error it exists to catch. The basket was designated the positive
+control -- and it can never be one: the deployed ``source_max_area`` filter
+rejects basket-sized boxes by construction, so that pair compares zero frames.
+The script nonetheless read ``same_rate=0.0`` off an EMPTY comparison and
+printed "INSTRUMENT DISCRIMINATES". A verdict now requires ``n_compared >=
+MIN_N``, and unevaluable contrasts are labelled, never counted.
 
 Also emits the threshold sweep the referee asked for: same-rate as a function of
 ``tol``, so readers can see whether any verdict rides on the 0.02 default.
@@ -143,7 +146,9 @@ def main() -> None:
             sweep[str(t)] = round(rt.same_rate, 4)
         rows.append({
             "pair": f"{tgt} vs {other}",
-            "kind": "positive control" if other == "basket" else "distractor",
+            "kind": ("container (filtered out by source_max_area; "
+                     "expected not evaluable)" if other == "basket"
+                     else "distractor"),
             "n_compared": r.n_compared,
             "same_rate_at_0.02": round(r.same_rate, 4),
             "median_distance": round(r.median_distance, 6),
@@ -160,14 +165,39 @@ def main() -> None:
         "camera": a.camera, "det_conf": a.det_conf, "target": tgt,
         "tolerances": TOLS, "contrasts": rows,
     }
-    sep = [r for r in rows if r["kind"] == "positive control"]
-    out["verdict"] = (
-        "INSTRUMENT DISCRIMINATES: the basket contrast returns different boxes, "
-        "so a same-box result elsewhere is evidence about the stack."
-        if sep and sep[0]["same_rate_at_0.02"] < 0.5 else
-        "INSTRUMENT DOES NOT DISCRIMINATE on this scene: every same-box number "
-        "measured with this probe must be treated as uninformative until a "
-        "contrast that separates is found.")
+    # A contrast with no comparable frames is NOT evidence of anything. The
+    # first version of this script scored the basket contrast "different boxes"
+    # off n_compared=0 -- the deployed source_max_area filter rejects
+    # basket-sized boxes by construction, so that pair can never compare a
+    # single frame -- and printed a confident verdict from an empty set. Any
+    # contrast below MIN_N is reported as not evaluable and excluded from the
+    # verdict rather than counted as a separation.
+    MIN_N = 3
+    evaluable = [r for r in rows if r["n_compared"] >= MIN_N]
+    for r in rows:
+        r["evaluable"] = r["n_compared"] >= MIN_N
+    separating = [r for r in evaluable if r["same_rate_at_0.02"] <= 0.2]
+    colliding = [r for r in evaluable if r["same_rate_at_0.02"] >= 0.5]
+    if not evaluable:
+        out["verdict"] = ("NOT EVALUABLE: no contrast had >= %d frames in which "
+                          "both chains detected. This says nothing about the "
+                          "probe or the stack." % MIN_N)
+    elif separating:
+        out["verdict"] = (
+            "INSTRUMENT DISCRIMINATES: %d of %d evaluable contrasts return "
+            "DIFFERENT boxes (%s), so a same-box result is evidence about the "
+            "stack and not an artifact of the probe. %d contrasts collide (%s)."
+            % (len(separating), len(evaluable),
+               ", ".join(r["pair"].split(" vs ")[1] for r in separating),
+               len(colliding),
+               ", ".join(r["pair"].split(" vs ")[1] for r in colliding)))
+    else:
+        out["verdict"] = (
+            "INSTRUMENT DOES NOT DISCRIMINATE on this scene: no evaluable "
+            "contrast separated. Every same-box number from this probe must be "
+            "treated as uninformative until a separating contrast is found.")
+    out["min_n_for_verdict"] = MIN_N
+    out["n_evaluable"] = len(evaluable)
     print("\n" + out["verdict"])
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(out, indent=2))

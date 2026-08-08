@@ -10864,3 +10864,49 @@ Queue is priority-ordered, so if the clock runs out the missing work is the
 low-priority tail (E7/E11), never a blocking experiment. Shards are 10 trials
 each and every shard is a self-contained, exactly-specified subset of trials, so
 a partial harvest is still a reportable cell with an honest n.
+
+---
+
+## 2026-08-08 — the render backend changes the trajectory (and the reference cell does not reproduce)
+
+Two results from the pod, both about the stack rather than the head, and the
+second one is uncomfortable.
+
+**1. `MUJOCO_GL` is a behavioural parameter.** Same seed, same trial, same
+checkpoints, same pinned package versions; the only difference is the OpenGL
+backend MuJoCo renders through:
+
+| config | steps | src_detect_rate | src_conf_mean |
+|---|---|---|---|
+| osmesa, OMP=128 | 246 | 0.919 | 0.109 |
+| osmesa, OMP=4   | **246** | **0.919** | **0.109** |
+| egl,    OMP=1   | **250** | 0.920 | 0.110 |
+
+Thread count is irrelevant — the two osmesa rows agree to every logged digit,
+which is also a clean re-confirmation of harness determinism. The **render
+backend is not**: 246 vs 250 steps on the same episode. Software rasterisation
+and GPU rasterisation do not produce identical pixels, the detector is not
+invariant to that difference, and the detector is this stack's only encoder. So
+`MUJOCO_GL` belongs in the reported stack table beside the package versions,
+and it never was there. That is a training-serving-skew defect of the
+provenance class: two configurations that agree on a wrong convention (that the
+renderer is an implementation detail).
+
+**2. The rebuild does not reproduce the published reference cell.** P0 is the
+published held-out band (seed 20, trials 0-9, flagship v5), recorded at **7/10**
+on the evaluation machine. This rebuild — package versions pinned to
+`models/README.md`, both checkpoints md5-verified identical — returns **10/10**
+so far. Not a harvesting artifact: the episodes are real and varied (244-250
+steps, detect 0.77-0.96), and the pre-patch smoke run and the post-patch queue
+run of trial 0 agree at 246 steps to every digit, so my `--goal-anchor` and
+`--trial-offset` edits did not touch the default path.
+
+The consequence is procedural and I would rather state it than bury it:
+**cells produced on this pod are compared only against each other, never pooled
+with published cells.** This is the third stack for which the same head gives a
+different number (deployment, audit, this rebuild), and it is more evidence for
+the paper's joint-certificate claim than against it — but it also means the
+E4 pre-registration, which predicted 0.50-0.75 against a 0.700 anchor,
+implicitly assumed stack equivalence and is falsified in its literal form. The
+comparison that survives is the within-stack one: burned band vs untouched band,
+same stack, same head, same day.
