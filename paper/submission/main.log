@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -920,16 +920,25 @@ Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 132
 
 
 [18 <../visuals/F5_third_object.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 1401--1402
+[]\OT1/lmr/m/n/7 wrong way,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1409--1410
+[]\OT1/lmr/m/n/7 0.90$\OMS/lmsy/m/n/7 !$\OT1/lmr/m/n/7 0.40,
+ []
+
+
+LaTeX Warning: Reference `tab:prereg' on page 19 undefined on input line 1422.
+
+
 
 [19]
 
-LaTeX Warning: `h' float specifier changed to `ht'.
+[20]
 
-
-
-[20] (./main.bbl
-
-[21]
+[21] (./main.bbl
 
 [22])
 
@@ -943,54 +952,62 @@ L3 programming layer <2025-01-18>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 
+LaTeX Warning: There were undefined references.
+
+
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 9C7DC97563C8AD42669B4604D0946C03;5482.
  ) 
 Here is how much of TeX's memory you used:
- 14470 strings out of 474662
- 232343 string characters out of 5751110
- 691115 words of memory out of 5000000
- 37184 multiletter control sequences out of 15000+600000
- 641113 words of font info for 102 fonts, out of 8000000 for 9000
+ 14477 strings out of 474662
+ 232461 string characters out of 5751110
+ 691113 words of memory out of 5000000
+ 37188 multiletter control sequences out of 15000+600000
+ 641535 words of font info for 103 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9
-.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb>
-</usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr
-/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx7.pfb></usr/local
-/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/texli
-ve/2025basic/texmf-dist/fonts/type1/public/lm/lmbxi10.pfb></usr/local/texlive/2
-025basic/texmf-dist/fonts/type1/public/lm/lmcsc10.pfb></usr/local/texlive/2025b
-asic/texmf-dist/fonts/type1/public/lm/lmex10.pfb></usr/local/texlive/2025basic/
-texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025basic/texmf
--dist/fonts/type1/public/lm/lmmi5.pfb></usr/local/texlive/2025basic/texmf-dist/
-fonts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/
-type1/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/
-public/lm/lmmib10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publ
-ic/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/
-lmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr5.p
-fb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr6.pfb></us
-r/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pfb></usr/local
-/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr/local/texliv
-e/2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/texlive/202
-5basic/texmf-dist/fonts/type1/public/lm/lmri7.pfb></usr/local/texlive/2025basic
-/texmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/local/texlive/2025basic/texmf
--dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/texmf-dist
-/fonts/type1/public/lm/lmsy5.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
-/type1/public/lm/lmsy6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1
-/public/lm/lmsy7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publi
-c/lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/l
-mtk10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10
-.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb><
-/usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/l
-ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pf
-b>
-Output written on main.pdf (23 pages, 1365982 bytes).
+ 75i,12n,79p,1319b,595s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{table.caption.38} has been referenced but does not 
+exist, replaced by a fixed one
+
+</usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.p
+fb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></
+usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/l
+ocal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx7.pfb></usr/local/t
+exlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/texlive
+/2025basic/texmf-dist/fonts/type1/public/lm/lmbxi10.pfb></usr/local/texlive/202
+5basic/texmf-dist/fonts/type1/public/lm/lmcsc10.pfb></usr/local/texlive/2025bas
+ic/texmf-dist/fonts/type1/public/lm/lmex10.pfb></usr/local/texlive/2025basic/te
+xmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025basic/texmf-d
+ist/fonts/type1/public/lm/lmmi5.pfb></usr/local/texlive/2025basic/texmf-dist/fo
+nts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/ty
+pe1/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/pu
+blic/lm/lmmib10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public
+/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lm
+r12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr5.pfb
+></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr6.pfb></usr/
+local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pfb></usr/local/t
+exlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr/local/texlive/
+2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/texlive/2025b
+asic/texmf-dist/fonts/type1/public/lm/lmri7.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/local/texlive/2025basic/texmf-d
+ist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/texmf-dist/f
+onts/type1/public/lm/lmsy5.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/t
+ype1/public/lm/lmsy6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/p
+ublic/lm/lmsy7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/
+lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmt
+k10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.p
+fb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></u
+sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/loc
+al/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb>
+</usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/ms
+am7.pfb>
+Output written on main.pdf (23 pages, 1381136 bytes).
 PDF statistics:
- 568 PDF objects out of 1000 (max. 8388607)
- 454 compressed objects within 5 object streams
- 114 named destinations out of 1000 (max. 500000)
- 15567 words of extra memory for PDF output out of 17280 (max. 10000000)
+ 581 PDF objects out of 1000 (max. 8388607)
+ 464 compressed objects within 5 object streams
+ 116 named destinations out of 1000 (max. 500000)
+ 16079 words of extra memory for PDF output out of 17280 (max. 10000000)
 

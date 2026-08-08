@@ -1383,8 +1383,43 @@ vertical)---accurate on corpus crops, thrashing on live ones. The paper's
 on-manifold limit again: a binder \emph{built} from teacher trajectories cannot
 bind off-manifold crops.
 
-Five predictions were pre-registered here and all five are recorded as
-falsified: that 0.82 per-tick identity accuracy would yield 0.914 median-of-3
+\begin{table}[h]\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.3cm}p{1.7cm}p{1.6cm}}
+\toprule
+prediction, recorded before the run & predicted & outcome \\
+\midrule
+\multicolumn{3}{l}{\emph{Earlier rounds (all falsified)}}\\
+bank binding lifts cream above 0 & $>0$ & 0/10 \\
+chocolate pudding crosses & crosses & did not \\
+box-centre spread separates objects & separates & inverted \\
+proposals too scarce for a binder & ${<}1$/frame & 3.1--3.9 \\
+instruction swap is inert & inert & collapses \\
+\midrule
+\multicolumn{3}{l}{\emph{Confound test (\S\ref{sec:posvsapp})}}\\
+cluster predicts the gap & separates & $p{=}0.31$, no \\
+22\,cm teleport moves the gap & rises A$\to$B & wrong way, $p{=}1.0$ \\
+\midrule
+\multicolumn{3}{l}{\emph{This revision}}\\
+untouched band (\S\ref{sec:untouched}) & $[0.50,0.75]$ & \textbf{0.667} \checkmark \\
+shell $+$ oracle goals & $\ge 0.80$ & \textbf{1.000} \checkmark \\
+shell $+$ random goals & $\le 0.10$ & \textbf{0.000} \checkmark \\
+shell $+$ fixed constant & $\ge 0.60$ & \textbf{1.000} \checkmark \\
+flagship swap collapses & $\le 0.10$ & \textbf{0.000} \checkmark \\
+coverage swap holds & within 0.20 & 0.90$\to$0.40, \textbf{no} \\
+sweep: near zero by $\pm8$\,cm & ${\approx}0$ & 3/10, \textbf{no} \\
+\bottomrule
+\end{tabular}
+\caption{Pre-registration registry. Predictions were recorded in
+\texttt{paper.md} with the launch command, before the corresponding run
+returned. Of the seven registered for this revision, five held and two did not
+--- the coverage head's swap ``non-collapse'' and the expectation that the head
+would be at floor once displacement left the shell's envelope.}
+\label{tab:prereg}
+\end{table}
+
+Five predictions were pre-registered in earlier rounds and all five are recorded
+as falsified (Table~\ref{tab:prereg}): that 0.82 per-tick identity accuracy would yield 0.914 median-of-3
 latch correctness and hence cream $>0$ under bank binding (the cell returned
 0/10); that chocolate pudding would cross because it rarely won a misbind (its
 teacher never reached a grasp in five calibration iterations); the
