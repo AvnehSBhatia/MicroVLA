@@ -3,44 +3,49 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: paper2.aux
 The style file: plainnat.bst
 Database file #1: refs.bib
-You've used 2 entries,
+Repeated entry---line 156 of file refs.bib
+ : @inproceedings{mandlekar2021robomimic
+ :                                      ,
+I'm skipping whatever remains of this entry
+You've used 12 entries,
             2773 wiz_defined-function locations,
-            601 strings with 5253 characters,
-and the built_in function-call counts, 1047 in all, are:
-= -- 80
-> -- 95
-< -- 1
-+ -- 32
-- -- 30
-* -- 86
-:= -- 180
-add.period$ -- 6
-call.type$ -- 2
-change.case$ -- 15
-chr.to.int$ -- 2
-cite$ -- 4
-duplicate$ -- 39
-empty$ -- 62
-format.name$ -- 33
-if$ -- 204
+            649 strings with 7137 characters,
+and the built_in function-call counts, 6081 in all, are:
+= -- 469
+> -- 501
+< -- 4
++ -- 168
+- -- 156
+* -- 496
+:= -- 968
+add.period$ -- 36
+call.type$ -- 12
+change.case$ -- 85
+chr.to.int$ -- 12
+cite$ -- 24
+duplicate$ -- 269
+empty$ -- 458
+format.name$ -- 173
+if$ -- 1250
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 2
-newline$ -- 18
-num.names$ -- 8
-pop$ -- 31
+missing$ -- 12
+newline$ -- 68
+num.names$ -- 48
+pop$ -- 203
 preamble$ -- 1
-purify$ -- 13
+purify$ -- 73
 quote$ -- 0
-skip$ -- 36
+skip$ -- 202
 stack$ -- 0
-substring$ -- 4
-swap$ -- 2
+substring$ -- 49
+swap$ -- 20
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 22
+type$ -- 132
 warning$ -- 0
-while$ -- 6
+while$ -- 38
 width$ -- 0
-write$ -- 31
+write$ -- 152
+(There was 1 error message)

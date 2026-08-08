@@ -1,0 +1,1288 @@
+{
+  "deltas_m": [
+    0.0005,
+    0.001,
+    0.002,
+    0.005,
+    0.01,
+    0.02,
+    0.05
+  ],
+  "method": "single-linkage at radius delta",
+  "suites": {
+    "libero_object": {
+      "n_tasks": 10,
+      "tasks": {
+        "pick_up_the_alphabet_soup_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        },
+        "pick_up_the_cream_cheese_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": 5.2288,
+            "groups": 40
+          },
+          "0.001": {
+            "H": 3.9554,
+            "groups": 20
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.6253
+        },
+        "pick_up_the_salad_dressing_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        },
+        "pick_up_the_bbq_sauce_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.2137,
+            "groups": 40
+          },
+          "0.002": {
+            "H": 4.1138,
+            "groups": 22
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.2015
+        },
+        "pick_up_the_ketchup_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        },
+        "pick_up_the_tomato_sauce_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        },
+        "pick_up_the_butter_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": 5.1186,
+            "groups": 39
+          },
+          "0.001": {
+            "H": 4.3762,
+            "groups": 25
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.696
+        },
+        "pick_up_the_milk_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": 5.1488,
+            "groups": 39
+          },
+          "0.001": {
+            "H": 4.4055,
+            "groups": 26
+          },
+          "0.002": {
+            "H": 0.6801,
+            "groups": 2
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.6295
+        },
+        "pick_up_the_chocolate_pudding_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        },
+        "pick_up_the_orange_juice_and_place_it_in_the_basket": {
+          "0.0005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.001": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.002": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 0.0
+        }
+      },
+      "mean_H": {
+        "0.0005": 2.106,
+        "0.001": 1.7951,
+        "0.002": 0.4794,
+        "0.005": 0.0,
+        "0.01": 0.0,
+        "0.02": 0.0,
+        "0.05": 0.0
+      },
+      "n_zero": {
+        "0.0005": 6,
+        "0.001": 6,
+        "0.002": 8,
+        "0.005": 10,
+        "0.01": 10,
+        "0.02": 10,
+        "0.05": 10
+      },
+      "mean_max_dev_cm": 0.3152
+    },
+    "libero_spatial": {
+      "n_tasks": 10,
+      "tasks": {
+        "pick_up_the_black_bowl_between_the_plate_and_the_ramekin_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.4839,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 4.8162,
+            "groups": 33
+          },
+          "0.005": {
+            "H": 1.5849,
+            "groups": 6
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.2071
+        },
+        "pick_up_the_black_bowl_next_to_the_ramekin_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.5488,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.3888,
+            "groups": 44
+          },
+          "0.002": {
+            "H": 4.5644,
+            "groups": 29
+          },
+          "0.005": {
+            "H": 2.5338,
+            "groups": 7
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.9321
+        },
+        "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 4.4391,
+            "groups": 26
+          },
+          "0.001": {
+            "H": 2.962,
+            "groups": 10
+          },
+          "0.002": {
+            "H": 0.9427,
+            "groups": 2
+          },
+          "0.005": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.5382
+        },
+        "pick_up_the_black_bowl_on_the_cookie_box_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 4.7211,
+            "groups": 31
+          },
+          "0.005": {
+            "H": 1.8398,
+            "groups": 6
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.0189
+        },
+        "pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabinet_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.5088,
+            "groups": 47
+          },
+          "0.001": {
+            "H": 5.4137,
+            "groups": 45
+          },
+          "0.002": {
+            "H": 4.4293,
+            "groups": 31
+          },
+          "0.005": {
+            "H": 1.1156,
+            "groups": 7
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.002
+        },
+        "pick_up_the_black_bowl_on_the_ramekin_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.002": {
+            "H": 5.1186,
+            "groups": 38
+          },
+          "0.005": {
+            "H": 2.0218,
+            "groups": 7
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.175
+        },
+        "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.3488,
+            "groups": 43
+          },
+          "0.002": {
+            "H": 4.7737,
+            "groups": 32
+          },
+          "0.005": {
+            "H": 1.9356,
+            "groups": 7
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.9898
+        },
+        "pick_up_the_black_bowl_on_the_stove_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.4839,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 4.9684,
+            "groups": 35
+          },
+          "0.005": {
+            "H": 3.6274,
+            "groups": 18
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.633
+        },
+        "pick_up_the_black_bowl_next_to_the_plate_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 5.0039,
+            "groups": 35
+          },
+          "0.005": {
+            "H": 0.991,
+            "groups": 4
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.7158
+        },
+        "pick_up_the_black_bowl_on_the_wooden_cabinet_and_place_it_on_the_plate": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.002": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.005": {
+            "H": 4.7957,
+            "groups": 33
+          },
+          "0.01": {
+            "H": 2.5469,
+            "groups": 9
+          },
+          "0.02": {
+            "H": 0.1414,
+            "groups": 2
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 5.6782
+        }
+      },
+      "mean_H": {
+        "0.0005": 5.4764,
+        "0.001": 5.2377,
+        "0.002": 4.4942,
+        "0.005": 2.0446,
+        "0.01": 0.2547,
+        "0.02": 0.0141,
+        "0.05": 0.0
+      },
+      "n_zero": {
+        "0.0005": 0,
+        "0.001": 0,
+        "0.002": 0,
+        "0.005": 1,
+        "0.01": 9,
+        "0.02": 9,
+        "0.05": 10
+      },
+      "mean_max_dev_cm": 2.389
+    },
+    "libero_goal": {
+      "n_tasks": 8,
+      "tasks": {
+        "put_the_bowl_on_the_stove": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 4.9435,
+            "groups": 35
+          },
+          "0.005": {
+            "H": 1.5089,
+            "groups": 3
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.8396
+        },
+        "put_the_wine_bottle_on_top_of_the_cabinet": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.4839,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 4.9337,
+            "groups": 35
+          },
+          "0.005": {
+            "H": 1.7722,
+            "groups": 7
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.9431
+        },
+        "open_the_top_drawer_and_put_the_bowl_inside": {
+          "0.0005": {
+            "H": 5.5488,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.4688,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 4.9395,
+            "groups": 36
+          },
+          "0.005": {
+            "H": 1.3583,
+            "groups": 4
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.8126
+        },
+        "put_the_bowl_on_top_of_the_cabinet": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.002": {
+            "H": 5.2688,
+            "groups": 41
+          },
+          "0.005": {
+            "H": 0.8157,
+            "groups": 3
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.0166
+        },
+        "push_the_plate_to_the_front_of_the_stove": {
+          "0.0005": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.4288,
+            "groups": 45
+          },
+          "0.002": {
+            "H": 5.2937,
+            "groups": 42
+          },
+          "0.005": {
+            "H": 0.6796,
+            "groups": 4
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.2514
+        },
+        "put_the_cream_cheese_in_the_bowl": {
+          "0.0005": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.4839,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 5.0386,
+            "groups": 37
+          },
+          "0.005": {
+            "H": 3.7231,
+            "groups": 17
+          },
+          "0.01": {
+            "H": 0.1414,
+            "groups": 2
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.725
+        },
+        "put_the_bowl_on_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 5.1488,
+            "groups": 39
+          },
+          "0.005": {
+            "H": 0.3825,
+            "groups": 3
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.1132
+        },
+        "put_the_wine_bottle_on_the_rack": {
+          "0.0005": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.001": {
+            "H": 5.4039,
+            "groups": 44
+          },
+          "0.002": {
+            "H": 5.0366,
+            "groups": 37
+          },
+          "0.005": {
+            "H": 2.0064,
+            "groups": 6
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 1.7344
+        }
+      },
+      "mean_H": {
+        "0.0005": 5.592,
+        "0.001": 5.4851,
+        "0.002": 5.0754,
+        "0.005": 1.5308,
+        "0.01": 0.0177,
+        "0.02": 0.0,
+        "0.05": 0.0
+      },
+      "n_zero": {
+        "0.0005": 0,
+        "0.001": 0,
+        "0.002": 0,
+        "0.005": 0,
+        "0.01": 7,
+        "0.02": 8,
+        "0.05": 8
+      },
+      "mean_max_dev_cm": 2.0545
+    },
+    "libero_10": {
+      "n_tasks": 10,
+      "tasks": {
+        "LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 5.2917,
+            "groups": 43
+          },
+          "0.005": {
+            "H": 3.8796,
+            "groups": 24
+          },
+          "0.01": {
+            "H": 0.6796,
+            "groups": 4
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.4005
+        },
+        "LIVING_ROOM_SCENE2_put_both_the_cream_cheese_box_and_the_butter_in_the_basket": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.002": {
+            "H": 5.3239,
+            "groups": 43
+          },
+          "0.005": {
+            "H": 4.6464,
+            "groups": 29
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.2402
+        },
+        "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_moka_pot_on_it": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.002": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.005": {
+            "H": 4.3986,
+            "groups": 26
+          },
+          "0.01": {
+            "H": 0.469,
+            "groups": 2
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.1919
+        },
+        "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet_and_close_it": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.002": {
+            "H": 5.5239,
+            "groups": 47
+          },
+          "0.005": {
+            "H": 4.3888,
+            "groups": 27
+          },
+          "0.01": {
+            "H": 0.4022,
+            "groups": 2
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.5406
+        },
+        "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate_and_put_the_yellow_and_white_mug_on_the_right_plate": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.002": {
+            "H": 5.3488,
+            "groups": 43
+          },
+          "0.005": {
+            "H": 4.4962,
+            "groups": 27
+          },
+          "0.01": {
+            "H": 0.1414,
+            "groups": 2
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.6279
+        },
+        "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_back_compartment_of_the_caddy": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.002": {
+            "H": 5.3888,
+            "groups": 44
+          },
+          "0.005": {
+            "H": 4.3986,
+            "groups": 26
+          },
+          "0.01": {
+            "H": 0.8663,
+            "groups": 3
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.4616
+        },
+        "LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate": {
+          "0.0005": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.001": {
+            "H": 5.4688,
+            "groups": 46
+          },
+          "0.002": {
+            "H": 5.3737,
+            "groups": 44
+          },
+          "0.005": {
+            "H": 4.0607,
+            "groups": 22
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 2.9959
+        },
+        "LIVING_ROOM_SCENE1_put_both_the_alphabet_soup_and_the_cream_cheese_box_in_the_basket": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6039,
+            "groups": 49
+          },
+          "0.002": {
+            "H": 5.3639,
+            "groups": 43
+          },
+          "0.005": {
+            "H": 4.1325,
+            "groups": 23
+          },
+          "0.01": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.4798
+        },
+        "KITCHEN_SCENE8_put_both_moka_pots_on_the_stove": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.002": {
+            "H": 5.3239,
+            "groups": 42
+          },
+          "0.005": {
+            "H": 4.1435,
+            "groups": 23
+          },
+          "0.01": {
+            "H": 0.8592,
+            "groups": 4
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.4555
+        },
+        "KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it": {
+          "0.0005": {
+            "H": 5.6439,
+            "groups": 50
+          },
+          "0.001": {
+            "H": 5.5639,
+            "groups": 48
+          },
+          "0.002": {
+            "H": 5.4839,
+            "groups": 46
+          },
+          "0.005": {
+            "H": 4.2044,
+            "groups": 24
+          },
+          "0.01": {
+            "H": 0.3274,
+            "groups": 2
+          },
+          "0.02": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "0.05": {
+            "H": -0.0,
+            "groups": 1
+          },
+          "max_dev_cm": 3.1373
+        }
+      },
+      "mean_H": {
+        "0.0005": 5.6279,
+        "0.001": 5.5704,
+        "0.002": 5.3986,
+        "0.005": 4.2749,
+        "0.01": 0.3745,
+        "0.02": 0.0,
+        "0.05": 0.0
+      },
+      "n_zero": {
+        "0.0005": 0,
+        "0.001": 0,
+        "0.002": 0,
+        "0.005": 0,
+        "0.01": 3,
+        "0.02": 10,
+        "0.05": 10
+      },
+      "mean_max_dev_cm": 3.3531
+    }
+  }
+}

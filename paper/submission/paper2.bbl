@@ -1,15 +1,80 @@
-\begin{thebibliography}{2}
+\begin{thebibliography}{12}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
+\bibitem[de~Haan et~al.(2019)de~Haan, Jayaraman, and Levine]{dehaan2019causal}
+Pim de~Haan, Dinesh Jayaraman, and Sergey Levine.
+\newblock Causal confusion in imitation learning.
+\newblock In \emph{NeurIPS}, 2019.
+
 \bibitem[Fei et~al.(2025)]{fei2025liberoplus}
 Senyu Fei et~al.
 \newblock Libero-plus: In-depth robustness analysis of vision-language-action
   models.
 \newblock \emph{arXiv preprint arXiv:2510.13626}, 2025.
+
+\bibitem[Geirhos et~al.(2020)Geirhos, Jacobsen, Michaelis, Zemel, Brendel,
+  Bethge, and Wichmann]{geirhos2020shortcut}
+Robert Geirhos, J{\"o}rn-Henrik Jacobsen, Claudio Michaelis, Richard Zemel,
+  Wieland Brendel, Matthias Bethge, and Felix~A. Wichmann.
+\newblock Shortcut learning in deep neural networks.
+\newblock \emph{Nature Machine Intelligence}, 2:\penalty0 665--673, 2020.
+
+\bibitem[Gururangan et~al.(2018)Gururangan, Swayamdipta, Levy, Schwartz,
+  Bowman, and Smith]{gururangan2018artifacts}
+Suchin Gururangan, Swabha Swayamdipta, Omer Levy, Roy Schwartz, Samuel~R.
+  Bowman, and Noah~A. Smith.
+\newblock Annotation artifacts in natural language inference data.
+\newblock In \emph{Proceedings of NAACL-HLT}, 2018.
+
+\bibitem[Kim et~al.(2024)]{kim2024openvla}
+Moo~Jin Kim et~al.
+\newblock {OpenVLA}: An open-source vision-language-action model.
+\newblock \emph{arXiv preprint arXiv:2406.09246}, 2024.
+
+\bibitem[Liu et~al.(2023)Liu, Zhu, Gao, Feng, Liu, Zhu, and
+  Stone]{liu2023libero}
+Bo~Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter
+  Stone.
+\newblock {LIBERO}: Benchmarking knowledge transfer for lifelong robot
+  learning.
+\newblock In \emph{NeurIPS Datasets and Benchmarks}, 2023.
+
+\bibitem[Mandlekar et~al.(2021)]{mandlekar2021robomimic}
+Ajay Mandlekar et~al.
+\newblock What matters in learning from offline human demonstrations for robot
+  manipulation.
+\newblock In \emph{CoRL}, 2021.
+
+\bibitem[McCoy et~al.(2019)McCoy, Pavlick, and Linzen]{mccoy2019hans}
+R.~Thomas McCoy, Ellie Pavlick, and Tal Linzen.
+\newblock Right for the wrong reasons: Diagnosing syntactic heuristics in
+  natural language inference.
+\newblock In \emph{Proceedings of the Association for Computational Linguistics
+  (ACL)}, 2019.
+
+\bibitem[Pumacay et~al.(2024)Pumacay, Singh, Duan, Krishna, Thomason, and
+  Fox]{pumacay2024colosseum}
+Wilbert Pumacay, Ishika Singh, Jiafei Duan, Ranjay Krishna, Jesse Thomason, and
+  Dieter Fox.
+\newblock {THE COLOSSEUM}: A benchmark for evaluating generalization for
+  robotic manipulation.
+\newblock In \emph{Robotics: Science and Systems (RSS)}, 2024.
+
+\bibitem[Recht et~al.(2019)Recht, Roelofs, Schmidt, and
+  Shankar]{recht2019imagenet}
+Benjamin Recht, Rebecca Roelofs, Ludwig Schmidt, and Vaishaal Shankar.
+\newblock Do imagenet classifiers generalize to imagenet?
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2019.
+
+\bibitem[Torralba and Efros(2011)]{torralba2011bias}
+Antonio Torralba and Alexei~A. Efros.
+\newblock Unbiased look at dataset bias.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2011.
 
 \bibitem[Zhou et~al.(2025)Zhou, Xu, Tie, Chen, Zhang, Chu, Zhou, and
   Sun]{zhou2025liberopro}

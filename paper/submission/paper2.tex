@@ -30,16 +30,19 @@ A manipulation success rate can be made of \emph{location} instead of
 a benchmark task --- the entropy of its target's start pose over the states it
 ships --- and prove the trivial but consequential fact that a suite with zero
 placement entropy is solved, at the demonstrator's own rate, by a lookup table
-indexed on the task. Measuring all four LIBERO suites, exactly one is
-admissible in this sense: LIBERO-Object carries $2.11$ bits per task against a
-$5.64$-bit ceiling, while Spatial, Goal and Long carry $5.50$--$5.62$. We then
+indexed on the task. Measuring all four LIBERO
+suites~\citep{liu2023libero}, exactly one is \emph{lookup-admissible}: at the
+$5$\,mm tolerance that governs whether a parallel jaw closes on a grocery item,
+all ten LIBERO-Object tasks have placement entropy exactly zero, while Spatial,
+Goal and Long carry $2.04$, $1.53$ and $4.27$ bits. We then
 make the proposition executable. On LIBERO-Object, a hand-written constant ---
 one privileged read of the object's pose at reset, then no vision, no language
 and no learning --- scores $10/10$, \emph{above} our own released policy at
-$8/10$, while the same machinery given uninformed goals scores $0/10$. The task
-is not trivial; the benchmark is. Run across the suite, that same released
-policy scores $8$ of $40$ --- every success on the one object it was trained
-for, which is the admissibility argument turning on its author. We then audit a deliberately transparent
+$8/10$ --- statistically indistinguishable ($p = 0.50$), which is the point ---
+while the same machinery given uninformed goals scores $0/10$. The task is not
+trivial; the benchmark is. Across four of the suite's ten tasks that released
+policy scores $8$ of $40$, every success on the one object it was trained for,
+which is the argument turning on its author. We then audit a deliberately transparent
 $30$M-parameter stack and locate where such a shortcut is read: four layers,
 two of them outside the model. Repairs are data-side and paired; one of our own
 is withdrawn here after powering it up. Finally, certification: probes alone
@@ -69,6 +72,24 @@ LIBERO-Plus~\citep{fei2025liberoplus} perturbs seven dimensions across ten VLAs
 and concludes that models ``tend to ignore language instructions completely.''
 That VLAs ignore language is not our finding, and our system exhibiting it is
 confirmatory rather than novel.
+
+\paragraph{The methodology is not new; the metric is.} Measuring a
+benchmark's degeneracy before crediting a model is standard practice outside
+robotics. Dataset bias was named by Torralba and
+Efros~\citep{torralba2011bias}; natural-language inference was shown solvable
+from hypothesis-only artifacts~\citep{gururangan2018artifacts} and from
+syntactic heuristics~\citep{mccoy2019hans}; ImageNet accuracy was shown partly
+a property of one test set~\citep{recht2019imagenet}; and the general statement
+is Geirhos et al.'s shortcut learning~\citep{geirhos2020shortcut}. Our
+\emph{constant} arm (\S\ref{sec:constant}) is the manipulation instance of the
+hypothesis-only baseline and we claim no novelty for the move. What that
+literature lacks, and what manipulation makes possible, is a metric
+\emph{computable from a benchmark's shipped files before any model is
+trained} --- because the prior here is not a class frequency but a physical
+coordinate, and a physical coordinate can be measured exactly. Evaluation rigour
+in robotics has been pressed by robomimic~\citep{mandlekar2021robomimic} and
+COLOSSEUM~\citep{pumacay2024colosseum}; both perturb or re-collect from the
+outside, where we ask what the shipped files already permit.
 
 What those results leave open is the part a practitioner needs. They show
 \emph{that} scores collapse under perturbation. They do not say how much a given
@@ -121,38 +142,53 @@ two placements are not distinguishable by the embodiment under test; we use
 $\delta = 1$\,mm throughout, and report sensitivity to it.
 
 \begin{definition}[Placement entropy]
-Let $q_\delta$ quantise poses to a grid of side $\delta$ and let $p_i$ be the
-empirical frequency of the $i$-th distinct value of $q_\delta(x_t(s))$ over
-$s \in S_t$. The \emph{placement entropy} of task $t$ is
+\label{def:H}
+Partition $\{x_t(s) : s \in S_t\}$ into the connected components of the graph
+joining two placements whenever they lie within $\delta$ --- equivalently,
+single-linkage agglomeration at radius $\delta$. Let $p_i$ be the fraction of
+states in component $i$. The \emph{placement entropy} of task $t$ is
 \[
   H_\delta(t) \;=\; -\sum_i p_i \log_2 p_i \quad\text{bits},
 \]
 and the placement entropy of a suite is the mean over its tasks.
 \end{definition}
 
+We cluster rather than bin, and the difference is not cosmetic. Quantising onto
+an axis-aligned grid is not translation invariant: a tight cluster straddling a
+cell boundary splits in two, and a pinned task is then scored as diverse. Our
+own first version of this measurement had that defect --- one LIBERO-Object task
+scored $H = 0$ at $\delta = 1$\,cm and $H = 1$ at $\delta = 2$\,cm, purely
+from where the origin fell. Definition~\ref{def:H} reads only pairwise
+distances, so no choice of origin can change it.
+
 $H_\delta(t) = 0$ says the target starts in the same place every time, to within
 $\delta$. The ceiling is $\log_2 |S_t|$, attained when every shipped state
 places the target differently.
 
-Two properties of the definition are worth stating because they bound what it
-can be used for. First, $H_\delta$ is \emph{quantisation-dependent}: poses
-straddling a grid boundary can be split into two cells that a policy could not
-distinguish, so $H_\delta$ is an \emph{upper} bound on the placement
-information a policy at tolerance $\delta$ can exploit. This direction is the
-safe one --- it can overstate a suite's variation, never understate it, so a
-\emph{low} measured $H_\delta$ is a conservative finding. We report
-$H_\delta$ across $\delta \in \{0.5, 1, 2, 5\}$\,mm in
-Appendix~\ref{app:delta}; the ordering of the four suites is unchanged
-throughout. Second, we report the mean over tasks rather than pooling states
-across tasks, because pooling would credit a suite for \emph{between}-task
-variation --- and between-task variation is exactly what a task-indexed lookup
-table gets for free.
+Two further choices bound what the definition can be used for. We report the
+mean over tasks rather than pooling states across tasks, because pooling would
+credit a suite for \emph{between}-task variation, and between-task variation is
+exactly what a task-indexed lookup gets for free. And $H_\delta$ is a
+\emph{decreasing} function of $\delta$ under Definition~\ref{def:H} (coarsening
+can only merge components), so it is monotone and the whole curve is
+informative; we report it rather than a point, because $\delta$ is the one place
+an author could tune the answer.
 
-\begin{definition}[Order-$k$ admissibility]
-A suite is \emph{order-$k$ admissible} if there is a map from the task index to
-a set of at most $k$ pose constants that reproduces every shipped target pose to
-within $\delta$.
+\begin{definition}[Order-$k$ lookup-admissibility]
+A suite is \emph{order-$k$ lookup-admissible} if there is a map from the task
+index to a set of at most $k$ position constants reproducing every shipped
+target position to within $\delta$.
 \end{definition}
+
+The adjective attaches to the \emph{suite} and the consequence to the
+\emph{score}: a suite that is lookup-admissible renders its own scores
+inadmissible as evidence of grounding. We never use ``admissible'' as a virtue.
+
+\paragraph{Assumption A1 ($\delta$-robustness).} The controller's success
+indicator is constant on $\delta$-balls: for every $s \in S_t$ and every $c$
+with $\|x_t(s) - c\|_\infty \le \delta$, supplying $c$ and supplying
+$x_t(s)$ yield the same episode outcome. A1 is an empirical property of the
+embodiment, not a definition, and \S\ref{sec:sweep} measures where it fails.
 
 \begin{proposition}[Lookup sufficiency]
 \label{prop:lookup}
@@ -164,24 +200,22 @@ the controller achieves given a correct target pose.
 \end{proposition}
 
 \begin{proof}
-$H_\delta(t)=0$ means the quantised pose $q_\delta(x_t(s))$ takes a single value
-on $S_t$; write $c_t$ for any pose in that cell. For every $s \in S_t$,
-$\|x_t(s) - c_t\|_\infty \le \delta$, so the map $t \mapsto c_t$ reproduces
-every shipped target pose to within $\delta$ and the suite is order-$1$
-admissible. The policy of the statement emits $c_t$ on every state of task $t$,
-hence supplies the controller a pose within $\delta$ of the true one
-throughout. Since $\delta$ is by construction below the tolerance at which the
-embodiment distinguishes placements, the controller's trajectory --- and
-therefore the episode outcome --- is the one it would produce given the true
-pose. Averaging over $S_t$ gives the claim.
+$H_\delta(t) = 0$ means the single-linkage partition of $\{x_t(s)\}$ at radius
+$\delta$ has one component, so any two shipped positions are joined by a chain
+of steps each shorter than $\delta$. Take $c_t$ to be any shipped position.
+The policy emits $c_t$ on every state of task $t$; applying A1 along each chain,
+the outcome under $c_t$ equals the outcome under $x_t(s)$ for every
+$s \in S_t$. Averaging over $S_t$ gives the claim, and $t \mapsto c_t$
+witnesses order-$1$ lookup-admissibility.
 \end{proof}
 
 \begin{corollary}[No score can separate them]
 \label{cor:sep}
-On a suite with $H_\delta \equiv 0$, no function of episode outcomes alone can
-distinguish the lookup policy of Proposition~\ref{prop:lookup} from a policy
-that localises the target perceptually and is otherwise identical, because the
-two induce the same distribution over trajectories.
+On a suite with $H_\delta \equiv 0$, no function of episode outcomes can
+distinguish the lookup policy of Proposition~\ref{prop:lookup} from \emph{any}
+policy supplying the controller a position within $\delta$ of the truth on every
+shipped state, however obtained --- perceptually or otherwise --- because under
+A1 the two induce the same distribution over episode outcomes.
 \end{corollary}
 
 \noindent Corollary~\ref{cor:sep} is the sentence the rest of the paper exists
@@ -216,46 +250,86 @@ objects). We therefore compile each task's model and read
 body. The two passes agree where both apply.
 
 \begin{table}[t]\centering\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrrrr}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lrrrrr}
 \toprule
-suite & pinned & quat.\ id. & $H_{1\text{mm}}$ & distinct \\
+ & \multicolumn{4}{c}{$H_\delta$ (bits), $\delta =$} & spread \\
+\cmidrule(lr){2-5}
+suite & $0.5$mm & $2$mm & $5$mm & $1$cm & (cm) \\
 \midrule
-\textbf{Object} & \textbf{6/10} & 10/10 & \textbf{2.11} & \textbf{17.0} \\
-Spatial & 0/10 & 10/10 & 5.50 & 46.9 \\
-Goal & 0/8 & 8/8 & 5.60 & 49.0 \\
-Long & 0/10 & 9/10 & 5.62 & 49.3 \\
+\textbf{Object} & \textbf{2.11} & \textbf{0.48} & \textbf{0.00} & \textbf{0.00} & \textbf{0.32} \\
+Spatial & 5.48 & 4.49 & 2.04 & 0.25 & 2.39 \\
+Goal & 5.59 & 5.08 & 1.53 & 0.02 & 2.05 \\
+Long & 5.63 & 5.40 & 4.27 & 0.37 & 3.35 \\
+\midrule
+\multicolumn{6}{l}{\emph{tasks with $H_\delta = 0$ exactly}} \\
+\textbf{Object} & \textbf{6/10} & \textbf{8/10} & \textbf{10/10} & 10/10 & \\
+Spatial & 0/10 & 0/10 & 1/10 & 9/10 & \\
+Goal & 0/8 & 0/8 & 0/8 & 7/8 & \\
+Long & 0/10 & 0/10 & 0/10 & 3/10 & \\
 \bottomrule
 \end{tabular}
 \caption{Placement entropy of every LIBERO suite, $50$ shipped states per task,
-ceiling $\log_2 50 = 5.644$ bits. \textbf{pinned} counts targets taking
-$\le 2$ distinct \texttt{float64} positions; \textbf{quat.\ id.}\ counts tasks
-whose target start \emph{orientation} is bit-identical across all $50$ states.
-Denominators are \emph{resolvable} tasks: two LIBERO-Goal tasks name a fixture
-with no free joint and have no placement to measure, so they are excluded and
-counted rather than scored as unpinned.}
+ceiling $\log_2 50 = 5.644$ bits, swept over tolerance. \emph{spread} is the
+mean over tasks of the largest deviation of any shipped placement from its task
+mean --- a physical statistic with no definitional choices at all, which
+separates the suites by $6.5$--$10.6\times$ on its own. Denominators are
+\emph{resolvable} tasks: two LIBERO-Goal tasks name a fixture with no free
+joint and have no placement to measure, so they are excluded and counted rather
+than scored as unpinned. Artifact:
+\texttt{results/placement\_entropy.json}.}
 \label{tab:suites}
 \end{table}
 
-Table~\ref{tab:suites} is the result. Three readings.
+Table~\ref{tab:suites} is the measurement.
 
-\textbf{One suite is admissible and three are not.} LIBERO-Object carries
-$2.11$ bits per task; Spatial, Goal and Long carry $5.50$--$5.62$ against a
-$5.644$ ceiling, i.e.\ $97$--$100\%$ of the maximum. In $6$ of Object's $10$
-tasks the target's start position takes exactly \emph{two} distinct
-\texttt{float64} values, one unit in the last place apart
-($\sim3\times10^{-17}$\,m) on a single axis --- constant to the precision the
-format can express. The remaining four vary by $0.26$--$0.58$\,cm. Across tasks
-the structure is tighter still: the ten targets occupy two table positions
-$22.1$\,cm apart, five tasks each.
+\paragraph{Choosing $\delta$, and why we report the curve.} $\delta$ is a claim
+about the embodiment, and it is the one parameter an author could tune to
+flatter a conclusion, so we sweep it. At a metrology tolerance
+($0.5$\,mm) the suites separate $2.6\times$. At the tolerance that governs
+whether a parallel-jaw gripper closing on a grocery item succeeds --- we take
+$5$\,mm, and note that our own controller probes a $\pm6$\,cm envelope, so this
+is conservative by an order of magnitude --- the picture is not a difference of
+degree:
+
+\begin{quote}
+\textbf{At $\delta = 5$\,mm, all ten LIBERO-Object tasks have
+$H_\delta = 0$ exactly.} No other suite has more than one.
+\end{quote}
+
+\noindent LIBERO-Object therefore satisfies the hypothesis of
+Proposition~\ref{prop:lookup} \emph{exactly}, at grasp tolerance, in every one
+of its tasks. Corollary~\ref{cor:sep} then applies without qualification: on
+this suite no function of episode outcomes can separate a lookup table from a
+policy that perceives. Spatial, Goal and Long sit at $2.04$, $1.53$ and $4.27$
+bits at the same tolerance and do not satisfy it.
+
+Two honest riders. Pushed far enough ($\delta = 5$\,cm) every suite reaches
+zero, which is not a finding about LIBERO but a statement that any placement
+distribution is degenerate at coarse enough resolution --- the informative
+regime is where the embodiment actually operates, and we report the whole curve
+so a reader can pick their own. And the physical statistic in the last column
+carries the same conclusion with no definitional apparatus at all: mean maximum
+deviation $0.32$\,cm for Object against $2.05$--$3.35$\,cm elsewhere.
+
+\paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
+start position takes exactly \emph{two} distinct \texttt{float64} values, one
+unit in the last place apart ($\sim3\times10^{-17}$\,m) on a single axis ---
+constant to the precision the format can express. The remaining four vary by
+$0.26$--$0.58$\,cm, which is why they too are at $H_{5\text{mm}} = 0$. Across
+tasks the structure is tighter still: the ten targets occupy two table positions
+$22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
+\emph{two}-constant table covers the whole suite --- order-2
+lookup-admissibility, in the language of Definition~2.
 
 \textbf{This is not carelessness, and saying so sharpens the finding.}
 LIBERO-Spatial's ten tasks all name a ``black bowl'' and are individuated
 \emph{by} position; freezing placement would make the suite unsolvable.
 LIBERO-Object individuates by identity and therefore \emph{can} freeze placement
-without ambiguity. The suite that does is precisely the suite whose scores are
-read as evidence of object grounding --- which is where an admissible benchmark
-is most misleading.
+without ambiguity; Figure~\ref{fig:forensics}B shows what a suite that cannot
+looks like. The suite that does is precisely the suite whose scores are read as
+evidence of object grounding --- which is where lookup-admissibility is most
+misleading.
 
 \textbf{One property generalises.} The target's start \emph{orientation} is
 bit-identical across all $50$ states in $37$ of the $38$ resolvable tasks in all
@@ -276,7 +350,7 @@ digests of every init-state array are in that artifact.}
 \label{fig:forensics}
 \end{figure*}
 
-\section{The constant that beats the policy}
+\section{The constant that saturates the benchmark}
 \label{sec:constant}
 
 Proposition~\ref{prop:lookup} says a lookup table suffices on a zero-entropy
@@ -319,21 +393,31 @@ per trial, exact McNemar. Per-trial outcomes: \texttt{results/pod\_cells.json}.}
 \label{tab:anchors}
 \end{table}
 
-\paragraph{The floor is zero.} With an uninformed goal the machinery scores
+\paragraph{The floor is zero.} With an uninformed goal (Table~\ref{tab:anchors})
+the machinery scores
 $0/10$ $[0.00, 0.28]$: eight discordant pairs, all favouring the learned head,
 exact McNemar $p = 0.0078$. \textbf{The task is not trivial.} Whatever the
 constant achieves, it does not achieve it because the controller would have
 succeeded anyway. This is the control that makes the rest of the table mean
 something.
 
-\paragraph{The constant matches the ceiling and beats the policy.} The oracle
-scores $10/10$, so the controller's envelope is not the binding constraint. The
-constant \emph{also} scores $10/10$ --- one privileged look at reset, then no
-vision, no language, no learning --- against the released head's $8/10$. On a
-task whose target takes one \texttt{float64} value across all fifty shipped
-states, this is exactly what Proposition~\ref{prop:lookup} predicts, and it is
-the difference between arguing that a benchmark admits memorisers and running
-one.
+\paragraph{The constant saturates the benchmark, and is statistically
+indistinguishable from the policy.} The oracle scores $10/10$, so the
+controller's envelope is not the binding constraint. The constant \emph{also}
+scores $10/10$, against the released head's $8/10$ --- and the paired test
+returns $p = 0.50$.
+
+We do not report that $p$ as a limitation of the cell. \textbf{It is
+Corollary~\ref{cor:sep} arriving on schedule.} On a suite whose target never
+moves, the score is not a low-powered instrument for separating lookup from
+perception; it is not an instrument for it at all. A larger $n$ would not help,
+because the two policies are not merely hard to tell apart --- under A1 they are
+identically distributed in everything the benchmark observes. The experiment's
+content is not ``the constant won''. It is that a benchmark scored a
+task-indexed constant and a trained policy the same, which is what
+Proposition~\ref{prop:lookup} and Corollary~\ref{cor:sep} jointly predict, and
+it is the difference between arguing that a benchmark is lookup-admissible and
+running the lookup.
 
 \paragraph{What this licenses, and what it does not.} It does not show our
 released head is a memoriser; \S\ref{sec:audit} shows what it actually reads,
@@ -387,9 +471,8 @@ goal heads $+$ gates & 0.24\,M & stage B & frozen \\
 \caption{Parameter ledger. There is \emph{no} language model: the
 open-vocabulary detector's own text tower supplies every text embedding, so one
 frozen network is the only vision encoder \emph{and} the only text encoder.
-$^\dagger$Inert in every cell we have ablated --- a persistence baseline
-reproduces the held-out cell exactly. We previously wrote ``inert in every
-nonzero number'', which was a universal quantifier resting on one ablation.}
+$^\dagger$Inert in the one cell we have ablated: a persistence baseline
+reproduces the held-out cell exactly. We state it for that cell only.}
 \label{tab:ledger}
 \end{table}
 
@@ -424,9 +507,8 @@ untouched & 40, 30 & \textbf{20--49} \\
 \end{tabular}
 \end{center}
 
-\noindent This answers a question we had not answered in print, and the answer
-is not flattering: \textbf{the $n{=}50$ cells are not disjoint from the dev and
-held-out bands --- they contain them.} Fifty trials over fifty shipped states is
+\noindent The answer is not flattering: \textbf{the $n{=}50$ cells are not
+disjoint from the dev and held-out bands --- they contain them.} Fifty trials over fifty shipped states is
 the whole set. The untouched band exists to supply one clean cell, and
 \S\ref{sec:repairs} reports it.
 
@@ -434,7 +516,8 @@ the whole set. The untouched band exists to supply one clean cell, and
 \label{sec:audit}
 
 ``The policy memorised the location'' is not one hypothesis but four, at four
-stages, two of which are not in the model at all --- and those two are the ones
+stages --- causal confusion~\citep{dehaan2019causal} spread across a pipeline
+rather than confined to a network --- two of which are not in the model at all --- and those two are the ones
 a black-box perturbation study cannot reach (Figure~\ref{fig:threat}).
 
 \begin{figure*}[t]\centering
@@ -480,10 +563,9 @@ $3/50 \to 22/50$ vs $3/50$ control, $p<10^{-4}$. \textbf{Repaired} \\
 \bottomrule
 \end{tabular}
 \caption{Master audit table. Layers 1--4 are the placement-memorisation layers;
-the last row is a drift case study listed separately because it is \emph{not}
-one of them --- conflating the two is an error our own earlier abstract made,
-claiming ``four layers, three repaired'' while listing a repair that addresses
-none of the four. Two rows are deliberately not marked repaired.}
+the last row is a drift case study, \emph{not} one of the four; it appears here
+only because its repair is easily mistaken for one of theirs. Two rows are
+deliberately not marked repaired.}
 \label{tab:audit}
 \end{table*}
 
@@ -535,11 +617,12 @@ not inflate the held-out figure. We claim only that: not that the burn is zero,
 but that it is small enough to hide inside $\pm 0.20$, which is what $n{=}30$
 buys.
 
-\paragraph{A repair we withdraw.} We previously reported that command coverage
-repairs the instruction-swap behaviour, citing $3/10$ against a $4/10$ baseline
-at $p = 1.0$. A referee objected that this is an equivalence claim from an
-underpowered cell, and the objection was correct. Re-run on a band where the
-coverage head scores well, and taken to $n{=}30$:
+\paragraph{A repair we withdraw.} Command coverage was reported as repairing
+the instruction-swap behaviour on the strength of $3/10$ against a $4/10$
+baseline at $p = 1.0$. That is an equivalence claim from an underpowered cell,
+on a band where the head was already mostly failing --- and a swap cannot
+visibly break a cell that is already broken. Re-run on a band where the coverage
+head scores well, and taken to $n{=}30$:
 
 \begin{center}\small
 \begin{tabular}{llll}
@@ -561,8 +644,9 @@ What replaces the withdrawn claim is more useful than it was. Coverage does not
 eliminate the failure, it roughly \emph{halves} it: the flagship loses its
 entire cell ($0.800 \to 0.000$, every discordant pair one way), the coverage
 head about a third ($0.767 \to 0.433$). And the repair to the place
-\emph{point} is not in doubt --- $14.15 \to 0.78$\,cm, measured directly rather
-than inferred from behaviour. So: \textbf{command coverage fixes where the head
+\emph{point} is not in doubt --- $14.15 \to 0.78$\,cm
+(Figure~\ref{fig:placepoint}), measured directly rather than inferred from
+behaviour. So: \textbf{command coverage fixes where the head
 aims and does not fully fix what it does.} A residual command$\to$location
 dependence survives training on all three commands. That is a sharper statement
 of layer 4 than we had, and no cell we ran before could have detected it.
@@ -570,8 +654,9 @@ of layer 4 than we had, and no cell we ran before could have detected it.
 \subsection{What the released policy actually is}
 \label{sec:fullsuite}
 
-The cells above are one task. Running the released head across the suite gives
-the number that puts them in proportion:
+The cells above are one task. Running the released head across four of the
+suite's ten tasks --- task 0 and the next three, chosen by index and not by
+outcome --- gives the number that puts them in proportion:
 
 \begin{center}\small
 \begin{tabular}{llll}
@@ -587,7 +672,9 @@ task & object & score & Wilson 95\% \\
 \end{center}
 
 \noindent \textbf{Eight successes in forty trials, and every one of them on the
-single object the head was trained for.} We report this because it is the
+single object the head was trained for.} (Four tasks, not ten: the remaining six
+were still running when the compute window closed, and we report what completed
+rather than a projection.) We report this because it is the
 honest scale of the artifact and because it is the admissibility argument
 turning on its author: a suite of ten tasks that share two placements and one
 basket let a single-object solution be described as a policy with a suite-level
@@ -626,7 +713,8 @@ at $\pm6$--$\pm8$ than at $\pm2$, but every interval is ${\sim}0.5$ wide and the
 undisplaced cell sits \emph{below} $\pm2$\,cm, which cannot be a real benefit of
 displacement. That non-monotonicity is the honest measure of what this $n$
 resolves. \textbf{No single radius should be quoted as ``passes
-randomisation''} --- including the $\pm4$\,cm one we previously quoted that way.
+randomisation''}, and a benchmark asking for one is asking for a number that
+does not exist.
 
 \section{Certification}
 \label{sec:cert}
@@ -672,7 +760,7 @@ difference between a probe that answers ``does this channel change where the
 head thinks the object is'' and one that measures the parameterisation.
 
 \textbf{v2 and v2.1 differ by at most $0.73$\,cm on any channel and score
-$0.000$ and $0.700$ deployed.} A probe evaluated on teacher trajectories is an
+$0.000$ and $0.700$ deployed} (Figure~\ref{fig:counterexample}). A probe evaluated on teacher trajectories is an
 on-manifold instrument and cannot, alone, certify off-manifold behaviour. Probe
 evidence must be paired with behavioural randomisation.
 
@@ -754,7 +842,7 @@ not in ours, or in any LIBERO evaluation we have read.
 
 The instruments above are offered as portable. We therefore attempted to run
 them on a policy we did not build: the public
-\texttt{openvla-7b-finetuned-libero-object} checkpoint, evaluated through the
+\texttt{openvla-7b-finetuned-libero-object} checkpoint~\citep{kim2024openvla}, evaluated through the
 same harness, the same trial$\to$state map and the same success predicate.
 
 We report a negative, and the discipline that produced it matters more than the
@@ -779,9 +867,8 @@ or a checkpoint that does not transfer to a differently-built LIBERO. The second
 is exactly what \S\ref{sec:cert} predicts and we decline to claim it, because the
 first is not excluded. The harness ships (\texttt{eval/openvla\_eval.py}) so the
 question is answerable by someone with the matching build. Until then, the
-portability of our instruments is \textbf{unestablished}, and we have removed
-the claim that ``the audit generalises better than the artifact does'' from this
-paper.
+portability of our instruments is \textbf{unestablished}, and we make no claim that these instruments generalise beyond the stack
+they were built on.
 
 \section{Negative results and registries}
 \label{sec:neg}

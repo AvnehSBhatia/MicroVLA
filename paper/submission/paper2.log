@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 01:33
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 01:42
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -596,19 +596,19 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 34.
+(Font)              <10> on input line 35.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 34.
+(Font)              <7> on input line 35.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 34.
+(Font)              <5> on input line 35.
 
 
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 8
-3.
+4.
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Underfull \hbox (badness 3029) in paragraph at lines 83--88
+Underfull \hbox (badness 3029) in paragraph at lines 104--109
 []\OT1/lmr/bx/n/10 Admissibility, de-fined and mea-sured \OT1/lmr/m/n/10 (\TS1/
 lmr/m/n/10 §[]\OT1/lmr/m/n/10 2[]).
  []
@@ -622,8 +622,19 @@ tex.map}{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}
 {/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr
 /local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
 
+
+Underfull \hbox (badness 1436) in paragraph at lines 187--192
+ []\OT1/lmr/bx/n/10 Assumption A1 ($\OML/lmm/m/it/10 ^^N$\OT1/lmr/bx/n/10 -robu
+stness).[] \OT1/lmr/m/n/10 The con-troller's
+ []
+
+
+
+[2{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/u
+sr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
 LaTeX Font Info:    Trying to load font information for OT1+lmtt on input line 
-215.
+249.
+
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ot1lmtt.fd
 File: ot1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -631,190 +642,183 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-
-
-[2{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/u
-sr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 220.
+(Font)              <9> on input line 254.
 
-Underfull \hbox (badness 1077) in paragraph at lines 242--251
-[]\OT1/lmr/bx/n/10 One suite is ad-mis-si-ble and three are not.
+Underfull \hbox (badness 1342) in paragraph at lines 300--306
+\OT1/lmr/m/n/10 LIBERO-Object there-fore sat-is-fies the hy-poth-e-sis of
  []
 
-<../visuals/F1_placement_forensics.png, id=146, 867.62036pt x 341.19048pt>
-File: ../visuals/F1_placement_forensics.png Graphic file (type png)
-<use ../visuals/F1_placement_forensics.png>
-Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
-ine 266.
-(pdftex.def)             Requested size: 495.77003pt x 194.96475pt.
 
 
 
 
 [3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc}]
-Underfull \vbox (badness 10000) has occurred while \output is active []
+<../visuals/F1_placement_forensics.png, id=189, 867.62036pt x 341.19048pt>
+File: ../visuals/F1_placement_forensics.png Graphic file (type png)
+<use ../visuals/F1_placement_forensics.png>
+Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
+ine 340.
+(pdftex.def)             Requested size: 495.77003pt x 194.96475pt.
 
 
 
 
-Overfull \hbox (21.37245pt too wide) in paragraph at lines 375--392
+[4]
+Overfull \hbox (21.37245pt too wide) in paragraph at lines 459--475
  [][] 
  []
 
 
-Underfull \vbox (badness 7851) has occurred while \output is active []
 
-
-
-[4 <../visuals/F1_placement_forensics.png>]
-<../visuals/F3_threat_model.png, id=187, 903.375pt x 453.77953pt>
+<../visuals/F3_threat_model.png, id=215, 903.375pt x 453.77953pt>
 File: ../visuals/F3_threat_model.png Graphic file (type png)
 <use ../visuals/F3_threat_model.png>
-Package pdftex.def Info: ../visuals/F3_threat_model.png  used on input line 441
+Package pdftex.def Info: ../visuals/F3_threat_model.png  used on input line 524
 .
 (pdftex.def)             Requested size: 495.77003pt x 249.03943pt.
 
-Underfull \hbox (badness 1360) in paragraph at lines 453--453
+Underfull \hbox (badness 1360) in paragraph at lines 536--536
 \OT1/lmr/m/n/9 i-bra-tion con-
  []
 
 
-Underfull \hbox (badness 5862) in paragraph at lines 454--454
+Underfull \hbox (badness 5862) in paragraph at lines 537--537
 []\OT1/lmr/m/n/9 hand-eye con-stant en-codes
  []
 
 
-Underfull \hbox (badness 5802) in paragraph at lines 458--458
+Underfull \hbox (badness 5802) in paragraph at lines 541--541
 []\OT1/lmr/m/n/9 our own pro-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 458--458
+Underfull \hbox (badness 10000) in paragraph at lines 541--541
 \OT1/lmr/m/n/9 ce-dure (non-
  []
 
 
-Underfull \hbox (badness 1132) in paragraph at lines 459--459
+Underfull \hbox (badness 1132) in paragraph at lines 542--542
 []\OT1/lmr/m/n/9 checkpoints cho-sen on cells
  []
 
 
-Underfull \hbox (badness 4886) in paragraph at lines 461--463
+Underfull \hbox (badness 4886) in paragraph at lines 544--546
 []\OT1/lmr/m/n/9 untouched band $20\OML/lmm/m/it/9 =\OT1/lmr/m/n/9 30$ vs
  []
 
 
-Underfull \hbox (badness 7814) in paragraph at lines 464--464
+Underfull \hbox (badness 7814) in paragraph at lines 547--547
 []\OT1/lmr/m/n/9 3. grasp-
  []
 
 
-Overfull \hbox (3.55391pt too wide) in paragraph at lines 464--464
+Overfull \hbox (3.55391pt too wide) in paragraph at lines 547--547
 []\OT1/lmtt/m/n/9 GraspPointHead| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 466--466
+Underfull \hbox (badness 10000) in paragraph at lines 549--549
 []\OT1/lmr/m/n/9 same tele-ported
  []
 
 
-Underfull \hbox (badness 5050) in paragraph at lines 467--468
+Underfull \hbox (badness 5050) in paragraph at lines 550--551
 []\OT1/lmr/m/n/9 attribution flips to vi-sual.
  []
 
 
-Overfull \hbox (26.36276pt too wide) in paragraph at lines 469--469
+Overfull \hbox (26.36276pt too wide) in paragraph at lines 552--552
 \OT1/lmr/m/n/9 command$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 location| 
  []
 
 
-Underfull \hbox (badness 3019) in paragraph at lines 470--471
+Underfull \hbox (badness 3019) in paragraph at lines 553--554
 \OT1/lmr/m/n/9 com-mand, $14\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 5$/$13\OML/lmm/m/it
 /9 :\OT1/lmr/m/n/9 0$cm off
  []
 
 
-Underfull \hbox (badness 4872) in paragraph at lines 470--471
+Underfull \hbox (badness 4872) in paragraph at lines 553--554
 \OT1/lmr/m/n/9 for the other two; swap
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 472--472
+Underfull \hbox (badness 10000) in paragraph at lines 555--555
 []\OT1/lmr/m/n/9 command cov-er-
  []
 
 
-Underfull \hbox (badness 4899) in paragraph at lines 473--475
+Underfull \hbox (badness 4899) in paragraph at lines 556--558
 \OT1/lmr/bx/n/9 re-paired\OT1/lmr/m/n/9 ; swap \OT1/lmr/m/it/9 be-haviour
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 476--476
+Underfull \hbox (badness 10000) in paragraph at lines 559--559
 []\OT1/lmr/m/it/9 (separate)
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 476--476
+Underfull \hbox (badness 10000) in paragraph at lines 559--559
 \OT1/lmr/m/n/9 ap-pear-ance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 476--476
+Underfull \hbox (badness 10000) in paragraph at lines 559--559
 []\OT1/lmr/m/n/9 deployment
  []
 
 
-Underfull \hbox (badness 4699) in paragraph at lines 478--478
+Underfull \hbox (badness 4699) in paragraph at lines 561--561
 []\OT1/lmr/m/n/9 DAgger on own
  []
 
-<../visuals/F2_dataflow_language.png, id=188, 888.921pt x 384.1721pt>
+<../visuals/F2_dataflow_language.png, id=216, 888.921pt x 384.1721pt>
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
-e 494.
+e 576.
 (pdftex.def)             Requested size: 495.77003pt x 214.26146pt.
 
-Underfull \hbox (badness 2027) in paragraph at lines 498--498
+Underfull \hbox (badness 2027) in paragraph at lines 580--580
 []\OT1/lmr/m/n/9 Figure 3: |Ev-ery edge coloured by what it car-ries. The ar-ch
 i-tec-tural half of the ar-gu-ment is a code fact:
  []
 
-<../visuals/F6_place_point_map.png, id=189, 782.79822pt x 378.84695pt>
+
+
+[5 <../visuals/F1_placement_forensics.png>]
+<../visuals/F6_place_point_map.png, id=228, 782.79822pt x 378.84695pt>
 File: ../visuals/F6_place_point_map.png Graphic file (type png)
 <use ../visuals/F6_place_point_map.png>
 Package pdftex.def Info: ../visuals/F6_place_point_map.png  used on input line 
-516.
+598.
 (pdftex.def)             Requested size: 465.41786pt x 225.2462pt.
 
 
 
-Underfull \hbox (badness 1466) in paragraph at lines 538--543
- []\OT1/lmr/bx/n/10 A re-pair we with-draw.[] \OT1/lmr/m/n/10 We pre-vi-ously r
-e-ported
- []
+
+[6 <../visuals/F3_threat_model.png>]
+Underfull \vbox (badness 1314) has occurred while \output is active []
 
 
 
-[5]
 
-<../visuals/F4_probe_counterexample.png, id=200, 830.34427pt x 319.1291pt>
+
+[7]
+<../visuals/F4_probe_counterexample.png, id=246, 830.34427pt x 319.1291pt>
 File: ../visuals/F4_probe_counterexample.png Graphic file (type png)
 <use ../visuals/F4_probe_counterexample.png>
 Package pdftex.def Info: ../visuals/F4_probe_counterexample.png  used on input 
-line 645.
+line 733.
 (pdftex.def)             Requested size: 455.2979pt x 174.99075pt.
 
-
-[6 <../visuals/F3_threat_model.png>]
-Underfull \hbox (badness 1019) in paragraph at lines 681--685
+Underfull \hbox (badness 1019) in paragraph at lines 769--773
 \OT1/lmr/m/n/10 Our cross-instruction detection-agreement probe asks
  []
 
 
-Overfull \hbox (38.64565pt too wide) in paragraph at lines 687--697
+Overfull \hbox (38.64565pt too wide) in paragraph at lines 775--785
  [] 
  []
 
@@ -822,8 +826,8 @@ Overfull \hbox (38.64565pt too wide) in paragraph at lines 687--697
 
 
 
-[7]
-Underfull \hbox (badness 10000) in paragraph at lines 755--759
+[8 <../visuals/F2_dataflow_language.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 843--847
 \OT1/lmr/m/n/10 the pub-lic \OT1/lmtt/m/n/10 openvla-7b-finetuned-libero-object
 
  []
@@ -831,54 +835,75 @@ Underfull \hbox (badness 10000) in paragraph at lines 755--759
 
 
 
-
-[8 <../visuals/F2_dataflow_language.png>]
-
-
-
-[9 <../visuals/F6_place_point_map.png>]
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 888.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 888.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 888.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 888.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 888.
-
-
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-(./paper2.bbl)
+[9 <../visuals/F6_place_point_map.png>]
 
-[10 <../visuals/F4_probe_counterexample.png>] (./paper2.aux)
+
+
+[10 <../visuals/F4_probe_counterexample.png>]
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <14.4> on input line 975.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 975.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 975.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\delta' on input line 975.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 975.
+
+
+
+(./paper2.bbl
+Underfull \hbox (badness 6944) in paragraph at lines 21--25
+[]\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
+ []
+
+
+Underfull \hbox (badness 1308) in paragraph at lines 28--32
+\OT1/lmr/m/n/10 Levy, Roy Schwartz, Samuel R. Bow-man, and
+ []
+
+
+Underfull \hbox (badness 3701) in paragraph at lines 34--37
+[]\OT1/lmr/m/n/10 Moo Jin Kim et al.  Open-VLA: An open-
+ []
+
+
+
+[11])
+
+
+
+[12
+
+] (./paper2.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `paper2.out' has not changed.
-(rerunfilecheck)             Checksum: 02424DAED2DED567FC1BA49F532086E8;4399.
+(rerunfilecheck)             Checksum: AA3972C7C5928A7783C3B70EAEC4CE64;4434.
  ) 
 Here is how much of TeX's memory you used:
- 14895 strings out of 474662
- 237972 string characters out of 5751110
- 699785 words of memory out of 5000000
- 37651 multiletter control sequences out of 15000+600000
+ 14945 strings out of 474662
+ 239081 string characters out of 5751110
+ 694398 words of memory out of 5000000
+ 37685 multiletter control sequences out of 15000+600000
  640383 words of font info for 96 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,13n,79p,1003b,599s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1003b,590s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/te
@@ -886,25 +911,26 @@ xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbxi10.pfb></usr/local/texliv
 e/2025basic/texmf-dist/fonts/type1/public/lm/lmex10.pfb></usr/local/texlive/202
 5basic/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025basi
 c/texmf-dist/fonts/type1/public/lm/lmmi12.pfb></usr/local/texlive/2025basic/tex
-mf-dist/fonts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dis
-t/fonts/type1/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/font
-s/type1/public/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type
-1/public/lm/lmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publ
-ic/lm/lmr6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/l
-mr7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb
-></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></us
-r/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/loca
-l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/tex
-live/2025basic/texmf-dist/fonts/type1/public/lm/lmsy6.pfb></usr/local/texlive/2
-025basic/texmf-dist/fonts/type1/public/lm/lmsy7.pfb></usr/local/texlive/2025bas
-ic/texmf-dist/fonts/type1/public/lm/lmsy9.pfb></usr/local/texlive/2025basic/tex
-mf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-di
-st/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist/fon
-ts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on paper2.pdf (10 pages, 1120795 bytes).
+mf-dist/fonts/type1/public/lm/lmmi6.pfb></usr/local/texlive/2025basic/texmf-dis
+t/fonts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/font
+s/type1/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type
+1/public/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publ
+ic/lm/lmr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/
+lmr6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pf
+b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr
+/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/loca
+l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmri9.pfb></usr/local/texl
+ive/2025basic/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2
+025basic/texmf-dist/fonts/type1/public/lm/lmsy6.pfb></usr/local/texlive/2025bas
+ic/texmf-dist/fonts/type1/public/lm/lmsy7.pfb></usr/local/texlive/2025basic/tex
+mf-dist/fonts/type1/public/lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dis
+t/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fon
+ts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/typ
+e1/public/amsfonts/symbols/msbm10.pfb>
+Output written on paper2.pdf (12 pages, 1135093 bytes).
 PDF statistics:
- 364 PDF objects out of 1000 (max. 8388607)
- 292 compressed objects within 3 object streams
- 71 named destinations out of 1000 (max. 500000)
+ 418 PDF objects out of 1000 (max. 8388607)
+ 341 compressed objects within 4 object streams
+ 87 named destinations out of 1000 (max. 500000)
  14034 words of extra memory for PDF output out of 14400 (max. 10000000)
 
