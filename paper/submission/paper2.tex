@@ -646,11 +646,11 @@ controller's envelope is not the binding constraint. The reset-oracle \emph{also
 $8/10$ --- and the paired test returns $p = 0.50$.
 
 We do not report that $p$ as a limitation of the cell. \textbf{It is
-Corollary~\ref{cor:sep} arriving on schedule.} On a suite whose target never
-moves, the score is not a low-powered instrument for separating lookup from
-perception; it is not an instrument for it at all. A larger $n$ would not help.
-Under A1 the two policies are not merely hard to tell apart --- they are
-identically distributed in everything the benchmark observes.
+Corollary~\ref{cor:sep} arriving on schedule.} For the reset-oracle the
+corollary applies exactly: it supplies the true position, so under A1 it and any
+perceiving policy are not merely hard to tell apart --- they are identically
+distributed in everything the benchmark observes, and a larger $n$ would not
+help.
 
 So the experiment's content is not ``the constant won''. It is that a benchmark
 scored a task-indexed constant and a trained policy the same, which is what
@@ -665,10 +665,30 @@ grounding, whatever its leaderboard is titled. We report the head--oracle gap as
 \emph{located} rather than measured: two discordant pairs at $n{=}10$ is
 $p = 0.50$, and we will not call that a difference.
 
+\paragraph{Where the corollary does \emph{not} apply, and why that matters.}
+A reviewer should press on the blind arm here, and the honest answer is that
+$p = 0.50$ at $n{=}10$ does \emph{not} by itself establish indistinguishability
+--- and we do not need it to. The corollary applies sub-goal by sub-goal,
+because A1 is a statement about a supplied position and this task supplies two.
+
+On the \textbf{grasp} the corollary applies with nothing left over: the
+constant is bit-identical to the shipped position, $D = 0$, so no assumption is
+being leaned on and no $n$ could separate the two. The measurement agrees ---
+$10/10$ on reaching, to $2$\,mm.
+
+On the \textbf{place} the corollary does not apply at all: $D = 3.37$\,cm
+exceeds any tolerance this controller has, A1 fails, and the blind arm should
+be \emph{worse} than a policy that looks. It is --- that is the whole of the
+$6/10$ versus $8/10$. \textbf{The gap between the two arms is not noise we are
+explaining away; it is the part of the task the benchmark randomises, showing
+up exactly where the diameter says it should.} What no $n$ can recover is the
+other part, and that part is nine tenths of what the task is usually taken to
+demonstrate.
+
 \paragraph{One asymmetry, stated rather than buried.} The anchors replace the
-\emph{grasp} goal only; the place target is the true container in all arms. The
-random arm is therefore a \emph{conservative} floor --- an upper bound on how
-badly a truly uninformed goal supply would do --- and we read it as such.
+\emph{grasp} goal only; the place target is the true container in all arms
+\emph{except} blind, which supplies a constant there too. The random arm is
+therefore a \emph{conservative} floor --- an upper bound on how badly a truly uninformed goal supply would do --- and we read it as such.
 
 \section{What the released policy actually is}
 \label{sec:fullsuite}
