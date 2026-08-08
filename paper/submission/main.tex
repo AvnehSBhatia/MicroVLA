@@ -1299,6 +1299,20 @@ on the four tests we did run.
 \subsection{Where the language actually goes}
 \label{sec:language}
 
+\begin{figure*}[t]\centering
+\includegraphics[width=\linewidth]{../visuals/F2_dataflow_language.png}
+\caption{The deployed dataflow, with every edge coloured by what it carries.
+The architectural half of this section's argument is a code fact and is drawn
+here rather than described: \texttt{GraspPointHead.forward} takes
+$(\text{uv}, \text{conf}, \text{proprio}, \text{box\_emb},
+\text{frame\_emb})$ and \emph{no text argument}, so no red edge reaches object
+selection, approach or grasping. Every red edge terminates in one $(x,y)$
+latched once by \texttt{set\_place(place\_head(command\_emb))} inside
+\texttt{MicroVLAPolicy.reset()} and never re-read --- which also answers whether
+re-latching mid-episode could change the swap result: there is no re-latch.}
+\label{fig:dataflow}
+\end{figure*}
+
 \noindent \textbf{Identity-blind is not language-blind.} Swapping the
 instruction to a different object---environment, physics and success criterion
 unchanged, so success is still scored on the real task---collapses the cell

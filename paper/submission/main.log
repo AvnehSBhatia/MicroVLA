@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:23
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 00:27
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -910,7 +910,7 @@ LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 [14]
 
 [15]
-<../visuals/F7_position_vs_appearance.png, id=312, 956.24622pt x 339.28864pt>
+<../visuals/F7_position_vs_appearance.png, id=307, 956.24622pt x 339.28864pt>
 File: ../visuals/F7_position_vs_appearance.png Graphic file (type png)
 <use ../visuals/F7_position_vs_appearance.png>
 Package pdftex.def Info: ../visuals/F7_position_vs_appearance.png  used on inpu
@@ -919,38 +919,42 @@ t line 1223.
 
 
 [16]
+<../visuals/F2_dataflow_language.png, id=317, 888.921pt x 384.1721pt>
+File: ../visuals/F2_dataflow_language.png Graphic file (type png)
+<use ../visuals/F2_dataflow_language.png>
+Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
+e 1303.
+(pdftex.def)             Requested size: 469.75502pt x 203.01817pt.
+
 
 [17 <../visuals/F7_position_vs_appearance.png>]
-<../visuals/F5_third_object.png, id=329, 966.61125pt x 298.11375pt>
+
+[18 <../visuals/F2_dataflow_language.png>]
+<../visuals/F5_third_object.png, id=333, 966.61125pt x 298.11375pt>
 File: ../visuals/F5_third_object.png Graphic file (type png)
 <use ../visuals/F5_third_object.png>
-Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 138
-0.
+Package pdftex.def Info: ../visuals/F5_third_object.png  used on input line 139
+4.
 (pdftex.def)             Requested size: 469.75502pt x 144.87611pt.
 
 
-[18]
-Underfull \hbox (badness 10000) in paragraph at lines 1452--1453
+[19 <../visuals/F5_third_object.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 1466--1467
 []\OT1/lmr/m/n/7 wrong way,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1460--1461
+Underfull \hbox (badness 10000) in paragraph at lines 1474--1475
 []\OT1/lmr/m/n/7 0.90$\OMS/lmsy/m/n/7 !$\OT1/lmr/m/n/7 0.40,
  []
 
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-
-[19 <../visuals/F5_third_object.png>]
 
 [20]
 
-[21] (./main.bbl
+[21]
 
-[22]
+[22] (./main.bbl
 
 [23])
 
@@ -970,35 +974,19 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 9C7DC97563C8AD42669B4604D0946C03;5482.
  ) 
 Here is how much of TeX's memory you used:
- 14506 strings out of 474662
- 232857 string characters out of 5751110
- 695487 words of memory out of 5000000
- 37199 multiletter control sequences out of 15000+600000
+ 14513 strings out of 474662
+ 233173 string characters out of 5751110
+ 695604 words of memory out of 5000000
+ 37209 multiletter control sequences out of 15000+600000
  649070 words of font info for 106 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1319b,617s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1319b,599s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-pdfTeX warning (dest): name{table.caption.37} has been referenced but does not 
+pdfTeX warning (dest): name{table.caption.41} has been referenced but does not 
 exist, replaced by a fixed one
 
 
-pdfTeX warning (dest): name{table.caption.26} has been referenced but does not 
-exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{figure.caption.20} has been referenced but does not
- exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{table.caption.25} has been referenced but does not 
-exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{figure.caption.21} has been referenced but does not
- exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{table.caption.17} has been referenced but does not 
+pdfTeX warning (dest): name{table.caption.39} has been referenced but does not 
 exist, replaced by a fixed one
 
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.p
@@ -1037,10 +1025,10 @@ c/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texlive/2025basic/texm
 f-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-dist
 /fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025basic/t
 exmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb>
-Output written on main.pdf (24 pages, 1471013 bytes).
+Output written on main.pdf (24 pages, 1607167 bytes).
 PDF statistics:
- 632 PDF objects out of 1000 (max. 8388607)
- 502 compressed objects within 6 object streams
- 131 named destinations out of 1000 (max. 500000)
- 17615 words of extra memory for PDF output out of 20736 (max. 10000000)
+ 630 PDF objects out of 1000 (max. 8388607)
+ 499 compressed objects within 5 object streams
+ 128 named destinations out of 1000 (max. 500000)
+ 17620 words of extra memory for PDF output out of 20736 (max. 10000000)
 
