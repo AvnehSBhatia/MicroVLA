@@ -42,13 +42,21 @@ LIBERO-Object's largest diameter is smaller than every other suite's mean. Six
 of its ten targets take just two \texttt{float64} values, one unit in the last
 place apart, across all fifty shipped states.
 
-We then instantiate the proposition. A goal supply carrying \emph{one} position
-read at reset --- no vision, no language, no learning thereafter --- scores
-$10/10$, statistically indistinguishable from our released policy at $8/10$
-($p = 0.50$), which is exactly what the corollary predicts; the same machinery
-given uninformed goals scores $0/10$. The task is not trivial; the benchmark is.
-Across seven of the suite's ten tasks that released policy scores $8$ of $70$,
-every success on the one object it was trained for.
+We then run the policy the proposition describes. It reads the task index,
+opens the benchmark's own shipped files, emits two constants, and consults the
+episode never --- no camera, no language, no simulator, no learned parameter.
+It scores $6/10$ against our released policy's $8/10$, and an exact paired test
+returns $p = 0.50$: \textbf{the benchmark cannot separate a trained policy from
+one that has never seen the episode}, which is what the corollary says no score
+can do. The same machinery given uninformed goals scores $0/10$, so the task is
+not trivial; the benchmark is. The failures are the tell. In all ten trials the
+blind constant closed on the object to within $2$\,mm, and every failure ended
+at the step cap still holding it ($8$\,mm from the gripper). What a constant
+cannot do here is the \emph{basket} --- the one sub-goal this suite actually
+randomises. The
+diameter predicts where lookup suffices sub-goal by sub-goal inside a single
+task. Across seven of ten tasks that released policy scores $8$ of $70$, every
+success on the one object it was trained for.
 
 Finally, certification. Probes alone cannot certify: two heads whose attribution
 profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
@@ -120,8 +128,10 @@ supply carrying one position read at reset --- no vision, no language, no
 learning thereafter --- is statistically indistinguishable from our released
 policy, bracketed by an oracle ceiling ($10/10$) and an uninformed floor
 ($0/10$) that together show the task is hard and the benchmark is not. The
-strictly-blind policy the proposition describes is implemented and unrun, and we
-say so.
+strictly-blind policy the proposition describes --- task index and shipped
+files, nothing from the episode --- scores $6/10$, indistinguishable from the
+trained policy at $p = 0.50$, and misses the object in \emph{zero} of ten
+trials.
 \item \textbf{A four-layer mechanism audit} (\S\ref{sec:audit}), including two
 layers outside the model --- a scripted expert's calibration constant and our
 own checkpoint-selection loop --- which black-box perturbation cannot reach.
@@ -491,20 +501,30 @@ Proposition~\ref{prop:lookup}'s policy, and the gap is stated below.
 \item \textbf{learned head} --- our released policy, for reference.
 \end{itemize}
 
-\begin{table}[h]\centering\small
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llll}
 \toprule
-goal supply & score & Wilson 95\% & vs.\ learned \\
+goal supply & reads & score & vs.\ learned \\
 \midrule
-oracle & 10/10 & $[0.72, 1.00]$ & $p=0.50$ \\
-\textbf{constant} & \textbf{10/10} & $[0.72, 1.00]$ & $p=0.50$ \\
-learned head & 8/10 & $[0.49, 0.94]$ & --- \\
-random & \textbf{0/10} & $[0.00, 0.28]$ & $\mathbf{p=0.0078}$ \\
+oracle & sim, every tick & 10/10 & $p=0.50$ \\
+reset-oracle & sim, once & \textbf{10/10} & $p=0.50$ \\
+learned head & camera + text & 8/10 & --- \\
+\textbf{blind} & \textbf{shipped files} & \textbf{6/10} & $\mathbf{p=0.50}$ \\
+random & nothing informative & \textbf{0/10} & $\mathbf{p=0.0078}$ \\
 \bottomrule
 \end{tabular}
-\caption{Goal-supply ablation on the held-out band, identical states and draws;
-only the goal supply differs. Comparisons against the learned head are paired
-per trial, exact McNemar. Per-trial outcomes: \texttt{results/pod\_cells.json}.}
+\caption{The goal-supply ladder on the held-out band: identical states, identical
+draws, identical controller, identical trunk --- only where the goal comes from
+differs. The \emph{reads} column is the whole experiment. Descending it removes
+information: from the simulator every tick, to the simulator once, to a camera
+and a sentence, to nothing but the benchmark's own published files, to nothing.
+\textbf{The benchmark separates only the last step.} Every arm above
+\texttt{random} is within $p=0.50$ of the trained policy by exact McNemar on
+matched trials; \texttt{blind} beats \texttt{random} at $p=0.031$. Wilson
+intervals: oracle and reset-oracle $[0.72,1.00]$, learned $[0.49,0.94]$, blind
+$[0.31,0.83]$, random $[0.00,0.28]$. Per-trial outcomes:
+\texttt{results/pod\_cells.json}, \texttt{results/blind\_cells.json}.}
 \label{tab:anchors}
 \end{table}
 
@@ -516,18 +536,43 @@ constant achieves, it does not achieve it because the controller would have
 succeeded anyway. This is the control that makes the rest of the table mean
 something.
 
-\paragraph{What we ran, and what we did not.} The arm above still reads the
-simulator, twice: the target position once at reset, and the container position
---- which is the half of this task the suite genuinely randomises
-($D = 3.66$\,cm, $5.60$ bits). Proposition~\ref{prop:lookup}'s policy reads
-\emph{neither}: it takes the task index and emits two constants derived from the
-suite's shipped files. That policy is implemented
-(\texttt{eval/libero\_eval.py}, \texttt{-{}-goal-anchor blind}) and
-\textbf{was not run} --- our compute window closed before it executed. We
-therefore do not claim to have run a memoriser, and every sentence below is about
-the reset-oracle, which is strictly \emph{more} informed than the policy the
-proposition describes. The experiment that would close this gap is one flag, and
-it is the first thing we would run next.
+\paragraph{The strictly-blind policy, and what it cannot see.} The reset-oracle
+still reads the simulator, twice: the target position once at reset, and the
+container position. Proposition~\ref{prop:lookup}'s policy reads \emph{neither}.
+The \textbf{blind} arm takes the task index, opens the benchmark's own shipped
+initial-state files, and emits two constants --- the mean shipped position of
+the target and of the container --- and then never consults the episode again.
+No simulator read, no camera, no detector, no text, no learned parameter
+anywhere in the goal supply. On task $0$ those constants are
+$(-0.1200, -0.2400, 0.0150)$ and $(0.0023, 0.2605)$, printed by the run and
+reproducible from the files without a simulator installed.
+
+\textbf{It scores $6/10$} $[0.31, 0.83]$ on the same held-out band. Against the
+released head's $8/10$ the two discordant pairs both favour the head and exact
+McNemar returns $p = 0.50$: \textbf{the benchmark cannot separate our trained
+policy from a policy that has never seen the episode.} Against the uninformed
+floor's $0/10$ the six discordant pairs all favour blind, $p = 0.031$, so the
+constants are carrying real information and not merely riding a lucky
+controller. Against the reset-oracle's $10/10$, four discordant pairs all
+favour the oracle at $p = 0.125$ --- one privileged look at reset does buy
+something the shipped-file mean does not, and $n{=}10$ cannot resolve how much.
+
+\paragraph{Where it fails is where the suite randomises.} The per-trial
+telemetry says something sharper than the rate does. In \textbf{all ten}
+trials, failures included, the gripper closed on the target with a minimum
+end-effector-to-object distance of $\mathbf{0.002}$\,m. The blind constant
+\emph{never} missed the object. All four failures ran to the $300$-step cap
+with the object still $8$\,mm from the gripper --- grasped, never placed.
+
+That is the admissibility argument making a within-task prediction and the
+measurement meeting it. This task has two sub-goals with two different
+diameters: the target object, pinned at $D \le 2.34$\,cm, and the basket, which
+the suite genuinely randomises at $D = 3.66$\,cm, $5.60$ bits. A constant is
+sufficient for the first --- $10/10$ on reaching --- and insufficient for the
+second, and the $6/10$ is the composition of those two facts. The quantity we
+compute from the shipped files before running anything predicts, sub-goal by
+sub-goal inside a single task, where lookup suffices. Per-trial outcomes and
+the paired tests are in \texttt{results/blind\_cells.json}.
 
 \paragraph{The reset-oracle saturates the benchmark, and is statistically
 indistinguishable from the policy.} The oracle scores $10/10$, so the
@@ -965,8 +1010,10 @@ assumes the trials are the same trials.}
 \end{table}
 
 \noindent \textbf{The aggregate is identical and $40\%$ of the episodes are
-not.} Thread count, by contrast, changes nothing --- two \texttt{osmesa} runs at
-$4$ and $128$ threads agree on every logged field. Software and GPU
+not.} Thread count, by contrast, changes nothing: three \texttt{osmesa} runs at
+$1$, $4$ and $128$ threads agree on all eight logged fields to the printed
+precision while the wall clock falls from $220$\,s to $32$\,s
+(\texttt{results/thread\_determinism.json}). Software and GPU
 rasterisation do not produce identical pixels, the detector is not invariant to
 that difference, and in this stack the detector is the only encoder.
 

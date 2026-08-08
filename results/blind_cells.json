@@ -1,0 +1,52 @@
+{
+  "blind_t0": {
+    "k": 6,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.6,
+    "wilson": [
+      0.3127,
+      0.8318
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "mcnemar": {
+    "blind_t0_vs_P0_ref_heldout": {
+      "n_paired": 10,
+      "n01": 0,
+      "n10": 2,
+      "p": 0.5
+    },
+    "blind_t0_vs_P2_E5_fixed": {
+      "n_paired": 10,
+      "n01": 0,
+      "n10": 4,
+      "p": 0.125
+    },
+    "blind_t0_vs_P2_E5_random": {
+      "n_paired": 10,
+      "n01": 6,
+      "n10": 0,
+      "p": 0.0312
+    },
+    "blind_t0_vs_P2_E5_oracle": {
+      "n_paired": 10,
+      "n01": 0,
+      "n10": 4,
+      "p": 0.125
+    }
+  }
+}

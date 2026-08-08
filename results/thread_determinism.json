@@ -1,0 +1,47 @@
+{
+  "omp_threads": [
+    "1",
+    "4",
+    "128"
+  ],
+  "fields": {
+    "1": {
+      "success": "False",
+      "steps": "40",
+      "src_detect_rate": "1.000",
+      "src_conf_mean": "0.087",
+      "grip_close_rate": "0.000",
+      "eef_obj_dist_min": "0.185",
+      "eef_obj_dist_at_20": "0.233",
+      "eef_obj_dist_final": "0.185"
+    },
+    "4": {
+      "success": "False",
+      "steps": "40",
+      "src_detect_rate": "1.000",
+      "src_conf_mean": "0.087",
+      "grip_close_rate": "0.000",
+      "eef_obj_dist_min": "0.185",
+      "eef_obj_dist_at_20": "0.233",
+      "eef_obj_dist_final": "0.185"
+    },
+    "128": {
+      "success": "False",
+      "steps": "40",
+      "src_detect_rate": "1.000",
+      "src_conf_mean": "0.087",
+      "grip_close_rate": "0.000",
+      "eef_obj_dist_min": "0.185",
+      "eef_obj_dist_at_20": "0.233",
+      "eef_obj_dist_final": "0.185"
+    }
+  },
+  "all_identical": true,
+  "n_fields": 8,
+  "wall_s": {
+    "1": 220,
+    "4": 150,
+    "128": 32
+  },
+  "protocol": "libero_object task 0 trial 0, --goal-anchor blind, max-steps 40, seed 20, osmesa, identical weights and package versions; only OMP/MKL/OPENBLAS thread count differs"
+}
