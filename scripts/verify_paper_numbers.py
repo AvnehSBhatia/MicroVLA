@@ -108,6 +108,12 @@ for o in t0["objects"]:
         diam[o["object"]] = float(
             np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=-1).max() * 100)
 check("task 0 target diameter (cm)", 0.00, diam["alphabet_soup_1"], 0.005)
+xy0 = np.asarray(next(o for o in t0["objects"]
+                      if o["object"] == "alphabet_soup_1")["xy_per_state_m"], float)
+check("task 0 target: unique shipped (x,y) rows", 1.0,
+      float(len(np.unique(xy0, axis=0))), 0.5)
+check("task 0 target: max dev from mean (log10 m)", -15.66,
+      float(np.log10(np.linalg.norm(xy0 - xy0.mean(axis=0), axis=1).max())), 0.5)
 check("task 0 basket diameter (cm)", 3.37, diam["basket_1"], 0.006)
 
 lines = (REPO / "results/blind_logs/blind_t0_trials.txt").read_text().splitlines()

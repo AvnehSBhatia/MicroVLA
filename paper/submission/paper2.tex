@@ -165,7 +165,7 @@ them.}
 
 \paragraph{Every number is regenerable.} Each artifact cited below is a JSON
 file in the repository, and \texttt{scripts/verify\_paper\_numbers.py}
-re-derives all $55$ load-bearing values in this paper from those files and
+re-derives all $57$ load-bearing values in this paper from those files and
 fails on any disagreement. We wrote it because manuscripts drift --- a value is
 recomputed, the JSON updates, the sentence quoting it does not --- and it
 caught two such drifts in this revision.
@@ -581,6 +581,13 @@ anywhere in the goal supply.
 On task $0$ those constants are $(-0.1200, -0.2400, 0.0150)$ and
 $(0.0023, 0.2605)$: printed by the run, and reproducible from the shipped files
 without a simulator installed.
+
+\textbf{On this task the grasp constant is not an approximation of the target
+position --- it \emph{is} the target position.} All fifty shipped states place
+the alphabet soup at a single $(x,y)$; the fifty rows reduce to one unique row,
+with a maximum deviation from their own mean of $2.2 \times 10^{-16}$\,m, which
+is \texttt{float64} rounding and not placement. Whatever the blind arm fails at,
+it cannot be error in where it thinks the object is.
 
 \textbf{It scores $6/10$} $[0.31, 0.83]$ on the same held-out band. Against the
 released head's $8/10$ the two discordant pairs both favour the head and exact
