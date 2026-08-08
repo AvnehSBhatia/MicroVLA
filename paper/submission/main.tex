@@ -561,6 +561,43 @@ infrastructure at 0/7 and 0/6, which is why the total is 56 and not 70. It is
 reported at its true size rather than padded or trimmed to a round number. No
 cell was stopped early or extended after inspection.
 
+\paragraph{Test registry.} Every hypothesis test in this paper, its family, and
+whether it was confirmatory (predicted in writing before the run) or exploratory
+(read off a cell collected for another purpose). We do not apply a family-wise
+correction; instead we label, because the two confirmatory families contain one
+test each and the exploratory ones should not be read as if they were
+pre-planned.
+
+\begin{center}\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llll}
+\toprule
+test & where & type & status \\
+\midrule
+untouched band vs.\ 0.700 (Newcombe) & \S\ref{sec:untouched} & \textbf{confirmatory} & predicted $[0.50,0.75]$, held \\
+shell floor vs.\ head (McNemar) & \S\ref{sec:anchors} & \textbf{confirmatory} & predicted $\le 0.10$, held \\
+shell ceiling vs.\ head (McNemar) & \S\ref{sec:anchors} & confirmatory & predicted $\ge 0.80$, held \\
+DAgger r1/r2 vs.\ control (McNemar) & \S\ref{sec:drift} & confirmatory & $p<10^{-4}$ \\
+specificity null, working object & \S\ref{sec:drift} & confirmatory & predicted null, held \\
+swap collapse (sign test) & \S\ref{sec:language} & exploratory & $p=0.016$, $n{=}10$ \\
+coverage-head non-collapse & \S\ref{sec:language} & exploratory & equivalence at $n{=}10$; see below \\
+$2\times2$ prompt/embedding cells & \S\ref{sec:language} & exploratory & $n{=}10$ each \\
+audit-stack inversion & \S\ref{sec:results} & exploratory & $n{=}10$ \\
+cluster contrast (Mann--Whitney) & \S\ref{sec:posvsapp} & \textbf{confirmatory} & pre-registered, $p=0.31$ \\
+teleport direction (sign test) & \S\ref{sec:posvsapp} & \textbf{confirmatory} & pre-registered, $p=1.0$ \\
+groundability correlation (Spearman) & \S\ref{sec:posvsapp} & exploratory & $p=0.027$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Two entries need their weakness said out loud. The coverage-head
+``non-collapse'' is an \emph{equivalence} claim tested at $n{=}10$, where the
+95\% interval on a difference of proportions spans roughly $\pm40$ points; it
+should be read as ``no difference detected at $n{=}10$'', never as evidence of
+no difference, and we have re-run it at higher $n$ where the clock allowed
+(\S\ref{sec:language}). And the $n{=}10$ exploratory rows are the ones a referee
+should discount first if forced to choose.
+
 \section{Results}
 \label{sec:results}
 
