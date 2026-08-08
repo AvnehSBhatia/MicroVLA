@@ -466,6 +466,19 @@ evaluation machine's exact software versions (\S\ref{sec:methods}) vs a later
 rebuild of them; the two are never pooled, because the rebuild inverts which
 head scores better.
 
+\begin{figure*}[t]\centering
+\includegraphics[width=\linewidth]{../visuals/F3_threat_model.png}
+\caption{Threat model: the four places a fixed placement can hide in this
+stack, and the status of each. Two of them --- the scripted expert's calibration
+constant and our own checkpoint-selection loop --- sit \emph{upstream of any
+learned weight}, which is the part a black-box perturbation study cannot reach
+and the reason this audit needed a glass-box artifact. Statuses are not uniform
+by design: two layers are repaired, one is bounded by a measurement rather than
+removed, and one has a repair that holds for the quantity we measured directly
+and did not replicate for the behavioural cell.}
+\label{fig:threat}
+\end{figure*}
+
 \paragraph{The four layers, their repairs, and where each is verified.}
 Table~\ref{tab:audit} is the spine of the paper and also the correction of an
 inconsistency in our own abstract: we wrote ``four layers, three repaired'' and
