@@ -1,0 +1,2396 @@
+{
+  "pass": "columns",
+  "quant_m": 0.001,
+  "suites": {
+    "libero_object": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10444671639561787,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "ca535ced3650d201129242f84d004def4139de36fdad2c2d671316851ef55f24"
+        },
+        {
+          "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "bbq_sauce_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.10656616135321217,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "8c03708c5212d2bf0c622d35fd38b2fd1534f1b5c0110bd5048870aefc40e098"
+        },
+        {
+          "task": "pick_up_the_butter_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "butter_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.11889389641325421,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "eb823f57a98a2189834ba5c2c0727db7657a9475f63f78facf8e7f77e60c5a07"
+        },
+        {
+          "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "chocolate_pudding_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10886805349062012,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "bc691a27f4a0df63fa68348236b951cbfbcbfa63aa5b14561bd2c67cec47933a"
+        },
+        {
+          "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "cream_cheese_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10143598102707241,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "417d227174af473a4d044f5cccae90820c43b2ce8a1c6ecf6d3335a87215d08d"
+        },
+        {
+          "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "ketchup_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10226180047665995,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6faad28d89216b0c77f86ad6778813a1d0f2f2e99032890e727e4e75b29db670"
+        },
+        {
+          "task": "pick_up_the_milk_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "milk_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09962771315345727,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "82583c0d32fe9f1bfb699d3cbf7426c329ae615a41b2710baa7c36bfd7a87eaf"
+        },
+        {
+          "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "orange_juice_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.10655779237458676,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a60c6b941e3289cc69112c8a3504a077f7d93cea7e1361c5972992d787b56a38"
+        },
+        {
+          "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "salad_dressing_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.11732910095315494,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "2f5a7166ed3bd4ac6341f4e70802d5ecc7c479ea077e65b990ec95d160c2c91c"
+        },
+        {
+          "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+          "n_states": 50,
+          "width": 110,
+          "n_declared_objects": 7,
+          "obj_of_interest": [
+            "tomato_sauce_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09986714855073321,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "914d1fc18e4cebe479835af13d69c855f2c3c87c37ee1fc64f77afa0136870df"
+        }
+      ],
+      "mean_varying_columns": 16.2,
+      "mean_columns_moving_gt_1mm": 13.8,
+      "mean_entropy_bits_at_1mm": 5.6439,
+      "mean_distinct_states_at_1mm": 50.0,
+      "n_tasks_fully_frozen_at_1mm": 0,
+      "entropy_ceiling_bits": 5.6439
+    },
+    "libero_spatial": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "pick_up_the_black_bowl_between_the_plate_and_the_ramekin_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10087919006482471,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "f061b67788d541001f3d6872be9a3a3b0b7de3490dac4683e181f9b0703f8e20"
+        },
+        {
+          "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.10434713655518724,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "1b33afd2ef56f08e9e8a95b56191669c08469d07c5be52019d84f8571eb3420e"
+        },
+        {
+          "task": "pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabinet_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 18,
+          "n_columns_moving_gt_1mm": 18,
+          "max_span_m": 0.10963050947828423,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "74fce7c2cb14c136ad220386760d51a34879096dba505677f28cdadb0daa6e6b"
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.13277488285250744,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9a09c478316b128722fbe51fed499c99f5b8359b596cedae119a0849b3df43e7"
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_plate_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.102485175820939,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "b8ff27041833d0b89b5a5edd45b93426326cfaab779438f82df3f38cb6079c49"
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_ramekin_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10777196128726627,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "741e6a01d8a438dda1a8620e128721bc1d06d8c72246b75313032980cfd9dc79"
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_cookie_box_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.11528405488879434,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "29ad3b281adf036ea4d5dbd2baa28510b7e7d5969306ae9abc1247592b7a2052"
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_ramekin_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.11306575972454025,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "d611acc856ca2743b6a6c8dd05ab64d6a7c389557448da9d0a5248791b5b28e3"
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_stove_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.11005123369625329,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "25f89cad10aa0eb6d4cd87c48a7b54bcacefc2526d2cc20f22b2f3e231fbf89d"
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_wooden_cabinet_and_place_it_on_the_plate",
+          "n_states": 50,
+          "width": 92,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.1159509647852559,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "3d5ba6f9309829218b0b4e1df060f094802b417bdf79c33c1e4b42872930e51a"
+        }
+      ],
+      "mean_varying_columns": 17.0,
+      "mean_columns_moving_gt_1mm": 17.0,
+      "mean_entropy_bits_at_1mm": 5.6439,
+      "mean_distinct_states_at_1mm": 50.0,
+      "n_tasks_fully_frozen_at_1mm": 0,
+      "entropy_ceiling_bits": 5.6439
+    },
+    "libero_goal": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "open_the_middle_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wooden_cabinet_1_middle_region"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1108520928897494,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "1133a02c725c13f847a25681b4918c8ef28e86aeafd038c821d234567857b468"
+        },
+        {
+          "task": "open_the_top_drawer_and_put_the_bowl_inside",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "wooden_cabinet_1_top_region"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1047017949453759,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "df3b940e6b49778a85c8fce7383fff1f55b99b5850b7732d69802cf14277366b"
+        },
+        {
+          "task": "push_the_plate_to_the_front_of_the_stove",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "plate_1",
+            "main_table_stove_front_region"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.11608942158126989,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6d698a58b164ec2c9a53b1043d1327cf05afa2594614c60c6eca78db24353f29"
+        },
+        {
+          "task": "put_the_bowl_on_the_plate",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.11437497976646849,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a98d552fc52e737b5506d0f91a4f0ab7608e48b7752f48391160b8d933b55679"
+        },
+        {
+          "task": "put_the_bowl_on_the_stove",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "flat_stove_1_cook_region"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09598742760478929,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "d41fd0d4a44d414512002a066269359130e8dd38669b20ddf9cdd3bf05882cf0"
+        },
+        {
+          "task": "put_the_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "wooden_cabinet_1_top_side"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09549183672051909,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "3fbc901878061de9f9a61914c4aa89649e266ed9cfd5cd4e1b456e28eb70979e"
+        },
+        {
+          "task": "put_the_cream_cheese_in_the_bowl",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "cream_cheese_1",
+            "akita_black_bowl_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09732793598130143,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "3fc023d474f38f670bba4e2abbd00969409cf155eebe4d79e754d2f129b51a73"
+        },
+        {
+          "task": "put_the_wine_bottle_on_the_rack",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wine_bottle_1",
+            "wine_rack_1_top_region"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1289336237203891,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "64179af525adbea6e34e96da68b491897c43c36820f861c02d645457a7ad6211"
+        },
+        {
+          "task": "put_the_wine_bottle_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wine_bottle_1",
+            "wooden_cabinet_1_top_side"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10999854842828084,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "cf36284929e175df3782a2f6c844aa8c0466ca15c089c804ddb862cb728630d7"
+        },
+        {
+          "task": "turn_on_the_stove",
+          "n_states": 50,
+          "width": 79,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1145323577373869,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "ca5b1592af2b579a9949f714ba50c0d89164037315c6c2bbba35d65501e8adb1"
+        }
+      ],
+      "mean_varying_columns": 15.0,
+      "mean_columns_moving_gt_1mm": 15.0,
+      "mean_entropy_bits_at_1mm": 5.6439,
+      "mean_distinct_states_at_1mm": 50.0,
+      "n_tasks_fully_frozen_at_1mm": 0,
+      "entropy_ceiling_bits": 5.6439
+    },
+    "libero_10": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_moka_pot_on_it",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "moka_pot_1",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10809276253953931,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9631343c40bbe5ded2f59bca5f63e725f428a762d4b8c4b8fa1b487546291425"
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet_and_close_it",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.09565870588007508,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9b5e7c410fc673763dae35df688c2e463d5e404a4c990c6a9dc2bcafd5436a83"
+        },
+        {
+          "task": "KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_yellow_mug_1",
+            "microwave_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.7363592458306896,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a5cdea6ddd43f45924947d85feedc2e69de7c6ba9430307d174e67d849629a8d"
+        },
+        {
+          "task": "KITCHEN_SCENE8_put_both_moka_pots_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "moka_pot_1",
+            "moka_pot_2",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 1.5318949047089538,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "dcd0faf3d4c1e13a7596a4c46103d7881b11750de5ba32a64010c1290c09481e"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_put_both_the_alphabet_soup_and_the_cream_cheese_box_in_the_basket",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "cream_cheese_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10446017946427552,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "fec6c3312d8d73c4de89fe3f6c54094664ab303b38ab10708ecc0f0fbff74c50"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "tomato_sauce_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.11225440236393602,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "0a3fec5f02eebb70c1c38b7fa1eebbb74bdc9499d9664dac239552dab6b908da"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_cream_cheese_box_and_the_butter_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "cream_cheese_1",
+            "butter_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.09153236125819486,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "b1052d497a7e006f561f2db76cee1f06d827d9f945e0e5422299f541f18c00db"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate_and_put_the_yellow_and_white_mug_on_the_right_plate",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "plate_1",
+            "plate_2",
+            "white_yellow_mug_1",
+            "porcelain_mug_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10306929245854016,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a7356fbcba37b1fde6684c0d839e64205181404a2505d5ffc38fa34009d3aa5e"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate",
+          "n_states": 50,
+          "width": 71,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "plate_1",
+            "chocolate_pudding_1",
+            "porcelain_mug_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10958776539474036,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "646804b35c86e6195ea6206482011b6aaf8c000ca5610279034a22b399b1c11f"
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_back_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.31719472362828455,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "adc7c3fd13bfd80ef2c53b6acec553592cbb54fe4b43df83f9e7611c29a4cd0a"
+        }
+      ],
+      "mean_varying_columns": 15.5,
+      "mean_columns_moving_gt_1mm": 15.5,
+      "mean_entropy_bits_at_1mm": 5.6439,
+      "mean_distinct_states_at_1mm": 50.0,
+      "n_tasks_fully_frozen_at_1mm": 0,
+      "entropy_ceiling_bits": 5.6439
+    },
+    "libero_90": {
+      "n_tasks": 90,
+      "tasks": [
+        {
+          "task": "KITCHEN_SCENE10_close_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.09330108671499698,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "90b96c113ca23e0d0cffed3350df19044b4a9eba34760b648091970a8dc2e17f"
+        },
+        {
+          "task": "KITCHEN_SCENE10_close_the_top_drawer_of_the_cabinet_and_put_the_black_bowl_on_top_of_it",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wooden_cabinet_1",
+            "akita_black_bowl_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.111966380565383,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "c002d5d312210c9308da649bc612d3170d481b3a59f478ff97e4c7ccef94587e"
+        },
+        {
+          "task": "KITCHEN_SCENE10_put_the_black_bowl_in_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.09999339747097544,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "5c3e5da605787f96045605d358cccbbb0c636961e30c95d456219dd4f01c6149"
+        },
+        {
+          "task": "KITCHEN_SCENE10_put_the_butter_at_the_back_in_the_top_drawer_of_the_cabinet_and_close_it",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "butter_2",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.1053642502927896,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9dff1a1abf98657b364c0c5cea26aa9d5f81b53f0120e4372394290c3dca53f3"
+        },
+        {
+          "task": "KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "butter_1",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.10342879159527119,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "0a62d8ba473c3bcca51aeb335b1b8524ba40a1511c227043da863be1e1fd78da"
+        },
+        {
+          "task": "KITCHEN_SCENE10_put_the_chocolate_pudding_in_the_top_drawer_of_the_cabinet_and_close_it",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "chocolate_pudding_1",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 16,
+          "n_columns_moving_gt_1mm": 16,
+          "max_span_m": 0.1259274681352857,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6300f87a0b6a99d49279d5fd127b86cfb3b99c24ee12850554cad4f9be75fa46"
+        },
+        {
+          "task": "KITCHEN_SCENE1_open_the_bottom_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10120801015091585,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "125ce8f2bdada1b34ff794d7757ec968f400b0385bf547a54008cff75ab9525d"
+        },
+        {
+          "task": "KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.09556607688997569,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "fe7f88117532b0683586d6146bfa4fde9ceea42011422345313193e019920d84"
+        },
+        {
+          "task": "KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "wooden_cabinet_1",
+            "akita_black_bowl_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.11129010568238717,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9f5c5f1e1078da6e59fa259282d011a7ddc95a020ab1db19aedf96f03054e5d6"
+        },
+        {
+          "task": "KITCHEN_SCENE1_put_the_black_bowl_on_the_plate",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.11218064733960073,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "ec92de6fc2148d13cf10bd0bacddb1455e2eacad7c7fb22ad62ec2c55ea8fe4f"
+        },
+        {
+          "task": "KITCHEN_SCENE1_put_the_black_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10956363611944075,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "72597aa675cfefb51815d769e1af60f1e980b4f620b7193e936db2ed7af1c776"
+        },
+        {
+          "task": "KITCHEN_SCENE2_open_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10101011518703795,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "7d59040476fabdaa3852414f3c40427d94a726b771eea3f444c4481a2aa727a4"
+        },
+        {
+          "task": "KITCHEN_SCENE2_put_the_black_bowl_at_the_back_on_the_plate",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_3",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10048531687211179,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6266703421c638001053d3fea98124956e0a89138e11fd672d395b0b37a8c665"
+        },
+        {
+          "task": "KITCHEN_SCENE2_put_the_black_bowl_at_the_front_on_the_plate",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1182734568107402,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "704fd500607be7af614578f070270dea325a958c8e429a98b8872407165e6661"
+        },
+        {
+          "task": "KITCHEN_SCENE2_put_the_middle_black_bowl_on_the_plate",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_2",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.14160011184238916,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a15b1b052af193c44c84ca98ca5e513ea5cd568aa28650b002559bbd89c53397"
+        },
+        {
+          "task": "KITCHEN_SCENE2_put_the_middle_black_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_2",
+            "wooden_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.09776221456133259,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "dc85bc006b44d74bccdfa0d4fa4a0a39b784c9320ca67a8e1af2a31608d8723b"
+        },
+        {
+          "task": "KITCHEN_SCENE2_stack_the_black_bowl_at_the_front_on_the_black_bowl_in_the_middle",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "akita_black_bowl_2"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.11607206823989798,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "c741a3ea419cc4f2ecb1abea77b44dba10946fd506a431c14543bf33c1fac41f"
+        },
+        {
+          "task": "KITCHEN_SCENE2_stack_the_middle_black_bowl_on_the_back_black_bowl",
+          "n_states": 50,
+          "width": 77,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "akita_black_bowl_2",
+            "akita_black_bowl_3"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10403305526963225,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6270f39a54f902bc4f1fa605df327da064d120797c630ae7e36dc0ee916b9166"
+        },
+        {
+          "task": "KITCHEN_SCENE3_put_the_frying_pan_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "chefmate_8_frypan_1",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10187005030419129,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6ac2e6da88ec1ab214f1b7f6a7936e5fc1d57a801f339321b4c792ee3253ccce"
+        },
+        {
+          "task": "KITCHEN_SCENE3_put_the_moka_pot_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "moka_pot_1",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.1066848258501425,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "196438da6734fd9571c1271146c1465ffea8fc1196782fc79a08cb3c6cdad683"
+        },
+        {
+          "task": "KITCHEN_SCENE3_turn_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.1123025464370794,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "17b145b7fc3a91db39a1ce337fa593b73b22d1e01eb06e541a1f79345b9b5531"
+        },
+        {
+          "task": "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "chefmate_8_frypan_1",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.11114845178976178,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "da9a89faa22569abcefad0edd262822ec48d7c3c95d0eb326e29732524bdeec6"
+        },
+        {
+          "task": "KITCHEN_SCENE4_close_the_bottom_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.11143629480545203,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "611906928cf20c7a93f2a6f8cfa814dd6a6f7b43dbbe79200a4e93c6a48182ae"
+        },
+        {
+          "task": "KITCHEN_SCENE4_close_the_bottom_drawer_of_the_cabinet_and_open_the_top_drawer",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.1084945076434578,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "862dc1e2b25958d35ca1b58e1badefc8641463d89c16d73b8df26a194f76f246"
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.1253785693950827,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "849e8bc793945ab36bb442dd272e3c998d466f89705fc426df0fefdd2b4c1ee1"
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.09831010182719838,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "ac0c155b865cd91931fb0b661f82a05fe89b3a0377050bfb7da4d5d16ee55bef"
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_wine_bottle_in_the_bottom_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "wine_bottle_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.10915941418400976,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "5657252e94ed57452d69846add403b4be5957a03f5e5fb63600f8bbe9c554bd3"
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_wine_bottle_on_the_wine_rack",
+          "n_states": 50,
+          "width": 51,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "wine_bottle_1",
+            "wine_rack_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.11033720053081687,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "8f17e0fcde35ece55d46995adbfacd48800bdcb1aa25c1b03ad0e09c33f3e872"
+        },
+        {
+          "task": "KITCHEN_SCENE5_close_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 64,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 14,
+          "max_span_m": 0.13026273125746757,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "03c2b2a23253208d6d6421e48995e57bbc67bcc44499c2889ffdd9162da16394"
+        },
+        {
+          "task": "KITCHEN_SCENE5_put_the_black_bowl_in_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 64,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 14,
+          "max_span_m": 0.10949675376271806,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "2886f3b653576e04439d6b7288ec3510a516dd420ac2c765b7e3378e1b49b7da"
+        },
+        {
+          "task": "KITCHEN_SCENE5_put_the_black_bowl_on_the_plate",
+          "n_states": 50,
+          "width": 64,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 14,
+          "max_span_m": 0.10783162839899818,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "52147ee96ee765c3a3d5ce67973e139104eb7ad0026c2d4597b2986c00a4f44f"
+        },
+        {
+          "task": "KITCHEN_SCENE5_put_the_black_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 64,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 14,
+          "max_span_m": 0.09888202216599662,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "7c79e1965f7d5bf1ebe69789c8e5e8556c05164b7fd06035a78a88883c06def1"
+        },
+        {
+          "task": "KITCHEN_SCENE5_put_the_ketchup_in_the_top_drawer_of_the_cabinet",
+          "n_states": 50,
+          "width": 64,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "ketchup_1",
+            "white_cabinet_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 14,
+          "n_columns_moving_gt_1mm": 14,
+          "max_span_m": 0.12151733404162968,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "59831f1b092c90100cb80170a1d9007f547196247392cd7aa00a7c7a81deb416"
+        },
+        {
+          "task": "KITCHEN_SCENE6_close_the_microwave",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "microwave_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.7831144157678538,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6009eeabf23b59a8deba2747f056749e10274a0e9246b898b7b290b67621643d"
+        },
+        {
+          "task": "KITCHEN_SCENE6_put_the_yellow_and_white_mug_to_the_front_of_the_white_mug",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "porcelain_mug_1",
+            "white_yellow_mug_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.7823773145480177,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "bac94f4e0637540831f7bb5771851d7ccb93509ed6e69873f26ffd8f9bb136db"
+        },
+        {
+          "task": "KITCHEN_SCENE7_open_the_microwave",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "microwave_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.11368915112307931,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "8148e39940d7ccb9056b484fca8191d314a61610515134b4ccaf603eb1d7301d"
+        },
+        {
+          "task": "KITCHEN_SCENE7_put_the_white_bowl_on_the_plate",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.09690054514945787,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "3b20b5bc6573dd9516b5011566c78e98771ed6c9bc7c96f5d478d22b8b28ceaf"
+        },
+        {
+          "task": "KITCHEN_SCENE7_put_the_white_bowl_to_the_right_of_the_plate",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_bowl_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 0.1108131061105384,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "f79ab53982fdf2a92d4cb745272cd3b578dde251d5734af834182098324c0d00"
+        },
+        {
+          "task": "KITCHEN_SCENE8_put_the_right_moka_pot_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "moka_pot_1",
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 1.5772840731329052,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "afe723460d1cd8ee2608c7b40bf98a9e088b6dbb2644c1861155755a412896c7"
+        },
+        {
+          "task": "KITCHEN_SCENE8_turn_off_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 12,
+          "n_columns_moving_gt_1mm": 12,
+          "max_span_m": 1.5607294925956865,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "b33a82ac0782a17550d6db800bfe2a776cfb98ec02b116d82efc901e0879d0db"
+        },
+        {
+          "task": "KITCHEN_SCENE9_put_the_frying_pan_on_the_cabinet_shelf",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "chefmate_8_frypan_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10889515809397539,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "78ad4de4d7eff70e2667f4d0a04a3d952f14f722879ddc2c0bce4e989dd7e7cd"
+        },
+        {
+          "task": "KITCHEN_SCENE9_put_the_frying_pan_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "chefmate_8_frypan_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10361496884253837,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "4070812b9f53b431bae7c0f00288c7b0d06b66f578bd35274e1e6ad925242fc4"
+        },
+        {
+          "task": "KITCHEN_SCENE9_put_the_frying_pan_under_the_cabinet_shelf",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "chefmate_8_frypan_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.12811108875623645,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "27480f1af71be8d89d46d4c2ac0e3cda3a12785df5ab8ed639f1382cf4d83c90"
+        },
+        {
+          "task": "KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_bowl_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10732871984697301,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "fd17b5a93e22a7e16d9126611a618831fa78033d5f7862d4d047b6de307ad95f"
+        },
+        {
+          "task": "KITCHEN_SCENE9_turn_on_the_stove",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "flat_stove_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.12534786860669023,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6f14c2328cb1c35ff774268eea2ea1cfdf81545083b3d644056e2d487e52f60f"
+        },
+        {
+          "task": "KITCHEN_SCENE9_turn_on_the_stove_and_put_the_frying_pan_on_it",
+          "n_states": 50,
+          "width": 47,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "flat_stove_1",
+            "chefmate_8_frypan_1"
+          ],
+          "free_body_layout_consistent": false,
+          "n_varying_columns": 11,
+          "n_columns_moving_gt_1mm": 11,
+          "max_span_m": 0.10819451110681211,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "c436bfe5ee568e082df01a41f4dae729379726c8f26fa4be35655f911e2eb9f8"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_pick_up_the_alphabet_soup_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10670493988790683,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a3de025f37171d07975a5ffd447d2c7db2c0bfefc5fa154cebf773259e9a1ff9"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "cream_cheese_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.11162334818648167,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "02108789a2f3cc760736678f68c1f33c9c0c72df2d2c5ecadb743579ad0883bc"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_pick_up_the_ketchup_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "ketchup_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10256944062832854,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "c7df475c1eb93afcc385acd844c12239e29c83701e2bb829d8992eaaa59e095a"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_pick_up_the_tomato_sauce_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "tomato_sauce_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10354114600620834,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "2d640b54f63ea1796f222812c04c50818de1b202050973112f8a5b0df9cb8e7b"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_pick_up_the_alphabet_soup_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.11210045611080538,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "4159b8ab7b514b9d0082df014575a8d738916060eef802a4b2229d8af635de6a"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_pick_up_the_butter_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "butter_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.09923844898105427,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "dacaa62beec0fc395ee98fd73c29ba28e7a225a2d49077fe509c29f53bb43cbf"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_pick_up_the_milk_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "milk_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.10607969221758529,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9b93d356604bbff962d1575c076968f7729668e8a6c3301726a5aee92e470c2c"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_pick_up_the_orange_juice_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "orange_juice_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.12178837756209138,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "73b9ec94ca3f69c5a3f3a0c8ce5cc33eb21c7d58a97ee670394e35d1de1bfffc"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_pick_up_the_tomato_sauce_and_put_it_in_the_basket",
+          "n_states": 50,
+          "width": 123,
+          "n_declared_objects": 8,
+          "obj_of_interest": [
+            "tomato_sauce_1",
+            "basket_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 23,
+          "n_columns_moving_gt_1mm": 23,
+          "max_span_m": 0.1197118644332866,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "f43d224b8e21b031c3efd3f63ca2b234b8000ad81aa3dd67a699d81f0c2ebf37"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE3_pick_up_the_alphabet_soup_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 97,
+          "n_declared_objects": 6,
+          "obj_of_interest": [
+            "alphabet_soup_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.12070445900985549,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "2ec9665fd48710abfbc1ea878364f82cfc395a980aaa2497869ab85e8a1a4a5e"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE3_pick_up_the_butter_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 97,
+          "n_declared_objects": 6,
+          "obj_of_interest": [
+            "butter_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.10287664748012983,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "8caa753d35e20a11d5e89895d6e504df128fc25fad015f66b79a161b4939ff77"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE3_pick_up_the_cream_cheese_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 97,
+          "n_declared_objects": 6,
+          "obj_of_interest": [
+            "cream_cheese_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.11798001012201809,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "5fafbf3436ee3bf3be370629dba75076bf2bffce00e2932e3b2fda596fcbc7eb"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE3_pick_up_the_ketchup_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 97,
+          "n_declared_objects": 6,
+          "obj_of_interest": [
+            "ketchup_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.11000862804325584,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "ff8f09670940551dade956dca79bb09bb0baaa48898d5e47735483cc824729fc"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE3_pick_up_the_tomato_sauce_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 97,
+          "n_declared_objects": 6,
+          "obj_of_interest": [
+            "tomato_sauce_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.09898741464835092,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "6a931af375d2bb4e09fbfa679e469803ff338405a37d4c137adbd3d5f978a97c"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10639880617548611,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "935da5b1bd706c244963eccce97b99db4c3f15a9658538e0f68bfa8bc53e4dbb"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE4_pick_up_the_chocolate_pudding_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "chocolate_pudding_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10356256017025134,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9df35d4a41185c56e55c1a505c99da79f43c3cd209244ced1e3fc87e3fd09e18"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE4_pick_up_the_salad_dressing_and_put_it_in_the_tray",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "new_salad_dressing_1",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.1123223118620046,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "389bf13aee733bb6b540b1e057a4023367f0c29de78b4afa598fc964b5c873f6"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE4_stack_the_left_bowl_on_the_right_bowl_and_place_them_in_the_tray",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "akita_black_bowl_2",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.0981070838380033,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "42729f11a30ff569d96ec151070f3c5ee554326cb605afb7e5e26e2bb7a23727"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE4_stack_the_right_bowl_on_the_left_bowl_and_place_them_in_the_tray",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "akita_black_bowl_1",
+            "akita_black_bowl_2",
+            "wooden_tray_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.09568390040696907,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "e7569d8c0957d44b1dd497bc1fe3b34d4bf1aa9d5dedcca48a705cfa94dea796"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_red_mug_on_the_left_plate",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "red_coffee_mug_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10892801556046838,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "90f8b24ceedf2b5cbb554e9529daea0185d257bfc06799bcbb39fc9fd6cfa72e"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_red_mug_on_the_right_plate",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "red_coffee_mug_1",
+            "plate_2"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.11739509739439,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "fd3f5c0d33aecf4bb8bde023b7a1258c81287ace7e1a3bea78569d6f9f676778"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "porcelain_mug_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.12164070908707951,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "dba2701540b70563b5a217ba1b73f7d65bf00a2a33cc2d0b7a010e35d06221c4"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_yellow_and_white_mug_on_the_right_plate",
+          "n_states": 50,
+          "width": 84,
+          "n_declared_objects": 5,
+          "obj_of_interest": [
+            "white_yellow_mug_1",
+            "plate_2"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 17,
+          "n_columns_moving_gt_1mm": 17,
+          "max_span_m": 0.10765227961696956,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "195314128c1f499d2dcc54994953bb7705ea24010724116b8ee200527371f52c"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_left_of_the_plate",
+          "n_states": 50,
+          "width": 71,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "chocolate_pudding_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.11354444308903222,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "1cd535db85bf9c1f4ac065fe2d7e032072b70e7e0cb2ccae02d27b0f41935c45"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate",
+          "n_states": 50,
+          "width": 71,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "chocolate_pudding_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10821593118213707,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "f35f9137e3044440838c16ec591fc893727ba854f34d0bc7353f76502311b103"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_red_mug_on_the_plate",
+          "n_states": 50,
+          "width": 71,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "red_coffee_mug_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.1083131575956991,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "27b1a4810d80dc05e9d0b40299520cacbde392e114df38a88f35260991822a9c"
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate",
+          "n_states": 50,
+          "width": 71,
+          "n_declared_objects": 4,
+          "obj_of_interest": [
+            "porcelain_mug_1",
+            "plate_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.10638260585574066,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "8e0d6415d5b27d46e212d388d40bf539b4b4ac123b485cf602283ee920fc211d"
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_front_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.320523303598724,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "dbc26897ea3a77f767a037d196da6e36ad2c61fc62b5da2e272cc782cc617a65"
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.31443443551206374,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9cb7e61987582704a5f99f09dc656634e77d006364a5c3a076a8eff2ce521138"
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_right_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.2893115785528948,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "eac0a78b606eed62a469bfbee970b9e9678afed7a16d1685fc4a9c629b7bc656"
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_yellow_and_white_mug_and_place_it_to_the_right_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "white_yellow_mug_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.3163867961451324,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "223f65daf5ebfe16c325709502c8734f00aa1739c5a189eafbe72c05cfd5cfdd"
+        },
+        {
+          "task": "STUDY_SCENE2_pick_up_the_book_and_place_it_in_the_back_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.3154934185862033,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a6eb865eaa2e9313af9f9705f158b07760dcec89b63798974067ea86cbc49887"
+        },
+        {
+          "task": "STUDY_SCENE2_pick_up_the_book_and_place_it_in_the_front_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.30176730981443795,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "21bdb9fb3be1d6e6c2e6b1fe1b77b743cfe4ebe9c463c7a37095aacbdcf2d070"
+        },
+        {
+          "task": "STUDY_SCENE2_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.31066776926979844,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "b3bd321963bfb968b1050e842c86564a1fd7931a4008a3fac5e7c6ff4412373c"
+        },
+        {
+          "task": "STUDY_SCENE2_pick_up_the_book_and_place_it_in_the_right_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 45,
+          "n_declared_objects": 2,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 13,
+          "n_columns_moving_gt_1mm": 13,
+          "max_span_m": 0.3088793805439252,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "27314f88be4d7f591bbedfe99d27e9b3baf7be042a6a4996d5a4493137bb10da"
+        },
+        {
+          "task": "STUDY_SCENE3_pick_up_the_book_and_place_it_in_the_front_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.2998992385842196,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "d079437d35c27337881dfb988114bd37dd2cb13ed9fa90d5ee819fb51937d4e2"
+        },
+        {
+          "task": "STUDY_SCENE3_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.31313338028779475,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "c1a0d65abd137dbb955561c5d8815069f5f4f1490e11cbc047922d5aa93689ef"
+        },
+        {
+          "task": "STUDY_SCENE3_pick_up_the_book_and_place_it_in_the_right_compartment_of_the_caddy",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "black_book_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.296788689662936,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "a05d78516605347b9ecede43a0a5e6eedbc1854ab244c4e80c07475bff2afea5"
+        },
+        {
+          "task": "STUDY_SCENE3_pick_up_the_red_mug_and_place_it_to_the_right_of_the_caddy",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "red_coffee_mug_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.31505897471438515,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9d77c2c7012593c958eadc03ee39d605a93553e9f14efe80dc18de08c58a4137"
+        },
+        {
+          "task": "STUDY_SCENE3_pick_up_the_white_mug_and_place_it_to_the_right_of_the_caddy",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "porcelain_mug_1",
+            "desk_caddy_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 15,
+          "n_columns_moving_gt_1mm": 15,
+          "max_span_m": 0.3169039879613907,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "9a9b2f1a8c13a7fdaae7a5e327fe05b7b89cb4c3564a3aaafed3126c9aee7379"
+        },
+        {
+          "task": "STUDY_SCENE4_pick_up_the_book_in_the_middle_and_place_it_on_the_cabinet_shelf",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "black_book_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.32107172032768894,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "25b312be5b39d09c037ec77b1a6217bc695cee20bb5de0e9ae6f99cf4ae10a03"
+        },
+        {
+          "task": "STUDY_SCENE4_pick_up_the_book_on_the_left_and_place_it_on_top_of_the_shelf",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "yellow_book_2",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.31920405790241546,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "464b579f200e8c6b2237f282ab361afece229446eb2bd6149231ee641a6e71a4"
+        },
+        {
+          "task": "STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_on_the_cabinet_shelf",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "yellow_book_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.31996280757766177,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "262c3cf64fc632c235e10d9b9c329f34e406b2d1e47d29c314efc5531001af7a"
+        },
+        {
+          "task": "STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf",
+          "n_states": 50,
+          "width": 58,
+          "n_declared_objects": 3,
+          "obj_of_interest": [
+            "yellow_book_1",
+            "wooden_two_layer_shelf_1"
+          ],
+          "free_body_layout_consistent": true,
+          "n_varying_columns": 19,
+          "n_columns_moving_gt_1mm": 19,
+          "max_span_m": 0.32273739844390814,
+          "distinct_full_states": 50,
+          "distinct_states_at_1mm": 50,
+          "entropy_bits_at_1mm": 5.6439,
+          "init_states_sha256": "d8189530f591b7b6eaaf2365fe7128c02e9049935fcecaacaf15a4cd5f30dcde"
+        }
+      ],
+      "mean_varying_columns": 14.867,
+      "mean_columns_moving_gt_1mm": 14.867,
+      "mean_entropy_bits_at_1mm": 5.6439,
+      "mean_distinct_states_at_1mm": 50.0,
+      "n_tasks_fully_frozen_at_1mm": 0,
+      "entropy_ceiling_bits": 5.6439
+    }
+  }
+}

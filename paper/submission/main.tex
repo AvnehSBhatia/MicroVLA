@@ -27,7 +27,12 @@ to float64 rounding (two values, 1 ULP apart, ${\sim}3\times10^{-17}$\,m), its
 \emph{orientation} is bit-identical across all 50 states in \textbf{all ten},
 and the ten tasks between them use just \textbf{two} table positions, 22\,cm
 apart. A policy that memorizes two coordinates can present as generalizing over
-ten.
+ten. Measuring all four suites locates the defect rather than generalizing it:
+placement entropy is 2.11 bits/task in LIBERO-Object against 5.50--5.62 at a
+5.644-bit ceiling in Spatial, Goal and Long---the frozen suite is precisely the
+object-identity suite, where a coordinate memorizer is both admissible and
+maximally misleading. Orientation, by contrast, is bit-identical in 37 of 38
+resolvable tasks across all four.
 
 We audit our own stack and find placement memorization at \textbf{four} layers:
 a calibrated expert whose offset constant encodes pose, an iteration-coupled
@@ -98,6 +103,15 @@ tasks. A benchmark with ${\lesssim}1$\,cm of within-task target variance, two
 positions between them, and no rotation at all admits position-memorizers, and
 we found them in every layer of our own system.
 
+Extending the same measurement to LIBERO-Spatial, -Goal and -Long
+(\S\ref{sec:suites}) sharpens rather than broadens this: those three randomize
+their targets at 97--100\% of the entropy ceiling, so the admissibility result
+is a property of LIBERO-Object specifically. That is the more useful claim.
+LIBERO-Spatial's ten tasks all name a ``black bowl'' and \emph{must} randomize
+position to remain solvable; LIBERO-Object individuates by identity and so
+\emph{can} freeze placement without ambiguity---which is why the one suite that
+does is also the one whose scores are read as evidence of object grounding.
+
 The vehicle is MicroVLA, a deliberately small language-conditioned
 vision-language-action stack: ${\sim}30$M parameters deployed, with a frozen
 open-vocabulary detector serving as the only vision \emph{and} text encoder.
@@ -111,8 +125,9 @@ contributes.
 \item \textbf{A placement-memorization audit and its verification method.}
 A forensically worked instance of shortcut
 learning~\citep{geirhos2020shortcut,dehaan2019causal} on a fixed-placement
-benchmark, shown at four layers, with the corrected measured account of what
-LIBERO-Object pins (per-task table and shipped measurement script); and the
+benchmark, shown at four layers, with the measured account of what LIBERO-Object
+pins and of what the other three suites do not (per-task tables, a per-suite
+placement-entropy metric, and both shipped measurement scripts); and the
 probe-plus-behavioural-randomization protocol, motivated by the on-manifold
 limit of substitution probes and by a counterexample to probe-only
 certification. The protocol's twin control cells sharpen its scope:
@@ -229,6 +244,97 @@ Section~\ref{sec:results}'s memorization layers reachable at all. And the
 cluster split is not merely descriptive: every object we successfully trained on
 lies in cluster A and the one object that resisted lies in cluster B, a
 confound we take up directly in \S\ref{sec:posvsapp}.
+
+\subsection{The other three suites, and why the claim is about LIBERO-Object}
+\label{sec:suites}
+
+An obvious objection to Table~\ref{tab:pinning} is that it measures one suite
+and licenses a sentence about a benchmark. So we measured all four, and the
+answer narrows the claim rather than widening it (Figure~\ref{fig:forensics},
+Table~\ref{tab:suites}).
+
+Two passes, because the first is not enough. The layout-free pass needs no
+simulator: a LIBERO init state is MuJoCo's flattened \texttt{[time, qpos, qvel]}
+and every shipped \texttt{qvel} is zero, so the columns that vary across the 50
+states are exactly the position degrees of freedom the suite randomizes.
+Counted that way, \emph{every} suite saturates: mean whole-state entropy
+$5.644$ bits against a $\log_2 50 = 5.644$ ceiling, all 50 states distinct at
+1\,mm, in libero-object, -spatial, -goal, -10 and all 90 tasks of libero-90.
+LIBERO randomizes. That is the honest headline and it is not the one we
+previously implied.
+
+The second pass asks \emph{which} object the variation reaches. Table~\ref{tab:pinning}'s
+fixed offsets cannot answer this outside libero-object: they assume
+\texttt{[t $\mid$ 9 $\mid$ N$\times$7 $\mid$ qvel]}, which predicts width
+$19+13N$ and holds for libero-object ($110 = 19+13\cdot7$) and for no suite
+containing an articulated fixture---libero-spatial ships width 92 against 5
+declared objects, libero-goal 79 against 4. Assuming it anyway would produce
+numbers that look like measurements and are not. So we compile each task's model
+and read \texttt{jnt\_qposadr} with the joint names, which maps every column onto
+a named body. As a by-product this re-derives Table~\ref{tab:pinning} by an
+independent route---6/10 pinned, two float64 values 1 ULP apart, 10/10
+orientations bit-identical, $\sigma \in [0.26, 0.58]$\,cm on the other four---
+which is the check that matters most here, since the two passes share no
+indexing assumption.
+
+We report placement entropy $H = -\sum_i p_i \log_2 p_i$ over the target's
+distinct start positions quantized to 1\,mm, the scale below which two
+placements are not distinguishable by a 7-DoF arm. $H=0$ means a lookup table
+keyed on the task index reproduces every shipped start pose.
+
+\begin{table}[h]\centering\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrrr}
+\toprule
+suite & pinned & quat.\ identical & $H$ (bits) & distinct & max sep. \\
+\midrule
+\textbf{object}  & \textbf{6/10} & 10/10 & \textbf{2.11} & \textbf{17.0} & 22.1\,cm \\
+spatial & 0/10 & 10/10 & 5.50 & 46.9 & 63.6\,cm \\
+goal    & 0/8  & 8/8   & 5.60 & 49.0 & 25.3\,cm \\
+10      & 0/10 & 9/10  & 5.62 & 49.3 & 54.8\,cm \\
+\bottomrule
+\end{tabular}
+\caption{Primary-target placement across LIBERO suites, 50 shipped states per
+task. \textbf{pinned} = targets with $\le 2$ distinct float64 positions;
+\textbf{$H$} = mean per-task placement entropy at 1\,mm against a 5.644-bit
+ceiling; \textbf{distinct} = mean distinct 1\,mm placements per task;
+\textbf{max sep.} = largest pairwise distance between task-mean target
+positions. Denominators are \emph{resolvable} tasks: libero-goal's ``open the
+middle drawer'' and ``turn on the stove'' name a fixture with no free joint and
+so have no placement to measure; they are excluded and counted, not scored as
+unpinned. \texttt{:obj\_of\_interest} lists the manipulated object first and the
+destination second, and the two are never pooled---averaging a frozen target
+with a jittering receptacle reports every libero-object task as unpinned, which
+is false. Artifacts, per-task rows and SHA-256 digests:
+\texttt{results/suite\_forensics\_\{columns,joints\}.json}.}
+\label{tab:suites}
+\end{table}
+
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{../visuals/F1_placement_forensics.png}
+\caption{Placement forensics. \textbf{A} libero-object primary targets, 10 tasks
+$\times$ 50 shipped states: six collapse to a point, and the ten task means
+occupy two clusters 22.1\,cm apart. \textbf{B} libero-spatial on identical axes:
+every target scatters---and it must, because all ten of its targets are a
+``black bowl'', so identity alone cannot disambiguate the task and position has
+to carry the information. \textbf{C} placement entropy per suite against the
+5.644-bit ceiling.}
+\label{fig:forensics}
+\end{figure}
+
+Three things follow. First, \textbf{the pinning claim belongs to LIBERO-Object,
+not to LIBERO}; the other three suites randomize their targets at 97--100\% of
+the entropy ceiling. Second, that is not an accident of care: libero-spatial's
+ten tasks all name a ``black bowl'' and are individuated \emph{by} position, so
+freezing placement would make the suite unsolvable, whereas libero-object
+individuates by identity and therefore \emph{can} freeze placement without
+making any task ambiguous. The suite whose targets are frozen is exactly the
+suite whose tasks are the object-identity tasks---which is where a
+memorize-the-coordinate policy is both admissible and maximally misleading.
+Third, one property does generalize: the target's start \emph{orientation} is
+bit-identical across all 50 states in 37 of the 38 resolvable tasks in all four
+suites (the exception is libero-10's book-into-caddy task). A policy may assume
+a canonical target rotation suite-wide and never be contradicted.
 
 \section{Platform}
 

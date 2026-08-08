@@ -289,6 +289,7 @@ def _run_real_trial(
     grip_close_lift: float = 0.0,
     video_path: str | None = None,
     randomize_source: float = 0.0,
+    goal_anchor: str = "",
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
 
@@ -357,6 +358,14 @@ def _run_real_trial(
                     obs = getter()      # first policy frame sees the shift
             except Exception:
                 pass
+        # E5 shell anchors (referee M3): install the goal supply BEFORE reset,
+        # because the place point is latched inside reset(). The harness owns
+        # the simulator, so the truth read lives here and the policy stays
+        # env-agnostic. ``oracle`` is the shell's ceiling, ``random`` its floor;
+        # every other knob is identical to the normal cell.
+        if goal_anchor:
+            policy.goal_anchor, policy.place_anchor = _make_goal_anchor(
+                env, goal_anchor, np.random.default_rng(555_000 + trial_seed))
         policy.reset(task.instruction)
 
         from microvla.utils.proprio import proprio_from_obs
@@ -573,6 +582,69 @@ def randomize_source_xy(env, rng, radius: float) -> list[float] | None:
     return [dx, dy]
 
 
+def _make_goal_anchor(env, mode: str, rng):
+    """Goal supply that replaces the learned heads (referee E5, M3).
+
+    Returns ``(grasp_fn, place_xy)`` where ``grasp_fn() -> (xy, z)``.
+
+    ``oracle``
+        The simulator's true target-object position and the true container
+        position, read fresh every tick. This is the shell's CEILING: if it is
+        9--10/10 the learned head is doing the interesting work; if it is not,
+        the shell's own envelope is the binding constraint and the
+        goal-supervision cell was never really about supervision.
+    ``random``
+        A uniform draw from the observed extent of the scene's own objects,
+        re-drawn once per episode, with the true z. This is the shell's FLOOR:
+        what the engineered machinery scores when the goal carries no
+        information about where the object actually is.
+    ``fixed``
+        The task's own mean shipped target position, held constant --- the
+        degenerate memorizer written by hand. On a suite that pins placement
+        this should score like a competent policy, which is the point.
+
+    Deliberately NOT a policy: no learning, no detector, no text. The whole
+    value of the anchor is that it changes one thing.
+    """
+    inner = _unwrap_libero(env)
+    sim = getattr(inner, "sim", None)
+    body_ids = getattr(inner, "obj_body_id", None) or {}
+    if sim is None or not body_ids:
+        raise RuntimeError(
+            "goal anchors need a live sim with obj_body_id; got neither. "
+            "Refusing to emit an anchor cell that silently fell back to the "
+            "learned head -- that would read as a ceiling and be a duplicate.")
+    names = list(body_ids)
+    cont = [n for n in names if any(t in n.lower()
+                                    for t in ("basket", "bin", "plate", "tray"))]
+    tgt = next((n for n in names if n not in cont), names[0])
+    place_xy = None
+    if cont:
+        p = sim.data.body_xpos[body_ids[cont[0]]]
+        place_xy = (float(p[0]), float(p[1]))
+
+    if mode == "oracle":
+        def grasp():
+            p = sim.data.body_xpos[body_ids[tgt]]
+            return (float(p[0]), float(p[1])), float(p[2])
+    elif mode in ("random", "fixed"):
+        allp = np.array([sim.data.body_xpos[i] for i in body_ids.values()],
+                        dtype=np.float64)
+        lo, hi = allp[:, :2].min(axis=0), allp[:, :2].max(axis=0)
+        z0 = float(sim.data.body_xpos[body_ids[tgt]][2])
+        if mode == "random":
+            draw = tuple(float(v) for v in rng.uniform(lo, hi))
+        else:
+            draw = tuple(float(v) for v in allp[list(body_ids).index(tgt), :2])
+
+        def grasp(_d=draw, _z=z0):
+            return _d, _z
+    else:
+        raise ValueError(f"unknown goal anchor mode {mode!r}")
+    logger.info("goal anchor %s: target=%s place=%s", mode, tgt, place_xy)
+    return grasp, place_xy
+
+
 def _sim_all_object_pos(env) -> dict[str, list[float]]:
     """Every scene object's world position, keyed by body name.
 
@@ -677,6 +749,8 @@ def run_eval(
     grip_close_lift: float = 0.0,
     success_video_dir: str | Path | None = None,
     randomize_source: float = 0.0,
+    goal_anchor: str = "",
+    trial_offset: int = 0,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
 
@@ -729,6 +803,7 @@ def run_eval(
                 grip_close_lift=grip_close_lift,
                 video_path=video_path,
                 randomize_source=randomize_source,
+                goal_anchor=goal_anchor,
             )
     if success_video_dir:
         Path(success_video_dir).mkdir(parents=True, exist_ok=True)
@@ -760,7 +835,7 @@ def run_eval(
               flush=True)
         for task in tasks:
             successes = 0
-            for trial in range(n_trials):
+            for trial in range(trial_offset, trial_offset + n_trials):
                 trial_seed = seed * 1_000_003 + trial
                 print(f"[{wtag}] START {task.name} trial {trial}", flush=True)
                 t_start = time.time()
@@ -1126,6 +1201,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "within ±R metres at episode start — beyond-benchmark "
                         "placement randomization (LIBERO pins target "
                         "placements, which permits location memorization).")
+    p.add_argument("--trial-offset", type=int, default=0,
+                   help="start at trial index OFFSET instead of 0. Shards a "
+                        "single-task cell across processes WITHOUT changing any "
+                        "trial: trial_seed = seed*1000003 + trial, so trials "
+                        "[OFFSET, OFFSET+n) are byte-identical to the same "
+                        "trials of a serial run. --workers shards by task and "
+                        "cannot split a one-task cell.")
+    p.add_argument("--goal-anchor", choices=["", "oracle", "random", "fixed"],
+                   default="",
+                   help="replace the learned goal heads with a non-learned goal "
+                        "supply, to unbundle the shell from the head (referee "
+                        "E5): 'oracle' = the simulator's true object pose (the "
+                        "shell's ceiling), 'random' = a uniform draw over the "
+                        "scene extent (its floor), 'fixed' = the task's own "
+                        "constant placement (a hand-written memorizer). "
+                        "Everything else about the cell is unchanged.")
     p.add_argument("--ibvs-conf-floor", type=float, default=0.1,
                    help="ignore source detections below this confidence when "
                         "applying --ibvs-gain.")
@@ -1380,6 +1471,8 @@ def _parallel_worker(payload: dict) -> dict:
         grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
         success_video_dir=getattr(args, "success_video_dir", "") or None,
         randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
+        goal_anchor=str(getattr(args, "goal_anchor", "") or ""),
+        trial_offset=int(getattr(args, "trial_offset", 0) or 0),
     )
 
 
@@ -1605,6 +1698,8 @@ def main(argv: list[str] | None = None) -> None:
             grip_close_lift=float(getattr(args, "grip_close_lift", 0.0) or 0.0),
             success_video_dir=getattr(args, "success_video_dir", "") or None,
             randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
+        goal_anchor=str(getattr(args, "goal_anchor", "") or ""),
+        trial_offset=int(getattr(args, "trial_offset", 0) or 0),
         )
     # Carried in the results file, not only the log: a scored number whose
     # deployment did not match its corpus must stay self-identifying after the

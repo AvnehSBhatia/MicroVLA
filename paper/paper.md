@@ -10744,3 +10744,74 @@ could not find it" is a claim about my search, not about the corpus.
 
 The referee's underlying point survives intact and is what the fix implements:
 a number in a contributions list should be traceable, and 13 of these were not.
+
+---
+
+## 2026-08-08 — E3: the pinning claim belongs to LIBERO-Object, not to LIBERO
+
+Referee E3 (blocking) asked for forensics across all four suites plus a
+placement-entropy metric. Running it moved our own claim, so the log records the
+motion.
+
+**Two passes, because one is not enough.** `scripts/suite_forensics.py --pass
+columns` needs no simulator: a LIBERO init state is MuJoCo's flattened
+`[time, qpos, qvel]`, every shipped `qvel` is zero, so the columns that vary
+across the 50 states are exactly the position DOFs the suite randomises.
+Counted that way **every suite saturates**: mean whole-state entropy 5.644 bits
+against a log2(50)=5.644 ceiling, all 50 states distinct at 1 mm, in object,
+spatial, goal, 10, and all 90 tasks of libero_90. LIBERO randomises. That is the
+honest headline and it is not the one we previously implied.
+
+**The fixed offsets do not generalise, and guessing would have been a
+fabrication.** `measure_placement_pinning.py --mode direct` indexes
+`[t | 9 | N x 7 | qvel]`, predicting width `19+13N`. True for libero_object
+(110 = 19+13*7); false for every suite with an articulated fixture —
+libero_spatial ships width 92 against 5 declared objects, libero_goal 79
+against 4. So `--pass joints` compiles each task's model and reads
+`jnt_qposadr` with the joint names, mapping every column onto a named body.
+
+**Per-suite result (primary target = `:obj_of_interest[0]`, n=50 states/task):**
+
+| suite | pinned | quat identical | H bits/task | distinct @1mm | max sep |
+|---|---|---|---|---|---|
+| object  | **6/10** | 10/10 | **2.106** | 17.0 | 22.1 cm |
+| spatial | 0/10 | 10/10 | 5.504 | 46.9 | 63.6 cm |
+| goal    | 0/8  | 8/8   | 5.602 | 49.0 | 25.3 cm |
+| 10      | 0/10 | 9/10  | 5.616 | 49.3 | 54.8 cm |
+
+Ceiling 5.644. Artifacts `results/suite_forensics_{columns,joints}.json`.
+
+**The joints pass re-derives Table 1 by an independent route** — 6/10 pinned,
+two float64 values 1 ULP apart, 10/10 orientations bit-identical, sigma in
+[0.26, 0.58] cm on the other four. The two passes share no indexing assumption,
+which is the check that matters.
+
+**Three findings.** (1) The pinning claim is about LIBERO-Object; the other
+three randomise their targets at 97-100% of ceiling. (2) That is not
+carelessness: libero_spatial's ten tasks all name a "black bowl" and are
+individuated *by* position, so freezing placement would make the suite
+unsolvable; libero_object individuates by identity and therefore *can* freeze
+placement without ambiguity. The one suite that does is the object-identity
+suite — where a coordinate memoriser is both admissible and maximally
+misleading. (3) Orientation is bit-identical in **37/38** resolvable tasks
+across all four suites (exception: libero_10's book-into-caddy).
+
+**Two instrument errors caught before they became numbers.** First aggregate
+printed `pinned=0/10` for libero_object, contradicting a claim a referee had
+independently reproduced. Cause: `:obj_of_interest` lists the manipulated object
+*and the basket*, and averaging a frozen target with a jittering receptacle
+reports every task as unpinned. H=2.802 with 49 distinct placements is
+arithmetically impossible for one object — that impossibility, not the
+disagreement, is what exposed it. Fixed by scoring `goi[0]` and never pooling.
+Second: libero_goal's "open the middle drawer" and "turn on the stove" name a
+fixture with no free joint. They are excluded from the denominator and counted,
+not silently scored as unpinned.
+
+Paper: new SS "The other three suites", Table 2, Figure 1
+(`paper/render_fig1_placement_forensics.py`), abstract and intro narrowed from
+"LIBERO pins" to the measured, and stronger, LIBERO-Object statement.
+
+**Also answered from code, for referee Q8:** `set_place` latches **at episode
+start**, inside `MicroVLAPolicy.reset()`, from the command embedding alone —
+not at first detection. There is no re-latch, so re-latching cannot change the
+swap result.

@@ -449,6 +449,13 @@ class MicroVLAPolicy:
                                          if others else None)
         self.goal_grasp_head = None
         self.goal_place_head = None
+        #: Optional ``() -> (xy, z)`` goal supply that REPLACES the grasp head
+        #: (referee E5). Installed per-episode by the harness, which owns the
+        #: simulator; the policy never touches the env itself. ``None`` is the
+        #: normal path and nothing about it changes.
+        self.goal_anchor = None
+        #: Optional ``(x, y)`` that REPLACES the place head's latched point.
+        self.place_anchor = None
         if goal_ckpt:
             if tool_phase or ibvs_phase:
                 raise ValueError(
@@ -740,7 +747,10 @@ class MicroVLAPolicy:
             # The place point is a per-task constant: latch it once, now.
             task = getattr(self.loop, "_task", None)
             cmd = getattr(task, "command_emb", None) if task is not None else None
-            if cmd is not None:
+            if self.place_anchor is not None:
+                self.goal_machine.set_place(np.asarray(self.place_anchor,
+                                                       dtype=np.float64))
+            elif cmd is not None:
                 with torch.no_grad():
                     pred = self.goal_place_head(
                         torch.as_tensor(cmd, dtype=torch.float32).reshape(1, -1))
@@ -834,7 +844,23 @@ class MicroVLAPolicy:
             # goal estimate to the machine (evidence admission); EVERY tick
             # the machine servos on proprio alone — vision never steers
             # directly, exactly the teacher's information diet.
-            if result.perception is not None and proprio is not None:
+            if self.goal_anchor is not None:
+                # E5 shell anchors (referee M3). The goal-space-supervision cell
+                # bundles three things: action abstraction, the shell's own
+                # motor competence, and the learned head. These anchors unbundle
+                # it by replacing ONLY the goal supply --- same shell, same
+                # trunk, same protocol, same draws. ``oracle`` feeds the
+                # simulator's true object pose (the shell's ceiling); ``random``
+                # feeds a draw from the table extent (its floor). The detector
+                # confidence gate is deliberately bypassed: an anchor that still
+                # depended on detection would measure the detector, not the
+                # shell. sigma=0 admits the estimate to the strong pool, which
+                # is the honest reading of an oracle --- it is certain.
+                if proprio is not None:
+                    xy, z = self.goal_anchor()
+                    self.goal_machine.observe(
+                        np.asarray(xy, dtype=np.float64), float(z), 0.0)
+            elif result.perception is not None and proprio is not None:
                 src = result.perception.source
                 # Student-side semantic rebinding (the cream lesson, addendum
                 # 2026-08-05): for look-alike objects the detector-text match
