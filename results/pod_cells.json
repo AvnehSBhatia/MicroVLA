@@ -205,36 +205,48 @@
   },
   "P4_E7_v5_r06": {
     "k": 2,
-    "n": 5,
-    "rate": 0.4,
+    "n": 10,
+    "rate": 0.2,
     "wilson": [
-      0.1176,
-      0.7693
+      0.0567,
+      0.5098
     ],
     "trials": {
       "0": false,
       "1": true,
       "2": false,
       "3": false,
-      "8": true
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": true,
+      "9": false
     },
     "planned_n": 10,
-    "complete": false
+    "complete": true
   },
   "P4_E7_v5_r08": {
     "k": 3,
-    "n": 3,
-    "rate": 1.0,
+    "n": 10,
+    "rate": 0.3,
     "wilson": [
-      0.4385,
-      1.0
+      0.1078,
+      0.6032
     ],
     "trials": {
+      "0": false,
       "1": true,
       "2": true,
-      "4": true
+      "3": false,
+      "4": true,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
     },
     "planned_n": 10,
-    "complete": false
+    "complete": true
   }
 }

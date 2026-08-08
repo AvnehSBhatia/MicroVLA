@@ -11041,6 +11041,28 @@ byte-identical to the checkpoint behind the original 3/10 vs 4/10 cell, and the
 two cells are on different bands (dev vs held-out). Both are the same class of
 defect the paper's Table 5 collects.
 
-**Sweep (E7), partial.** Flagship on the dev band, same draws: no randomization
-8/10, +-2 cm 7/10 (paired: 3 lost, 2 gained, p=1.0000). +-6 and +-8 cm cells
-were still running when the clock ran out and are not reported.
+**Sweep (E7), complete — and a correction to my first reading of it.** I
+initially paired the +-2 cm cell against P0 and reported "8/10 -> 7/10, p=1.0".
+That pairing is **invalid**: the sweep draws seed 0 (dev band, states 0-9) and
+P0 draws seed 20 (held-out, states 10-19). Different states are not paired
+trials. Withdrawn.
+
+The correct sweep, all on the dev band with the same teleport draws, flagship
+v5, n=10 each (the +-4 cm row is the previously published cell on that same
+band and draws):
+
+| radius | k/10 | Wilson 95% |
+|---|---|---|
+| none (published) | 4/10 | [0.17, 0.69] |
+| +-2 cm | 7/10 | [0.40, 0.89] |
+| +-4 cm (published) | 4/10 | [0.17, 0.69] |
+| +-6 cm | 2/10 | [0.06, 0.51] |
+| +-8 cm | 3/10 | [0.11, 0.60] |
+
+Read conservatively: the head is clearly worse at +-6/+-8 cm than at +-2 cm, but
+every interval here is ~0.5 wide and the no-randomization cell (4/10) sits
+*below* +-2 cm (7/10), which cannot be a real effect of adding displacement.
+That non-monotonicity is the honest measure of how much n=10 can resolve. The
+usable statement is directional and bounded: **performance degrades as the
+displacement approaches and exceeds the shell's +-6 cm probe envelope**, and no
+single radius should be quoted as "passes randomization".
