@@ -83,6 +83,9 @@ check_bool("Object's max D < every other suite's mean",
 check("other suites: tasks admissible at 2.5cm", 0.0,
       float((allother <= 2.5).sum()), 0.5)
 check("other suites: total tasks", 28.0, float(len(allother)), 0.5)
+check("Object max D (cm)", 2.34, float(obj.max()))
+check("smallest non-Object D (cm)", 2.98, float(allother.min()))
+check("gap between them (cm)", 0.65, float(allother.min() - obj.max()))
 
 print("\n=== the blind arm ===")
 B = J("results/blind_cells.json")

@@ -165,7 +165,7 @@ them.}
 
 \paragraph{Every number is regenerable.} Each artifact cited below is a JSON
 file in the repository, and \texttt{scripts/verify\_paper\_numbers.py}
-re-derives all $57$ load-bearing values in this paper from those files and
+re-derives all $60$ load-bearing values in this paper from those files and
 fails on any disagreement. We wrote it because manuscripts drift --- a value is
 recomputed, the JSON updates, the sentence quoting it does not --- and it
 caught two such drifts in this revision.
@@ -374,7 +374,14 @@ still succeeding under $\pm2$\,cm of deliberate displacement:
 other suite does} --- $0$ of $28$.
 \end{quote}
 
-\noindent LIBERO-Object is therefore order-1 lookup-admissible as a whole suite,
+\noindent \textbf{And $2.5$ is not load-bearing.} LIBERO-Object's largest
+diameter is $2.34$\,cm; the \emph{smallest} diameter among all $28$ tasks of
+the other three suites is $2.98$\,cm. There is a $0.65$\,cm gap with nothing in
+it, so \emph{every} $\delta \in [2.34, 2.98)$\,cm returns exactly the same
+verdict --- $10/10$ against $0/28$. The choice of threshold cannot be doing the
+work, because a whole interval of thresholds gives one answer.
+
+LIBERO-Object is therefore order-1 lookup-admissible as a whole suite,
 and Corollary~\ref{cor:sep} applies to it without qualification. The margin is
 not narrow: LIBERO-Object's \emph{largest} diameter ($2.34$\,cm) is smaller than
 every other suite's \emph{mean} ($3.65$--$6.21$\,cm), and six of its ten tasks
