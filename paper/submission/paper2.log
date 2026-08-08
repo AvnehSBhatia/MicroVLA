@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 15:23
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 AUG 2026 15:24
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -745,9 +745,9 @@ Underfull \hbox (badness 1389) in paragraph at lines 166--172
  []
 
 
-Underfull \hbox (badness 3460) in paragraph at lines 166--172
+Underfull \hbox (badness 3302) in paragraph at lines 166--172
 \OT1/lmtt/m/n/10 scripts/verify[]paper[]numbers.py \OT1/lmr/m/n/10 re-derives a
-ll $57$
+ll $60$
  []
 
 
@@ -1235,7 +1235,7 @@ fb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></
 usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb
 >
-Output written on paper2.pdf (15 pages, 1469306 bytes).
+Output written on paper2.pdf (15 pages, 1479242 bytes).
 PDF statistics:
  522 PDF objects out of 1000 (max. 8388607)
  419 compressed objects within 5 object streams
