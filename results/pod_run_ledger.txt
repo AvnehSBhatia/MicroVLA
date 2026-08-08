@@ -139,3 +139,38 @@ P4_E7_v5_r08_t8 rc=0 708s mean_success 0.000
 P4_E7_v5_r08_t7 rc=0 733s mean_success 0.000
 P4_E7_v5_r08_t6 rc=0 754s mean_success 0.000
 ALLDONE
+P7_GL_egl_t8 rc=1 140s 
+P7_GL_egl_t1 rc=1 149s 
+P7_GL_egl_t7 rc=0 525s mean_success 1.000
+P7_GL_egl_t2 rc=0 532s mean_success 1.000
+P7_GL_egl_t0 rc=0 535s mean_success 1.000
+P7_GL_egl_t3 rc=0 538s mean_success 1.000
+P7_GL_egl_t6 rc=0 544s mean_success 1.000
+P7_GL_egl_t5 rc=0 654s mean_success 1.000
+P7_GL_egl_t9 rc=0 665s mean_success 1.000
+P3_E8_swap_v5_t6 rc=0 923s mean_success 0.000
+P3_E8_swap_v5_t0 rc=0 947s mean_success 0.000
+P3_E8_swap_v5_t7 rc=0 951s mean_success 0.000
+P3_E8_swap_v5_t4 rc=0 956s mean_success 0.000
+P3_E8_swap_v5_t15 rc=0 958s mean_success 0.000
+P3_E8_swap_v5_t5 rc=0 964s mean_success 0.000
+P3_E8_swap_v5_t16 rc=0 969s mean_success 0.000
+P3_E8_swap_v5_t13 rc=0 972s mean_success 0.000
+P3_E8_swap_v5_t11 rc=0 973s mean_success 0.000
+P3_E8_swap_v5_t2 rc=0 974s mean_success 0.000
+P3_E8_swap_v5_t18 rc=0 976s mean_success 0.000
+P3_E8_swap_v5_t9 rc=0 977s mean_success 0.000
+P3_E8_swap_v5_t12 rc=0 977s mean_success 0.000
+P3_E8_swap_v5_t17 rc=0 978s mean_success 0.000
+P3_E8_swap_v5_t14 rc=0 978s mean_success 0.000
+P3_E8_swap_v5_t8 rc=0 978s mean_success 0.000
+P3_E8_swap_v5_t3 rc=0 979s mean_success 0.000
+P3_E8_swap_v5_t10 rc=0 980s mean_success 0.000
+P3_E8_swap_v5_t1 rc=0 984s mean_success 0.000
+P7_GL_egl_t4 rc=0 804s mean_success 0.000
+GLDONE
+P3_E8_swap_v5_t19 rc=0 985s mean_success 0.000
+RETRYDONE
+P7_GL_egl_t8 rc=0 51s mean_success 1.000
+P7_GL_egl_t1 rc=0 96s mean_success 0.000
+GLRETRY

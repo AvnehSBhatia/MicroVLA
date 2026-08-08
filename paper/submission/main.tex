@@ -39,12 +39,18 @@ We audit our own stack and find placement memorization at \textbf{four} layers:
 a calibrated expert whose offset constant encodes pose, an iteration-coupled
 selection loop, a grasp head whose regression prefers proprioception to pixels,
 and a place head that memorized a command$\to$location map against a basket that
-never moves. Three are repaired, each by \emph{data} rather than architecture:
-ten placement-teleported episodes, command coverage in training, and DAgger on
-the machine's own deployment viewpoints. The released head scores 0.700
+never moves. Three are addressed by \emph{data} rather than architecture: ten
+placement-teleported episodes, command coverage in training, and DAgger on the
+machine's own deployment viewpoints --- though command coverage is a repair we
+partly walk back here: it demonstrably fixes the place \emph{point}
+(14.15\,cm$\to$0.78\,cm spread) while its effect on swap \emph{behaviour} did
+not replicate when we powered the cell up. The released head scores 0.700
 held-out (35/50 $[0.56,0.81]$) and 0.520 randomized (26/50) where \emph{our}
 free per-tick regression baseline, under matched trunk and corpus, scores
-0/56---a statement about that baseline, not about the policy class. A third
+0/56---a statement about that baseline, not about the policy class. Anchoring
+that comparison: the same shell driven by \emph{random} goals scores 0/10 and by
+\emph{oracle} goals 10/10, so the shell neither solves the task alone nor caps
+it. A third
 object crosses at 22/50 $[0.31,0.58]$ against a
 same-seed control at 3/50 (exact McNemar $p<10^{-4}$). Twin control
 cells scope that verification from both sides: the behavioural certificate is
@@ -905,19 +911,44 @@ recorded value, and well inside its interval. The cell reproduces, and the
 experiments below are read against it.
 
 \paragraph{The renderer is a behavioural parameter, and was never pinned.}
-Reproducing the \emph{rate} is not the same as reproducing the \emph{episode}.
 Holding seed, trial, weights and every package version fixed, and changing only
-the OpenGL backend MuJoCo renders through, moves the trajectory:
-\texttt{osmesa} completes trial 0 in 246 steps and \texttt{egl} in 250, at
-source detection 0.919 vs 0.920. Thread count, by contrast, changes nothing ---
-two \texttt{osmesa} runs at 4 and 128 threads agree on every logged field, which
-also re-confirms harness determinism. Software and GPU rasterisation do not
-produce identical pixels, the detector is not invariant to that difference, and
-in this stack the detector is the only encoder. \textbf{\texttt{MUJOCO\_GL}
-belongs in the reported stack table beside the package versions.} It was not
-there, in ours or in any LIBERO evaluation we have read. This is a
-provenance-class skew defect: two configurations agreeing on a wrong convention,
-namely that the renderer is an implementation detail.
+the OpenGL backend MuJoCo renders through, moves the trajectory: \texttt{osmesa}
+completes trial 0 in 246 steps and \texttt{egl} in 250, at source detection
+0.919 vs 0.920. Thread count, by contrast, changes nothing --- two
+\texttt{osmesa} runs at 4 and 128 threads agree on every logged field, which
+also re-confirms harness determinism.
+
+Run as a paired arm over the same ten trials, the effect has a shape worth
+stating exactly:
+
+\begin{center}\small
+\begin{tabular}{lll}
+\toprule
+& \texttt{osmesa} & \texttt{egl} \\
+\midrule
+success rate & 8/10 & 8/10 \\
+per-trial outcomes & \multicolumn{2}{l}{\textbf{4 of 10 disagree} (2 each way, $p=1.0$)} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent \textbf{The aggregate rate is identical and 40\% of the individual
+episodes are not.} The backend does not bias the score --- the flips go both
+ways and McNemar is flat --- but it decides \emph{which} episodes succeed. Two
+consequences. First, matching a published rate is weak evidence of having
+reproduced an experiment; the marginal can be right while the sample is
+different. Second, and sharper for this paper's method: \emph{any paired
+statistic computed across a renderer change is invalid}, because pairing assumes
+the trials are the same trials. Every McNemar and per-trial-agreement figure we
+report is within one backend, which we can now say we checked rather than
+assumed.
+
+Software and GPU rasterisation do not produce identical pixels, the detector is
+not invariant to that difference, and in this stack the detector is the only
+encoder. \textbf{\texttt{MUJOCO\_GL} belongs in the reported stack table beside
+the package versions.} It was not there, in ours or in any LIBERO evaluation we
+have read. This is a provenance-class skew defect: two configurations agreeing
+on a wrong convention, namely that the renderer is an implementation detail.
 
 \paragraph{A censoring trap in reading runs, which caught us.} An earlier
 reading of this same reference cell, taken while its remaining trials were still

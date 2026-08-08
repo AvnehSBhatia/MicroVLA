@@ -76,6 +76,13 @@ field. Software and GPU rasterisation do not produce identical pixels, the
 detector is not invariant to that difference, and the detector is this stack's
 only encoder. Pin it, and report it, or the numbers will not be comparable.
 
+Measured as a paired 10-trial arm (seed 20, same trials, same weights): both
+backends score **8/10**, and **4 of the 10 individual trials disagree** (2 each
+way). The backend does not bias the rate; it decides *which* episodes succeed.
+Two consequences: matching a published rate is weak evidence of having
+reproduced an experiment, and **any paired statistic computed across a renderer
+change is invalid**, because pairing assumes the trials are the same trials.
+
 A faithful rebuild of the full table above (fresh L40S host, 2026-08-08,
 `osmesa`) reproduced the reference cell: **8/10** on the seed-20 held-out band
 against the 7/10 recorded here, with 0.700 inside the new cell's Wilson

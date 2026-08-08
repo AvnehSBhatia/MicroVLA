@@ -283,21 +283,23 @@
     "complete": true
   },
   "P7_GL_egl": {
-    "k": 7,
-    "n": 8,
-    "rate": 0.875,
+    "k": 8,
+    "n": 10,
+    "rate": 0.8,
     "wilson": [
-      0.5291,
-      0.9776
+      0.4902,
+      0.9433
     ],
     "trials": {
       "0": true,
+      "1": false,
       "2": true,
       "3": true,
       "4": false,
       "5": true,
       "6": true,
       "7": true,
+      "8": true,
       "9": true
     },
     "planned_n": 0,

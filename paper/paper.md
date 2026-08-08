@@ -11099,3 +11099,35 @@ well supported than we wrote.
 **GL arm running.** Ten paired trials under `MUJOCO_GL=egl` against the same
 osmesa trials, to put an n on the renderer finding rather than the single
 episode we had.
+
+---
+
+## 2026-08-08 — the renderer: same rate, different experiment
+
+Paired arm, ten trials, seed 20, same weights and packages; only `MUJOCO_GL`
+differs.
+
+| | osmesa | egl |
+|---|---|---|
+| success rate | **8/10** | **8/10** |
+| per-trial outcomes | \multicolumn — **4 of 10 disagree** (2 each way, McNemar p=1.0) |
+
+Trial-level: osmesa `1111110011`, egl `1011010111` — trials 1 and 4 succeed only
+under osmesa, trials 6 and 7 only under egl.
+
+**The aggregate is identical and 40% of the episodes are not.** The backend does
+not bias the score; it decides *which* episodes succeed. Two consequences, and
+the second is the one that matters for this paper's method:
+
+1. Matching a published rate is weak evidence of having reproduced an
+   experiment. The marginal can be right while the sample is different — which
+   is, incidentally, a second and independent reason my earlier "7/7 vs 7/10"
+   panic was ill-founded.
+2. **Any paired statistic computed across a renderer change is invalid**, because
+   pairing assumes the trials are the same trials. Every McNemar and
+   per-trial-agreement figure in this paper is within one backend. I can now say
+   that was checked rather than assumed.
+
+This also retires the last of the retracted entry: the renderer finding is real,
+it is now quantified at n=10, and it explains nothing about the reference cell
+because there was nothing to explain.
