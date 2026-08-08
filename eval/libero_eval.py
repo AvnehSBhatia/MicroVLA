@@ -598,6 +598,14 @@ def _make_goal_anchor(env, mode: str, rng):
         re-drawn once per episode, with the true z. This is the shell's FLOOR:
         what the engineered machinery scores when the goal carries no
         information about where the object actually is.
+    ``blind``
+        Proposition 1's lookup policy, with NO access to the episode at all: the
+        target's mean position over the suite's own shipped init files, read
+        from ``results/suite_forensics_joints.json`` and keyed by task index.
+        This is the honest memoriser --- it sees the benchmark's published
+        files and the task index, and nothing else. ``fixed`` below still peeks
+        at the live episode once; this does not peek at all.
+
     ``fixed``
         The true target position read ONCE at episode start and held for the
         rest of the episode, never re-read. Say precisely what this is: it is
@@ -628,7 +636,26 @@ def _make_goal_anchor(env, mode: str, rng):
         p = sim.data.body_xpos[body_ids[cont[0]]]
         place_xy = (float(p[0]), float(p[1]))
 
-    if mode == "oracle":
+    if mode == "blind":
+        # Derived from the benchmark's shipped files, never from this episode.
+        import json as _json
+        fp = REPO / "results" / "suite_forensics_joints.json"
+        tasks = _json.loads(fp.read_text())["suites"]["libero_object"]["tasks"]
+        rec = next((t for t in tasks
+                    if any(o["object"] == tgt for o in t["objects"])), None)
+        if rec is None:
+            raise RuntimeError(
+                f"no shipped-file record for {tgt}; refusing to fall back to a "
+                "live read, which would silently turn the blind arm into the "
+                "peeking one.")
+        o = next(o for o in rec["objects"] if o["object"] == tgt)
+        cx, cy, cz = (float(v) for v in o["mean_xyz_m"])
+        logger.info("goal anchor blind: %s constant (%.4f, %.4f, %.4f) from "
+                    "shipped files", tgt, cx, cy, cz)
+
+        def grasp(_c=((cx, cy), cz)):
+            return _c
+    elif mode == "oracle":
         def grasp():
             p = sim.data.body_xpos[body_ids[tgt]]
             return (float(p[0]), float(p[1])), float(p[2])
@@ -1213,7 +1240,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "[OFFSET, OFFSET+n) are byte-identical to the same "
                         "trials of a serial run. --workers shards by task and "
                         "cannot split a one-task cell.")
-    p.add_argument("--goal-anchor", choices=["", "oracle", "random", "fixed"],
+    p.add_argument("--goal-anchor", choices=["", "oracle", "random", "fixed", "blind"],
                    default="",
                    help="replace the learned goal heads with a non-learned goal "
                         "supply, to unbundle the shell from the head (referee "
