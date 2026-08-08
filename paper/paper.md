@@ -11131,3 +11131,42 @@ the second is the one that matters for this paper's method:
 This also retires the last of the retracted entry: the renderer finding is real,
 it is now quantified at n=10, and it explains nothing about the reference cell
 because there was nothing to explain.
+
+---
+
+## 2026-08-08 — the probe-only counterexample, measured instead of recalled
+
+The v2/v2.1 datum is the paper's strongest methodological claim and it shipped
+with **no generator** — the caption admitted as much.
+`scripts/attribution_profiles.py` now regenerates it offline (heads are 0.24M,
+inputs come from the recorded corpus; no sim, no detector, no GPU).
+
+| head | uv | proprio | box_emb | frame_emb | deployed |
+|---|---|---|---|---|---|
+| v2   | 0.75 | 2.85 | 6.04 | 6.91 | **0.000** |
+| v2.1 | 0.71 | 2.13 | 6.26 | 7.58 | **0.700** |
+| v3   | 0.74 | 2.09 | 5.70 | 7.38 | — |
+| v5   | 0.97 | 1.93 | 3.43 | 6.57 | 0.700 |
+
+cm of grasp-offset movement under channel substitution.
+
+**The counterexample holds, measured:** v2 and v2.1 agree to within **0.73 cm**
+on every channel (mean 0.41) and score 0.000 vs 0.700 deployed.
+
+**A measurement error I made and caught.** My first version profiled the
+*absolute* predicted point and reported ~24 cm of proprioception attribution for
+**every** head including the repaired one — which would have contradicted the
+paper. That is an artifact of the parameterisation, not a shortcut:
+`GraspPointHead` emits `eef_xy + delta`, so substituting proprioception moves
+the anchor mechanically. The question the probe asks is whether a channel
+changes where the head thinks the *object* is, so the right quantity is the
+residual. Profiling `xy - eef_xy` gives the table above.
+
+**And a correction to the published figure.** These regenerated numbers do NOT
+reproduce the magnitudes printed in the old F2 (which claimed v5 reads visual
+channels at 1.1-1.8 cm and proprioception at 0.09 cm). I cannot say why, because
+the original generator was never saved — that is the reproducibility gap. What
+survives is qualitative and now checkable: v5 moves more on its visual channels
+(3.43 / 6.57 cm) than on proprioception (1.93 cm), and v2/v2.1 are
+indistinguishable to the probe. **The specific magnitudes previously printed
+should not be relied on**, and the paper now says so in the caption.

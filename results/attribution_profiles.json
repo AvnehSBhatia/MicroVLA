@@ -1,0 +1,42 @@
+{
+  "corpus": "data/libero_object_v8",
+  "n_ticks": 329,
+  "pair": [
+    3,
+    121
+  ],
+  "channels": [
+    "uv",
+    "proprio",
+    "box_emb",
+    "frame_emb"
+  ],
+  "heads": {
+    "v2": {
+      "uv": 0.746,
+      "proprio": 2.8548,
+      "box_emb": 6.0408,
+      "frame_emb": 6.9084
+    },
+    "v2.1": {
+      "uv": 0.7107,
+      "proprio": 2.1267,
+      "box_emb": 6.2638,
+      "frame_emb": 7.5813
+    },
+    "v3": {
+      "uv": 0.7395,
+      "proprio": 2.0912,
+      "box_emb": 5.7012,
+      "frame_emb": 7.377
+    },
+    "v5 (released)": {
+      "uv": 0.9733,
+      "proprio": 1.9265,
+      "box_emb": 3.4334,
+      "frame_emb": 6.5714
+    }
+  },
+  "v2_vs_v21_max_channel_diff_cm": 0.7281,
+  "v2_vs_v21_mean_channel_diff_cm": 0.4148
+}

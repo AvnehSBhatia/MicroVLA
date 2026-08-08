@@ -769,13 +769,38 @@ repair's signature. \textbf{The counterexample that motivates pairing probes
 with behavioural randomization}: v2 and v2.1 have near-identical profiles on
 the jointly logged channels while scoring \textbf{0.000 and 0.700} deployed.
 A probe evaluated on teacher trajectories is an on-manifold instrument and
-cannot, alone, certify off-manifold behaviour. (The two text blocks inside the
+cannot, alone, certify off-manifold behaviour. This datum is now promoted to its
+own figure (Figure~\ref{fig:counterexample}) and, more importantly, is
+\emph{measured} rather than recalled: \texttt{scripts/attribution\_profiles.py}
+regenerates it, and the two heads agree to within \textbf{0.73\,cm} on every
+channel. (The two text blocks inside the
 plot area restate this caption and the v1 note; they are redundant with it and
 should be dropped when the figure is regenerated --- see the reproducibility
 note in \S\ref{sec:limits}.) Hatched bars and $\times$ marks are channels not
 separately logged for that head, never zeros.}
 \label{fig:attribution}
 \end{figure}
+
+\begin{figure*}[t]\centering
+\includegraphics[width=0.92\linewidth]{../visuals/F4_probe_counterexample.png}
+\caption{The counterexample to probe-only certification, promoted out of a text
+box inside Figure~\ref{fig:attribution}. \textbf{A} substitution attribution for
+\texttt{v2} and \texttt{v2.1} --- same recipe, same 10-episode corpus --- which
+agree to within 0.73\,cm on every channel. \textbf{B} the same two heads
+deployed. A probe run on teacher trajectories is an on-manifold instrument;
+these two are indistinguishable to it and opposite in the world.
+\emph{Protocol, stated because it matters:} the profile substitutes one channel
+between the two most-separated recorded ticks and reports how far the predicted
+grasp \emph{offset} moves --- the offset, not the absolute point, because
+\texttt{GraspPointHead} emits $\text{eef}_{xy} + \Delta$ and substituting
+proprioception moves the absolute point by the whole arm displacement for
+\emph{any} head, which would report ${\sim}24$\,cm of ``proprioception
+attribution'' even for the repaired one. Regenerated numbers do not reproduce
+the magnitudes printed in Figure~\ref{fig:attribution}, whose generator was
+never saved; the qualitative claims survive and the earlier magnitudes should
+not be relied on.}
+\label{fig:counterexample}
+\end{figure*}
 
 \section{The multi-object addendum: five falsified predictions, one mechanism
 retracted, and a fourth memorization layer}

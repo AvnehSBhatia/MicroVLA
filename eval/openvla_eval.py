@@ -120,7 +120,13 @@ def run(args) -> dict:
                 instr = args.override_instruction or task.language
                 t0, done = time.time(), False
                 for step in range(args.max_steps):
-                    frame = np.ascontiguousarray(obs[CAMERA][::-1])  # LIBERO stores flipped
+                    # 180-degree rotation, NOT a vertical flip. This is
+                    # OpenVLA's own LIBERO preprocessing
+                    # (experiments/robot/libero/libero_utils.py::get_libero_image);
+                    # feeding their policy our convention would hand it images
+                    # its training never saw and manufacture a weak baseline,
+                    # which would flatter our probe rather than test it.
+                    frame = np.ascontiguousarray(obs[CAMERA][::-1, ::-1])
                     a = predict(processor, model, frame, instr, args.device, args.unnorm_key)
                     obs, _, done, _ = env.step(a.tolist())
                     if done:
