@@ -134,6 +134,20 @@ $H_\delta(t) = 0$ says the target starts in the same place every time, to within
 $\delta$. The ceiling is $\log_2 |S_t|$, attained when every shipped state
 places the target differently.
 
+Two properties of the definition are worth stating because they bound what it
+can be used for. First, $H_\delta$ is \emph{quantisation-dependent}: poses
+straddling a grid boundary can be split into two cells that a policy could not
+distinguish, so $H_\delta$ is an \emph{upper} bound on the placement
+information a policy at tolerance $\delta$ can exploit. This direction is the
+safe one --- it can overstate a suite's variation, never understate it, so a
+\emph{low} measured $H_\delta$ is a conservative finding. We report
+$H_\delta$ across $\delta \in \{0.5, 1, 2, 5\}$\,mm in
+Appendix~\ref{app:delta}; the ordering of the four suites is unchanged
+throughout. Second, we report the mean over tasks rather than pooling states
+across tasks, because pooling would credit a suite for \emph{between}-task
+variation --- and between-task variation is exactly what a task-indexed lookup
+table gets for free.
+
 \begin{definition}[Order-$k$ admissibility]
 A suite is \emph{order-$k$ admissible} if there is a map from the task index to
 a set of at most $k$ pose constants that reproduces every shipped target pose to
@@ -150,12 +164,30 @@ the controller achieves given a correct target pose.
 \end{proposition}
 
 \begin{proof}
-$H_\delta(t)=0$ means $q_\delta(x_t(\cdot))$ is constant on $S_t$; call it $c_t$.
-The map $t \mapsto c_t$ reproduces every shipped pose to within $\delta$, giving
-order-$1$ admissibility. A policy emitting $c_t$ therefore supplies the
-controller with a target pose correct to within $\delta$ on every shipped state,
-so its success rate equals the controller's success rate under a correct pose.
+$H_\delta(t)=0$ means the quantised pose $q_\delta(x_t(s))$ takes a single value
+on $S_t$; write $c_t$ for any pose in that cell. For every $s \in S_t$,
+$\|x_t(s) - c_t\|_\infty \le \delta$, so the map $t \mapsto c_t$ reproduces
+every shipped target pose to within $\delta$ and the suite is order-$1$
+admissible. The policy of the statement emits $c_t$ on every state of task $t$,
+hence supplies the controller a pose within $\delta$ of the true one
+throughout. Since $\delta$ is by construction below the tolerance at which the
+embodiment distinguishes placements, the controller's trajectory --- and
+therefore the episode outcome --- is the one it would produce given the true
+pose. Averaging over $S_t$ gives the claim.
 \end{proof}
+
+\begin{corollary}[No score can separate them]
+\label{cor:sep}
+On a suite with $H_\delta \equiv 0$, no function of episode outcomes alone can
+distinguish the lookup policy of Proposition~\ref{prop:lookup} from a policy
+that localises the target perceptually and is otherwise identical, because the
+two induce the same distribution over trajectories.
+\end{corollary}
+
+\noindent Corollary~\ref{cor:sep} is the sentence the rest of the paper exists
+to make concrete. It says the failure is not one of statistical power --- no
+number of trials helps, because the two policies are not merely hard to tell
+apart but \emph{identically distributed} in what the benchmark observes.
 
 Proposition~\ref{prop:lookup} is trivial as mathematics and is stated because
 its contrapositive is what benchmark scores are usually read as asserting. A
@@ -850,6 +882,35 @@ layers, two outside the model. What survives is not the artifact but the
 procedure: measure the benchmark first, localise the stage second, repair with
 data third, and certify jointly in \emph{(head, stack)} --- reporting, as we
 have here, the repairs that did not survive being powered up.
+
+\appendix
+
+\section{Sensitivity of $H_\delta$ to the tolerance}
+\label{app:delta}
+
+The quantisation $\delta$ is a modelling choice, so the finding must not depend
+on it. Recomputing placement entropy across four tolerances spanning an order of
+magnitude:
+
+\begin{center}\small
+\begin{tabular}{lrrrr}
+\toprule
+suite & $0.5$\,mm & $1$\,mm & $2$\,mm & $5$\,mm \\
+\midrule
+\textbf{Object} & \textbf{2.21} & \textbf{2.11} & \textbf{1.77} & \textbf{1.28} \\
+Spatial & 5.57 & 5.50 & 5.29 & 4.62 \\
+Goal & 5.64 & 5.60 & 5.45 & 4.77 \\
+Long & 5.64 & 5.62 & 5.55 & 5.23 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The ordering is unchanged throughout and the gap never falls below
+$2.5$ bits. Coarsening $\delta$ lowers every suite's entropy, as it must ---
+coarser bins merge distinct placements --- and lowers LIBERO-Object's fastest
+in relative terms, because its variation is concentrated at sub-millimetre
+scales that a coarser grid erases entirely. Artifact:
+\texttt{results/entropy\_delta\_sensitivity.json}.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
