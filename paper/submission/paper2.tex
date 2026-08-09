@@ -176,7 +176,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $129$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $136$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -380,7 +380,11 @@ table lookup and the repaired ones can, so the defect is load-bearing rather
 than cosmetic. \textbf{The control row closes the obvious hole}: handed the true
 target once at reset, the same controller succeeds on \emph{every one} of the
 thirty repaired states, so those states are not harder --- only the constant
-breaks on them. The trained head drops in the same direction, $0.633 \to
+breaks on them. That the manipulation reached the \emph{simulator} and not
+merely the files is checked there too: at step $0$ the physics engine placed
+the object at $30$ distinct positions spanning $4.8\times4.7$\,cm under the
+repair and at one position, to nine decimals, under the shipped states
+(\texttt{results/e5\_object\_positions.json}). The trained head drops in the same direction, $0.633 \to
 0.433$,
 which this $n$ does not resolve ($p = 0.18$) --- and which we would not read as
 exploitation even if it did, since the head was trained against the shipped

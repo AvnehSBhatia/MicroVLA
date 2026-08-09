@@ -261,6 +261,23 @@ check("E5 basket association, exact permutation p", 0.0095,
 check("E5 basket spread across shipped states (cm)", 2.949,
       float((_b.max(0) - _b.min(0)).max()) * 100, 0.01)
 
+# The manipulation, checked at the SIMULATOR rather than at the files: what
+# the physics engine actually placed on the table at step 0 of every episode.
+# A repair that edits state files but does not move the object would produce
+# exactly the headline we report, so this is not a formality.
+OP = J("results/e5_object_positions.json")
+for _arm, _n, _distinct, _sx in [("fixed_shipped", 10, 1, 0.0),
+                                 ("fixed_repaired", 30, 30, 4.844)]:
+    _a = np.asarray([OP[_arm][k] for k in sorted(OP[_arm], key=int)], float)
+    check(f"E5 sim-side {_arm}: episodes", float(_n), float(len(_a)), 0.5)
+    check(f"E5 sim-side {_arm}: distinct object positions", float(_distinct),
+          float(len(np.unique(_a.round(9), axis=0))), 0.5)
+    check(f"E5 sim-side {_arm}: x spread (cm)", _sx,
+          float((_a.max(0) - _a.min(0))[0]) * 100, 0.01)
+check("E5 sim-side: the repair moved the object every episode", True,
+      len(np.unique(np.asarray(list(OP["fixed_repaired"].values())).round(9),
+                    axis=0)) == 30)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
