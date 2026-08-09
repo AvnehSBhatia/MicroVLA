@@ -340,12 +340,13 @@
   "planned_tasks": 5,
   "tasks_analysed": [
    "0",
-   "1"
+   "1",
+   "2"
   ],
   "tasks_dropped_incomplete": {
-   "2": {
-    "oracle_n": 8,
-    "blind_n": 8
+   "3": {
+    "oracle_n": 5,
+    "blind_n": 5
    }
   },
   "per_task": {
@@ -402,6 +403,58 @@
     }
    },
    "1": {
+    "oracle": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "blind": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "paired": {
+     "paired_n": 10,
+     "lost": 0,
+     "gained": 0,
+     "p": 1.0
+    },
+    "trials": {
+     "oracle": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     },
+     "blind": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     }
+    }
+   },
+   "2": {
     "oracle": {
      "k": 0,
      "n": 10,

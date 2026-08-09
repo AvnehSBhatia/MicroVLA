@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1672,7 +1672,7 @@ xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive
 asic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/t
 exmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/20
 25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (26 pages, 2740253 bytes).
+Output written on paper2.pdf (26 pages, 2740252 bytes).
 PDF statistics:
  799 PDF objects out of 1000 (max. 8388607)
  644 compressed objects within 7 object streams
