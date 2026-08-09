@@ -1,0 +1,92 @@
+{
+ "cells": {
+  "fixed_shipped": {
+   "k": 10,
+   "n": 10,
+   "rate": 1.0,
+   "wilson": [
+    0.7225,
+    1.0
+   ],
+   "complete": true,
+   "planned_n": 10
+  },
+  "fixed_repaired": {
+   "k": 30,
+   "n": 30,
+   "rate": 1.0,
+   "wilson": [
+    0.8865,
+    1.0
+   ],
+   "complete": true,
+   "planned_n": 30
+  },
+  "blind_shipped": {
+   "k": 25,
+   "n": 30,
+   "rate": 0.8333,
+   "wilson": [
+    0.6644,
+    0.9266
+   ],
+   "complete": true,
+   "planned_n": 30
+  },
+  "blind_repaired": {
+   "k": 10,
+   "n": 30,
+   "rate": 0.3333,
+   "wilson": [
+    0.1923,
+    0.5122
+   ],
+   "complete": true,
+   "planned_n": 30
+  }
+ },
+ "planned_n": {
+  "fixed_shipped": 10,
+  "fixed_repaired": 30
+ },
+ "identity_check": {
+  "compared_trials": 10,
+  "mismatched_trials": [
+   "6",
+   "7",
+   "8",
+   "9"
+  ],
+  "passes": false,
+  "premise": "WRITTEN AS: fixed and blind receive the same float on a pinned task, so any mismatch is a harness bug. THE PREMISE WAS WRONG. The target is pinned; the container is re-placed every episode over 2.9 x 2.8 cm, and blind must carry its mean while fixed reads the true one. The mismatches are that handicap, not a bug."
+ },
+ "primary": {
+  "test": "Fisher exact, fixed_shipped vs fixed_repaired (unpaired)",
+  "fixed_shipped": "10/10",
+  "fixed_repaired": "30/30",
+  "p": 1.0,
+  "diff": 0.0,
+  "newcombe95": [
+   -0.2775,
+   0.1135
+  ],
+  "verdict": "E1 STANDS: a correct static goal survives the repaired target positions (10/10 -> 30/30, p = 1.0), so those positions are not intrinsically too hard and blind's collapse is the lookup failing."
+ },
+ "secondary_a": {
+  "paired_n": 30,
+  "a_only": 20,
+  "b_only": 0,
+  "p": 2e-06,
+  "test": "paired exact McNemar, fixed_repaired vs blind_repaired",
+  "confound": "these arms differ in the CONTAINER as well as the target: blind carries the mean basket, fixed reads the true one. Cannot isolate target difficulty."
+ },
+ "container_handicap": {
+  "paired_n": 10,
+  "a_only": 4,
+  "b_only": 0,
+  "p": 0.125,
+  "fixed_true_basket": "10/10",
+  "blind_mean_basket": "6/10",
+  "note": "the identity claim was DETERMINISTIC -- same float, same states, deterministic controller -- so one mismatch falsifies it and no test is needed for that. The SIZE of the handicap is a different question and n=10 does not settle it; the p below is reported for that, not for the falsification."
+ }
+}

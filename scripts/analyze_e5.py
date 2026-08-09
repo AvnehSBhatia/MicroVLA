@@ -172,8 +172,12 @@ def main() -> None:
         "compared_trials": len(keys),
         "mismatched_trials": mism,
         "passes": len(keys) > 0 and not mism,
-        "meaning": ("fixed and blind receive the same float on a pinned task, "
-                    "so any mismatch is a harness bug, not a result"),
+        "premise": ("WRITTEN AS: fixed and blind receive the same float on a "
+                    "pinned task, so any mismatch is a harness bug. THE "
+                    "PREMISE WAS WRONG. The target is pinned; the container "
+                    "is re-placed every episode over 2.9 x 2.8 cm, and blind "
+                    "must carry its mean while fixed reads the true one. The "
+                    "mismatches are that handicap, not a bug."),
     }
 
     # -------- PRIMARY (amended): does a CORRECT static goal survive the
@@ -236,7 +240,9 @@ def main() -> None:
     ic = out["identity_check"]
     print(f"identity: {ic['compared_trials']} trials compared, "
           f"{len(ic['mismatched_trials'])} mismatched -> "
-          f"{'PASS' if ic['passes'] else 'FAIL (harness bug)'}")
+          + ("PASS" if ic["passes"] else
+             "PREMISE FALSIFIED (not a harness bug: the container is not "
+             "pinned, so the two arms never received the same goal)"))
     pr = out["primary"]
     print(f"primary:  {pr['test']}")
     print(f"          {pr['fixed_shipped']} vs {pr['fixed_repaired']}"
