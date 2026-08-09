@@ -360,17 +360,13 @@ smallest disc containing every shipped position,
 quantity because a single constant serves $o$ \emph{if and only if}
 $R_t(o) \le \delta$ --- the minimising $c$ \emph{is} that constant.
 
-An earlier version of this paper used the \emph{diameter}
-$D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$. That criterion is
-sound where it fires ($D \le \delta \Rightarrow R \le \delta$, since
-$R \le D$) but it is not tight: $R \ge D/2$ always, and Jung's theorem gives
-$R \le D/\sqrt{3}$ in the plane. So $D > \delta$ licenses \emph{nothing},
-and we had used it to claim that no task outside LIBERO-Object was admissible.
-
-Recomputed on $R$ at that version's $\delta = 2.5$\,cm, $27$ of $38$ tasks are
-admissible, not $10$. \textbf{The separation we reported was in part an
-artifact of a loose bound.} What survives it is stated below, on the correct
-quantity and at a tolerance we measure rather than assert.
+The distinction from the \emph{diameter}
+$D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$ is not cosmetic.
+$D \le \delta$ implies $R \le \delta$ but not conversely: $R \ge D/2$ always,
+and Jung's theorem gives $R \le D/\sqrt{3}$ in the plane, so $D > \delta$
+licenses nothing. An earlier version of this paper used $D$ to claim that no
+task outside LIBERO-Object was admissible; recomputed on $R$ at that version's
+$\delta = 2.5$\,cm the count is $27$ of $38$, not $10$.
 
 \begin{definition}[Lookup-admissibility]
 \label{def:H}
@@ -389,10 +385,9 @@ in the identity-bearing object; all ten share one basket.
 We report the two separately, because the split is the finding rather than a
 technicality.
 
-An earlier version measured the identity-bearing object alone and called the
-suite admissible. That was measuring half of each task. Measured over both,
-\emph{no} LIBERO-Object task is admissible, because the shared basket has
-$R \in [1.67, 1.98]$\,cm and moves every episode.
+Measured over both, \emph{no} LIBERO-Object task is admissible: the shared
+basket has $R \in [1.67, 1.98]$\,cm and moves every episode. An earlier version
+reported the identity-bearing object alone and called the suite admissible.
 
 \paragraph{How we pick the identity-bearing object, and how much it matters.}
 We take it to be the first entry of the task's declared
@@ -489,11 +484,10 @@ fixed-column layout is wrong for every suite containing an articulated fixture
 --- so we compile each task's model and read \texttt{jnt\_qposadr};
 Appendix~\ref{app:columns} gives the procedure and the cross-check.
 
-Two LIBERO-Goal tasks name a fixture with no free joint (a cabinet drawer, a
-stove). An earlier version excluded them as having ``no placement to measure''.
-That was the wrong call in the direction that flattered us: a fixture that
-never moves has $R = 0$ and is the \emph{most} lookup-admissible object there
-is. They are counted below and identified.
+Two LIBERO-Goal tasks name a fixture with no free joint --- a cabinet drawer, a
+stove. A fixture that never moves has $R = 0$ and is the \emph{most}
+lookup-admissible object there is, so they are counted below and identified; an
+earlier version excluded them as having ``no placement to measure''.
 
 \begin{table}[t]\centering\footnotesize
 \setlength{\tabcolsep}{3.5pt}
@@ -1169,15 +1163,11 @@ We made exactly this error when regenerating the measurement. It is the differen
 change where the head thinks the object is'' and one that measures the
 parameterisation.
 
-\textbf{v2 and v2.1 differ by at most $0.73$\,cm on any channel and score
-$0.000$ and $0.700$ deployed} --- two earlier heads, not the released one.
-
-The absolute framing flatters us and the relative one does not: the largest gap
-is on proprioception, $2.85$ against $2.13$\,cm, which is $34\%$ of the smaller
-value and sits on the exact channel Layer 3 is about. The claim we can defend
-is that no channel \emph{ordering} distinguishes the two heads, and that the
-absolute differences are small beside the behavioural gap. A second caveat: the
-substitution is between a
+\textbf{Two earlier heads, v2 and v2.1, differ by at most $0.73$\,cm on any
+channel and score $0.000$ and $0.700$ deployed.} The absolute framing flatters
+us: the largest gap is $34\%$ in relative terms, on proprioception, the exact
+channel Layer 3 concerns. What we can defend is that no channel \emph{ordering}
+distinguishes them. And the substitution is between a
 \emph{single} pair of recorded ticks --- the two most separated in $uv$ out of
 $329$ --- with no resampling over pairs and therefore no interval on the
 $0.73$\,cm. It is an existence proof that two heads can be probe-identical and
