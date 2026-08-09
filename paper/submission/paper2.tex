@@ -169,7 +169,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $111$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $115$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -401,6 +401,16 @@ compiles in and the value \texttt{fixed} reads at reset are the same number, so
 it must reproduce $25/30$.}
 \label{tab:e5plan}
 \end{table}
+
+\paragraph{One reading we are not entitled to.} Inside
+Table~\ref{tab:e1} the lookup arm \emph{leads} the trained head on shipped
+states ($25/30$ against $19/30$) and \emph{trails} it on repaired ones ($10/30$
+against $13/30$). That interaction is exactly what this paper argues, and it
+does not survive its own test: the difference of differences is $+0.30$ at a
+permutation $p = 0.14$ ($200{,}000$ draws), and neither within-condition
+contrast separates ($p = 0.15$ shipped, $p = 0.63$ repaired). We report the
+direction and claim nothing from it. Writing it down was error~4 the first
+time; leaving it out would be error~9.
 
 \paragraph{Two honesties about this cell.} The released head reproduces here at
 $19/30 = 0.633$ against its historical $0.700$, inside that interval, so the
@@ -755,6 +765,12 @@ successes in $100$ trials, eight of ten tasks score zero for every arm we ran,
 and the two that do score are separated by the object rather than by the goal.}
 What follows is the design, the result, and the diagnosis;
 \S\ref{sec:whatwouldsettle} names the experiment that would decide it.
+
+This is not in tension with the $25/30$ of \S\ref{sec:e1}. That cell is one
+task at $n{=}30$, chosen because it is one of the two on which anything scores
+at all; the ceiling quoted here is over ten tasks, eight of which score zero
+for every arm we ran. The suite-level number is low \emph{because} of those
+eight, and it is the reason a suite-level comparison cannot decide anything.
 
 The vehicle is our own stack (\S\ref{sec:platform}): a learned goal head that
 emits a world grasp point, driving a non-learned pick-and-place controller.

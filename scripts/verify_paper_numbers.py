@@ -200,6 +200,20 @@ check("E1 head reproduces its historical 0.700 (inside Wilson)", True,
       E1["cells"]["head_shipped"]["wilson"][0] <= 0.700
       <= E1["cells"]["head_shipped"]["wilson"][1])
 
+# The interaction we report and refuse to claim. Recomputed, not quoted.
+_ds = [int(E1["cells"]["blind_shipped"]["trials"][k])
+       - int(E1["cells"]["head_shipped"]["trials"][k]) for k in map(str, range(30))]
+_dr = [int(E1["cells"]["blind_repaired"]["trials"][k])
+       - int(E1["cells"]["head_repaired"]["trials"][k]) for k in map(str, range(30))]
+check("E1 interaction: blind-head, shipped", 0.200, sum(_ds) / 30, 0.001)
+check("E1 interaction: blind-head, repaired", -0.100, sum(_dr) / 30, 0.001)
+_rng = np.random.default_rng(0)
+_pool = np.array(_ds + _dr); _obs = abs(np.mean(_ds) - np.mean(_dr))
+_c = sum(abs(np.mean(pm[:30]) - np.mean(pm[30:])) >= _obs - 1e-12
+         for pm in (_rng.permutation(_pool) for _ in range(20000)))
+check("E1 interaction: permutation p (does NOT reach 0.05)", 0.14, _c / 20000, 0.02)
+check("E1 interaction: we are not entitled to claim it", True, _c / 20000 > 0.05)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
