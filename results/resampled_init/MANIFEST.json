@@ -1,0 +1,149 @@
+{
+  "suite": "libero_object",
+  "seed": 0,
+  "tasks": [
+    {
+      "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+      "target": "alphabet_soup_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.9724
+    },
+    {
+      "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+      "target": "cream_cheese_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.9791,
+      "spread_after_cm": 4.9425
+    },
+    {
+      "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+      "target": "salad_dressing_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.9686
+    },
+    {
+      "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+      "target": "bbq_sauce_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 1.944,
+      "spread_after_cm": 4.9243
+    },
+    {
+      "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+      "target": "ketchup_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.9292
+    },
+    {
+      "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+      "target": "tomato_sauce_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.937
+    },
+    {
+      "task": "pick_up_the_butter_and_place_it_in_the_basket",
+      "target": "butter_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.9738,
+      "spread_after_cm": 4.8669
+    },
+    {
+      "task": "pick_up_the_milk_and_place_it_in_the_basket",
+      "target": "milk_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.984,
+      "spread_after_cm": 4.917
+    },
+    {
+      "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+      "target": "chocolate_pudding_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.8838
+    },
+    {
+      "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+      "target": "orange_juice_1",
+      "columns": [
+        10,
+        11
+      ],
+      "declared_cm": [
+        5.0,
+        5.0
+      ],
+      "spread_before_cm": 0.0,
+      "spread_after_cm": 4.8333
+    }
+  ],
+  "skipped": [],
+  "status": "CANDIDATE -- not validated in a simulator",
+  "caveat": "only the target's x,y columns are changed; positions are drawn from the region the task file declares. Physical validity has NOT been checked -- run these through the sim before using them for evaluation."
+}

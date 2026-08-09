@@ -287,6 +287,34 @@ So LIBERO-Object's pinning is not a design decision to be argued with. It is a
 \textbf{state-generation defect}: the benchmark's own task files specify the
 fix, and a suite in the same release demonstrates it working.
 
+\paragraph{We ship the repair, not a recommendation.} The fix requires no
+redesign: draw the target's position from the box the task file already
+declares. \texttt{scripts/resample\_init\_states.py} does this for all ten
+LIBERO-Object tasks, changing \emph{only} the two state-array columns holding
+the target's $x$ and $y$ --- every other object, every joint velocity and the
+time field are bit-identical to the released file, which we verify by diffing
+them.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrr}
+\toprule
+& shipped & repaired \\
+\midrule
+spread, LIBERO-Object (10 tasks) & $0.00$--$1.94$\,cm & $4.83$--$4.97$\,cm \\
+spread, LIBERO-Long (unmodified) & \multicolumn{2}{c}{$4.84$--$4.99$\,cm} \\
+\bottomrule
+\end{tabular}
+\caption{The repaired LIBERO-Object states span the region their task files
+declare, and land on the same spread as the sibling suite that never needed
+repairing. The candidate suite is in \texttt{results/resampled\_init}. We
+state its limit plainly: positions are drawn from the region the benchmark
+itself declares valid, so they should be admissible by construction, but we
+have not run them through a simulator to confirm no interpenetration. It is a
+candidate repair, and the manifest says so.}
+\label{tab:repaired}
+\end{table}
+
 That leaves the question this paper exists to answer. A frozen placement is
 only a problem if a policy can exploit it, and whether it can is a question
 about the \emph{embodiment} as much as the files. \S\ref{sec:adm} makes that

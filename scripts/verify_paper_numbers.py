@@ -160,6 +160,22 @@ check("both declare the same 5cm box", True,
       all(abs(t["declared_cm"][0] - 5.0) < 1e-6
           for t in DS["libero_object"]["tasks"] + DS["libero_10"]["tasks"]))
 
+print("\n=== §2 the shipped repair ===")
+import torch as _t
+_man = J("results/resampled_init/MANIFEST.json")
+_sp = [r["spread_after_cm"] for r in _man["tasks"]]
+check("repaired tasks", 10.0, float(len(_man["tasks"])), 0.5)
+check("repaired spread, min (cm)", 4.83, min(_sp), 0.02)
+check("repaired spread, max (cm)", 4.97, max(_sp), 0.02)
+_src = REPO / ".libero_src/libero/libero/init_files/libero_object"
+_dst = REPO / "results/resampled_init"
+_ncols = []
+for _r in _man["tasks"]:
+    _a = np.asarray(_t.load(_src / f"{_r['task']}.pruned_init", weights_only=False), float)
+    _b = np.asarray(_t.load(_dst / f"{_r['task']}.pruned_init", weights_only=False), float)
+    _ncols.append(int((~np.isclose(_a, _b).all(axis=0)).sum()))
+check("repair touches exactly 2 columns per task", True, set(_ncols) == {2})
+
 print("\n=== §5 suite: cells and tests RECOMPUTED from per-trial outcomes ===")
 S = J("results/suite_cells.json"); B = J("results/blind_cells.json"); P = J("results/pod_cells.json")
 blind = {0: B["blind_t0"]} | {t: S[f"blind_t{t}"] for t in range(1, 10)}
