@@ -1273,15 +1273,14 @@ design cannot separate ``a constant cannot serve Spatial'' from ``our
 controller cannot do Spatial'', and we report it as uninformative rather than
 as support.}
 
-That is what happened. On every task pair that reached its planned $n$, both
-arms score $0/10$ --- the oracle included. The controller cannot do
-LIBERO-Spatial at all, so the cell says nothing about constants, and we report
-it as \textbf{uninformative} rather than as the confirmation it would have
-looked like. The compute window closed with four of the five task pairs
-complete --- \textbf{eighty episodes, eighty failures}, across both arms ---
-and the fifth is
-reported as not run, not as null
-(\texttt{results/e23\_analysis.json}).
+That is what happened. The design ran to its planned size --- five tasks, two
+arms, $n{=}10$ --- and \textbf{all one hundred episodes failed}, the oracle's
+fifty included. The controller cannot do LIBERO-Spatial at all, so the cell
+says nothing whatever about constants, and we report it as
+\textbf{uninformative} rather than as the confirmation it would have looked
+like: a lookup policy scoring $0/10$ where the criterion says a constant should
+not serve is not evidence for the criterion when \emph{everything} scores
+$0/10$. Artifact: \texttt{results/e23\_analysis.json}.
 
 \paragraph{The caveat that would rescue us, and why we do not lean on it.}
 The sweep pushes each trial along \emph{one} direction, so it estimates an
@@ -1886,8 +1885,8 @@ E5 identity: \texttt{fixed} $\equiv$ \texttt{blind} on a pinned task &
 \textbf{failed} & \emph{see caption} \\[2pt]
 E2: the lookup arm is using the constant & \textbf{held} & monotone,
 $p = 0.008$ \\[2pt]
-E3: uninformative if the oracle is at the floor & \textbf{fired} & both arms
-$0/10$ \\
+E3: uninformative if the oracle is at the floor & \textbf{fired} &
+$100$ episodes, $100$ failures \\
 \bottomrule
 \end{tabular}
 \caption{Registered before the cells existed. The third is the useful one ---

@@ -394,7 +394,7 @@ check("E2 direction: NO arc separates failure from success", True, not _sep)
 
 # E3, reported as uninformative by a precondition registered before the cells.
 E3A = J("results/e23_analysis.json")["e3"]
-check("E3: task pairs that reached planned n", 4.0,
+check("E3: task pairs that reached planned n", 5.0,
       float(len(E3A["tasks_analysed"])), 0.5)
 check("E3: oracle arm is at the floor", True, E3A["oracle_at_floor"])
 check("E3: declared uninformative, not support", True, not E3A["informative"])
@@ -404,7 +404,7 @@ check("E3: every analysed cell is 0/10, both arms", True,
       all(v["oracle"]["k"] == 0 and v["blind"]["k"] == 0
           and v["oracle"]["n"] == 10 and v["blind"]["n"] == 10
           for v in E3A["per_task"].values()))
-check("E3: episodes run in the analysed pairs", 80.0,
+check("E3: episodes run in the analysed pairs", 100.0,
       float(sum(v["oracle"]["n"] + v["blind"]["n"]
                 for v in E3A["per_task"].values())), 0.5)
 
