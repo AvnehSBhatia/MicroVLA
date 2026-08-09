@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 01:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 01:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -679,70 +679,70 @@ tex.map}{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}
 /local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc}{/usr/local/
 texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
-36.
+35.
 
 (/usr/local/texlive/2025basic/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Underfull \hbox (badness 10000) in paragraph at lines 141--146
+Underfull \hbox (badness 10000) in paragraph at lines 140--145
 []\OT1/lmr/bx/n/10 A bench-mark de-fect, mea-sur-able from
  []
 
 
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 167--174
+Underfull \hbox (badness 10000) in paragraph at lines 166--173
  []\OT1/lmr/bx/n/10 What is re-gen-er-a-ble, and what is not.[]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 167--174
+Underfull \hbox (badness 10000) in paragraph at lines 166--173
 \OT1/lmtt/m/n/10 scripts/verify[]paper[]numbers.py \OT1/lmr/m/n/10 re-com-putes
  $95$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 167--174
+Underfull \hbox (badness 10000) in paragraph at lines 166--173
 \OT1/lmtt/m/n/10 scripts/check[]manuscript[]consistency.py\OT1/lmr/m/n/10 , che
 cks
  []
 
+
+
 <../visuals/F12_dependency.png, id=172, 974.12352pt x 433.62pt>
 File: ../visuals/F12_dependency.png Graphic file (type png)
 <use ../visuals/F12_dependency.png>
-Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 183.
+Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 182.
 
 (pdftex.def)             Requested size: 475.53783pt x 211.68167pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 192.
+(Font)              <9> on input line 191.
 <../visuals/F13_all_tasks.png, id=178, 1264.725pt x 304.67511pt>
 File: ../visuals/F13_all_tasks.png Graphic file (type png)
 <use ../visuals/F13_all_tasks.png>
-Package pdftex.def Info: ../visuals/F13_all_tasks.png  used on input line 224.
+Package pdftex.def Info: ../visuals/F13_all_tasks.png  used on input line 223.
 (pdftex.def)             Requested size: 500.83388pt x 120.64986pt.
 <../visuals/F10_declared_vs_shipped.png, id=181, 1108.01321pt x 293.64442pt>
 File: ../visuals/F10_declared_vs_shipped.png Graphic file (type png)
 <use ../visuals/F10_declared_vs_shipped.png>
 Package pdftex.def Info: ../visuals/F10_declared_vs_shipped.png  used on input 
-line 237.
+line 236.
 (pdftex.def)             Requested size: 435.0657pt x 115.30049pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 1968) in paragraph at lines 280--287
+Underfull \hbox (badness 1968) in paragraph at lines 279--286
  []\OT1/lmr/bx/n/10 We ship the re-pair, not a rec-om-men-da-tion.[]
  []
 
 
-Underfull \hbox (badness 1831) in paragraph at lines 280--287
+Underfull \hbox (badness 1831) in paragraph at lines 279--286
 \OT1/lmr/m/n/10 si-tion from the box the task file al-ready de-clares.
  []
 
 
 
 [2{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
-Overfull \hbox (9.81313pt too wide) in paragraph at lines 290--310
+Overfull \hbox (9.81313pt too wide) in paragraph at lines 289--309
  [][] 
  []
 
@@ -760,7 +760,7 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [3 <../visuals/F12_dependency.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 355--362
+Underfull \hbox (badness 10000) in paragraph at lines 354--361
 []\OT1/lmr/m/n/10 The dis-tinc-tion from the \OT1/lmr/m/it/10 di-am-e-ter $\OML
 /lmm/m/it/10 D[]\OT1/lmr/m/n/10 (\OML/lmm/m/it/10 o\OT1/lmr/m/n/10 ) =
  []
@@ -768,7 +768,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 355--362
 
 
 
-Underfull \hbox (badness 3907) in paragraph at lines 370--376
+Underfull \hbox (badness 3907) in paragraph at lines 369--375
  []\OT1/lmr/bx/n/10 Which ob-jects, and why it mat-ters.[] \OT1/lmr/m/n/10 Ev-e
 ry
  []
@@ -780,7 +780,7 @@ ry
 File: ../visuals/F11_radius_criterion.png Graphic file (type png)
 <use ../visuals/F11_radius_criterion.png>
 Package pdftex.def Info: ../visuals/F11_radius_criterion.png  used on input lin
-e 425.
+e 424.
 (pdftex.def)             Requested size: 490.71391pt x 94.22905pt.
 
 
@@ -788,12 +788,12 @@ e 425.
 File: ../visuals/F1_placement_forensics.png Graphic file (type png)
 <use ../visuals/F1_placement_forensics.png>
 Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
-ine 519.
+ine 518.
 (pdftex.def)             Requested size: 495.77003pt x 178.64983pt.
 
 
 [5]
-Overfull \hbox (2.05215pt too wide) in paragraph at lines 568--584
+Overfull \hbox (2.05215pt too wide) in paragraph at lines 567--583
  [][] 
  []
 
@@ -803,7 +803,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 608--612
+Underfull \hbox (badness 1226) in paragraph at lines 607--611
  []\OT1/lmr/bx/n/10 Protocol.[] \OT1/lmr/m/n/10 LIBERO at com-mit \OT1/lmtt/m/n
 /10 8f1084e3\OT1/lmr/m/n/10 , Mu-JoCo
  []
@@ -812,12 +812,12 @@ Underfull \hbox (badness 1226) in paragraph at lines 608--612
 
 [6 <../visuals/F11_radius_criterion.png> <../visuals/F1_placement_forensics.png
 >]
-Underfull \hbox (badness 3590) in paragraph at lines 613--618
+Underfull \hbox (badness 3590) in paragraph at lines 612--617
 []\OT1/lmr/m/n/10 Which states com-pose a cell is deriv-able from
  []
 
 
-Underfull \hbox (badness 1953) in paragraph at lines 613--618
+Underfull \hbox (badness 1953) in paragraph at lines 612--617
 \OT1/lmr/m/n/10 its com-mand line, not logged. The har-ness sets
  []
 
@@ -829,7 +829,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 <../visuals/F7_ladder.png, id=297, 896.90874pt x 271.96342pt>
 File: ../visuals/F7_ladder.png Graphic file (type png)
 <use ../visuals/F7_ladder.png>
-Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 671.
+Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 670.
 (pdftex.def)             Requested size: 490.71391pt x 148.79185pt.
 
 
@@ -837,14 +837,14 @@ Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 671.
 <../visuals/F9_suite.png, id=309, 888.16026pt x 278.42969pt>
 File: ../visuals/F9_suite.png Graphic file (type png)
 <use ../visuals/F9_suite.png>
-Package pdftex.def Info: ../visuals/F9_suite.png  used on input line 722.
+Package pdftex.def Info: ../visuals/F9_suite.png  used on input line 721.
 (pdftex.def)             Requested size: 490.71391pt x 153.83354pt.
 
 
 
 
 [8 <../visuals/F7_ladder.png>]
-Overfull \hbox (3.97246pt too wide) in paragraph at lines 801--818
+Overfull \hbox (3.97246pt too wide) in paragraph at lines 800--817
  [][] 
  []
 
@@ -853,7 +853,7 @@ Overfull \hbox (3.97246pt too wide) in paragraph at lines 801--818
 <../visuals/F8_subgoal.png, id=329, 1155.55927pt x 258.27016pt>
 File: ../visuals/F8_subgoal.png Graphic file (type png)
 <use ../visuals/F8_subgoal.png>
-Package pdftex.def Info: ../visuals/F8_subgoal.png  used on input line 844.
+Package pdftex.def Info: ../visuals/F8_subgoal.png  used on input line 843.
 (pdftex.def)             Requested size: 490.71391pt x 109.67468pt.
 
 Underfull \vbox (badness 1917) has occurred while \output is active []
@@ -861,98 +861,98 @@ Underfull \vbox (badness 1917) has occurred while \output is active []
 
 
 [9 <../visuals/F9_suite.png>]
-Underfull \hbox (badness 1360) in paragraph at lines 892--892
+Underfull \hbox (badness 1360) in paragraph at lines 891--891
 \OT1/lmr/m/n/9 i-bra-tion con-
  []
 
 
-Underfull \hbox (badness 5862) in paragraph at lines 893--893
+Underfull \hbox (badness 5862) in paragraph at lines 892--892
 []\OT1/lmr/m/n/9 hand-eye con-stant en-codes
  []
 
 
-Underfull \hbox (badness 5802) in paragraph at lines 897--897
+Underfull \hbox (badness 5802) in paragraph at lines 896--896
 []\OT1/lmr/m/n/9 our own pro-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 897--897
+Underfull \hbox (badness 10000) in paragraph at lines 896--896
 \OT1/lmr/m/n/9 ce-dure (non-
  []
 
 
-Underfull \hbox (badness 1132) in paragraph at lines 898--898
+Underfull \hbox (badness 1132) in paragraph at lines 897--897
 []\OT1/lmr/m/n/9 checkpoints cho-sen on cells
  []
 
 
-Underfull \hbox (badness 4886) in paragraph at lines 900--902
+Underfull \hbox (badness 4886) in paragraph at lines 899--901
 []\OT1/lmr/m/n/9 untouched band $20\OML/lmm/m/it/9 =\OT1/lmr/m/n/9 30$ vs
  []
 
 
-Underfull \hbox (badness 7814) in paragraph at lines 903--903
+Underfull \hbox (badness 7814) in paragraph at lines 902--902
 []\OT1/lmr/m/n/9 3. grasp-
  []
 
 
-Overfull \hbox (3.55391pt too wide) in paragraph at lines 903--903
+Overfull \hbox (3.55391pt too wide) in paragraph at lines 902--902
 []\OT1/lmtt/m/n/9 GraspPointHead| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 905--905
+Underfull \hbox (badness 10000) in paragraph at lines 904--904
 []\OT1/lmr/m/n/9 same tele-ported
  []
 
 
-Underfull \hbox (badness 5050) in paragraph at lines 906--907
+Underfull \hbox (badness 5050) in paragraph at lines 905--906
 []\OT1/lmr/m/n/9 attribution flips to vi-sual.
  []
 
 
-Overfull \hbox (4.26578pt too wide) in paragraph at lines 908--908
+Overfull \hbox (4.26578pt too wide) in paragraph at lines 907--907
 \OT1/lmr/m/n/9 cmd$\OMS/lmsy/m/n/9 !$\OT1/lmr/m/n/9 location| 
  []
 
 
-Underfull \hbox (badness 3019) in paragraph at lines 909--910
+Underfull \hbox (badness 3019) in paragraph at lines 908--909
 \OT1/lmr/m/n/9 com-mand, $14\OML/lmm/m/it/9 :\OT1/lmr/m/n/9 5$/$13\OML/lmm/m/it
 /9 :\OT1/lmr/m/n/9 0$cm off
  []
 
 
-Underfull \hbox (badness 4872) in paragraph at lines 909--910
+Underfull \hbox (badness 4872) in paragraph at lines 908--909
 \OT1/lmr/m/n/9 for the other two; swap
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 911--911
+Underfull \hbox (badness 10000) in paragraph at lines 910--910
 []\OT1/lmr/m/n/9 command cov-er-
  []
 
 
-Underfull \hbox (badness 4899) in paragraph at lines 912--914
+Underfull \hbox (badness 4899) in paragraph at lines 911--913
 \OT1/lmr/bx/n/9 re-paired\OT1/lmr/m/n/9 ; swap \OT1/lmr/m/it/9 be-haviour
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 915--915
+Underfull \hbox (badness 10000) in paragraph at lines 914--914
 []\OT1/lmr/m/it/9 (separate)
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 915--915
+Underfull \hbox (badness 10000) in paragraph at lines 914--914
 \OT1/lmr/m/n/9 ap-pear-ance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 915--915
+Underfull \hbox (badness 10000) in paragraph at lines 914--914
 []\OT1/lmr/m/n/9 deployment
  []
 
 
-Underfull \hbox (badness 4699) in paragraph at lines 917--917
+Underfull \hbox (badness 4699) in paragraph at lines 916--916
 []\OT1/lmr/m/n/9 DAgger on own
  []
 
@@ -962,10 +962,10 @@ Underfull \hbox (badness 4699) in paragraph at lines 917--917
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
-e 969.
+e 968.
 (pdftex.def)             Requested size: 495.77003pt x 214.26146pt.
 
-Underfull \hbox (badness 2027) in paragraph at lines 973--973
+Underfull \hbox (badness 2027) in paragraph at lines 972--972
 []\OT1/lmr/m/n/9 Figure 9: |Ev-ery edge coloured by what it car-ries. The ar-ch
 i-tec-tural half of the ar-gu-ment is a code fact:
  []
@@ -974,7 +974,7 @@ i-tec-tural half of the ar-gu-ment is a code fact:
 File: ../visuals/F6_place_point_map.png Graphic file (type png)
 <use ../visuals/F6_place_point_map.png>
 Package pdftex.def Info: ../visuals/F6_place_point_map.png  used on input line 
-994.
+993.
 (pdftex.def)             Requested size: 465.41786pt x 229.36786pt.
 
 
@@ -997,12 +997,12 @@ Underfull \vbox (badness 4096) has occurred while \output is active []
 
 
 [12 <../visuals/F2_dataflow_language.png>]
-Underfull \hbox (badness 1742) in paragraph at lines 1174--1177
+Underfull \hbox (badness 1742) in paragraph at lines 1173--1176
 \OT1/lmr/m/n/10 manifold in-stru-ment and can-not, alone, cer-tify off-
  []
 
 
-Underfull \hbox (badness 1019) in paragraph at lines 1180--1185
+Underfull \hbox (badness 1019) in paragraph at lines 1179--1184
 \OT1/lmr/m/n/10 Our cross-instruction detection-agreement probe asks
  []
 
@@ -1010,7 +1010,7 @@ Underfull \hbox (badness 1019) in paragraph at lines 1180--1185
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 3601) in paragraph at lines 1217--1230
+Underfull \hbox (badness 3601) in paragraph at lines 1216--1229
 \OT1/lmr/m/n/10 we first re-ported only part of it. Over $\OML/lmm/m/it/10 ^^\ 
 \OMS/lmsy/m/n/10 2
  []
@@ -1023,19 +1023,19 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [13 <../visuals/F6_place_point_map.png>]
-Underfull \hbox (badness 1939) in paragraph at lines 1270--1277
+Underfull \hbox (badness 1939) in paragraph at lines 1269--1276
 \OT1/lmr/m/n/10 One dis-clo-sure be-fore the read-ing. The \OT1/lmtt/m/n/10 egl
  \OT1/lmr/m/n/10 cell
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1270--1277
+Underfull \hbox (badness 10000) in paragraph at lines 1269--1276
 \OT1/lmr/m/n/10 car-ries \OT1/lmtt/m/n/10 complete: false \OT1/lmr/m/n/10 and \
 OT1/lmtt/m/n/10 planned[]n: 0 \OT1/lmr/m/n/10 in
  []
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 1279--1280
+Underfull \hbox (badness 1226) in paragraph at lines 1278--1279
 []\OT1/lmr/bx/n/10 The ag-gre-gate is iden-ti-cal and $\OT1/lmr/m/n/10 40%$ \OT
 1/lmr/bx/n/10 of the
  []
@@ -1049,267 +1049,267 @@ Underfull \hbox (badness 1226) in paragraph at lines 1279--1280
 <../visuals/F14_errors.png, id=408, 1325.58395pt x 367.4359pt>
 File: ../visuals/F14_errors.png Graphic file (type png)
 <use ../visuals/F14_errors.png>
-Package pdftex.def Info: ../visuals/F14_errors.png  used on input line 1418.
+Package pdftex.def Info: ../visuals/F14_errors.png  used on input line 1417.
 (pdftex.def)             Requested size: 490.71391pt x 136.01643pt.
 
 
 [15]
-Underfull \hbox (badness 10000) in paragraph at lines 1457--1457
+Underfull \hbox (badness 10000) in paragraph at lines 1456--1456
 \OT1/lmr/m/n/8 iden-ti-cal to
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1457--1457
+Underfull \hbox (badness 10000) in paragraph at lines 1456--1456
 \OT1/lmr/m/n/8 ten ob-jects,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1458--1458
+Underfull \hbox (badness 10000) in paragraph at lines 1457--1457
 []\OT1/lmr/m/n/8 a cached ob-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1458--1458
+Underfull \hbox (badness 10000) in paragraph at lines 1457--1457
 \OT1/lmr/m/n/8 ser-va-tion ---
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1458--1458
+Underfull \hbox (badness 10000) in paragraph at lines 1457--1457
 \OT1/lmr/m/n/8 the ren-derer
  []
 
 
-Underfull \hbox (badness 2277) in paragraph at lines 1459--1461
+Underfull \hbox (badness 2277) in paragraph at lines 1458--1460
 \OT1/lmr/m/n/8 script now com-pares
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1462--1462
+Underfull \hbox (badness 10000) in paragraph at lines 1461--1461
 []\OT1/lmr/m/n/8 a de-fect
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1462--1462
+Underfull \hbox (badness 10000) in paragraph at lines 1461--1461
 \OT1/lmr/m/n/8 count with-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1462--1462
+Underfull \hbox (badness 10000) in paragraph at lines 1461--1461
 \OT1/lmr/m/n/8 drawn as
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1466--1466
+Underfull \hbox (badness 10000) in paragraph at lines 1465--1465
 []$\OT1/lmr/m/n/8 7\OML/lmm/m/it/8 =\OT1/lmr/m/n/8 7$ against
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1466--1466
+Underfull \hbox (badness 10000) in paragraph at lines 1465--1465
 \OT1/lmr/m/n/8 a pub-lished
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1466--1466
+Underfull \hbox (badness 10000) in paragraph at lines 1465--1465
 \OT1/lmr/m/n/8 gan writ-ing
  []
 
 
-Underfull \hbox (badness 1533) in paragraph at lines 1466--1466
+Underfull \hbox (badness 1533) in paragraph at lines 1465--1465
 \OT1/lmr/m/n/8 up a fail-ure
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1472--1472
+Underfull \hbox (badness 10000) in paragraph at lines 1471--1471
 []\OT1/lmr/m/n/8 a con-stant
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1472--1472
+Underfull \hbox (badness 10000) in paragraph at lines 1471--1471
 \OT1/lmr/m/n/8 outscor-ing
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1472--1472
+Underfull \hbox (badness 10000) in paragraph at lines 1471--1471
 \OT1/lmr/m/n/8 our trained
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1472--1472
+Underfull \hbox (badness 10000) in paragraph at lines 1471--1471
 \OT1/lmr/m/n/8 to $8\OML/lmm/m/it/8 =\OT1/lmr/m/n/8 100$,
  []
 
 
-Underfull \hbox (badness 2050) in paragraph at lines 1473--1474
+Underfull \hbox (badness 2050) in paragraph at lines 1472--1473
 \OT1/lmr/m/n/8 and a con-stant
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1473--1474
+Underfull \hbox (badness 10000) in paragraph at lines 1472--1473
 \OT1/lmr/m/n/8 that did not
  []
 
 
-Underfull \hbox (badness 7540) in paragraph at lines 1473--1474
+Underfull \hbox (badness 7540) in paragraph at lines 1472--1473
 \OT1/lmr/m/n/8 cause the suc-
  []
 
 
-Underfull \hbox (badness 1635) in paragraph at lines 1475--1477
+Underfull \hbox (badness 1635) in paragraph at lines 1474--1476
 \OT1/lmr/m/n/8 able we ma-nip-u-lated
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1475--1477
+Underfull \hbox (badness 10000) in paragraph at lines 1474--1476
 \OT1/lmr/m/n/8 was the one that
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1478--1478
+Underfull \hbox (badness 10000) in paragraph at lines 1477--1477
 []\OT1/lmr/m/n/8 constants
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1478--1478
+Underfull \hbox (badness 10000) in paragraph at lines 1477--1477
 \OT1/lmr/m/n/8 ``iden-ti-cal
  []
 
 
-Underfull \hbox (badness 2894) in paragraph at lines 1478--1478
+Underfull \hbox (badness 2894) in paragraph at lines 1477--1477
 \OT1/lmr/m/n/8 to within a
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1478--1478
+Underfull \hbox (badness 10000) in paragraph at lines 1477--1477
 \OT1/lmr/m/n/8 mil-lime-tre''
  []
 
 
-Underfull \hbox (badness 1769) in paragraph at lines 1479--1479
+Underfull \hbox (badness 1769) in paragraph at lines 1478--1478
 \OT1/lmr/m/n/8 ta-ble plane; in
  []
 
 
-Underfull \hbox (badness 4378) in paragraph at lines 1479--1479
+Underfull \hbox (badness 4378) in paragraph at lines 1478--1478
 \OT1/lmr/m/n/8 3$D the groups
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1483--1483
+Underfull \hbox (badness 10000) in paragraph at lines 1482--1482
 []\OT1/lmr/m/n/8 a re-paired
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1483--1483
+Underfull \hbox (badness 10000) in paragraph at lines 1482--1482
 \OT1/lmr/m/n/8 eval-u-a-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1483--1483
+Underfull \hbox (badness 10000) in paragraph at lines 1482--1482
 \OT1/lmr/m/n/8 tion suite,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1484--1485
+Underfull \hbox (badness 10000) in paragraph at lines 1483--1484
 []\OT1/lmr/m/n/8 free sam-pling
  []
 
 
-Underfull \hbox (badness 1902) in paragraph at lines 1484--1485
+Underfull \hbox (badness 1902) in paragraph at lines 1483--1484
 \OT1/lmr/m/n/8 of the de-clared
  []
 
 
-Underfull \hbox (badness 1789) in paragraph at lines 1486--1488
+Underfull \hbox (badness 1789) in paragraph at lines 1485--1487
 []\OT1/lmr/m/n/8 we val-i-dated it only
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1489--1489
+Underfull \hbox (badness 10000) in paragraph at lines 1488--1488
 []\OT1/lmr/m/n/8 a tol-er-ance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1489--1489
+Underfull \hbox (badness 10000) in paragraph at lines 1488--1488
 \OT1/lmr/m/n/8 sweep in
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1489--1489
+Underfull \hbox (badness 10000) in paragraph at lines 1488--1488
 \OT1/lmr/m/n/8 which noth-
  []
 
 
-Underfull \hbox (badness 3189) in paragraph at lines 1490--1491
+Underfull \hbox (badness 3189) in paragraph at lines 1489--1490
 \OT1/lmr/m/n/8 at which three
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1490--1491
+Underfull \hbox (badness 10000) in paragraph at lines 1489--1490
 \OT1/lmr/m/n/8 was com-puted
  []
 
 
-Underfull \hbox (badness 2608) in paragraph at lines 1494--1494
+Underfull \hbox (badness 2608) in paragraph at lines 1493--1493
 []\OT1/lmr/m/n/8 an ap-pendix
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1495--1495
+Underfull \hbox (badness 10000) in paragraph at lines 1494--1494
 []\OT1/lmr/m/n/8 asserted, never
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1495--1495
+Underfull \hbox (badness 10000) in paragraph at lines 1494--1494
 \OT1/lmr/m/n/8 com-puted; re-
  []
 
 
-Underfull \hbox (badness 4886) in paragraph at lines 1498--1498
+Underfull \hbox (badness 4886) in paragraph at lines 1497--1497
 []\OT1/lmr/m/n/8 a claim we
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1498--1498
+Underfull \hbox (badness 10000) in paragraph at lines 1497--1497
 \OT1/lmr/m/n/8 had al-ready
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1498--1498
+Underfull \hbox (badness 10000) in paragraph at lines 1497--1497
 \OT1/lmr/m/n/8 with-drawn,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1499--1500
+Underfull \hbox (badness 10000) in paragraph at lines 1498--1499
 []\OT1/lmr/m/n/8 withdrawn in
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1499--1500
+Underfull \hbox (badness 10000) in paragraph at lines 1498--1499
 \OT1/lmr/m/n/8 made it, and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1499--1500
+Underfull \hbox (badness 10000) in paragraph at lines 1498--1499
 \OT1/lmr/m/n/8 dis-cus-sion, the
  []
 
 
-Underfull \hbox (badness 1210) in paragraph at lines 1502--1503
+Underfull \hbox (badness 1210) in paragraph at lines 1501--1502
 []\OT1/lmr/bx/n/8 retracting a claim
  []
 
 
-Underfull \hbox (badness 3954) in paragraph at lines 1502--1503
+Underfull \hbox (badness 3954) in paragraph at lines 1501--1502
 \OT1/lmr/bx/n/8 where it is sum-
  []
 
 
-Underfull \hbox (badness 5504) in paragraph at lines 1502--1503
+Underfull \hbox (badness 5504) in paragraph at lines 1501--1502
 \OT1/lmr/bx/n/8 marised\OT1/lmr/m/n/8 , and sum-
  []
 
 
-Underfull \hbox (badness 4479) in paragraph at lines 1502--1503
+Underfull \hbox (badness 4479) in paragraph at lines 1501--1502
 \OT1/lmr/m/n/8 maries are the last
  []
 
@@ -1321,67 +1321,67 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 [16 <../visuals/F14_errors.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 1588--1588
+Underfull \hbox (badness 10000) in paragraph at lines 1587--1587
 []\OT1/lmr/m/n/8 shipped ini-tial
  []
 
 
-Underfull \hbox (badness 1596) in paragraph at lines 1589--1589
+Underfull \hbox (badness 1596) in paragraph at lines 1588--1588
 []\OT1/lmr/m/n/8 the place-ment ra-
  []
 
 
-Underfull \hbox (badness 7486) in paragraph at lines 1590--1591
+Underfull \hbox (badness 7486) in paragraph at lines 1589--1590
 []\OT1/lmr/m/n/8 whether one con-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1592--1592
+Underfull \hbox (badness 10000) in paragraph at lines 1591--1591
 []\OT1/lmr/m/n/8 the de-clared
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1593--1593
+Underfull \hbox (badness 10000) in paragraph at lines 1592--1592
 []\OT1/lmr/m/n/8 declared-versus-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1594--1596
+Underfull \hbox (badness 10000) in paragraph at lines 1593--1595
 []\OT1/lmr/m/n/8 whether the re-
  []
 
 
-Underfull \hbox (badness 2205) in paragraph at lines 1594--1596
+Underfull \hbox (badness 2205) in paragraph at lines 1593--1595
 \OT1/lmr/m/n/8 leased states ex-er-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1598--1598
+Underfull \hbox (badness 10000) in paragraph at lines 1597--1597
 []\OT1/lmr/m/n/8 the ad-mis-si-bil-ity
  []
 
 
-Underfull \hbox (badness 1655) in paragraph at lines 1599--1601
+Underfull \hbox (badness 1655) in paragraph at lines 1598--1600
 []\OT1/lmr/m/n/8 whether that mat-
  []
 
 
-Underfull \hbox (badness 7522) in paragraph at lines 1599--1601
+Underfull \hbox (badness 7522) in paragraph at lines 1598--1600
 \OT1/lmr/m/n/8 ters for a given
  []
 
 
-Underfull \hbox (badness 1014) in paragraph at lines 1610--1610
+Underfull \hbox (badness 1014) in paragraph at lines 1609--1609
 \OT1/lmr/m/n/9 two rows are arith-metic on shipped files and are what
  []
 
 
-Underfull \hbox (badness 1701) in paragraph at lines 1610--1610
+Underfull \hbox (badness 1701) in paragraph at lines 1609--1609
 \OT1/lmr/m/n/9 an em-bod-i-ment and is where our own re-sult is weak-
  []
 
 
-Underfull \hbox (badness 3302) in paragraph at lines 1610--1610
+Underfull \hbox (badness 3302) in paragraph at lines 1609--1609
 \OT1/lmr/m/n/9 est. The scripts are \OT1/lmtt/m/n/9 scripts/admissibility.py \O
 T1/lmr/m/n/9 and
  []
@@ -1390,42 +1390,42 @@ T1/lmr/m/n/9 and
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+Underfull \hbox (badness 10000) in paragraph at lines 1630--1630
 []\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 R$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+Underfull \hbox (badness 10000) in paragraph at lines 1630--1630
 \OT1/lmr/m/n/8 per ob-ject
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+Underfull \hbox (badness 10000) in paragraph at lines 1630--1630
 []\OT1/lmr/m/n/8 one script, no
  []
 
 
-Underfull \hbox (badness 1668) in paragraph at lines 1631--1632
+Underfull \hbox (badness 1668) in paragraph at lines 1630--1631
 []\OT1/lmr/m/n/8 tells a reader what a
  []
 
 
-Underfull \hbox (badness 2753) in paragraph at lines 1633--1633
+Underfull \hbox (badness 2753) in paragraph at lines 1632--1632
 []\OT1/lmr/m/n/8 set a floor
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1635--1636
+Underfull \hbox (badness 10000) in paragraph at lines 1634--1635
 \OT1/lmr/m/n/8 de-pends on dis-place-
  []
 
 
-Underfull \hbox (badness 6542) in paragraph at lines 1635--1636
+Underfull \hbox (badness 6542) in paragraph at lines 1634--1635
 \OT1/lmr/m/n/8 ment rel-a-tive to the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1635--1636
+Underfull \hbox (badness 10000) in paragraph at lines 1634--1635
 \OT1/lmr/m/n/8 con-troller's en-ve-lope
  []
 
@@ -1435,46 +1435,46 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-Underfull \hbox (badness 1024) in paragraph at lines 1688--1698
+Underfull \hbox (badness 1024) in paragraph at lines 1687--1697
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 1688--1698
+Underfull \hbox (badness 1199) in paragraph at lines 1687--1697
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 1688--1698
+Underfull \hbox (badness 4001) in paragraph at lines 1687--1697
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
 
 
-Underfull \hbox (badness 6493) in paragraph at lines 1722--1729
+Underfull \hbox (badness 6493) in paragraph at lines 1721--1728
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 1722--1729
+Underfull \hbox (badness 2486) in paragraph at lines 1721--1728
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 1730.
+(Font)              <14.4> on input line 1729.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1730.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 1730.
+(hyperref)                removing `math shift' on input line 1729.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1730.
+(hyperref)                removing `\delta' on input line 1729.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1729.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -1557,7 +1557,7 @@ l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texl
 ive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/l
 ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb
 >
-Output written on paper2.pdf (20 pages, 2152984 bytes).
+Output written on paper2.pdf (20 pages, 2152887 bytes).
 PDF statistics:
  646 PDF objects out of 1000 (max. 8388607)
  519 compressed objects within 6 object streams
