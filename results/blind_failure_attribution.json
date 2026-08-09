@@ -1,0 +1,45 @@
+{
+  "task0": {
+    "basket_constant_m": [
+      0.0023287518000000007,
+      0.26049433740000005
+    ],
+    "success_disp_cm": [
+      1.2576,
+      0.7159,
+      0.6583,
+      1.4523,
+      1.0494,
+      0.9347
+    ],
+    "failure_disp_cm": [
+      1.5037,
+      1.5776,
+      1.8765,
+      1.4094
+    ],
+    "mannwhitney_U": 1.0,
+    "p_two_sided": 0.01905
+  },
+  "task3": {
+    "basket_constant_m": [
+      3.6758799999999944e-05,
+      0.25914537699999995
+    ],
+    "disp_cm": [
+      1.8564,
+      1.7781,
+      1.914,
+      0.9567,
+      1.7629,
+      1.2825,
+      0.9132,
+      1.4743,
+      1.4015,
+      0.4853
+    ],
+    "all_succeeded": true,
+    "max_tolerated_cm": 1.914
+  },
+  "note": "trial i at seed 20 replays state 10+i; displacement is the shipped basket position minus the constant the blind arm was given."
+}

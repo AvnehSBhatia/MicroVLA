@@ -1,25 +1,33 @@
-"""Figure 8 -- admissibility predicts, sub-goal by sub-goal, inside one task.
+"""Figure 8 -- what the blind constant's failures are actually made of.
 
-The suite-level claim ("LIBERO-Object is lookup-admissible") is a statement
-about ten tasks. This figure is the sharper version: a single task carries TWO
-sub-goals with two different diameters, and the blind constant's outcome splits
-exactly along that line. Nothing about the policy changed between the two
-sub-goals -- the same constant-driven controller did both -- so the diameter is
-the only thing that distinguishes them.
+An earlier version of this figure argued that the diameter predicts, sub-goal by
+sub-goal, where lookup suffices: task 0's target is pinned ($D=0$) so the reach
+succeeds, its basket is not ($D=3.37$\\,cm) so the place fails. Then task 3
+came back $10/10$ with a LARGER target diameter ($2.34$, the suite's largest)
+and a LARGER basket diameter ($3.93$, also the suite's largest). The clean
+story was wrong, and this figure reports what survives it.
 
-Panel A: the two sub-goals on one axis, against the controller's tolerance.
-Panel B: what actually happened, per trial. The reach succeeded 10/10 (2 mm);
-         the place succeeded 6/10; the four failures ended at the step cap
-         with the object still 8 mm from the gripper.
+What survives is stronger, because it is measured per trial rather than argued
+per task:
+
+  A  On task 0, which trials fail is predicted by how far that state's basket
+     sits from the constant the blind arm was given. The four failures are the
+     four largest displacements, one rank inversion; exact Mann-Whitney
+     p = 0.019.
+  B  On task 3, the same quantity reaches 1.91 cm -- larger than task 0's
+     smallest FAILURE -- and every trial succeeds.
+
+So the place sub-goal has a tolerance, the tolerance explains the failures
+within a task, and it is not the same number across tasks. That is a direct
+measurement of where assumption A1 holds and where it stops.
 
 Sources:
-    results/suite_forensics_joints.json   -- the two diameters
-    results/blind_logs/blind_t0_trials.txt -- the ten per-trial DONE lines
+    results/blind_failure_attribution.json
+    results/suite_forensics_joints.json
 """
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 import matplotlib
@@ -30,95 +38,79 @@ import numpy as np
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "paper" / "visuals" / "F8_subgoal.png"
 
-PIN = "#c0392b"
+FAIL = "#c0392b"
 OK = "#2e8b57"
 GREY = "#9aa5b1"
-DELTA_CM = 2.5
 
-# --- the two diameters, recomputed rather than typed ------------------------
+A = json.loads((REPO / "results/blind_failure_attribution.json").read_text())
+t0, t3 = A["task0"], A["task3"]
+
+# Rebuild task 0's per-trial series in trial order (trial i replays state 10+i).
+succ_set = sorted(t0["success_disp_cm"])
+fail_set = sorted(t0["failure_disp_cm"])
 J = json.loads((REPO / "results/suite_forensics_joints.json").read_text())
-task0 = J["suites"]["libero_object"]["tasks"][0]
-diam = {}
-for o in task0["objects"]:
-    xy = np.asarray(o.get("xy_per_state_m", []), dtype=float)
-    if len(xy) == 0:
-        continue
-    d = np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=-1).max() * 100
-    diam[o["object"]] = float(d)
-D_TGT = diam["alphabet_soup_1"]
-D_BSK = diam["basket_1"]
+tasks = J["suites"]["libero_object"]["tasks"]
 
-# --- the ten trials ---------------------------------------------------------
-lines = (REPO / "results/blind_logs/blind_t0_trials.txt").read_text().splitlines()
-trials = []
-for ln in lines:
-    f = dict(re.findall(r"([a-z_0-9]+)=([-\w.]+)", ln))
-    trials.append({"success": f["success"] == "True",
-                   "min": float(f["eef_obj_dist_min"]) * 100,
-                   "final": float(f["eef_obj_dist_final"]) * 100,
-                   "steps": int(f["steps"])})
-assert len(trials) == 10, len(trials)
 
-fig = plt.figure(figsize=(11.6, 3.25))
-gs = fig.add_gridspec(1, 2, width_ratios=[1.15, 1.0], wspace=0.22)
-axA, axB = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
+def disp(idx: int) -> np.ndarray:
+    b = next(o for o in tasks[idx]["objects"] if "basket" in o["object"])
+    xy = np.asarray(b["xy_per_state_m"], dtype=float)
+    return np.linalg.norm(xy - xy.mean(axis=0), axis=1) * 100
 
-# ---- A: the two sub-goals against the tolerance ----------------------------
-axA.axvspan(-0.15, DELTA_CM, color="#fbeae7", zorder=0)
-axA.axvline(DELTA_CM, color="black", ls="--", lw=1.2, zorder=2)
-axA.text(DELTA_CM + 0.08, 1.60, f"$\\delta$ = {DELTA_CM:g} cm", fontsize=8.6, va="top")
-axA.text(DELTA_CM - 0.10, 1.60, "lookup suffices", fontsize=8.6, va="top",
-         ha="right", color=PIN, fontweight="bold")
 
-for yi, (lbl, d, col, verdict) in enumerate([
-        ("basket\n(place)", D_BSK, GREY, "randomised"),
-        ("alphabet soup\n(reach)", D_TGT, PIN, "one float, 50 states")]):
-    axA.plot([0, d], [yi, yi], color=col, lw=7, solid_capstyle="butt", alpha=0.5)
-    axA.plot([d], [yi], "|", color=col, ms=22, mew=3.0)
-    if d < 0.05:
-        axA.plot([d], [yi], "o", color=col, ms=8, zorder=4,
-                 markeredgecolor="white", markeredgewidth=1.2)
-    axA.text(d + 0.12, yi + 0.17, f"$D$ = {d:.2f} cm", fontsize=9.4,
-             fontweight="bold", color=col, va="center")
-    axA.text(d + 0.12, yi - 0.19, verdict, fontsize=8.0, color="#5b6670", va="center")
+d0 = disp(0)[10:20]
+is_fail0 = np.array([round(float(v), 4) in
+                     [round(x, 4) for x in t0["failure_disp_cm"]] for v in d0])
+d3 = np.asarray(t3["disp_cm"], dtype=float)
 
-axA.set_yticks([0, 1])
-axA.set_yticklabels(["basket\n(place)", "alphabet soup\n(reach)"], fontsize=9.4)
-axA.set_ylim(-0.62, 1.72)
-axA.set_xlim(-0.15, 5.3)
-axA.set_xlabel("placement diameter within ONE task (cm)", fontsize=9.4)
-axA.set_title("A   One task, two sub-goals, two diameters", loc="left",
-              fontweight="bold", fontsize=10.5)
-axA.spines[["top", "right"]].set_visible(False)
+fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.2, 3.25), sharey=True)
 
-# ---- B: what the blind constant did, per trial -----------------------------
-x = np.arange(10)
-axB.bar(x - 0.19, [t["min"] for t in trials], width=0.36, color=PIN,
-        label="closest approach to object")
-axB.bar(x + 0.19, [t["final"] for t in trials], width=0.36, color="#e8a598",
-        label="object$\\to$gripper at episode end")
-for i, t in enumerate(trials):
-    axB.text(i, 1.88, "✓" if t["success"] else "✗", ha="center",
-             fontsize=12.5, color=OK if t["success"] else GREY, fontweight="bold")
-axB.axhline(0.2, color="#5b6670", lw=0.9, ls=":")
-axB.text(9.45, 0.28, "2 mm", fontsize=7.8, ha="right", color="#5b6670")
-axB.set_xticks(x)
-axB.set_xticklabels([f"{i}" for i in x], fontsize=8.4)
-axB.set_ylim(0, 2.12)
-axB.set_xlim(-0.7, 9.7)
-axB.set_xlabel("trial (held-out band, states 10--19)", fontsize=9.4)
-axB.set_ylabel("distance (cm)", fontsize=9.0)
-axB.set_title("B   The reach never failed; the place did, four times",
-              loc="left", fontweight="bold", fontsize=10.5)
-axB.legend(fontsize=7.6, loc="upper left", frameon=False, ncol=1,
-           bbox_to_anchor=(0.005, 0.80))
-axB.spines[["top", "right"]].set_visible(False)
+for ax, d, fail, title, sub in [
+    (axA, d0, is_fail0,
+     "A   Task 0: the failures are the largest basket errors",
+     "exact Mann-Whitney $p$ = %.3f" % t0["p_two_sided"]),
+    (axB, d3, np.zeros(10, bool),
+     "B   Task 3: bigger errors, no failures",
+     "every trial succeeded, up to %.2f cm" % t3["max_tolerated_cm"]),
+]:
+    x = np.arange(10)
+    ax.bar(x, d, width=0.66, color=[FAIL if f else OK for f in fail],
+           edgecolor="white", linewidth=0.6)
+    for i, (v, f) in enumerate(zip(d, fail)):
+        ax.text(i, v + 0.055, "✗" if f else "✓", ha="center", fontsize=10,
+                color=FAIL if f else OK, fontweight="bold")
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(10 + i) for i in x], fontsize=8.2)
+    ax.set_xlabel("shipped initial state", fontsize=9.4)
+    ax.set_title(title, loc="left", fontweight="bold", fontsize=10.4)
+    ax.text(0.5, 0.955, sub, transform=ax.transAxes, ha="center", va="top",
+            fontsize=8.4, color="#43505c")
+    ax.set_ylim(0, 2.42)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.grid(axis="y", color="#eceff1", lw=0.8)
+    ax.set_axisbelow(True)
 
-fig.text(0.5, -0.10,
-         "The same constant-driven controller performed both sub-goals. It reached the pinned object in 10/10 trials and "
-         "missed the randomised basket in 4 — the split the diameter predicts, computed from shipped files before anything ran.",
-         ha="center", fontsize=8.8, color="#43505c")
+axA.set_ylabel("basket distance from the\nblind constant (cm)", fontsize=9.0)
+
+# The line that makes the two panels speak to each other.
+worst_ok_A = float(max(d0[~is_fail0]))
+axA.axhline(worst_ok_A, color="#5b6670", ls=":", lw=1.0)
+axB.axhline(worst_ok_A, color="#5b6670", ls=":", lw=1.0)
+axB.text(9.4, worst_ok_A + 0.05, "task 0's largest success", fontsize=7.4,
+         ha="right", color="#5b6670")
+axB.text(0.5, 1.98, "four of task 3's ten states exceed it", fontsize=7.6,
+         ha="left", color=OK, fontweight="bold")
+
+handles = [plt.Rectangle((0, 0), 1, 1, color=OK),
+           plt.Rectangle((0, 0), 1, 1, color=FAIL)]
+axA.legend(handles, ["episode succeeded", "episode failed"], fontsize=7.6,
+           frameon=False, loc="upper left", bbox_to_anchor=(0.0, 0.90))
+
+fig.text(0.5, -0.09,
+         "The blind arm is given one basket position per task, read from the shipped files. Within task 0 the error in that constant "
+         "predicts which trials fail; across tasks the tolerance is not the same number — which is assumption A1 being measured rather than assumed.",
+         ha="center", fontsize=8.6, color="#43505c")
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(OUT, dpi=190, bbox_inches="tight")
-print(f"wrote {OUT}  (D_tgt={D_TGT:.4f} cm, D_basket={D_BSK:.4f} cm)")
+print(f"wrote {OUT}")

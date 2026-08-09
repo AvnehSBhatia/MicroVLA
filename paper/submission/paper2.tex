@@ -52,14 +52,13 @@ one that has never seen the episode}, which is what the corollary says no score
 can do. The same machinery given uninformed goals scores $0/10$, so the task is
 not trivial; the benchmark is.
 
-The failures are the tell. In all ten trials the blind constant closed on the
-object to within $2$\,mm, and every failure ended at the step cap still holding
-it. What a constant cannot do here is the \emph{basket} --- the one sub-goal
-this suite randomises. \textbf{The diameter predicts where lookup suffices
-sub-goal by sub-goal inside a single task.}
-
-Across seven of ten tasks that released policy scores $8$ of $70$, every success
-on the one object it was trained for.
+It is not confined to one task. On \texttt{bbq\_sauce} --- the task carrying
+the suite's \emph{largest} placement diameter --- the same blind constant scores
+$\mathbf{10/10}$ where our released policy scores $0/10$. Where blind does fail
+it fails legibly: on task $0$ the four failing trials are the four shipped
+states whose basket sits furthest from the constant it was handed (exact
+Mann-Whitney $p = 0.019$), which is the paper's tolerance assumption being
+measured rather than assumed.
 
 Finally, certification. Probes alone cannot certify: two heads whose attribution
 profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
@@ -606,28 +605,40 @@ with the object still $8$\,mm from the gripper --- grasped, never placed.
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.97\linewidth]{../visuals/F8_subgoal.png}
-\caption{\textbf{Admissibility predicts sub-goal by sub-goal, inside one task.}
-\textbf{A} ``Pick up the alphabet soup and place it in the basket'' has two
-sub-goals with two diameters: the soup occupies the \emph{same} \texttt{float64}
-position in all fifty shipped states ($D = 0.00$\,cm), the basket does not
-($D = 3.37$\,cm). \textbf{B} What the blind constant did, per trial. It closed
-on the object to within $2$\,mm in \emph{all ten}, failures included; the four
-failures ran to the step cap with the object still $8$\,mm from the gripper ---
-grasped, never placed. The same constant-driven controller performed both
-sub-goals, so the diameter is the only thing distinguishing them. Artifacts:
-\texttt{results/suite\_forensics\_joints.json},
-\texttt{results/blind\_logs/blind\_t0\_trials.txt}.}
+\caption{\textbf{What the blind constant's failures are made of.}
+\textbf{A} On task $0$, which trials fail is predicted by how far that shipped
+state's basket sits from the single constant the blind arm was given: the four
+failures are the four largest displacements, one rank inversion, exact
+Mann-Whitney $p = 0.019$. \textbf{B} On task $3$ the same quantity runs higher
+--- four of ten states exceed task $0$'s largest \emph{success} --- and every
+trial succeeds. So A1 holds at a radius, that radius explains which trials fail
+within a task, and it is not the same radius across tasks. Artifacts:
+\texttt{results/blind\_failure\_attribution.json},
+\texttt{results/suite\_forensics\_joints.json}.}
 \label{fig:subgoal}
 \end{figure*}
 
-That is the admissibility argument making a \emph{within-task} prediction and
-the measurement meeting it. This task carries two sub-goals with two diameters
-(Figure~\ref{fig:subgoal}): the alphabet soup, whose fifty shipped positions are
-the \emph{same float}, $D = 0.000$\,cm; and the basket, which the suite
-genuinely randomises, $D = 3.37$\,cm. A constant is sufficient for the first and
-insufficient for the second, and $6/10$ is the composition of those two facts.
-The quantity we compute from the shipped files before running anything predicts,
-sub-goal by sub-goal inside a single task, where lookup suffices. Per-trial outcomes and
+\paragraph{A prediction we made, and the task that refuted it.} The obvious
+reading of the above is that the diameter decides each sub-goal: the soup is
+pinned at $D = 0$ so the reach works; the basket is randomised at
+$D = 3.37$\,cm so the place fails; $6/10$ is the composition. We wrote that
+down. Then \texttt{bbq\_sauce} returned $10/10$ with a \emph{larger} target
+diameter ($2.34$\,cm, the suite's largest) \emph{and} a larger basket diameter
+($3.93$\,cm, also the suite's largest). A per-task diameter does not decide a
+per-task outcome, and we retract that reading.
+
+What replaces it is measured per trial rather than argued per task
+(Figure~\ref{fig:subgoal}). Within task $0$, \emph{which} trials fail is
+predicted by how far that state's basket sits from the constant: the four
+failures are the four largest displacements, one rank inversion, exact
+Mann-Whitney $p = 0.019$. Across tasks the radius differs --- task $3$ succeeds
+at displacements up to $1.91$\,cm, above task $0$'s smallest failure at
+$1.41$\,cm.
+
+\textbf{A1 holds at a radius; the radius explains which trials fail inside a
+task; and the radius is not the same number across tasks.} That is a sharper
+and less comfortable statement than the one we set out to make, and it is the
+one the data supports. Per-trial outcomes and
 the paired tests are in \texttt{results/blind\_cells.json}.
 
 \paragraph{The reset-oracle saturates the benchmark, and is statistically
