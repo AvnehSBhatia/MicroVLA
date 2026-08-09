@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 11:57
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 12:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1459,18 +1459,18 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-Underfull \hbox (badness 1024) in paragraph at lines 1810--1820
+Underfull \hbox (badness 1024) in paragraph at lines 1817--1827
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 1810--1820
+Underfull \hbox (badness 1199) in paragraph at lines 1817--1827
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 1810--1820
+Underfull \hbox (badness 4001) in paragraph at lines 1817--1827
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
@@ -1478,36 +1478,36 @@ Underfull \hbox (badness 4001) in paragraph at lines 1810--1820
 
 
 [18 <../visuals/F14_errors.png>]
-Underfull \hbox (badness 6493) in paragraph at lines 1844--1851
+Underfull \hbox (badness 6493) in paragraph at lines 1851--1858
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 1844--1851
+Underfull \hbox (badness 2486) in paragraph at lines 1851--1858
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 1852.
+(Font)              <14.4> on input line 1859.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1852.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 1852.
+(hyperref)                removing `math shift' on input line 1859.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1852.
+(hyperref)                removing `\delta' on input line 1859.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1859.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
+
+
 (./paper2.bbl
-
-
 Underfull \hbox (badness 6944) in paragraph at lines 21--25
 []\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
  []
@@ -1547,7 +1547,7 @@ Here is how much of TeX's memory you used:
  37786 multiletter control sequences out of 15000+600000
  641156 words of font info for 102 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1167b,592s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1167b,588s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx8.pfb></usr/local/te
@@ -1579,7 +1579,7 @@ al/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/tex
 live/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2
 025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/
 texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (21 pages, 2371907 bytes).
+Output written on paper2.pdf (21 pages, 2372405 bytes).
 PDF statistics:
  688 PDF objects out of 1000 (max. 8388607)
  552 compressed objects within 6 object streams

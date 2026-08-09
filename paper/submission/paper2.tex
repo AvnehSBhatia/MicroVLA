@@ -1774,23 +1774,30 @@ that object, on all ten tasks, to a radius smaller than the smaller of the two
 tolerances we measure for our own arm --- the larger one dissolves the
 contrast, and we report both.
 
-The behavioural claim we built on that does not stand, and the way it fell is
-the more useful half of this paper. We ran the lookup policy, saw it outscore
+One behavioural claim on top of that does stand, and we tested it the way we
+would want someone else to. Sampling the region a task file declares, and
+changing nothing else, costs a lookup policy half its score
+($25/30 \to 10/30$, $p = 0.0007$): the defect is exploitable, not cosmetic.
+That is the only causal statement in this paper, it is one task at $n{=}30$,
+and its own obvious confound gets an arm of its own rather than a paragraph.
+
+The larger claim --- that a constant matches a trained policy --- does not
+stand, and the way it fell is the more useful half of this paper. We ran the lookup policy, saw it outscore
 our trained one, tested it at the wrong unit of analysis, and reported a
 significance that a task-level test does not support. The deeper error was
 attributional: three tasks handed a constant $0.469$\,mm from a fourth's, in
 all three axes, score $0/10$ where it scores $10/10$ --- so the successes were
 never evidence about lookup at all. Both errors were found by adversarial
 review of a manuscript we already believed, using data we had already
-published, and seven more like them followed.
+published, and seven more like them followed --- nine in all.
 
 What survives is the procedure rather than the artifact. Measure the benchmark
 first, at the unit the design randomises over. Check that the variable you
 manipulated is the one that moved. And report the reading that did not survive
 being checked, which in this revision is repeatedly our own.
 
-One lesson generalises past this paper, and we only saw it after the seventh
-instance. Every error we made was a correct instrument reporting a chosen
+One lesson generalises past this paper, and it took nine instances before we
+saw it. Every error we made was a correct instrument reporting a chosen
 slice: which trials had finished, which axes were compared, which tolerances
 were swept, which of two estimates was quoted. \textbf{Recomputing every number
 in a paper catches none of that} --- our verifier recomputed the two-dimensional
