@@ -107,6 +107,30 @@ def wilson(k: int, n: int) -> list[float]:
     return [round(max(0.0, c - h), 4), round(min(1.0, c + h), 4)]
 
 
+def fisher_exact_2x2(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact by summing tables no more likely than observed."""
+    n = a + b + c + d
+    r1, c1 = a + b, a + c
+
+    def prob(x):
+        return (math.comb(r1, x) * math.comb(n - r1, c1 - x)) / math.comb(n, c1)
+
+    lo, hi = max(0, c1 - (n - r1)), min(r1, c1)
+    p0 = prob(a)
+    return min(1.0, sum(prob(x) for x in range(lo, hi + 1)
+                        if prob(x) <= p0 + 1e-12))
+
+
+def newcombe(k1: int, n1: int, k2: int, n2: int) -> list[float]:
+    """Newcombe hybrid-score interval for a difference of proportions."""
+    l1, u1 = wilson(k1, n1)
+    l2, u2 = wilson(k2, n2)
+    p1, p2 = k1 / n1, k2 / n2
+    lo = (p1 - p2) - math.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2)
+    hi = (p1 - p2) + math.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2)
+    return [round(lo, 4), round(hi, 4)]
+
+
 def mcnemar(a: dict, b: dict) -> dict:
     keys = sorted(set(a) & set(b), key=int)
     a_only = sum(1 for k in keys if a[k] and not b[k])
@@ -152,36 +176,56 @@ def main() -> None:
                     "so any mismatch is a harness bug, not a result"),
     }
 
-    # -------- PRIMARY
-    fr = E5.get("fixed_repaired", {})
-    br = E1["blind_repaired"]["trials"]
-    prim = mcnemar(fr, br)
-    complete = out["cells"]["fixed_repaired"]["complete"]
-    fixed_higher = (out["cells"]["fixed_repaired"]["rate"] or 0) > \
-        (out["cells"]["blind_repaired"]["rate"] or 0)
-    rejects = prim["p"] < 0.05
-    out["primary"] = {
+    # -------- PRIMARY (amended): does a CORRECT static goal survive the
+    # repaired target positions? Both arms read the true basket, and the
+    # basket is bit-identical between the two suites, so the only difference
+    # is where the target starts.
+    fs_c = out["cells"]["fixed_shipped"]
+    fr_c = out["cells"]["fixed_repaired"]
+    prim = {"test": "Fisher exact, fixed_shipped vs fixed_repaired (unpaired)",
+            "fixed_shipped": f"{fs_c['k']}/{fs_c['n']}",
+            "fixed_repaired": f"{fr_c['k']}/{fr_c['n']}"}
+    if fs_c["complete"] and fr_c["complete"]:
+        a, b = fs_c["k"], fs_c["n"] - fs_c["k"]
+        c, d = fr_c["k"], fr_c["n"] - fr_c["k"]
+        prim["p"] = round(fisher_exact_2x2(a, b, c, d), 6)
+        prim["diff"] = round(fs_c["rate"] - fr_c["rate"], 4)
+        prim["newcombe95"] = newcombe(fs_c["k"], fs_c["n"], fr_c["k"], fr_c["n"])
+        drop = prim["p"] < 0.05 and prim["diff"] > 0
+        prim["verdict"] = (
+            "REPAIRED STATES ARE HARDER even for a correct static goal "
+            f"({prim['fixed_shipped']} -> {prim['fixed_repaired']}, "
+            f"p = {prim['p']}). E1's drop stays confounded and the paper "
+            "says so." if drop else
+            "E1 STANDS: a correct static goal survives the repaired target "
+            f"positions ({prim['fixed_shipped']} -> {prim['fixed_repaired']}, "
+            f"p = {prim['p']}), so those positions are not intrinsically too "
+            "hard and blind's collapse is the lookup failing.")
+    else:
+        prim["verdict"] = "CELL INCOMPLETE -- no verdict."
+    out["primary"] = prim
+
+    # -------- SECONDARY-A: the pre-amendment test, kept with its confound.
+    fr, br = E5.get("fixed_repaired", {}), E1["blind_repaired"]["trials"]
+    out["secondary_a"] = mcnemar(fr, br) | {
         "test": "paired exact McNemar, fixed_repaired vs blind_repaired",
-        **prim,
-        "cell_complete": complete,
-        "fixed_higher": fixed_higher,
-        "rejects_at_05": rejects,
-        "verdict": (
-            "E1 STANDS: a correct static goal succeeds on the very states the "
-            "lookup fails on, so the repaired states are not intrinsically too "
-            "hard and blind's collapse is the lookup failing."
-            if (complete and rejects and fixed_higher) else
-            "NOT SEPARATED at this n. E1's drop stays confounded with the "
-            "difficulty of the repaired states, and the paper says so."
-            if complete else
-            "CELL INCOMPLETE -- no verdict. A partial cell is not a result."),
+        "confound": ("these arms differ in the CONTAINER as well as the "
+                     "target: blind carries the mean basket, fixed reads the "
+                     "true one. Cannot isolate target difficulty."),
     }
 
-    # -------- SECONDARY, descriptive only
-    out["secondary"] = {
-        "fixed_repaired": out["cells"]["fixed_repaired"],
-        "blind_shipped": out["cells"]["blind_shipped"],
-        "note": "two rates with intervals; no test, no threshold, no verdict",
+    # -------- The container handicap, which is what the identity check found.
+    keys10 = sorted(set(fs) & set(bs), key=int)
+    out["container_handicap"] = mcnemar({k: fs[k] for k in keys10},
+                                        {k: bs[k] for k in keys10}) | {
+        "fixed_true_basket": f"{sum(bool(fs[k]) for k in keys10)}/{len(keys10)}",
+        "blind_mean_basket": f"{sum(bool(bs[k]) for k in keys10)}/{len(keys10)}",
+        "note": ("the identity claim was DETERMINISTIC -- same float, same "
+                 "states, deterministic controller -- so one mismatch "
+                 "falsifies it and no test is needed for that. The SIZE of "
+                 "the handicap is a different question and n=10 does not "
+                 "settle it; the p below is reported for that, not for the "
+                 "falsification."),
     }
 
     OUT.write_text(json.dumps(out, indent=1))
@@ -194,8 +238,16 @@ def main() -> None:
           f"{len(ic['mismatched_trials'])} mismatched -> "
           f"{'PASS' if ic['passes'] else 'FAIL (harness bug)'}")
     pr = out["primary"]
-    print(f"primary:  fixed-only {pr['a_only']}, blind-only {pr['b_only']}, "
-          f"p = {pr['p']}")
+    print(f"primary:  {pr['test']}")
+    print(f"          {pr['fixed_shipped']} vs {pr['fixed_repaired']}"
+          + (f", p = {pr['p']}, diff {pr['diff']} {pr['newcombe95']}"
+             if "p" in pr else ""))
+    ch = out["container_handicap"]
+    print(f"container handicap (n=10): fixed(true basket) {ch['fixed_true_basket']}"
+          f" vs blind(mean basket) {ch['blind_mean_basket']}, "
+          f"{ch['a_only']}-{ch['b_only']}, p = {ch['p']}")
+    sa = out["secondary_a"]
+    print(f"secondary-A (confounded): {sa['a_only']}-{sa['b_only']}, p = {sa['p']}")
     print(f"VERDICT:  {pr['verdict']}")
 
 
