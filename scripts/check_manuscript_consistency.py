@@ -91,11 +91,59 @@ def main() -> None:
                 problems.append(f"withdrawn claim asserted: {what}\n"
                                 f"    ...{t[max(0,h-90):h+90]}...")
 
-    # --- 4. section references that point at nothing ------------------------
+    # --- 4. numbers the paper states ABOUT ITSELF ---------------------------
+    # Errors 10 and 11 were both this: a count that was right when written and
+    # stopped being right when the thing it counted grew. These are checkable
+    # against the repository, so they should never be checked by eye again.
+    import subprocess
+    vp = REPO / "scripts" / "verify_paper_numbers.py"
+    if vp.exists():
+        out = subprocess.run([sys.executable, str(vp)], capture_output=True,
+                             text=True, cwd=REPO).stdout
+        m = re.search(r"(\d+)/(\d+) checks passed", out)
+        if m:
+            actual = int(m.group(2))
+            for q in re.finditer(r"recomputes \$?(\d+)\$? values", t):
+                if int(q.group(1)) != actual:
+                    problems.append(
+                        f"the paper says the verifier recomputes {q.group(1)} "
+                        f"values; it recomputes {actual}")
+
+    n_fig = len(re.findall(r"\\begin\{figure", t))
+    n_tab = len(re.findall(r"\\begin\{table", t))
+    for pat, actual, what in [(r"(\w+) figures", n_fig, "figures"),
+                              (r"(\w+) tables", n_tab, "tables")]:
+        for q in re.finditer(pat, t):
+            w = q.group(1).lower()
+            if w in WORDS and WORDS[w] != actual:
+                problems.append(f"the paper says {w} {what}; there are {actual}")
+
+    # rows in the errors table must match the count the text claims
+    if r"\label{tab:fooled}" in t:
+        blk = t[:t.index(r"\label{tab:fooled}")]
+        blk = blk[blk.rindex(r"\midrule"):]
+        rows = blk.count(r"\addlinespace") + 1
+        for q in re.finditer(r"\b(\w+) (?:self-inflicted )?errors\b", t, re.I):
+            w = q.group(1).lower()
+            if w in WORDS and WORDS[w] != rows:
+                problems.append(f"text says {w} errors; tab:fooled has {rows} rows")
+
+    # --- 5. section references that point at nothing ------------------------
     labels = set(re.findall(r"\\label\{([^}]*)\}", t))
     for m in re.finditer(r"\\ref\{([^}]*)\}", t):
         if m.group(1) not in labels:
             problems.append(f"dangling reference: {m.group(1)}")
+
+    # Calibration, recorded because §9 of the paper argues that an instrument
+    # only ever shown passing is not yet an instrument. Injecting each fault
+    # class into the manuscript and re-running:
+    #
+    #   stale verifier count      -> CAUGHT
+    #   stale self-count          -> CAUGHT
+    #   withdrawn claim asserted  -> CAUGHT
+    #   dangling reference        -> CAUGHT
+    #
+    # Reproduce with the harness in this file's git history.
 
     if problems:
         print("MANUSCRIPT INCONSISTENCIES\n")
