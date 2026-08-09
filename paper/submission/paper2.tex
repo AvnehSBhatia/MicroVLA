@@ -324,8 +324,10 @@ Section~\ref{sec:refute} reports our failure to establish that, and this
 experiment settles the half of it that is settleable: run two policies on task
 $0$ twice --- once on the fifty states LIBERO ships, once on fifty drawn from
 the region its own task file declares --- changing nothing else. Same weights,
-same seed, same trial indices, same machine, same package versions, both
-conditions in one batch.
+same seed, same trial indices, same machine, same package versions, one
+invocation of one script that runs the shipped condition, swaps the initial
+state files, and runs the repaired condition --- back to back, not
+interleaved.
 
 \begin{figure}[t]\centering
 \includegraphics[width=\textwidth]{../visuals/F15_e1_manipulation.png}
@@ -360,12 +362,47 @@ $p = 0.0007$. \textbf{This is the manipulation check for
 \S\ref{sec:declared}}: it establishes that the shipped states cannot defeat a
 table lookup and the repaired ones can, so the defect is load-bearing rather
 than cosmetic. The trained head drops in the same direction, $0.633 \to 0.433$,
-which this $n$ does not resolve ($p = 0.18$). Drawn per trial in
+which this $n$ does not resolve ($p = 0.18$) --- and which we would not read as
+exploitation even if it did, since the head was trained against the shipped
+states and the repaired ones are out of its training distribution. Drawn per trial in
 Figure~\ref{fig:e1}; artifact \texttt{results/e1\_shipped\_vs\_repaired.json}.}
 \label{tab:e1}
 \end{table}
 
-Two honesties about this cell. The released head reproduces here at
+\paragraph{The obvious objection, and the arm that answers it.}
+The repaired positions might simply be \emph{harder} --- in which case the drop
+measures difficulty, not exploitability, and the manipulation check proves
+nothing. Nothing in Table~\ref{tab:e1} separates those. So we ran the arm that
+does. \texttt{fixed} differs from \texttt{blind} in exactly one bit: where the
+static goal comes from. \texttt{blind} compiles in a constant read from the
+benchmark's shipped files and never looks at the episode; \texttt{fixed} takes
+one privileged look at reset and holds it, equally static thereafter. Same
+controller, same single static goal.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llll}
+\toprule
+& \texttt{fixed} holds up on repaired & \texttt{fixed} collapses too \\
+\midrule
+reading & the states are not harder for a & the states \emph{are} harder \\
+        & static goal, so the collapse is  &  \\
+        & the lookup failing               &  \\
+verdict & the check in Table~\ref{tab:e1} stands & E1's drop is confounded, \\
+        &                                        & and we say so \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Written before the arm was run.} The two outcomes and what
+each obliges us to conclude, fixed in advance so the reading cannot be chosen
+afterwards --- which is error~7 of \S\ref{sec:negative}. A third cell,
+\texttt{fixed} on \emph{shipped} states, is an identity check rather than a
+condition: on a task whose placement is pinned, the constant \texttt{blind}
+compiles in and the value \texttt{fixed} reads at reset are the same number, so
+it must reproduce $25/30$.}
+\label{tab:e5plan}
+\end{table}
+
+\paragraph{Two honesties about this cell.} The released head reproduces here at
 $19/30 = 0.633$ against its historical $0.700$, inside that interval, so the
 build is sound. But the lookup arm scored $25/30 = 0.833$ where an earlier box
 measured $6/10 = 0.600$ --- same code, different torch. We report both and
