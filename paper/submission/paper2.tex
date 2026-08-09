@@ -33,10 +33,12 @@ exploit.
 
 \textbf{The defect.} Every LIBERO task declares, in its own task file, a region
 from which to sample its target's starting position. Three of the four suites
-ship evaluation states that exercise that region. \textbf{LIBERO-Object does
-not}: it declares the largest region of the four, $5 \times 5$\,cm, and ships
-the smallest spread --- on six of its ten tasks all fifty released states place
-the target at a single point, to the last bit of a \texttt{float64}. This is
+ship evaluation states that exercise that region.
+
+\textbf{LIBERO-Object does not.} It declares the largest region of the four,
+$5 \times 5$\,cm, and ships the smallest spread: on six of its ten tasks all
+fifty released states place the target at a single point, to the last bit of a
+\texttt{float64}. This is
 arithmetic on two shipped files. No tolerance, policy, simulator or statistic
 enters it, and LIBERO-Long, given the identical region by the same generator,
 exercises $96.7$--$99.8\%$ of it.
@@ -46,18 +48,22 @@ resolve the freezing. Define the \emph{placement radius} $R$ of an object as
 the radius of the smallest disc containing every position the benchmark ships
 for it. A single task-indexed constant serves that object \emph{if and only if}
 $R \le \delta$, the tolerance below which the embodiment cannot tell two
-placements apart; where that holds, no function of episode outcomes separates a
-lookup table from a policy that perceives accurately. On the object its tasks
+placements apart.
+
+Where that holds, no function of episode outcomes separates a lookup table from
+a policy that perceives accurately. On the object its tasks
 are \emph{named} by, LIBERO-Object satisfies this on all ten tasks at the
 tolerance we measure, against two of thirty elsewhere --- both fixtures bolted
 to the scene. We report in full how weakly $\delta$ is determined, because it
 is the weakest link and our own two estimates of it disagree.
 
 \textbf{The failed demonstration.} We built the lookup policy, ran it on all
-ten tasks, and it does not settle the question. It scores $16/100$ where our
-released policy scores $8/100$, but eight of ten tasks are $0$--$0$ for both,
-and three tasks handed a constant $0.469$\,mm from a fourth's --- in all three
-axes --- score $0/10$ where it scores $10/10$. Half a millimetre of goal cannot
+ten tasks, and it does not settle the question.
+
+It scores $16/100$ where our released policy scores $8/100$ --- but eight of
+ten tasks are $0$--$0$ for both, and three tasks handed a constant
+$0.469$\,mm from a fourth's, in all three axes, score $0/10$ where it scores
+$10/10$. Half a millimetre of goal cannot
 separate those outcomes: the successes are governed by the object, not the
 constant. We withdraw the behavioural claim, report the experiment that would
 replace it, and record the four ways this work misled us --- including one
@@ -109,11 +115,13 @@ what a score \emph{could} certify rather than report what one model did.}
 \end{table}
 
 \paragraph{The framing is not new either.} While this work was in revision,
-\citet{jiang2026benchmarking} defined \emph{shortcut solvability} --- a
-benchmark score is evidence of capability only if every policy reaching it has
-the capability --- audited five manipulation benchmarks including all of
-LIBERO, and showed a $0.09$B probe with no language encoder scoring within one point
-of the best published result on three of LIBERO's four splits, and $100.0\%$ on
+\citet{jiang2026benchmarking} defined \emph{shortcut solvability}: a benchmark
+score is evidence of capability only if every policy reaching it has the
+capability.
+
+They audit five manipulation benchmarks including all of LIBERO, and show a
+$0.09$B probe with no language encoder scoring within one point of the best
+published result on three of LIBERO's four splits, and $100.0\%$ on
 LIBERO-Object. That is our Corollary~\ref{cor:sep}
 in content and a stronger empirical demonstration of it than ours. Our
 \emph{blind} arm is likewise the manipulation instance of the unimodal ablation
@@ -121,7 +129,7 @@ that \citet{thomason2019shifting} established in embodied AI. We claim no
 novelty for either move.
 
 What remains ours is the \emph{a priori} half. Their diagnostic requires
-training a probe and running it; $R$ is a property of the shipped files, so it
+training a probe and running it. $R$ is a property of the shipped files, so it
 bounds what a score could certify before a GPU is switched on, and it says
 \emph{which} object in a task carries the degeneracy. Their result is the symptom. The radius is a candidate explanation for
 \emph{part} of it and cannot be the whole: on Spatial, Goal and Long our own
@@ -182,6 +190,20 @@ and it is fixed. The script names the claims it does \emph{not} cover, and one
 of them matters: the historical $0.700 = 35/50$ cell that opens this paper was
 measured before we shipped per-trial logs, and its trial record is not in the
 repository.
+
+\begin{figure*}[t]\centering
+\includegraphics[width=0.94\linewidth]{../visuals/F12_dependency.png}
+\caption{\textbf{What each claim in this paper rests on.} The tolerance
+$\delta$ is this work's weakest link --- our two measurements of it disagree by
+a factor of $1.4$, and the separation it licenses lives on a $0.32$\,cm window
+--- so rather than leave a reader to reconstruct the dependency from prose, we
+draw it. \textbf{Nothing in the top tier depends on $\delta$, on a controller,
+on a policy, or on a statistic}: it is arithmetic on files the benchmark ships.
+A reader who rejects the middle tier outright still keeps the top one. The
+bottom tier is claims this paper made and withdrew, kept visible so the record
+is legible. Generated by \texttt{paper/render\_fig12\_dependency.py}.}
+\label{fig:dependency}
+\end{figure*}
 
 \paragraph{Scope, stated once and up front.} All results are simulation. Every
 confirmatory cell is one task and one object unless stated. Cell sizes are given
@@ -358,6 +380,19 @@ not a definition. \S\ref{sec:refute} measures it directly and finds a radius of
 about $1.4$\,cm on this controller --- and finds that the radius is not the
 same number on every task, which is a real limitation of what follows.
 
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F11_radius_criterion.png}
+\caption{\textbf{Definition~\ref{def:D} and Proposition~\ref{prop:lookup},
+drawn.} One task per suite, each at its suite's median radius. Dots are the
+fifty shipped target positions; the solid circle is the smallest disc
+containing them, so its radius \emph{is} $R$ and its centre \emph{is} the
+constant the proof of Proposition~\ref{prop:lookup} constructs. The shaded disc
+is the tolerance $\delta$. The criterion $R \le \delta$ is then a picture: the
+shipped points fit inside the shaded disc, or they do not. Generated by
+\texttt{paper/render\_fig11\_radius.py}.}
+\label{fig:criterion}
+\end{figure*}
+
 \begin{proposition}[Lookup sufficiency]
 \label{prop:lookup}
 If $R_t(o) \le \delta$ for every object of every task in a suite and A1 holds
@@ -463,8 +498,7 @@ both are fixtures that never move at all.}
 identity radius is $1.171$\,cm; the smallest among the other suites' twenty-eight
 \emph{movable} targets is $1.492$\,cm. Every $\delta$ in that gap returns the
 same verdict, and the radius we measure for this controller
-($\approx 1.41$\,cm, \S\ref{sec:refute}) falls inside it. That is the one
-coincidence in this paper that went our way, and we say plainly that it is one:
+($\approx 1.41$\,cm, \S\ref{sec:refute}) falls inside it. This is a coincidence, and we treat it as one:
 the window is $0.32$\,cm wide, and at a $2$\,cm tolerance most of LIBERO-Spatial
 and LIBERO-Goal would be admissible as well. Appendix~\ref{app:deltasens} gives
 the whole curve. \textbf{The verdict is conditional on a measurement we make
@@ -705,8 +739,7 @@ any $p$. Artifact: \texttt{results/suite\_inference.json}.}
 \end{table}
 
 \paragraph{The constant did not produce the successes.} This is the sharper
-finding, and it comes from the same run. It also cost us a claim: an earlier
-version compared the ten constants \emph{in the table plane} and said they were
+finding, and it comes from the same run. An earlier version compared the ten constants \emph{in the table plane} and said they were
 identical to within a millimetre. The arm is handed a $3$-vector, and in three
 dimensions the two position groups differ by $40.0$ and $35.0$\,mm on $z$. That
 sentence was true in $2$D and false as written.
@@ -735,15 +768,14 @@ score $0$, $0$, $0$ and $10$ out of ten. This is a deterministic contrast, not
 a statistical one. We previously also offered a correlation between placement
 radius and success ($r = +0.52$) as evidence here; \textbf{we withdraw it}. Its
 exact permutation $p$ is $0.13$ and deleting task $3$ flips it to $-0.25$ ---
-the sign is one task, which is the error this section exists to confess.
+the sign is one task, the error this section reports.
 Artifact: \texttt{results/constant\_attribution.json}.}
 \label{tab:attrib}
 \end{table}
 
 What varies across those tasks is the object, not the number. So the blind
 arm's two non-zero cells are evidence that \emph{this controller can grasp two
-of ten groceries}, and not evidence about lookup. \textbf{We withdraw the
-suite-level claim.}
+of ten groceries}, and not evidence about lookup. \textbf{We withdraw the suite-level claim.}
 
 \paragraph{Where A1 does break, we can see it.} One place in this data does
 behave the way the proposition expects. On task $0$ the blind arm reaches the
@@ -782,8 +814,7 @@ if the score is flat in $r$, the arm never used the number. We implemented it
 ran. Until it does, the strongest statement the suite supports is the negative
 one above.
 
-\paragraph{What survives.} Two things, and we think they are the more useful
-two. First, on task $3$ a constant scores $10/10$ where the trained head scores
+\paragraph{What survives.} Two things, First, on task $3$ a constant scores $10/10$ where the trained head scores
 $0/10$ --- a single task-level event, so we quote no $p$ for it, but a striking
 one: the head is not merely worse there, it never succeeds.
 
@@ -1163,6 +1194,7 @@ assumes the trials are the same trials.}
 
 \noindent \textbf{The aggregate is identical and $40\%$ of the episodes are
 not} --- but we can no longer attribute that to the backend \emph{change}.
+
 MuJoCo's software and EGL renderers are documented as nondeterministic
 \emph{within} a backend, so repeated renders of one state need not agree, and a
 $4/10$ disagreement is consistent with that alone. The control this needs is
@@ -1349,7 +1381,7 @@ execute a manipulation \emph{given} a correct target pose --- and nothing
 whatever about how it obtained one. That is a statement about what the score
 \emph{could} distinguish, and it is exactly as strong as A1.
 
-We are careful here because we already overreached once. Our own cells do not
+We state this narrowly because we already overreached once. Our own cells do not
 demonstrate that any policy exploited the degeneracy; \S\ref{sec:refute} shows
 they cannot. What the radius buys is a check that runs before training, and a
 prediction --- that a suite with small radii admits a cheap solution --- which
