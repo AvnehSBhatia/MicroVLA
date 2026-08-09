@@ -184,7 +184,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $136$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $139$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -457,9 +457,13 @@ received the same goal.
 Three consequences, none of them cosmetic.
 
 \textbf{(i) The lookup arm is handicapped, not favoured.} Its $25/30$ was
-scored while paying for a container it is not allowed to look at. Across those
-ten trials its failures carry a mean basket displacement of $1.59$\,cm against
-$1.01$\,cm for its successes (exact permutation $p = 0.0095$).
+scored while paying for a container it is not allowed to look at. This is not a
+new observation --- \S\ref{sec:refute} already reports it, with its confound ---
+and what \emph{is} new is that a run on different hardware and a different
+\texttt{torch} reproduced the historical cell \textbf{trial for trial}: the
+same six successes, the same four failures, the same $4$--$0$ discordance
+against an arm that reads the true container ($p = 0.125$ at $n{=}10$, then as
+now).
 
 \textbf{(ii) The isolating comparison is \texttt{fixed} against
 \texttt{fixed}.} Shipped versus repaired, where the basket distribution is
@@ -492,12 +496,18 @@ time; leaving it out would be error~9.
 
 \paragraph{Two honesties about this cell.} The released head reproduces here at
 $19/30 = 0.633$ against its historical $0.700$, inside that interval, so the
-build is sound. But the lookup arm scored $25/30 = 0.833$ where an earlier box
-measured $6/10 = 0.600$ --- same code, different torch. We report both and
-adopt neither, because \S\ref{sec:cert} is about exactly this and it would be
-absurd to quietly keep the flattering one. Nothing above depends on the
-cross-build comparison: both conditions of Table~\ref{tab:e1} ran back to back
-in one invocation on one machine.
+build is sound. \textbf{And the cross-build discrepancy we were about to
+disclose is not there.} The lookup arm scores $25/30 = 0.833$ here where an
+earlier box, on a different \texttt{torch}, measured $6/10 = 0.600$; our first
+instinct was to report that as a build effect, which \S\ref{sec:cert} would
+predict. It is not one. The two runs share ten trials and agree on
+\emph{every one}, outcome for outcome --- \texttt{TTTTTTFFFF} on both. The gap
+is the twenty trials only the newer cell ran, where the arm scores $19/20$. We
+had compared a ten-trial slice with a thirty-trial one and called the
+difference a platform. That is the structure of \S\ref{sec:neg}'s nine
+exactly, and it is the only instance we have caught of it running
+\emph{against} us --- which is worth saying, because it puts the danger in the
+invisibility of the slice rather than in a bias of direction.
 
 That leaves the question this paper exists to answer. A frozen placement is
 only a problem if a policy can exploit it, and whether it can is a question

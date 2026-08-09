@@ -256,8 +256,23 @@ _rank = {v: i + 1 for i, v in enumerate(sorted(_dev))}
 _obs = sum(_rank[x] for x in _f)
 _tot = sum(1 for c in combinations(range(10), len(_f))
            if sum(_rank[_dev[j]] for j in c) >= _obs)
-check("E5 basket association, exact permutation p", 0.0095,
-      _tot / math.comb(10, len(_f)), 0.0005)
+# TWO-sided, to match the value §6 already quotes for this same test. The
+# first draft of this check quoted the one-sided 0.0095 while §6 quoted the
+# two-sided 0.019 -- the same association, in one manuscript, at two tail
+# conventions. Caught by cross-reading, not by any checker.
+check("E5 basket association, exact permutation p (two-sided, = §6's)", 0.019,
+      2 * _tot / math.comb(10, len(_f)), 0.001)
+
+# The cross-build claim, settled: the historical cell and this one share ten
+# trials and must agree on all ten, outcome for outcome.
+_hist = J("results/blind_cells.json")["blind_t0"]["trials"]
+_now = E1["cells"]["blind_shipped"]["trials"]
+check("cross-build: historical blind_t0 is 6/10", 6.0,
+      float(sum(_hist.values())), 0.5)
+check("cross-build: the two runs agree on all ten shared trials", True,
+      all(bool(_hist[k]) == bool(_now[k]) for k in _hist))
+check("cross-build: the gap is the 20 trials only one run did (19/20)", 19.0,
+      float(sum(_now[str(i)] for i in range(10, 30))), 0.5)
 check("E5 basket spread across shipped states (cm)", 2.949,
       float((_b.max(0) - _b.min(0)).max()) * 100, 0.01)
 
