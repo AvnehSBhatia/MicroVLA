@@ -145,8 +145,8 @@ LIBERO-Object: $10/10$ tasks admissible. Every other suite: $0/28$ \\
 2 & The proposition executed (\S\ref{sec:constant}) &
 shipped-files constant $6/10$ vs.\ trained policy $8/10$, $p = 0.50$ \\
 \addlinespace
-3 & The prediction made \emph{within} a task (\S\ref{sec:constant}) &
-pinned sub-goal $10/10$, randomised sub-goal $6/10$, same controller \\
+3 & \dots\ and run on the whole suite (\S\ref{sec:fullsuite}) &
+constant $\mathbf{16/100}$ vs.\ trained policy $8/100$; paired $p = 0.039$ \\
 \addlinespace
 4 & Four-layer mechanism audit, two layers outside the model (\S\ref{sec:audit}) &
 a scripted expert's constant, and our own checkpoint-selection loop \\
@@ -155,7 +155,8 @@ a scripted expert's constant, and our own checkpoint-selection loop \\
 probe-identical heads score $0.000$/$0.700$; the renderer flips $40\%$ of episodes \\
 \addlinespace
 6 & Falsification record (\S\ref{sec:neg}) &
-two registered predictions failed; one repair claim withdrawn \\
+two registered predictions failed; one repair claim withdrawn; one reading of
+our own headline retracted by \S\ref{sec:constant} \\
 \bottomrule
 \end{tabular}
 \caption{What this paper claims, where it is measured, and the number that
@@ -1383,12 +1384,18 @@ choice.}
 A manipulation benchmark score is not a measurement of capability until the
 benchmark's admissibility has been measured. We gave the measurement, showed
 that exactly one LIBERO suite fails it, and ran the policy its failure
-predicts --- which the benchmark cannot tell apart from the one we trained.
+predicts. Across the suite that policy --- which has no camera, no language and
+no learned parameter, and never sees the episode --- \textbf{outscores the one
+we trained}, $16/100$ against $8/100$, $p = 0.039$ on matched trials.
+
+We report that as a fact about the benchmark and a fact about our artifact at
+once, because it is both, and because a suite-level score would have let us
+report only the flattering half.
 
 What survives is not the artifact but the procedure: measure the benchmark
 first, localise the stage second, repair with data third, certify jointly in
-\emph{(head, stack)} --- and report, as we have, the repairs that did not
-survive being powered up.
+\emph{(head, stack)} --- and report, as we have, the claims that did not survive
+being powered up, including one of our own from four pages earlier.
 
 \appendix
 
