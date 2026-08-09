@@ -208,7 +208,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $195$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $197$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -1277,8 +1277,10 @@ That is what happened. On every task pair that reached its planned $n$, both
 arms score $0/10$ --- the oracle included. The controller cannot do
 LIBERO-Spatial at all, so the cell says nothing about constants, and we report
 it as \textbf{uninformative} rather than as the confirmation it would have
-looked like. The compute window closed with three of the five task pairs
-complete; the rest are reported as not run, not as null
+looked like. The compute window closed with four of the five task pairs
+complete --- \textbf{eighty episodes, eighty failures}, across both arms ---
+and the fifth is
+reported as not run, not as null
 (\texttt{results/e23\_analysis.json}).
 
 \paragraph{The caveat that would rescue us, and why we do not lean on it.}
