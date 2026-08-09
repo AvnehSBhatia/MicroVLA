@@ -88,7 +88,26 @@ def main() -> None:
                 if xy:
                     per[o["object"]] = (chebyshev_radius_cm(np.asarray(xy)),
                                         diameter_cm(np.asarray(xy)))
-            # A required object with no free joint never moves: R = D = 0.
+            # A required object with no free joint never moves: R = D = 0. But
+            # "no free joint" and "the name did not resolve" must not be the
+            # same code path -- an adversarial reviewer pointed out that our
+            # `fixture` flag WAS the lookup failure, so a naming bug would have
+            # been reported as maximal admissibility. Unresolved names must be
+            # on this list explicitly or the run stops.
+            FIXTURES = {
+                "wooden_cabinet_1_middle_region", "wooden_cabinet_1_top_region",
+                "wooden_cabinet_1_top_side", "flat_stove_1",
+                "flat_stove_1_cook_region", "main_table_stove_front_region",
+                "wine_rack_1_top_region", "white_cabinet_1", "desk_caddy_1",
+                "microwave_1",
+            }
+            for n in [ident_name] + [n for n in req if n != ident_name]:
+                if n not in per and n not in FIXTURES:
+                    raise RuntimeError(
+                        f"{suite}/{t['task']}: required object {n!r} has no "
+                        "resolved placement and is not a declared fixture. "
+                        "Refusing to default its radius to zero, which would "
+                        "report a naming bug as perfect admissibility.")
             ident = per.get(ident_name, (0.0, 0.0))
             shared = [per.get(n, (0.0, 0.0)) for n in req if n != ident_name]
             rows.append({
@@ -149,6 +168,57 @@ def main() -> None:
             "others_n_tasks": sum(out["suites"][s]["n_tasks"] for s in others),
         },
     }
+    # --- l_infinity, computed rather than asserted ------------------------
+    def linf_R(P):
+        P = np.asarray(P, dtype=float)
+        return float(((P.max(0) - P.min(0)) / 2).max() * 100)
+
+    linf = {}
+    for suite, S in J["suites"].items():
+        rs = []
+        for t in S["tasks"]:
+            o = next((o for o in t["objects"]
+                      if o["object"] == t["primary_target"]), None)
+            rs.append(linf_R(o["xy_per_state_m"])
+                      if (o and o.get("xy_per_state_m")) else 0.0)
+        linf[suite] = rs
+    out["linf_identity_R_cm"] = {k: [round(v, 4) for v in v_] for k, v_ in linf.items()}
+    out["linf_admissible_at_1_4"] = {k: int(sum(1 for v in v_ if v <= 1.4))
+                                     for k, v_ in linf.items()}
+
+    # --- how much does "identity-bearing" depend on how we pick it? -------
+    # goi[0] is what the code uses; it is NOT the same as "the element unique
+    # to this task", and on three suites those differ.
+    alts = {}
+    for rule in ("first", "unique", "last"):
+        tot_obj = tot_oth = n_oth = 0
+        for suite, S in J["suites"].items():
+            counts: dict = {}
+            for t in S["tasks"]:
+                g = t.get("obj_of_interest") or []
+                counts[g[0] if g else None] = counts.get(g[0] if g else None, 0) + 1
+            for t in S["tasks"]:
+                g = t.get("obj_of_interest") or []
+                if not g:
+                    continue
+                if rule == "first":
+                    name = g[0]
+                elif rule == "last":
+                    name = g[-1]
+                else:
+                    uniq = [n for n in g if counts.get(n, 0) <= 1]
+                    name = uniq[0] if uniq else g[0]
+                o = next((o for o in t["objects"] if o["object"] == name), None)
+                r = (chebyshev_radius_cm(np.asarray(o["xy_per_state_m"]))
+                     if (o and o.get("xy_per_state_m")) else 0.0)
+                if suite == "libero_object":
+                    tot_obj += int(r <= 1.4)
+                else:
+                    tot_oth += int(r <= 1.4); n_oth += 1
+        alts[rule] = {"object_admissible": tot_obj,
+                      "elsewhere_admissible": tot_oth, "elsewhere_n": n_oth}
+    out["identity_rule_sensitivity"] = alts
+
     Path(REPO / "results/admissibility.json").write_text(json.dumps(out, indent=2))
 
     print("Chebyshev radius R of the IDENTITY-BEARING object (the one that")

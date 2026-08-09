@@ -42,20 +42,20 @@ the outlier on the object its tasks are \emph{named} by. All ten
 LIBERO-Object tasks pin that object to $R \le 1.17$\,cm; among the other thirty
 tasks only two do, and both are fixtures bolted to the scene. Six of
 LIBERO-Object's ten targets take just two \texttt{float64} values, one unit in
-the last place apart, across all fifty shipped states. No suite pins the shared
-container, LIBERO-Object included.
+the last place apart, across all fifty shipped states. On the shared container the ordering reverses --- LIBERO-Object pins it
+in none of its ten tasks and LIBERO-Goal in six of eight.
 
 We then run the lookup policy the proposition describes, on all ten tasks. It
 scores $16/100$ against our released policy's $8/100$ --- and \textbf{that
 comparison supports nothing}, and showing why is the paper's other half.
 
 All twelve discordant trials fall in two tasks and ten of them in one, so the
-trial-level test we first reported ($p = 0.039$) is inflated by a design effect
-of $8.4$; at the task level it is $p = 1.0$. Worse for us, tasks handed
-constants identical to within a millimetre score anywhere from $0/10$ to
-$10/10$, and success correlates \emph{positively} with placement radius
-($r = +0.52$), the opposite of what the lookup reading predicts. The goal supply is
-not what produced the successes.
+trial-level test we first reported ($p = 0.039$) counts ten replicates of one
+task as ten trials; at the task level the design has two informative units and
+resolves nothing in either direction. Worse for us, three tasks handed a
+constant $0.469$\,mm from a fourth's --- in all three axes --- score $0/10$
+where it scores $10/10$. Half a millimetre of goal cannot separate those
+outcomes, so the goal supply is not what produced the successes.
 
 One honest caveat on all of that. The \emph{radius} needs no model --- it is
 arithmetic on shipped files. The \emph{verdict} does, because it needs
@@ -163,9 +163,9 @@ outside the model (\S\ref{sec:audit}); and a falsification record
 
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes every number in
-\S\ref{sec:adm} and \S\ref{sec:refute} \emph{from the per-trial outcomes and
-the shipped initial states} --- including every hypothesis test --- and fails
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $58$ values across
+\S\ref{sec:adm} and \S\ref{sec:refute} from the per-trial outcomes and the
+shipped initial states, including the tests those sections turn on --- and fails
 on disagreement. An earlier version of that script checked $p$-values by
 reading them back out of the JSON that wrote them, which is a consistency check
 between two copies of a number and not a re-derivation; a reviewer caught it
@@ -320,8 +320,12 @@ tolerance we measure for this controller (\S\ref{sec:refute}).
 \textbf{LIBERO-Object pins all ten of the objects its tasks are individuated
 by; elsewhere two of thirty}, and $^\dagger$both of those are the fixture tasks
 --- a drawer and a stove --- which have $R = 0$ because they are bolted down,
-not because a randomisable placement was frozen. \emph{No} suite is admissible
-on the shared container, LIBERO-Object included. Artifact:
+not because a randomisable placement was frozen. On the shared container the ordering
+\textbf{reverses}: LIBERO-Object pins it in $0$ of $10$ tasks and LIBERO-Goal
+in $6$ of $8$, whose shared objects are fixtures. So LIBERO-Object is not the
+suite that pins the most --- it is the suite that pins the object its tasks are
+\emph{named} by, which is the distinction this paper is about and the reason
+the two columns are reported separately. Artifact:
 \texttt{results/admissibility.json}.}
 \label{tab:suites}
 \end{table}
@@ -374,6 +378,17 @@ for the alphabet soup. The fifty shipped states place it at one point. So the
 pinning is an artifact of state generation, not of benchmark design --- which
 makes it cheap to fix, and is the strongest argument in this paper for
 re-sampling rather than redesigning.
+
+\paragraph{How we pick the identity-bearing object, and how much it matters.}
+We take it to be the first entry of the task's declared
+\texttt{obj\_of\_interest}. That is \emph{not} the same as ``the object unique
+to this task'': in $22$ of $40$ tasks the first entry is shared with a sibling
+task, and LIBERO-Object is the one suite where the two rules coincide. Under
+the stated semantics instead --- take the entry unique to the task --- the
+count elsewhere goes from $2/30$ to $\mathbf{8/30}$; taking the last entry (the
+destination) reverses the result entirely, to $0/10$ against $16/30$. The
+verdict is a function of a labelling choice, and we report all three
+(\texttt{results/admissibility.json}).
 
 \paragraph{The separation is partly built into how LIBERO is organised, and we
 should say so.} A referee put this sharply and it is correct. LIBERO-Object's
@@ -602,41 +617,51 @@ task ($n{=}10$) & cluster bootstrap & $[-0.06, +0.30]$ & valid \\
 \end{tabular}
 \caption{The same comparison at two units of analysis. Trials within a task
 share an object, a scene, a goal supply and a near-deterministic trajectory, so
-the trial-level test is anti-conservative by a design effect of $8.4$.
-\textbf{There is no suite-level difference between the two policies at the
-unit this design randomises over.} Artifact:
-\texttt{results/suite\_inference.json}.}
+the trial-level test is anti-conservative. \textbf{The task-level tests do not
+show equivalence --- they show this design cannot resolve the question in
+either direction.} With eight ties the sign test has two informative units and
+its smallest attainable $p$ is $0.5$; the permutation test has four
+arrangements and the same floor. Reading $p = 1.0$ as ``no difference'' would
+repeat, in the other direction, the error this section withdraws. The design
+effect ($\approx 8$, bootstrap $[5.4, 10.0]$, estimated from one non-degenerate
+cluster) is reported as a description of the clustering, not as a correction to
+any $p$. Artifact: \texttt{results/suite\_inference.json}.}
 \label{tab:fullsuite}
 \end{table}
 
-\paragraph{The constant is not what produced the successes.} This is the
-sharper finding, and it comes from the same run.
+\paragraph{The constant did not produce the successes.} This is the sharper
+finding, and it comes from the same run. It also cost us a claim: an earlier
+version compared the ten constants \emph{in the table plane} and said they were
+identical to within a millimetre. The arm is handed a $3$-vector, and in three
+dimensions the two position groups differ by $40.0$ and $35.0$\,mm on $z$. That
+sentence was true in $2$D and false as written.
 
-If the blind arm's score came from the constant being close to the truth, tasks
-handed the \emph{same} constant would score alike. Table~\ref{tab:attrib} shows
-they do not. The ten tasks fall into two groups by table position; within each,
-the constants agree to under a millimetre; and within each, the scores range
-from $0$ to $10$.
+What survives is one comparison, and it needs no statistics.
+\textbf{Tasks $2$, $5$ and $9$ are handed a constant $0.469$\,mm from task
+$3$'s in full three dimensions. They score $0/10$. Task $3$ scores $10/10$.}
+Half a millimetre of goal, against a tolerance of centimetres, cannot separate
+a total failure from a clean sweep.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{llr}
+\begin{tabular}{lrr}
 \toprule
-tasks & constants agree to & blind scores \\
+task & distance from task $3$'s constant (3D) & blind \\
 \midrule
-$0, 4, 6, 7, 8$ & $0.95$\,mm & $6, 0, 0, 0, 0$ \\
-$1, 2, 3, 5, 9$ & $0.63$\,mm & $0, 0, \mathbf{10}, 0, 0$ \\
+3 \ \texttt{bbq\_sauce} & --- & $\mathbf{10/10}$ \\
+2 \ \texttt{salad\_dressing} & $0.469$\,mm & 0/10 \\
+5 \ \texttt{tomato\_sauce} & $0.469$\,mm & 0/10 \\
+9 \ \texttt{orange\_juice} & $0.469$\,mm & 0/10 \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{The goal supply does not explain the outcome.} Tasks whose
-constants are identical to within a millimetre score anywhere from $0/10$ to
-$10/10$. Tasks given a \emph{bit-exact} constant ($R=0$) score $6/60$; tasks
-given the loosest constants ($R > 1$\,cm) score $10/40$. The correlation between placement radius and success is
-$r = +0.52$. We attribute that to the informal lookup reading rather than to
-Proposition~\ref{prop:lookup}, whose hypotheses do not hold here anyway ---
-admissibility fails on the container, A1 is task-dependent, and our policy is
-outside Corollary~\ref{cor:sep}'s class. Artifact:
-\texttt{results/constant\_attribution.json}.}
+\caption{\textbf{The goal supply does not explain the outcome.} Four tasks
+receive the same constant to within half a millimetre in all three axes and
+score $0$, $0$, $0$ and $10$ out of ten. This is a deterministic contrast, not
+a statistical one. We previously also offered a correlation between placement
+radius and success ($r = +0.52$) as evidence here; \textbf{we withdraw it}. Its
+exact permutation $p$ is $0.13$ and deleting task $3$ flips it to $-0.25$ ---
+the sign is one task, which is the error this section exists to confess.
+Artifact: \texttt{results/constant\_attribution.json}.}
 \label{tab:attrib}
 \end{table}
 
@@ -1270,8 +1295,13 @@ same rate and a different $40\%$ of episodes under a different renderer.
 \begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
 \item One simulator, one benchmark suite, one robot, wrist camera only.
 \item Every confirmatory cell is one task and one object at $n \le 30$,
-including the blind arm ($n{=}10$). The suite-level claims (\S\ref{sec:adm})
-are the ones computed from files and do not have this limit.
+including the blind arm ($n{=}10$). The \emph{radii} of \S\ref{sec:adm} are
+computed from files and carry no such limit; the \emph{verdict} does, because
+it needs $\delta$.
+\item One $10$-trial cell (the released head on task $0$, seed $20$) appears in
+five reported results: the suite total, the blind comparator, the renderer
+table's \texttt{osmesa} arm, the instruction-swap baseline, and the
+reproduction check. It is one sample, not five.
 \item The held-out band is partially burned; the disclosure is in
 \S\ref{sec:platform} and the bound in \S\ref{sec:repairs}.
 \item The on-manifold limit of substitution probes is a limit on our own
@@ -1350,17 +1380,36 @@ apply}, and only the second is used for suites the first cannot parse.
 Artifacts: \texttt{results/suite\_forensics\_columns.json} (digests),
 \texttt{results/suite\_forensics\_joints.json} (per-object positions).
 
-\section{The norm}
+\section{The norm, recomputed}
 \label{sec:norm}
 
-Definition~\ref{def:D} uses the Euclidean norm. A1 is naturally stated in
-$\ell_\infty$, because LIBERO randomises placement in an axis-aligned box, and
-the two differ by up to $\sqrt{2}$ in the plane. Recomputing
-Table~\ref{tab:suites} under $\ell_\infty$ at $\delta = 1.4$\,cm leaves
-LIBERO-Object at $10/10$ and moves one LIBERO-Spatial task across the line
-($1/10$ instead of $0/10$). The comparison is unchanged; the exact count in one
-suite is not. We report the Euclidean version throughout and flag the
-dependence here rather than leaving a reader to find it.
+Definition~\ref{def:D} uses the Euclidean norm; A1 is naturally stated in
+$\ell_\infty$, because LIBERO randomises placement in an axis-aligned box. A
+previous version of this appendix asserted, without computing it, that the
+switch changed one LIBERO-Spatial task and left the comparison intact. That was
+wrong, and a referee caught it. Computed
+(\texttt{results/admissibility.json}), at $\delta = 1.4$\,cm:
+
+\begin{center}\footnotesize
+\begin{tabular}{lrr}
+\toprule
+suite & $\ell_2$ & $\ell_\infty$ \\
+\midrule
+Object & 10/10 & 10/10 \\
+Spatial & 0/10 & 0/10 \\
+Goal & 2/10 & \textbf{3/10} \\
+Long & 0/10 & 0/10 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent \textbf{Under $\ell_\infty$ the ``both are fixtures'' clause fails.}
+The third LIBERO-Goal task to cross is \texttt{put\_the\_bowl\_on\_the\_stove},
+whose bowl moves. The $\ell_\infty$ separating window is
+$[0.97, 1.38)$\,cm, which \emph{excludes} the $\delta = 1.41$\,cm we use. So in
+the norm we ourselves call natural for A1, the headline does not hold. We
+report the Euclidean version because it is the one our $\delta$ was measured
+in, and we flag that this is a choice the result is sensitive to.
 
 \section{Sensitivity of the verdict to $\delta$}
 \label{app:deltasens}

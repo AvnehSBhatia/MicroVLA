@@ -110,6 +110,23 @@ othfx = np.concatenate([fixture[s] for s in radii if s != "libero_object"])
 check("other tasks admissible at 1.4 cm", 2.0, float((others <= 1.4).sum()), 0.5)
 check("other tasks total", 30.0, float(len(others)), 0.5)
 check("both exceptions are fixtures", True, bool(othfx[others <= 1.4].all()))
+# the reversal on the shared object, which the caption now leads with
+_ADM = J("results/admissibility.json")["suites"]
+for _s, _n in [("libero_object", 0), ("libero_goal", 6)]:
+    _sh = [t["shared_R_cm_max"] for t in _ADM[_s]["tasks"]
+           if t["shared_R_cm_max"] is not None]
+    check(f"{_s}: shared object admissible at 1.4", float(_n),
+          float(sum(1 for v in _sh if v <= 1.4)), 0.5)
+# l_inf, computed rather than asserted
+_LI = J("results/admissibility.json")["linf_admissible_at_1_4"]
+for _s, _n in [("libero_object", 10), ("libero_spatial", 0),
+               ("libero_goal", 3), ("libero_10", 0)]:
+    check(f"l_inf {_s} admissible at 1.4", float(_n), float(_LI[_s]), 0.5)
+# how much the identity-bearing rule matters
+_IR = J("results/admissibility.json")["identity_rule_sensitivity"]
+check("identity rule 'first': elsewhere", 2.0, float(_IR["first"]["elsewhere_admissible"]), 0.5)
+check("identity rule 'unique': elsewhere", 8.0, float(_IR["unique"]["elsewhere_admissible"]), 0.5)
+check("identity rule 'last': Object", 0.0, float(_IR["last"]["object_admissible"]), 0.5)
 check("smallest movable radius elsewhere (cm)", 1.49, float(others[~othfx].min()))
 check("elsewhere admissible at the LARGER tolerance estimate", 13.0,
       float((others <= 1.914).sum()), 0.5)
@@ -163,23 +180,36 @@ check("task-level permutation p", 1.0, cnt / tot, 0.001)
 
 print("\n=== §5 attribution: the refutation, recomputed ===")
 tasks = FJ["suites"]["libero_object"]["tasks"]
+# FULL 3D. The arm is handed a 3-vector, and an earlier version of this check
+# compared only the table plane -- which is how the paper came to claim the
+# constants were "identical to within a millimetre" when they differ by 40 mm
+# on z. The decisive comparison is the 0.469 mm triple, and it must be 3D.
 C = np.array([next(o for o in t["objects"]
-                   if o["object"] == t["primary_target"])["mean_xyz_m"][:2] for t in tasks])
+                   if o["object"] == t["primary_target"])["mean_xyz_m"] for t in tasks])
 dmm = np.linalg.norm(C[:, None, :] - C[None, :, :], axis=-1) * 1000
-gA, gB = [0, 4, 6, 7, 8], [1, 2, 3, 5, 9]
-check("group A constants agree to (mm)", 0.95, float(dmm[np.ix_(gA, gA)].max()), 0.02)
-check("group B constants agree to (mm)", 0.63, float(dmm[np.ix_(gB, gB)].max()), 0.02)
-check("group A blind scores span 0..6", True,
-      [int(bk[i]) for i in gA] == [6, 0, 0, 0, 0])
-check("group B blind scores span 0..10", True,
-      [int(bk[i]) for i in gB] == [0, 0, 10, 0, 0])
+for t in (2, 5, 9):
+    check(f"task {t} vs task 3, 3D distance (mm)", 0.469, float(dmm[t, 3]), 0.005)
+    check(f"task {t} blind score", 0.0, float(bk[t]), 0.5)
+check("task 3 blind score", 10.0, float(bk[3]), 0.5)
+check("group A 3D spread is NOT sub-mm (the retracted claim)", True,
+      float(dmm[np.ix_([0, 4, 6, 7, 8], [0, 4, 6, 7, 8])].max()) > 30.0)
 Rv = radii["libero_object"]
-check("r(radius, blind successes)", 0.52,
-      float(np.corrcoef(Rv, bk.astype(float))[0, 1]), 0.02)
+_r = float(np.corrcoef(Rv, bk.astype(float))[0, 1])
+check("r(radius, successes) -- reported as WITHDRAWN", 0.52, _r, 0.02)
+import itertools as _it
+_perm = np.array([np.corrcoef(Rv, np.array(q, float))[0, 1]
+                  for q in _it.permutations(bk.astype(float))])
+check("r permutation p (why it is withdrawn)", 0.133,
+      float((np.abs(_perm) >= abs(_r) - 1e-12).mean()), 0.005)
+_m = [i for i in range(10) if i != 3]
+check("r flips sign without task 3", -0.25,
+      float(np.corrcoef(Rv[_m], bk.astype(float)[_m])[0, 1]), 0.01)
 
 print("\n=== §7 certification ===")
 T = J("results/thread_determinism.json")
-check("thread fields identical", True, bool(T["all_identical"]))
+_f = T["fields"]
+check("thread fields identical (RECOMPUTED, not read back)", True,
+      _f["1"] == _f["4"] == _f["128"])
 check("thread comparison horizon (steps)", 40.0,
       float(T["fields"]["4"]["steps"]), 0.5)
 

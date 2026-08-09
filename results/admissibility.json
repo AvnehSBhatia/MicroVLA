@@ -571,5 +571,78 @@
       "others_total": 2,
       "others_n_tasks": 30
     }
+  },
+  "linf_identity_R_cm": {
+    "libero_object": [
+      0.0,
+      0.4896,
+      0.0,
+      0.972,
+      0.0,
+      0.0,
+      0.4869,
+      0.492,
+      0.0,
+      0.0
+    ],
+    "libero_spatial": [
+      1.4637,
+      1.4896,
+      1.4925,
+      1.4893,
+      1.8265,
+      1.4736,
+      1.4478,
+      1.9779,
+      1.4569,
+      4.3179
+    ],
+    "libero_goal": [
+      0.0,
+      1.3845,
+      1.4821,
+      1.4694,
+      1.4273,
+      1.4837,
+      1.9764,
+      0.0,
+      1.4923,
+      1.4499
+    ],
+    "libero_10": [
+      2.4952,
+      2.4364,
+      2.475,
+      2.4639,
+      2.4595,
+      2.4725,
+      2.4245,
+      2.4755,
+      2.4179,
+      2.4665
+    ]
+  },
+  "linf_admissible_at_1_4": {
+    "libero_object": 10,
+    "libero_spatial": 0,
+    "libero_goal": 3,
+    "libero_10": 0
+  },
+  "identity_rule_sensitivity": {
+    "first": {
+      "object_admissible": 10,
+      "elsewhere_admissible": 2,
+      "elsewhere_n": 30
+    },
+    "unique": {
+      "object_admissible": 10,
+      "elsewhere_admissible": 8,
+      "elsewhere_n": 30
+    },
+    "last": {
+      "object_admissible": 0,
+      "elsewhere_admissible": 16,
+      "elsewhere_n": 30
+    }
   }
 }
