@@ -336,7 +336,147 @@
   }
  },
  "e3": {
-  "status": "NOT RUN",
-  "why": "last in the value-ordered queue; the box was CPU-quota-bound at 13.6 cores and the budget went to E1, E5 and E2. Reported as not run, not as a null."
+  "unit_of_analysis": "task (trials within a task are not exchangeable)",
+  "planned_tasks": 5,
+  "tasks_analysed": [
+   "0",
+   "1"
+  ],
+  "tasks_dropped_incomplete": {
+   "2": {
+    "oracle_n": 8,
+    "blind_n": 8
+   }
+  },
+  "per_task": {
+   "0": {
+    "oracle": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "blind": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "paired": {
+     "paired_n": 10,
+     "lost": 0,
+     "gained": 0,
+     "p": 1.0
+    },
+    "trials": {
+     "oracle": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     },
+     "blind": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     }
+    }
+   },
+   "1": {
+    "oracle": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "blind": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "wilson": [
+      0.0,
+      0.2775
+     ]
+    },
+    "paired": {
+     "paired_n": 10,
+     "lost": 0,
+     "gained": 0,
+     "p": 1.0
+    },
+    "trials": {
+     "oracle": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     },
+     "blind": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+     }
+    }
+   }
+  },
+  "task_level_mean": {
+   "oracle": 0.0,
+   "blind": 0.0,
+   "diff": 0.0
+  },
+  "sign_test": {
+   "n_nonzero": 0,
+   "pos": 0,
+   "neg": 0,
+   "p": 1.0,
+   "floor": null,
+   "note": "all tasks tied"
+  },
+  "cluster_bootstrap": {
+   "reps": 20000,
+   "diff_mean": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "oracle_at_floor": true,
+  "informative": false,
+  "VERDICT": "UNINFORMATIVE: the oracle arm is itself at the floor, so this design cannot separate 'a constant cannot serve Spatial' from 'our controller cannot do Spatial'."
  }
 }

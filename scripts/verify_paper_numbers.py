@@ -392,6 +392,15 @@ _sep = any(all(((_deg[i] - st) % 360) < w for i in range(10)
            for st in range(360) for w in range(10, 360, 5))
 check("E2 direction: NO arc separates failure from success", True, not _sep)
 
+# E3, reported as uninformative by a precondition registered before the cells.
+E3A = J("results/e23_analysis.json")["e3"]
+check("E3: task pairs that reached planned n", 2.0,
+      float(len(E3A["tasks_analysed"])), 0.5)
+check("E3: oracle arm is at the floor", True, E3A["oracle_at_floor"])
+check("E3: declared uninformative, not support", True, not E3A["informative"])
+check("E3: oracle task-level mean", 0.0, E3A["task_level_mean"]["oracle"], 1e-9)
+check("E3: blind task-level mean", 0.0, E3A["task_level_mean"]["blind"], 1e-9)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")

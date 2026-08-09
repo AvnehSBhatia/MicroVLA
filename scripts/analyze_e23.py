@@ -241,7 +241,17 @@ def main() -> None:
                       "the constant. Claims resting on it must be withdrawn.")
         print("E3: NOT RUN")
         return
-    tasks = sorted({k.split("|")[1] for k in raw["e3"]}, key=int)
+    # Only task pairs where BOTH arms reached the planned n = 10 are analysed.
+    # A half-filled cell is not a result (error 1), and dropping cells silently
+    # would read as coverage we do not have -- so the dropped ones are named.
+    PLANNED = 10
+    allt = sorted({k.split("|")[1] for k in raw["e3"]}, key=int)
+    tasks = [t for t in allt
+             if len(raw["e3"].get(f"orc|{t}", {})) == PLANNED
+             and len(raw["e3"].get(f"bl|{t}", {})) == PLANNED]
+    dropped = {t: {"oracle_n": len(raw["e3"].get(f"orc|{t}", {})),
+                   "blind_n": len(raw["e3"].get(f"bl|{t}", {}))}
+               for t in allt if t not in tasks}
     per, pairs, diffs = {}, [], []
     for t in tasks:
         o = cell(raw["e3"][f"orc|{t}"])
@@ -254,11 +264,21 @@ def main() -> None:
         pairs.append(([o["trials"][k] for k in keys],
                       [b["trials"][k] for k in keys]))
         diffs.append(o["rate"] - b["rate"])
+    if not pairs:
+        out["e3"] = {"status": "NO COMPLETE TASK PAIR",
+                     "tasks_dropped_incomplete": dropped}
+        OUT.write_text(json.dumps(out, indent=1))
+        print(f"wrote {OUT.relative_to(REPO)}")
+        print("E3: no task reached the planned n on both arms")
+        return
     orc_mean = float(np.mean([np.mean(a) for a, _ in pairs]))
     bl_mean = float(np.mean([np.mean(b) for _, b in pairs]))
     st = sign_test(diffs)
     out["e3"] = {
         "unit_of_analysis": "task (trials within a task are not exchangeable)",
+        "planned_tasks": 5,
+        "tasks_analysed": tasks,
+        "tasks_dropped_incomplete": dropped,
         "per_task": per,
         "task_level_mean": {"oracle": round(orc_mean, 4),
                             "blind": round(bl_mean, 4),
