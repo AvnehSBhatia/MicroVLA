@@ -208,7 +208,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $187$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $190$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -1262,6 +1262,29 @@ then ran the experiment that could take it away. It did. A reader who wants the
 suite-level verdict back needs $\delta < 1.49$\,cm on the grasped grocery, and
 this is the only measurement of that quantity anyone has published --- ours,
 $n{=}10$, one task, and it says $\geq 2$.
+
+\paragraph{The caveat that would rescue us, and why we do not lean on it.}
+The sweep pushes each trial along \emph{one} direction, so it estimates an
+average-case tolerance. The criterion needs the worst case --- $R \le \delta$
+asks whether one constant covers \emph{every} shipped position --- and a
+worst-case $\delta$ can only be smaller. If it is smaller than $1.49$\,cm, the
+verdict we just withdrew comes back. That is the objection that favours us, so
+it is the one we checked hardest.
+
+We found nothing to support it and nothing to kill it. At $r = 2$\,cm on task
+$3$ the five failures fall at $63^\circ, 127^\circ, 216^\circ, 319^\circ$ and
+$340^\circ$ and the five successes at $104^\circ, 126^\circ, 135^\circ,
+202^\circ$ and $234^\circ$: \textbf{no arc contains the failures and excludes
+the successes}, and two trials $0.5^\circ$ apart land on opposite sides. If the
+tolerance had a soft direction the failures would cluster, and they do not. But
+each trial carries its own initial state \emph{and} its own direction, so the
+two are confounded by construction, and $n{=}10$ has almost no power to
+separate them anyway.
+
+So the worst-case $\delta$ is unbounded below by this experiment, and the
+correct word for the suite-level verdict is \textbf{unsupported}, not
+disproven. We are not entitled to it, and nobody is entitled to its negation
+either.
 
 \paragraph{The deeper problem is not which suite. It is that no measurement
 of $\delta$ is sharp enough to name one.} Suite-level verdicts of this kind

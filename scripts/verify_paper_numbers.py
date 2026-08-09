@@ -375,6 +375,23 @@ check("cross-build 2: E2 reproduces it on this box", float(_hist_k[3]),
 check("cross-build 2: historical task-0 blind (10 trials)", 6.0,
       float(_hist_k[0]), 0.5)
 
+# The direction check: no arc separates failure from success at r=2 on task 3.
+_ang = {i: float(np.random.default_rng(555_000 + 20 * 1_000_003 + i)
+                 .uniform(0, 2 * np.pi)) for i in range(10)}
+_deg = {i: np.degrees(_ang[i]) % 360 for i in range(10)}
+_f = sorted(round(_deg[i]) for i in range(10) if not E2["3|2"][str(i)])
+_p = sorted(round(_deg[i]) for i in range(10) if E2["3|2"][str(i)])
+check("E2 direction: failing directions at r=2, task 3", True,
+      _f == [63, 127, 216, 319, 340])
+check("E2 direction: passing directions", True,
+      _p == [104, 126, 135, 202, 234])
+_sep = any(all(((_deg[i] - st) % 360) < w for i in range(10)
+               if not E2["3|2"][str(i)])
+           and not any(((_deg[i] - st) % 360) < w for i in range(10)
+                       if E2["3|2"][str(i)])
+           for st in range(360) for w in range(10, 360, 5))
+check("E2 direction: NO arc separates failure from success", True, not _sep)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
