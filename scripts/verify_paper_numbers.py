@@ -146,6 +146,12 @@ DS = J("results/declared_vs_shipped.json")["suites"]
 _o = [t["fraction_of_declared"] for t in DS["libero_object"]["tasks"]]
 _l = [t["fraction_of_declared"] for t in DS["libero_10"]["tasks"]]
 check("Object: max fraction of declared region used", 0.389, max(_o), 0.005)
+# the generalised claim: three suites exercise their region, one does not
+for _s, _exercised in [("libero_spatial", True), ("libero_goal", True),
+                       ("libero_10", True), ("libero_object", False)]:
+    _fr = [t["fraction_of_declared"] for t in DS[_s]["tasks"]]
+    check(f"{_s}: exercises its declared region", _exercised,
+          bool(min(_fr) > 0.9))
 check("Object: tasks using exactly none of it", 6.0,
       float(sum(1 for v in _o if v < 1e-9)), 0.5)
 check("Long: min fraction of declared region used", 0.967, min(_l), 0.005)

@@ -96,6 +96,13 @@ def main() -> None:
             if dec_t is None:
                 continue
             dec = np.asarray(dec_t, dtype=float)
+            # Report the ratio, but the load-bearing comparison is the SIGN of
+            # (shipped - declared), not the fraction. LIBERO's sampler places
+            # within the declared box plus a margin, so a suite that exercises
+            # its region legitimately ships a spread ABOVE 100% -- three of the
+            # four suites do. Only LIBERO-Object ships far below, and zero on
+            # six tasks. Framing it as "fraction used" invited the reading that
+            # >100% was a parsing bug; it is the sampler working.
             ratio = float(np.max(used / np.where(dec > 0, dec, np.nan)))
             per.append({"task": t["task"], "declared_cm": [round(v, 3) for v in dec],
                         "used_cm": [round(v, 4) for v in used],
@@ -111,6 +118,8 @@ def main() -> None:
 
     Path(REPO / "results/declared_vs_shipped.json").write_text(json.dumps(out, indent=2))
 
+    print("A suite that exercises its declared region ships a spread at or above")
+    print("it (the sampler adds a margin). Only one suite ships far below.\n")
     print(f"{'suite':<16}{'declared (cm)':>16}{'shipped spread':>17}"
           f"{'fraction used':>15}{'tasks <5%':>11}")
     for s, S in out["suites"].items():
