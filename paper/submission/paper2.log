@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1507,23 +1507,43 @@ Underfull \hbox (badness 10000) in paragraph at lines 2129--2130
  []
 
 
+Underfull \hbox (badness 4353) in paragraph at lines 2131--2131
+[]\OT1/lmr/bx/n/8 publish $\OML/lmm/m/it/8 ^^N$\OT1/lmr/bx/n/8 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2131--2131
+[]\OT1/lmr/m/n/8 a dis-place-ment
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2131--2131
+\OT1/lmr/m/n/8 ing, $\OML/lmm/m/it/8 n$ \OT1/lmr/m/n/8 in the
+ []
+
+
+Underfull \hbox (badness 1142) in paragraph at lines 2131--2132
+\OT1/lmr/bx/n/8 and least have. $\OML/lmm/m/it/8 R$
+ []
+
+
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
 
-Underfull \hbox (badness 1024) in paragraph at lines 2203--2213
+Underfull \hbox (badness 1024) in paragraph at lines 2206--2216
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 2203--2213
+Underfull \hbox (badness 1199) in paragraph at lines 2206--2216
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 2203--2213
+Underfull \hbox (badness 4001) in paragraph at lines 2206--2216
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
@@ -1534,29 +1554,29 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [22]
-Underfull \hbox (badness 6493) in paragraph at lines 2237--2244
+Underfull \hbox (badness 6493) in paragraph at lines 2240--2247
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 2237--2244
+Underfull \hbox (badness 2486) in paragraph at lines 2240--2247
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 2245.
+(Font)              <14.4> on input line 2248.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2245.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 2245.
+(hyperref)                removing `math shift' on input line 2248.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2245.
+(hyperref)                removing `\delta' on input line 2248.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 2248.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -1597,11 +1617,11 @@ Package rerunfilecheck Info: File `paper2.out' has not changed.
 (rerunfilecheck)             Checksum: EAD453434DEACF0E1C51BB9BEE8ADCD5;6468.
  ) 
 Here is how much of TeX's memory you used:
- 15151 strings out of 474662
- 243023 string characters out of 5751110
- 743196 words of memory out of 5000000
- 37806 multiletter control sequences out of 15000+600000
- 644214 words of font info for 104 fonts, out of 8000000 for 9000
+ 15154 strings out of 474662
+ 243066 string characters out of 5751110
+ 744318 words of memory out of 5000000
+ 37808 multiletter control sequences out of 15000+600000
+ 644586 words of font info for 105 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
  75i,12n,79p,1939b,592s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
@@ -1637,10 +1657,10 @@ xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive
 asic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/t
 exmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/20
 25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (25 pages, 2733738 bytes).
+Output written on paper2.pdf (25 pages, 2735274 bytes).
 PDF statistics:
- 779 PDF objects out of 1000 (max. 8388607)
- 627 compressed objects within 7 object streams
+ 783 PDF objects out of 1000 (max. 8388607)
+ 630 compressed objects within 7 object streams
  166 named destinations out of 1000 (max. 500000)
- 18226 words of extra memory for PDF output out of 20736 (max. 10000000)
+ 18738 words of extra memory for PDF output out of 20736 (max. 10000000)
 
