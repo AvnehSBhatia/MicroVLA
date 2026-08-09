@@ -344,8 +344,11 @@ identity radius is $1.171$\,cm; the smallest among the other suites' twenty-eigh
 \emph{movable} targets is $1.492$\,cm. Every $\delta$ in that gap returns the
 same verdict, and the radius we measure for this controller
 ($\approx 1.41$\,cm, \S\ref{sec:refute}) falls inside it. That is the one
-coincidence in this paper that went our way, and we note it is a coincidence:
-had the measured radius come out at $2$\,cm, LIBERO-Goal would be $10/10$ too.
+coincidence in this paper that went our way, and we say plainly that it is one:
+the window is $0.32$\,cm wide, and at a $2$\,cm tolerance most of LIBERO-Spatial
+and LIBERO-Goal would be admissible as well. Appendix~\ref{app:deltasens} gives
+the whole curve. \textbf{The verdict is conditional on a measurement we make
+from a single $n{=}10$ cell}, and a reader should weight it accordingly.
 
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} \texttt{float64} values, one unit in the
@@ -1302,6 +1305,43 @@ LIBERO-Object at $10/10$ and moves one LIBERO-Spatial task across the line
 ($1/10$ instead of $0/10$). The comparison is unchanged; the exact count in one
 suite is not. We report the Euclidean version throughout and flag the
 dependence here rather than leaving a reader to find it.
+
+\section{Sensitivity of the verdict to $\delta$}
+\label{app:deltasens}
+
+\S\ref{sec:adm}'s verdict holds over a window, and the window is narrow. We
+report the whole curve because the previous version of this paper claimed the
+threshold was not load-bearing, and on the corrected quantity that claim is only
+true locally.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrr}
+\toprule
+$\delta$ (cm) & Object & Spatial & Goal & Long & elsewhere \\
+\midrule
+$0.5$ & 6/10 & 0/10 & 2/10 & 0/10 & 2/30 \\
+$1.0$ & 9/10 & 0/10 & 2/10 & 0/10 & 2/30 \\
+\textbf{1.17} & \textbf{10/10} & 0/10 & 2/10 & 0/10 & \textbf{2/30} \\
+\textbf{1.40} & \textbf{10/10} & 0/10 & 2/10 & 0/10 & \textbf{2/30} \\
+\textbf{1.49} & \textbf{10/10} & 0/10 & 2/10 & 0/10 & \textbf{2/30} \\
+$2.0$ & 10/10 & 8/10 & 9/10 & 0/10 & 17/30 \\
+$2.5$ & 10/10 & 9/10 & 10/10 & 0/10 & 19/30 \\
+$4.0$ & 10/10 & 9/10 & 10/10 & 10/10 & 29/30 \\
+\bottomrule
+\end{tabular}
+\caption{Tasks whose identity-bearing object a single constant serves, as a
+function of the tolerance. \textbf{The separation exists on
+$[1.17, 1.49]$\,cm and essentially nowhere above it}: by $\delta = 2$\,cm most
+of LIBERO-Spatial and LIBERO-Goal are admissible too. Our measured radius
+($\approx 1.41$\,cm, \S\ref{sec:refute}) sits inside the window, but the window
+is $0.32$\,cm wide and the measurement that places it there is a single
+$n{=}10$ cell with the caveats given in \S\ref{sec:refute}. A reader should
+treat the verdict as conditional on that measurement, and a $2$\,cm tolerance
+would license a much weaker claim. Artifact:
+\texttt{results/admissibility.json}.}
+\label{tab:deltasens}
+\end{table}
 
 \section{Sensitivity of $H_\delta$ to the tolerance}
 \label{app:delta}

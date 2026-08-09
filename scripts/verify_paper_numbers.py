@@ -97,6 +97,14 @@ check("smallest movable radius elsewhere (cm)", 1.49, float(others[~othfx].min()
 check("measured tolerance falls inside the window", True,
       bool(float(radii["libero_object"].max()) <= 1.41 < float(others[~othfx].min())))
 
+print("\n--- delta sensitivity (Appendix): the window, and where it ends ---")
+for d, o_c, e_c in [(0.5, 6, 2), (1.0, 9, 2), (1.171, 10, 2), (1.4, 10, 2),
+                    (1.492, 10, 2), (2.0, 10, 17), (2.5, 10, 19), (4.0, 10, 29)]:
+    check(f"delta={d}: Object admissible", float(o_c),
+          float((radii["libero_object"] <= d).sum()), 0.5)
+    check(f"delta={d}: elsewhere admissible", float(e_c),
+          float((others <= d).sum()), 0.5)
+
 print("\n=== §5 suite: cells and tests RECOMPUTED from per-trial outcomes ===")
 S = J("results/suite_cells.json"); B = J("results/blind_cells.json"); P = J("results/pod_cells.json")
 blind = {0: B["blind_t0"]} | {t: S[f"blind_t{t}"] for t in range(1, 10)}
