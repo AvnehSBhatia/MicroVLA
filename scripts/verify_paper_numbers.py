@@ -346,6 +346,26 @@ for _d, _o, _e in [(1.41, 10, 2), (1.91, 10, 13), (2.0, 10, 17), (4.0, 10, 29)]:
 check("separation is DISSOLVED at the measured floor (>half elsewhere)", True,
       contrast(2.0)[2] / contrast(2.0)[3] > 0.5)
 
+# Both candidate suite-level windows, and the width of what we can measure.
+_R = {k: sorted(t["identity_R_cm"] for t in v["tasks"])
+      for k, v in ADM.items()}
+_long = _R["libero_10"]
+_oth = sorted(r for k, v in _R.items() if k != "libero_10" for r in v)
+check("window Object-vs-rest: lower edge (Object max R)", 1.171, max(_R["libero_object"]), 0.001)
+check("window Object-vs-rest: upper edge (smallest movable elsewhere)", 1.492,
+      min(r for r in _oth if r > 1.171), 0.001)
+check("window Long-vs-rest: upper edge (Long min R)", 2.848, _long[0], 0.001)
+check("window Long-vs-rest: lower edge", 2.480,
+      max(r for r in _oth if r < _long[0]), 0.001)
+check("window Long-vs-rest: elsewhere inside it", 29.0,
+      float(sum(1 for r in _oth if r < _long[0])), 0.5)
+check("window Long-vs-rest: Long inside it", 0.0,
+      float(sum(1 for r in _long if r < _long[0])), 0.5)
+check("measured bracket straddles the Long edge (decides neither)", True,
+      2.0 < _long[0] < 4.0)
+check("all-LIBERO admissible at the measured floor", 27.0,
+      float(sum(1 for k, v in _R.items() for r in v if r <= 2.0)), 0.5)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")

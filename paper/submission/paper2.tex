@@ -199,7 +199,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $176$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $184$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -1228,6 +1228,55 @@ then ran the experiment that could take it away. It did. A reader who wants the
 suite-level verdict back needs $\delta < 1.49$\,cm on the grasped grocery, and
 this is the only measurement of that quantity anyone has published --- ours,
 $n{=}10$, one task, and it says $\geq 2$.
+
+\paragraph{The deeper problem is not which suite. It is that no measurement
+of $\delta$ is sharp enough to name one.} Suite-level verdicts of this kind
+live on narrow windows of $\delta$, and ours was not unusually narrow. Read the
+same radii at the tolerance this section measures and a \emph{different}
+contrast appears --- LIBERO-Long against the other three --- on a window barely
+wider than the one we lost:
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llrr}
+\toprule
+separation & window of $\delta$ & width & inside it \\
+\midrule
+Object vs.\ rest & $[1.171, 1.492)$\,cm & $0.321$\,cm & $10/10$ vs $2/30$ \\
+Long vs.\ rest & $[2.480, 2.848)$\,cm & $0.368$\,cm & $0/10$ vs $29/30$ \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{what we can measure}} &
+\multicolumn{2}{r@{}}{$\delta \in (2, 4]$\,cm, width $\mathbf{2}$\,cm} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{The instrument is an order of magnitude too coarse for the
+question it is asked.} Both candidate suite-level verdicts turn on where
+$\delta$ falls inside a window about $0.3$\,cm wide. The best measurement of
+$\delta$ we can make --- a displacement ladder at $n{=}10$ --- resolves it to
+$2$\,cm, which straddles $2.848$ and so decides neither. The second row is
+\textbf{post-hoc}: we noticed it after the first was withdrawn, we do not test
+it, and we report it because it is what a reader would find on looking, not
+because we believe it.}
+\label{tab:windows}
+\end{table}
+
+\noindent One thing about that second row is worth more than the row. It agrees
+with \S\ref{sec:declared}, which is arithmetic on shipped files and admits no
+tolerance at all: LIBERO-Long is the suite that exercises $96.7$--$99.8\%$ of
+its declared sampling regions, and LIBERO-Object the one that exercises none.
+Two independent measurements --- one needing $\delta$ and one needing nothing
+--- point at the same suite as the one that genuinely randomises. We are not
+entitled to conclude from that agreement, and we state it because the
+tolerance-free half is the half that stands on its own.
+
+\textbf{The recommendation this leaves is uncomfortable and we make it
+anyway.} Nobody should publish a suite-level admissibility verdict --- ours
+included --- without an estimate of $\delta$ an order of magnitude tighter than
+the one here. That is not a large experiment: it is the ladder of
+Figure~\ref{fig:jitter} at finer spacing, on every object, with $n$ in the
+hundreds. It is simply an experiment nobody has run, and until somebody does,
+\emph{what a manipulation benchmark score certifies remains unbounded from
+below}.
 
 \textbf{This is not a tenth entry in \S\ref{sec:neg}.} Those nine are claims
 that were wrong when we made them and stayed wrong until somebody else looked.
