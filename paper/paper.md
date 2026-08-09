@@ -10315,3 +10315,49 @@ misleads, however accurate its individual points.
 
 Final third-object position: **22/50 = 0.440 [0.31, 0.58]**, repair described
 as largely single-shot, both rounds reported and dated. 616 tests pass.
+
+### Cross-stack verification: the CPU layer reproduces on a foreign stack (2026-08-09)
+
+The audit-stack finding (§6.4) obligates a converse measurement: which layer
+of this paper is robust to a stack change? Re-ran the CPU-verifiable layer on
+a machine sharing nothing with the evaluated stack — Apple-silicon laptop,
+CPU only, macOS, Python 3.11, torch 2.13.0, numpy 2.4.6 (pins of record:
+Linux, 3.10, 2.8/cu128, 2.2.6), fresh venv, no simulator, clean tree at
+`74d1da8`.
+
+Measured, in order run:
+
+- `python -m pytest tests -q` — **616 passed, 1 skipped, 31.14 s**. The
+  manuscript's §11 said 606 in two places; both corrected to the measured
+  count, with a note that the figure is commit-stamped.
+- `python -m microvla.utils.param_audit` — pass. Trunk 7,005,837 < 9,000,000
+  (fusion 4,460,165 / drift 724,993 / planner 1,820,679); v8 ledger
+  6,286,549.
+- `python TRM.py` — pass. 9,968,976 params (31,024 under the reserve),
+  contract/statelessness checks green, 10-pair overfit to spec loss 0.0000
+  (all cosines 1.000), live swap into the mock loop (2 real + 28 dream
+  ticks). Forward latency **47.4 ms/tick** on this laptop vs the 33.3 ms
+  budget — the documented d=512/T=2/n_inner=4 profile remains the Pi answer;
+  not re-measured.
+- `python -m eval.bench --checkpoint checkpoints/rec_fix/full_stageB_rec_fix.pt
+  --data-dir data/libero_object_v8` — 30 episodes, 1.33 s/eval. Median
+  `std_ratio` **1.171** (healthy; the §4-era collapse measured ~0.12),
+  `pose_mae` 0.256, `corr` 0.40, `grip_acc` 0.76, `wm_margin` **−31.5%**.
+  Cross-corpus pairing (rec_fix trained on the grid bake; the shipped corpus
+  is the v8 bake) — indicative, not causal. The negative margin is
+  consistent with the inertness statement; the causal citation stays the
+  persistence ablation at exact parity.
+- `python -m eval.libero_eval --mock-env --checkpoint none` — runs
+  end-to-end, provenance stamped (`argv`, `git_commit 74d1da8`,
+  `git_dirty: false`), zero corpus mismatches. Its internal success counter
+  is a synthetic action-norm criterion, not a task measurement; recorded
+  here only as "the reviewer path works".
+
+Not measured, deliberately: no closed-loop cell (no simulator on this
+machine), no OpenVLA arm (no GPU here; the pod of record is down —
+connection refused). Every behavioural number in the papers stands on its
+original artifacts.
+
+Propagated: MANUSCRIPT_v2 gains §11.1 (the table above + scoping);
+the submission gains a compact \paragraph in Claims/non-claims/limitations.
+616 tests pass.

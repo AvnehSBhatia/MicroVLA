@@ -1042,9 +1042,11 @@ Run artifacts are now self-describing: `results.json` records `provenance`
 this field — their commands had to be recovered from the shell scripts that
 launched them, which is precisely why the field now exists.
 
-One repo; every dimension flows from one config object; 606 tests (CPU-only,
+One repo; every dimension flows from one config object; 616 tests (CPU-only,
 mock-only, no network) cover the deployment path; parameter and disk budgets
-are asserted by the build. Shipped: `models/full_stageB_rec_fix.pt` (trunk),
+are asserted by the build. (Earlier drafts said 606; the suite has grown
+since that count was recorded — the figure here is the measured count at the
+verification commit below.) Shipped: `models/full_stageB_rec_fix.pt` (trunk),
 `models/goal_heads_v5.pt` (flagship), `models/goal_heads_v7.pt` (the
 addendum's multi-object head), `models/gates_v1.pt` (learned gates),
 `data/libero_object_grid/norm_stats.json`,
@@ -1063,7 +1065,7 @@ log `paper.md` including every negative result and retraction. Canonical
 commands:
 
 ```
-python -m pytest tests -q                        # 606 tests, no sim deps
+python -m pytest tests -q                        # 616 tests, no sim deps
 python -m eval.bench --checkpoint none --synthetic 30
 python -m eval.libero_eval --suite libero_object --task-ids 0 \
   --checkpoint models/full_stageB_rec_fix.pt --goal-ckpt models/goal_heads_v5.pt \
@@ -1086,6 +1088,52 @@ init-file hashes, the ultralytics version, SHA-256 digests for the detector
 and every `models/*.pt`, the exact training commands, and a
 file → log-name → leaderboard-row → paper-section crosswalk; results JSONs
 embed `vars(args)`, the git SHA, and model hashes (App D).
+
+### 11.1 Cross-stack verification run (2026-08-09)
+
+§6.4's central caution is that behavioural results are stack-coupled: a
+detector-stack rebuild inverted which head looks better. That caution cuts
+both ways — it obligates us to state which layer of this paper is *robust*
+to a stack change, and to measure it rather than assert it. The CPU-verifiable
+layer was therefore re-run on a machine sharing nothing with the evaluated
+stack: an Apple-silicon laptop (CPU only), macOS, Python 3.11, torch 2.13.0,
+numpy 2.4.6 — against the pins above (Linux, Python 3.10, torch 2.8/cu128,
+numpy 2.2.6) — from a clean working tree at commit `74d1da8`, fresh
+virtualenv, no simulator installed.
+
+| check | command | result |
+|---|---|---|
+| unit/invariant suite | `python -m pytest tests -q` | **616 passed**, 1 skipped, 31 s |
+| parameter ledger | `python -m microvla.utils.param_audit` | pass — trunk **7,005,837 < 9,000,000**; fusion 4,460,165 / drift 724,993 / planner 1,820,679, each under its cap |
+| TRM contract self-test | `python TRM.py` | pass — 9,968,976 params (< 10M reserve); residual/stateless contract holds; 10-pair overfit to spec loss 0.0000 (cosines 1.000); live swap into the loop, 2 real + 28 dream ticks |
+| open-loop bench | `python -m eval.bench --checkpoint <rec_fix> --data-dir data/libero_object_v8` | 30 episodes, 1.33 s/eval: `std_ratio` **1.171**, `pose_mae` 0.256, `corr` 0.40, `grip_acc` 0.76, `wm_margin` **−31.5%** |
+| dependency-free harness | `python -m eval.libero_eval --mock-env --checkpoint none` | runs end-to-end; stamps `provenance` (`argv`, git commit `74d1da8`, `git_dirty: false`), zero corpus mismatches |
+
+**What this shows.** The invariant layer — module contracts, the parameter
+and budget assertions, the train/deploy and camera/threshold parity suites,
+the artifact-provenance audit, and the reviewer-runnable `--mock-env` path —
+reproduces across a simultaneous change of OS, Python, torch and numpy. The
+suite is the layer a stranger can check first, and it is stack-robust in
+exactly the way the behavioural cells are measured not to be.
+
+**What this does not show.** No closed-loop cell is re-verified by this run
+(that machine has no simulator); every n=10/n=50 number in this paper stands
+on its original artifacts, not on this. The bench row is open-loop fidelity
+on a deterministic replay — its own documentation calls it necessary, not
+sufficient — and it pairs the checkpoint of record with the one corpus small
+enough to ship (`data/libero_object_v8/`, a different bake than the
+checkpoint's training corpus), so its absolute values are indicative. Two of
+its readings still deserve note: action magnitude is healthy
+(`std_ratio` 1.17, where the diagnosed collapse of §4 measured ~0.12), and
+the world model *loses* to persistence on this replay (`wm_margin` −31.5%) —
+consistent with §10's inertness statement, though the causal form of that
+claim rests on the persistence-TRM ablation at exact parity (0.700), not on
+this bench. Separately, the TRM's forward latency measured 47.4 ms/tick on
+that laptop against the 33.3 ms tick budget; the documented reduced profile
+(d=512, T=2, n_inner=4, int8) remains the deployment answer and is not
+re-measured here. The mock-env's internal success counter is a synthetic
+action-norm criterion and is not a task measurement; its only content is
+that the harness runs and self-describes.
 
 ---
 
