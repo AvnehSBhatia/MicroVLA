@@ -109,48 +109,32 @@ what a score \emph{could} certify rather than report what one model did.}
 \label{tab:related}
 \end{table}
 
-\paragraph{The framing is not new either.} While this work was in revision,
+\paragraph{The framing is not new.} While this work was in revision,
 \citet{jiang2026benchmarking} defined \emph{shortcut solvability}: a benchmark
 score is evidence of capability only if every policy reaching it has the
-capability.
+capability. That is our Corollary~\ref{cor:sep} in content. They audit five
+manipulation benchmarks including all of LIBERO and show a $0.09$B probe with
+no language encoder scoring within one point of the best published result on
+three of LIBERO's four splits, and $100.0\%$ on LIBERO-Object --- a stronger
+demonstration of it than ours.
 
-They audit five manipulation benchmarks including all of LIBERO, and show a
-$0.09$B probe with no language encoder scoring within one point of the best
-published result on three of LIBERO's four splits, and $100.0\%$ on
-LIBERO-Object. That is our Corollary~\ref{cor:sep}
-in content and a stronger empirical demonstration of it than ours. Our
-\emph{blind} arm is likewise the manipulation instance of the unimodal ablation
-that \citet{thomason2019shifting} established in embodied AI. We claim no
-novelty for either move.
+Our \emph{blind} arm is the manipulation instance of the unimodal ablation
+\citet{thomason2019shifting} established in embodied AI, and measuring a
+benchmark's degeneracy before crediting a model is standard outside robotics
+(Table~\ref{tab:related}). We claim no novelty for either move, and that VLAs
+ignore language is not our finding.
 
-What remains ours is the \emph{a priori} half. Their diagnostic requires
-training a probe and running it. $R$ is a property of the shipped files, so it
-bounds what a score could certify before a GPU is switched on, and it says
-\emph{which} object in a task carries the degeneracy.
+\paragraph{What is ours is the \emph{a priori} half.} Every diagnostic in
+Table~\ref{tab:related} needs a trained model and a run. $R$ is a property of
+the shipped files: it bounds what a score could certify before a GPU is
+switched on, and it names \emph{which} object in a task carries the degeneracy.
 
-Their result is the symptom. The radius is a candidate explanation for
-\emph{part} of it and cannot be the whole: on Spatial, Goal and Long our own
-Table~\ref{tab:suites} shows large radii, so pinning cannot be why a probe
-succeeds there. On those splits the route is visual task-identifiability
-without language, which \S\ref{sec:language} independently supports --- so the
-two findings converge rather than compete.
-Table~\ref{tab:related} places the rest. Measuring a benchmark's degeneracy before crediting a model is
-standard outside robotics, and our \emph{blind} arm is the manipulation instance
-of the hypothesis-only baseline; we claim no novelty for the move. That VLAs
-ignore language is likewise not our finding.
-
-What that literature lacks, and what manipulation makes possible, is a metric
-\emph{computable from a benchmark's shipped files before any model is trained}.
-The prior here is not a class frequency but a physical coordinate, and a
-physical coordinate can be measured exactly.
-
-What those results leave open is the part a practitioner needs. They show
-\emph{that} scores collapse under perturbation. They do not say how much a given
-benchmark could have been gamed in principle, which stage of a stack is reading
-the shortcut, whether the shortcut can be removed, or what evidence would count
-as showing that it had been. This paper answers those four questions for one
-suite and one stack, in that order, and the first answer is the one that gives
-the others their meaning.
+It is also not the whole story, and we say so where it would be easy not to.
+Jiang et al.'s probe succeeds on Spatial, Goal and Long, where our own
+Table~\ref{tab:suites} shows large radii --- so pinning cannot be why. On those
+splits the route is visual task-identifiability without language, which
+\S\ref{sec:language} independently supports. The two findings converge rather
+than compete.
 
 \paragraph{Contributions.}
 \begin{enumerate}\itemsep2pt
@@ -180,10 +164,13 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $58$ values across
-\S\ref{sec:adm} and \S\ref{sec:refute} from the per-trial outcomes and the
-shipped initial states, including the tests those sections turn on --- and fails
-on disagreement.
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $95$ values across
+\S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
+shipped initial states --- including the tests those sections turn on --- and
+fails on disagreement. A second script,
+\texttt{scripts/check\_manuscript\_consistency.py}, checks the manuscript
+against itself, because two of our nine errors were corrections that reached
+the section that made a claim and not the sections that cite it.
 
 An earlier version of that script checked $p$-values by reading them back out
 of the JSON that wrote them --- a consistency check between two copies of a
