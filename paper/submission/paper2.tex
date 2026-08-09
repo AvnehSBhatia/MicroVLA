@@ -208,7 +208,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $184$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $187$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -1166,6 +1166,14 @@ never used the number and every claim resting on it had to go. On task $3$ the
 response is monotone and steep --- $10/10, 9/10, 5/10, 0/10, 0/10$ at
 $r = 0,1,2,4,8$\,cm --- and Holm-corrected paired tests reject at $4$ and
 $8$\,cm ($p = 0.0078$). The arm is using the constant.
+
+\paragraph{The zero-displacement cells reproduce, on a second build.} Task
+$3$'s $r{=}0$ cell is an independent run here of a score recorded earlier on
+different hardware and a different \texttt{torch}, and it returns the same
+$10/10$; task $0$'s is E1's arm on the same ten trials as the historical
+$6/10$, matching outcome for outcome (\S\ref{sec:cert}). Two cells, two builds,
+no disagreement --- which is the only reason a sweep anchored on them is worth
+reading.
 
 \paragraph{Both numbers are right; they are tolerances of different phases.}
 \S\ref{sec:refute} reads $\approx 1.4$\,cm off task $0$, and this section reads

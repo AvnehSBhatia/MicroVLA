@@ -366,6 +366,15 @@ check("measured bracket straddles the Long edge (decides neither)", True,
 check("all-LIBERO admissible at the measured floor", 27.0,
       float(sum(1 for k, v in _R.items() for r in v if r <= 2.0)), 0.5)
 
+# Cross-build reproduction, second cell: E2's task-3 zero-displacement cell is
+# an independent run on this box of the historical blind_k[3].
+_hist_k = J("results/constant_attribution.json")["blind_k"]
+check("cross-build 2: historical task-3 blind", 10.0, float(_hist_k[3]), 0.5)
+check("cross-build 2: E2 reproduces it on this box", float(_hist_k[3]),
+      float(sum(E2["3|0"].values())), 0.5)
+check("cross-build 2: historical task-0 blind (10 trials)", 6.0,
+      float(_hist_k[0]), 0.5)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
