@@ -17,7 +17,7 @@
 
 \captionsetup{font=small}
 \title{\textbf{Declared but Not Sampled:\\
-Measuring What a Manipulation Benchmark Score Can Certify}}
+A Benchmark Defect, and Nine Ways Our Verification Missed Our Own Errors}}
 \author{Anonymous submission}
 \date{}
 
@@ -26,48 +26,43 @@ Measuring What a Manipulation Benchmark Score Can Certify}}
 
 \begin{abstract}
 \noindent
-A manipulation benchmark's score can be made of \emph{location} rather than
-\emph{looking}. We give a defect that causes it, a criterion for when the
-defect is exploitable, and an honest account of failing to demonstrate the
-exploit.
+This paper reports a benchmark defect, a criterion for when such defects
+matter, and --- from the same work --- nine occasions on which our own
+verification passed while our claim was false. The third is the part we expect
+to outlive the other two.
 
 \textbf{The defect.} Every LIBERO task declares, in its own task file, a region
 from which to sample its target's starting position. Three of the four suites
-ship evaluation states that exercise that region.
-
-\textbf{LIBERO-Object does not.} It declares the largest region of the four,
-$5 \times 5$\,cm, and ships the smallest spread: on six of its ten tasks all
-fifty released states place the target at a single point, to the last bit of a
-\texttt{float64}. This is
-arithmetic on two shipped files. No tolerance, policy, simulator or statistic
-enters it, and LIBERO-Long, given the identical region by the same generator,
-exercises $96.7$--$99.8\%$ of it.
+ship evaluation states that exercise that region. \textbf{LIBERO-Object does
+not}: it declares the largest region of the four, $5 \times 5$\,cm, and ships
+the smallest spread --- on six of its ten tasks all fifty released states place
+the target at a single point, to the last bit of a \texttt{float64}. This is
+arithmetic on two shipped files. We also ship the repair, and validate it.
 
 \textbf{The criterion.} A frozen placement matters only if the robot cannot
 resolve the freezing. Define the \emph{placement radius} $R$ of an object as
 the radius of the smallest disc containing every position the benchmark ships
 for it. A single task-indexed constant serves that object \emph{if and only if}
 $R \le \delta$, the tolerance below which the embodiment cannot tell two
-placements apart.
+placements apart. On the object its tasks are \emph{named} by, LIBERO-Object
+satisfies this on all ten tasks at the tolerance we measure, against two of
+thirty elsewhere. We report in full how weakly $\delta$ is determined --- it is
+the weakest link, and our own two estimates of it disagree.
 
-Where that holds, no function of episode outcomes separates a lookup table from
-a policy that perceives accurately. On the object its tasks
-are \emph{named} by, LIBERO-Object satisfies this on all ten tasks at the
-tolerance we measure, against two of thirty elsewhere --- both fixtures bolted
-to the scene. How weakly $\delta$ is determined is reported in full: it is the weakest link,
-and our two estimates of it disagree.
-
-\textbf{The failed demonstration.} We built the lookup policy, ran it on all
-ten tasks, and it does not settle the question.
-
-It scores $16/100$ where our released policy scores $8/100$ --- but eight of
-ten tasks are $0$--$0$ for both, and three tasks handed a constant
-$0.469$\,mm from a fourth's, in all three axes, score $0/10$ where it scores
-$10/10$. Half a millimetre of goal cannot
-separate those outcomes: the successes are governed by the object, not the
-constant. We withdraw the behavioural claim, report the experiment that would
-replace it, and record the four ways this work misled us --- including one
-error found inside our correction of another.
+\textbf{What verification did not catch.} We built the lookup policy the
+criterion describes and it does not settle the question; we say why. Along the
+way we made nine errors, each found by adversarial review rather than by us,
+and they share a structure. \textbf{Not one was a wrong computation.} Each was
+a decision about which slice of a correct instrument's output got written down:
+which trials had finished, which axes were compared, which tolerances were
+swept, which of two estimates was quoted, which parts of the document a
+retraction reached. Our verifier recomputes every number in the load-bearing
+sections from raw outcomes --- and it passed, at $76$ checks, while the central
+claim it certified was false, because it recomputed the two-dimensional
+distance we had chosen to compute. \textbf{All nine ran in the direction that
+flattered us.} We give the taxonomy, the artifacts, and the review process that
+produced it, because a field that checks arithmetic is defended against none of
+this.
 \end{abstract}
 
 \section{The question}
@@ -175,10 +170,13 @@ name the experiment that would.
 \item \textbf{Certification methodology} (\S\ref{sec:cert}): a counterexample
 to probe-only certification, and the demonstration that matching a published
 rate is not evidence of having reproduced a sample.
-\item \textbf{A falsification record} (\S\ref{sec:neg}): every prediction we
-registered including the failures, every instrument retired at its calibration
-gate, and four errors of our own --- one of them found inside the correction of
-another.
+\item \textbf{Nine errors, and what they share} (\S\ref{sec:neg}). Every
+prediction we registered including the failures, every instrument retired at
+its calibration gate, and nine errors of our own --- one found inside the
+correction of another. \textbf{None was a wrong computation}; each was a choice
+about which slice of a correct instrument's output got reported, and all nine
+ran in the direction that flattered us. Our own verifier passed while the claim
+it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
