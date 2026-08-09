@@ -1344,7 +1344,7 @@ it, \textbf{the portability of these instruments is unestablished}.
 
 A paper that only reports what worked cannot be checked. This section is the
 ledger: what we predicted before running, what failed, which instruments we
-retired, and the three ways our own results fooled us.
+retired, and the ways our own results fooled us.
 
 \paragraph{Pre-registration.} Fourteen predictions are on record with their
 outcomes; seven failed. Two failures matter here: the coverage head's swap cell
@@ -1409,12 +1409,24 @@ across three tests does not survive a Bonferroni correction. The confound is
 \emph{disconfirmed as a sufficient explanation}, which is what the design can
 support, and not more.
 
-\subsection{Four ways a result fooled us}
+\subsection{Seven ways a result fooled us, and the one thing they share}
 
 Recorded because the failure modes generalise and \emph{none} was caught by a
-conventional check --- in all four the instrument was correct and the defect
-was elsewhere (Table~\ref{tab:fooled}). The fourth is this revision's
-headline.
+conventional check. In every one of them the instrument was correct
+(Table~\ref{tab:fooled}).
+
+That is the pattern, and it took seven instances to see it. Not one of these
+was a bug in a measurement. Each was a decision about \emph{which slice of a
+correct instrument's output got written down}: which trials had finished, which
+axes were compared, which tolerances were swept, which tasks were counted,
+which of two estimates was quoted. \textbf{A verifier that recomputes every
+number in a paper would have caught none of them}, and ours did not --- it
+recomputed the $2$D distance we chose to compute, and passed.
+
+They also share a direction. All seven made the result look better. A team
+that only checks its arithmetic is protected against none of this; what
+catches it is being asked, by someone else, why a particular slice was the one
+reported.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{3.5pt}
@@ -1441,12 +1453,33 @@ a constant outscoring our trained policy $16/100$ to $8/100$, $p = 0.039$ &
 ten replicates of one task counted as ten trials --- and a constant that did
 not cause the successes at all &
 we checked the numbers and not the \emph{unit}, nor whether the variable we
-manipulated was the one that moved. \textbf{Both errors were found by
-adversarial review of data we had already published} \\
+manipulated was the one that moved \\
+\addlinespace
+constants ``identical to within a millimetre'' with opposite outcomes &
+compared in the table plane; in $3$D the groups differ by $40$\,mm on $z$ &
+the arm is handed a $3$-vector. Our verifier reproduced the error because it
+dropped $z$ too \\
+\addlinespace
+a repaired evaluation suite, shipped &
+free sampling of the declared box would have placed objects in contact on
+$5$ of $10$ tasks &
+we validated it only after shipping. The assumed object radius ($5$\,cm) was
+wrong; measured from the assets it is $2.2$--$3.7$ \\
+\addlinespace
+a tolerance sweep in which nothing moves &
+the one tolerance at which three verdicts \emph{do} move was computed and not
+reported &
+selective sensitivity reporting, in the section arguing against it \\
+\addlinespace
+an appendix reporting the $\ell_\infty$ variant &
+asserted, never computed; recomputed it says the opposite &
+a sentence with no artifact behind it reads exactly like one that has \\
 \bottomrule
 \end{tabular}
-\caption{Four self-inflicted errors and their repairs. The third is the one we
-would most expect others to hit: every check we ran had passed, and the defect
+\caption{Seven self-inflicted errors and their repairs. Every one was found by
+someone checking a choice rather than a computation, and every one ran in the
+direction that flattered us. The third is the one we would most expect others
+to hit: every check we ran had passed, and the defect
 was in \emph{when} we looked. The harvester now reports each cell against its
 planned $n$ and refuses to report an incomplete one.}
 \label{tab:fooled}
@@ -1544,10 +1577,18 @@ from $0/10$ to $10/10$, so the successes were never evidence about lookup at
 all. Both errors were found by adversarial review of a manuscript we already
 believed, using data we had already published.
 
-What survives is the procedure rather than the artifact: measure the benchmark
-first, at the unit the design randomises over; check that the variable you
-manipulated is the one that moved; and report the reading that did not survive
-being checked, which in this revision is our own.
+What survives is the procedure rather than the artifact. Measure the benchmark
+first, at the unit the design randomises over. Check that the variable you
+manipulated is the one that moved. And report the reading that did not survive
+being checked, which in this revision is repeatedly our own.
+
+One lesson generalises past this paper, and we only saw it after the seventh
+instance. Every error we made was a correct instrument reporting a chosen
+slice: which trials had finished, which axes were compared, which tolerances
+were swept, which of two estimates was quoted. \textbf{Recomputing every number
+in a paper catches none of that} --- our verifier recomputed the two-dimensional
+distance we had chosen to compute, and passed. What catches it is being asked,
+by someone who did not choose the slice, why that slice.
 
 \appendix
 
