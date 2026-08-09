@@ -1053,39 +1053,30 @@ not in ours, or in any LIBERO evaluation we have read.
 \section{Transfer: a negative result}
 \label{sec:transfer}
 
-The instruments above are offered as portable. We therefore attempted to run
-them on a policy we did not build: the public
-\texttt{openvla-7b-finetuned-libero-object} checkpoint~\citep{kim2024openvla}, evaluated through the
-same harness, the same trial$\to$state map and the same success predicate.
+The instruments above are offered as portable, so we tried them on a policy we
+did not build: the public \texttt{openvla-7b-finetuned-libero-object}
+checkpoint~\citep{kim2024openvla}, through the same harness, trial-to-state map
+and success predicate.
 
-We report a negative, and the discipline that produced it matters more than the
-outcome. The baseline returned $0/1$ on a checkpoint published near $0.9$. That
-is a harness defect, not a finding about OpenVLA, and we treated it as one.
-
-Four defects were found and fixed: image orientation, the gripper convention (their
-model emits $[0,1]$ with $1{=}$close, robosuite wants $[-1,+1]$ with
-$-1{=}$close --- without the conversion the jaw never closes and the policy
-\emph{cannot} grasp), success extraction (the environment's \texttt{done} flag
-also fires on horizon), and a missing signal shield. We then swept four image
-orientations $\times$ the $0.9$ centre crop their fine-tuned evaluation applies.
+The baseline returned $0/1$ on a checkpoint published near $0.9$. We treated
+that as a harness defect and found four: image orientation, the gripper
+convention (their model emits $[0,1]$ with $1{=}$close, robosuite wants
+$[-1,+1]$ with $-1{=}$close --- without the conversion the jaw never closes),
+success extraction (the environment's \texttt{done} flag also fires on
+horizon), and a missing signal shield. We then swept four image orientations
+against the $0.9$ centre crop their evaluation applies.
 
 The checkpoint still does not approach the target in any configuration we
-tried; the end-effector never closes to within a grasp of it.
-\textbf{We therefore report no OpenVLA success numbers, and no distance
-statistics either} --- the diagnostic runs that produced them were exploratory,
-were not written to a versioned artifact, and we decline to quote figures we
-cannot ship. An unvalidated
-baseline would make our instruments look powerful for entirely the wrong reason
---- every one of the four defects biased in that same direction --- and that is
-the easiest way to fabricate an external-validation result without intending to.
+tried. \textbf{We therefore report no OpenVLA numbers at all} --- not success
+rates and not distance statistics --- because the diagnostic runs were
+exploratory and were never written to a versioned artifact, and an unvalidated
+baseline would make our instruments look powerful for the wrong reason.
 
-We cannot separate the two live hypotheses: a remaining defect in our harness,
-or a checkpoint that does not transfer to a differently-built LIBERO. The second
-is exactly what \S\ref{sec:cert} predicts and we decline to claim it, because the
-first is not excluded. The harness ships (\texttt{eval/openvla\_eval.py}) so the
-question is answerable by someone with the matching build. Until then, the
-portability of our instruments is \textbf{unestablished}, and we make no claim that these instruments generalise beyond the stack
-they were built on.
+We cannot separate a remaining defect in our harness from a checkpoint that
+does not transfer to a differently-built LIBERO, and the reproduction gap we
+hit is a known community issue rather than a finding of ours. The harness ships
+(\texttt{eval/openvla\_eval.py}). Until someone with the matching build runs
+it, \textbf{the portability of these instruments is unestablished}.
 
 \section{Negative results and registries}
 \label{sec:neg}
@@ -1094,31 +1085,21 @@ A paper that only reports what worked cannot be checked. This section is the
 ledger: what we predicted before running, what failed, which instruments we
 retired, and the three ways our own results fooled us.
 
-\paragraph{Pre-registration.} Fourteen predictions are on record with
-their outcomes. Five earlier ones, all falsified. Two from the confound test
-(\S\ref{sec:confound}). Seven registered for this revision, of which five held
---- the untouched band, the oracle ceiling, the uninformed floor, the
-reset-oracle, and the released head's swap --- and two failed: that the coverage
-head's swap cell would hold (it does not, $p{=}0.031$) and that the released head
-would be at floor once displacement left the controller's envelope ($3/10$, not
-$\approx0$).
+\paragraph{Pre-registration.} Fourteen predictions are on record with their
+outcomes; seven failed. Two failures matter here: the coverage head's swap cell
+did not hold ($p{=}0.031$), and the released head was not at floor outside the
+controller's envelope ($3/10$).
 
-One result in this paper carries \emph{no} registered prediction: the blind arm
-(\S\ref{sec:constant}) was implemented in one compute window and run in the
-next, and we did not write down an expected rate before running it. We flag it
-rather than reconstruct one after the fact. Its per-trial outcomes were fixed
-before we looked at any of them, which is the property that matters for the
-paired tests, but it is not pre-registration and we do not present it as such.
+The blind arm carries \emph{no} registered prediction --- it was implemented in
+one compute window and run in the next --- and neither does the attribution
+analysis that overturned it (\S\ref{sec:refute}), which was formed after the
+registered hypothesis failed. We flag both rather than reconstruct predictions
+after the fact.
 
 \paragraph{Retired instruments.} Quantifying deployed role binding was attempted
 six times and abandoned six times, each at a calibration gate written down
-before the instrument was trusted: a projected-origin ground truth (rejected ---
-the object that succeeds $35/50$ scored $0.111$), its sign-corrected successor
-(rejected --- the in-frame filter deletes the close-up target by construction),
-three text-tower discrimination probes (rejected --- each failed to detect the
-working object's own phrase), and a box-spread metric (rejected --- confounded
-by camera motion, and inverted). Deployed binding accuracy is reported as
-\textbf{unmeasured}.
+before the instrument was trusted. Deployed binding accuracy is reported as
+\textbf{unmeasured}; the six gates are in the appendix.
 
 \subsection{A confound we had missed}
 \label{sec:confound}
@@ -1156,11 +1137,12 @@ across three tests does not survive a Bonferroni correction. The confound is
 \emph{disconfirmed as a sufficient explanation}, which is what the design can
 support, and not more.
 
-\subsection{Three ways a result fooled us}
+\subsection{Four ways a result fooled us}
 
 Recorded because the failure modes generalise and \emph{none} was caught by a
-conventional check --- in all three the instrument was correct and the defect
-was elsewhere (Table~\ref{tab:fooled}).
+conventional check --- in all four the instrument was correct and the defect
+was elsewhere (Table~\ref{tab:fooled}). The fourth is this revision's
+headline.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{3.5pt}
@@ -1182,9 +1164,16 @@ a censored sample. The complete cell is $\mathbf{8/10}$ &
 successes end episodes early and failures run to the horizon, so any interim
 harvest is biased toward successes. \textbf{Verifying the instrument does not
 verify the sampling} \\
+\addlinespace
+a constant outscoring our trained policy $16/100$ to $8/100$, $p = 0.039$ &
+ten replicates of one task counted as ten trials --- and a constant that did
+not cause the successes at all &
+we checked the numbers and not the \emph{unit}, nor whether the variable we
+manipulated was the one that moved. \textbf{Both errors were found by
+adversarial review of data we had already published} \\
 \bottomrule
 \end{tabular}
-\caption{Three self-inflicted errors and their repairs. The third is the one we
+\caption{Four self-inflicted errors and their repairs. The third is the one we
 would most expect others to hit: every check we ran had passed, and the defect
 was in \emph{when} we looked. The harvester now reports each cell against its
 planned $n$ and refuses to report an incomplete one.}
