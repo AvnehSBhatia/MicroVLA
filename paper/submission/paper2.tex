@@ -1167,6 +1167,23 @@ response is monotone and steep --- $10/10, 9/10, 5/10, 0/10, 0/10$ at
 $r = 0,1,2,4,8$\,cm --- and Holm-corrected paired tests reject at $4$ and
 $8$\,cm ($p = 0.0078$). The arm is using the constant.
 
+\paragraph{Both numbers are right; they are tolerances of different phases.}
+\S\ref{sec:refute} reads $\approx 1.4$\,cm off task $0$, and this section reads
+$\geq 2$\,cm off task $3$, and the two do not conflict. The first is a
+\emph{placing} tolerance: on task $0$ the grasp constant is exact --- the
+target never moves --- and the arm fails on the trials whose \emph{basket} is
+furthest from the mean. The second is a \emph{grasping} tolerance: the target
+is displaced and the basket is read truly. Task $0$ agrees with task $3$ on the
+grasp side, incidentally, holding $4/10$ at $2$\,cm and collapsing only at $4$.
+
+The phases are not interchangeable, and the criterion needs the grasping one.
+$R$ is the radius of the \emph{target's} shipped start positions, so
+$R \le \delta$ asks whether one constant can stand in for where the object is
+\emph{picked up}. That the placing tolerance is the tighter of the two is a
+fact about this controller and this basket, and it is why applying it to $R$
+--- which the earlier draft did --- understated $\delta$ by at least $40\%$,
+which is the whole distance between a separation and no separation.
+
 \paragraph{And our own registered rule misfires on the other task.} Task $0$
 falls $6/10, 5/10, 4/10, 0/10, 0/10$ --- monotone, to zero --- and \emph{no}
 level survives Holm correction (smallest $0.125$; uncorrected, $r = 4$ and
