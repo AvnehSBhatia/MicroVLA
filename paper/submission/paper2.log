@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 13:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 14:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1373,67 +1373,67 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [18]
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1858--1858
+Underfull \hbox (badness 10000) in paragraph at lines 1868--1868
 []\OT1/lmr/m/n/8 shipped ini-tial
  []
 
 
-Underfull \hbox (badness 1596) in paragraph at lines 1859--1859
+Underfull \hbox (badness 1596) in paragraph at lines 1869--1869
 []\OT1/lmr/m/n/8 the place-ment ra-
  []
 
 
-Underfull \hbox (badness 7486) in paragraph at lines 1860--1861
+Underfull \hbox (badness 7486) in paragraph at lines 1870--1871
 []\OT1/lmr/m/n/8 whether one con-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1862--1862
+Underfull \hbox (badness 10000) in paragraph at lines 1872--1872
 []\OT1/lmr/m/n/8 the de-clared
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1863--1863
+Underfull \hbox (badness 10000) in paragraph at lines 1873--1873
 []\OT1/lmr/m/n/8 declared-versus-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1864--1866
+Underfull \hbox (badness 10000) in paragraph at lines 1874--1876
 []\OT1/lmr/m/n/8 whether the re-
  []
 
 
-Underfull \hbox (badness 2205) in paragraph at lines 1864--1866
+Underfull \hbox (badness 2205) in paragraph at lines 1874--1876
 \OT1/lmr/m/n/8 leased states ex-er-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1868--1868
+Underfull \hbox (badness 10000) in paragraph at lines 1878--1878
 []\OT1/lmr/m/n/8 the ad-mis-si-bil-ity
  []
 
 
-Underfull \hbox (badness 1655) in paragraph at lines 1869--1871
+Underfull \hbox (badness 1655) in paragraph at lines 1879--1881
 []\OT1/lmr/m/n/8 whether that mat-
  []
 
 
-Underfull \hbox (badness 7522) in paragraph at lines 1869--1871
+Underfull \hbox (badness 7522) in paragraph at lines 1879--1881
 \OT1/lmr/m/n/8 ters for a given
  []
 
 
-Underfull \hbox (badness 1014) in paragraph at lines 1880--1880
+Underfull \hbox (badness 1014) in paragraph at lines 1890--1890
 \OT1/lmr/m/n/9 two rows are arith-metic on shipped files and are what
  []
 
 
-Underfull \hbox (badness 1701) in paragraph at lines 1880--1880
+Underfull \hbox (badness 1701) in paragraph at lines 1890--1890
 \OT1/lmr/m/n/9 an em-bod-i-ment and is where our own re-sult is weak-
  []
 
 
-Underfull \hbox (badness 3302) in paragraph at lines 1880--1880
+Underfull \hbox (badness 3302) in paragraph at lines 1890--1890
 \OT1/lmr/m/n/9 est. The scripts are \OT1/lmtt/m/n/9 scripts/admissibility.py \O
 T1/lmr/m/n/9 and
  []
@@ -1442,42 +1442,44 @@ T1/lmr/m/n/9 and
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1901--1901
+
+[19 <../visuals/F14_errors.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 1911--1911
 []\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 R$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1901--1901
+Underfull \hbox (badness 10000) in paragraph at lines 1911--1911
 \OT1/lmr/m/n/8 per ob-ject
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1901--1901
+Underfull \hbox (badness 10000) in paragraph at lines 1911--1911
 []\OT1/lmr/m/n/8 one script, no
  []
 
 
-Underfull \hbox (badness 1668) in paragraph at lines 1901--1902
+Underfull \hbox (badness 1668) in paragraph at lines 1911--1912
 []\OT1/lmr/m/n/8 tells a reader what a
  []
 
 
-Underfull \hbox (badness 2753) in paragraph at lines 1903--1903
+Underfull \hbox (badness 2753) in paragraph at lines 1913--1913
 []\OT1/lmr/m/n/8 set a floor
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1905--1906
+Underfull \hbox (badness 10000) in paragraph at lines 1915--1916
 \OT1/lmr/m/n/8 de-pends on dis-place-
  []
 
 
-Underfull \hbox (badness 6542) in paragraph at lines 1905--1906
+Underfull \hbox (badness 6542) in paragraph at lines 1915--1916
 \OT1/lmr/m/n/8 ment rel-a-tive to the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1905--1906
+Underfull \hbox (badness 10000) in paragraph at lines 1915--1916
 \OT1/lmr/m/n/8 con-troller's en-ve-lope
  []
 
@@ -1486,56 +1488,55 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-[19 <../visuals/F14_errors.png>]
-Underfull \hbox (badness 1024) in paragraph at lines 1965--1975
+
+Underfull \hbox (badness 1024) in paragraph at lines 1975--1985
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 1965--1975
+Underfull \hbox (badness 1199) in paragraph at lines 1975--1985
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 1965--1975
+Underfull \hbox (badness 4001) in paragraph at lines 1975--1985
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
 
 
-
-
-Underfull \hbox (badness 6493) in paragraph at lines 1999--2006
+Underfull \hbox (badness 6493) in paragraph at lines 2009--2016
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 1999--2006
+Underfull \hbox (badness 2486) in paragraph at lines 2009--2016
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 2007.
+(Font)              <14.4> on input line 2017.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2007.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 2007.
+(hyperref)                removing `math shift' on input line 2017.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2007.
+(hyperref)                removing `\delta' on input line 2017.
 
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 2017.
+
+
+
+[20]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-
-
-[20] (./paper2.bbl
+(./paper2.bbl
 Underfull \hbox (badness 6944) in paragraph at lines 21--25
 []\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
  []
@@ -1575,7 +1576,7 @@ Package rerunfilecheck Info: File `paper2.out' has not changed.
 Here is how much of TeX's memory you used:
  15119 strings out of 474662
  242492 string characters out of 5751110
- 727408 words of memory out of 5000000
+ 724408 words of memory out of 5000000
  37790 multiletter control sequences out of 15000+600000
  641466 words of font info for 103 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
@@ -1612,10 +1613,10 @@ live/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texlive/2
 025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025bas
 ic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texliv
 e/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (23 pages, 2468393 bytes).
+Output written on paper2.pdf (23 pages, 2469158 bytes).
 PDF statistics:
- 716 PDF objects out of 1000 (max. 8388607)
- 576 compressed objects within 6 object streams
+ 718 PDF objects out of 1000 (max. 8388607)
+ 578 compressed objects within 6 object streams
  152 named destinations out of 1000 (max. 500000)
  17701 words of extra memory for PDF output out of 20736 (max. 10000000)
 

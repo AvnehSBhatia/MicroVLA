@@ -1820,10 +1820,20 @@ statistic must be computed within one build.
 \paragraph{Limitations.}
 \begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
 \item One simulator, one benchmark suite, one robot, wrist camera only.
-\item Every confirmatory cell is one task and one object at $n \le 30$,
-including the blind arm ($n{=}10$). The \emph{radii} of \S\ref{sec:adm} are
-computed from files and carry no such limit; the \emph{verdict} does, because
-it needs $\delta$.
+\item Every confirmatory cell is one task and one object at $n \le 30$.
+The \emph{radii} of \S\ref{sec:adm} are computed from files and carry no such
+limit; the \emph{verdict} does, because it needs $\delta$.
+\item \S\ref{sec:e1}'s causal chain --- the defect is exploitable, and the
+repaired states are not harder --- is \textbf{one task}. It is the task with
+the most history behind it and the arms are at $n{=}30$, but nothing here shows
+the effect generalises across the other nine, and the between-task evidence in
+\S\ref{sec:refute} says the opposite is entirely possible: three tasks handed
+the same constant score $0$.
+\item The repaired suite is \textbf{ours}, not the benchmark's. The declared
+region is LIBERO's; the rejection sampling under a $7.42$\,cm clearance is a
+choice we made and validated
+(\texttt{scripts/validate\_resampled.py}), and a different admissible draw
+could give a different number.
 \item One $10$-trial cell (the released head on task $0$, seed $20$) appears in
 five reported results: the suite total, the blind comparator, the renderer
 table's \texttt{osmesa} arm, the instruction-swap baseline, and the
