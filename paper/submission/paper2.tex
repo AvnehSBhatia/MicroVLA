@@ -26,10 +26,12 @@ A Benchmark Defect, and Nine Ways Our Verification Missed Our Own Errors}}
 
 \begin{abstract}
 \noindent
-This paper reports a benchmark defect, a criterion for when such defects
-matter, and --- from the same work --- nine occasions on which our own
-verification passed while our claim was false. The third is the part we expect
-to outlive the other two.
+This paper reports a benchmark defect, evidence that it is exploitable, a
+criterion for when such defects matter --- which we then \emph{withdraw}, on a
+measurement of our own --- and nine occasions on which our verification passed
+while our claim was false. \textbf{The last two are the parts we expect to
+outlive the first two}: one says what a benchmark score can be shown to
+certify, and the other says why checking arithmetic will not tell you.
 
 \textbf{The defect.} Every LIBERO task declares, in its own task file, a region
 from which to sample its target's starting position. Three of the four suites
@@ -2138,8 +2140,8 @@ on windows of $\delta$ a third of a centimetre wide; the sharpest measurement
 of $\delta$ we could make resolves it to two. Until someone runs the finer
 ladder --- and it is a small experiment --- \emph{no} suite-level statement
 about what a manipulation benchmark certifies is supported, in either
-direction, for any suite. That is the result we would keep if we could keep
-only one.
+direction, for any suite. Of everything this paper says about the benchmark,
+that is the sentence we would keep.
 
 One behavioural claim on top of that does stand, and we tested it the way we
 would want someone else to. Sampling the region a task file declares, and
