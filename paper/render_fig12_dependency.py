@@ -41,6 +41,11 @@ TIERS = [
         "Six of ten targets take two float64 values, 1 ULP apart   (§3)",
         "Placement radius R, exactly computed, all 40 tasks   (§3, Table 3)",
         "R ≤ δ is necessary AND sufficient for a one-constant table   (Prop. 1)",
+        "The decision window W(A) = [max_A R, min_A^c R): a suite-level claim\n"
+        "is true iff δ ∈ W, so an estimate wider than |W| decides nothing at\n"
+        "any sample size   (Prop. 2, Cor. 1)",
+        "Of the 8 clean suite-level claims LIBERO can express, 7 are\n"
+        "unsatisfiable by ANY tolerance; the 8th needs 0.322 cm   (§7.1)",
     ]),
     (BLUE, "Measured, and independent of δ — needs a controller and a simulator,\n"
            "but no tolerance", [
@@ -71,7 +76,7 @@ TIERS = [
     ]),
 ]
 
-fig, ax = plt.subplots(figsize=(11.4, 7.9))
+fig, ax = plt.subplots(figsize=(11.4, 10.4))
 y = 0.0
 for col, header, items in TIERS:
     ax.text(0.0, y, header, fontsize=10.6, fontweight="bold", color=col,
@@ -79,13 +84,14 @@ for col, header, items in TIERS:
     y -= 0.62 + 0.44 * header.count("\n")
     for it in items:
         n = it.count("\n") + 1
-        h = 0.42 * n + 0.20
+        h = 0.64 * n + 0.20
         ax.add_patch(FancyBboxPatch((0.06, y - h), 9.5, h,
                                     boxstyle="round,pad=0.04,rounding_size=0.10",
                                     facecolor=col, alpha=0.11,
                                     edgecolor=col, lw=1.0))
-        ax.text(0.28, y - 0.30, it, fontsize=8.9, va="top", color="#1f2933")
-        y -= h + 0.16
+        ax.text(0.28, y - 0.32, it, fontsize=8.9, va="top", color="#1f2933",
+                linespacing=1.45)
+        y -= h + 0.20
     y -= 0.34
 
 ax.set_xlim(-0.1, 10.0)

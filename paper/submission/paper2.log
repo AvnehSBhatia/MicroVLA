@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 16:26
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 16:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -704,12 +704,12 @@ cks
 
 
 [2]
-<../visuals/F12_dependency.png, id=213, 1155.55927pt x 515.77957pt>
+<../visuals/F12_dependency.png, id=213, 1155.55927pt x 674.01285pt>
 File: ../visuals/F12_dependency.png Graphic file (type png)
 <use ../visuals/F12_dependency.png>
 Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 228.
 
-(pdftex.def)             Requested size: 475.53783pt x 212.25801pt.
+(pdftex.def)             Requested size: 475.53783pt x 277.37552pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <9> on input line 237.
 <../visuals/F13_all_tasks.png, id=219, 1264.725pt x 304.67511pt>
@@ -770,11 +770,11 @@ Underfull \hbox (badness 1742) in paragraph at lines 455--456
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
+
+
 Underfull \hbox (badness 3375) in paragraph at lines 487--495
 []\OT1/lmr/bx/n/10 (i) The lookup arm is hand-i-capped, not
  []
-
-
 
 LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `OT1/lmtt/b/n' tried instead on input line 497.
@@ -785,12 +785,12 @@ LaTeX Font Info:    Font shape `OT1/lmtt/bx/n' in size <10> not available
 
 
 [5 <../visuals/F13_all_tasks.png> <../visuals/F10_declared_vs_shipped.png>]
+
+
 Underfull \hbox (badness 10000) in paragraph at lines 581--588
 []\OT1/lmr/m/n/10 The dis-tinc-tion from the \OT1/lmr/m/it/10 di-am-e-ter $\OML
 /lmm/m/it/10 D[]\OT1/lmr/m/n/10 (\OML/lmm/m/it/10 o\OT1/lmr/m/n/10 ) =
  []
-
-
 
 
 Underfull \hbox (badness 3907) in paragraph at lines 596--602
@@ -827,6 +827,9 @@ Overfull \hbox (2.05215pt too wide) in paragraph at lines 805--821
  []
 
 
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
 
 
 Underfull \hbox (badness 1226) in paragraph at lines 845--849
@@ -846,9 +849,6 @@ Underfull \hbox (badness 1953) in paragraph at lines 850--855
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-Underfull \vbox (badness 1546) has occurred while \output is active []
 
 
 
@@ -905,9 +905,11 @@ Underfull \hbox (badness 1226) in paragraph at lines 1163--1170
 [12]
 
 
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-[13{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc} <..
-/visuals/F8_subgoal.png> <../visuals/F16_jitter.png>]
+
+
+[13 <../visuals/F8_subgoal.png> <../visuals/F16_jitter.png>]
 Overfull \hbox (7.71997pt too wide) in paragraph at lines 1236--1255
  [][] 
  []
@@ -916,8 +918,8 @@ Overfull \hbox (7.71997pt too wide) in paragraph at lines 1236--1255
 
 
 
-[14{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
-<../visuals/F17_decision_window.png, id=465, 759.59573pt x 488.01268pt>
+[14{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-rmsc.enc}]
+<../visuals/F17_decision_window.png, id=463, 759.59573pt x 488.01268pt>
 File: ../visuals/F17_decision_window.png Graphic file (type png)
 <use ../visuals/F17_decision_window.png>
 Package pdftex.def Info: ../visuals/F17_decision_window.png  used on input line
@@ -927,7 +929,7 @@ Package pdftex.def Info: ../visuals/F17_decision_window.png  used on input line
 
 
 
-[15]
+[15{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
 Underfull \hbox (badness 1360) in paragraph at lines 1479--1479
 \OT1/lmr/m/n/9 i-bra-tion con-
  []
@@ -1025,7 +1027,7 @@ Underfull \hbox (badness 4699) in paragraph at lines 1504--1504
 
 
 
-<../visuals/F2_dataflow_language.png, id=491, 888.921pt x 384.1721pt>
+<../visuals/F2_dataflow_language.png, id=490, 888.921pt x 384.1721pt>
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
@@ -1055,10 +1057,6 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [17]
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-
 
 
 [18 <../visuals/F2_dataflow_language.png>]
@@ -1077,16 +1075,14 @@ Underfull \hbox (badness 1019) in paragraph at lines 1767--1772
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
+
+[19 <../visuals/F6_place_point_map.png>]
 Underfull \hbox (badness 3601) in paragraph at lines 1804--1817
 \OT1/lmr/m/n/10 we first re-ported only part of it. Over $\OML/lmm/m/it/10 ^^\ 
 \OMS/lmsy/m/n/10 2
  []
 
 
-
-[19 <../visuals/F6_place_point_map.png>]
-
-LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 Underfull \hbox (badness 1939) in paragraph at lines 1857--1864
@@ -1099,8 +1095,6 @@ Underfull \hbox (badness 10000) in paragraph at lines 1857--1864
 \OT1/lmr/m/n/10 car-ries \OT1/lmtt/m/n/10 complete: false \OT1/lmr/m/n/10 and \
 OT1/lmtt/m/n/10 planned[]n: 0 \OT1/lmr/m/n/10 in
  []
-
-
 
 
 Underfull \hbox (badness 1226) in paragraph at lines 1866--1867
@@ -1486,6 +1480,8 @@ T1/lmr/m/n/9 and
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
+
+[23 <../visuals/F14_errors.png>]
 Underfull \hbox (badness 10000) in paragraph at lines 2288--2288
 []\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 R$
  []
@@ -1526,86 +1522,125 @@ Underfull \hbox (badness 10000) in paragraph at lines 2292--2293
  []
 
 
-Underfull \hbox (badness 4353) in paragraph at lines 2294--2294
-[]\OT1/lmr/bx/n/8 publish $\OML/lmm/m/it/8 ^^N$\OT1/lmr/bx/n/8 ,
+Underfull \hbox (badness 10000) in paragraph at lines 2294--2294
+[]\OT1/lmr/bx/n/8 publish
  []
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 2294--2294
+\OT1/lmr/bx/n/8 the de-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2294--2294
+\OT1/lmr/bx/n/8 ci-sion
+ []
+
+
+Underfull \hbox (badness 2591) in paragraph at lines 2294--2295
+\OT1/lmr/m/n/8 be-fore any ex-per-i-ment
+ []
+
+
+Underfull \hbox (badness 1590) in paragraph at lines 2294--2295
+\OT1/lmr/m/n/8 must be known for a
+ []
+
+
+Underfull \hbox (badness 2189) in paragraph at lines 2294--2295
+\OT1/lmr/m/n/8 claim about the suite
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2296--2296
+[]\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 ^^N$\OT1/lmr/m/n/8 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2296--2296
+\OT1/lmr/m/n/8 or pub-lish
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2296--2296
 []\OT1/lmr/m/n/8 a dis-place-ment
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2294--2294
+Underfull \hbox (badness 10000) in paragraph at lines 2296--2296
 \OT1/lmr/m/n/8 ing, $\OML/lmm/m/it/8 n$ \OT1/lmr/m/n/8 in the
  []
 
 
-Underfull \hbox (badness 1142) in paragraph at lines 2294--2295
-\OT1/lmr/bx/n/8 and least have. $\OML/lmm/m/it/8 R$
+Underfull \hbox (badness 10000) in paragraph at lines 2296--2297
+\OT1/lmr/m/n/8 point-less with-out the
  []
 
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \hbox (badness 6220) in paragraph at lines 2296--2297
+\OT1/lmr/m/n/8 row above: $\OML/lmm/m/it/8 ^^N$ \OT1/lmr/m/n/8 must
+ []
 
 
+Underfull \hbox (badness 4518) in paragraph at lines 2296--2297
+\OT1/lmr/m/n/8 be re-solved to in-side
+ []
 
-[23 <../visuals/F14_errors.png>]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
 
-Underfull \hbox (badness 1024) in paragraph at lines 2370--2380
+Underfull \hbox (badness 1024) in paragraph at lines 2373--2383
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 2370--2380
+Underfull \hbox (badness 1199) in paragraph at lines 2373--2383
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 2370--2380
+Underfull \hbox (badness 4001) in paragraph at lines 2373--2383
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
 
 
-Underfull \hbox (badness 6493) in paragraph at lines 2404--2411
+
+[24]
+Underfull \hbox (badness 6493) in paragraph at lines 2407--2414
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 2404--2411
+Underfull \hbox (badness 2486) in paragraph at lines 2407--2414
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
-
-
-[24]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 2412.
+(Font)              <14.4> on input line 2415.
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 2415.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2412.
+(hyperref)                removing `\delta' on input line 2415.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 2412.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 2412.
+(hyperref)                removing `math shift' on input line 2415.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 (./paper2.bbl
+
+
 Underfull \hbox (badness 6944) in paragraph at lines 21--25
 []\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
  []
@@ -1614,8 +1649,6 @@ Underfull \hbox (badness 6944) in paragraph at lines 21--25
 Underfull \hbox (badness 1308) in paragraph at lines 28--32
 \OT1/lmr/m/n/10 Levy, Roy Schwartz, Samuel R. Bow-man, and
  []
-
-
 
 
 Underfull \hbox (badness 3701) in paragraph at lines 41--44
@@ -1643,13 +1676,13 @@ Package rerunfilecheck Info: File `paper2.out' has not changed.
 (rerunfilecheck)             Checksum: C527F0BA28B5556B5B2264F76425D020;6790.
  ) 
 Here is how much of TeX's memory you used:
- 15182 strings out of 474662
- 243601 string characters out of 5751110
- 742936 words of memory out of 5000000
- 37822 multiletter control sequences out of 15000+600000
- 644586 words of font info for 105 fonts, out of 8000000 for 9000
+ 15179 strings out of 474662
+ 243558 string characters out of 5751110
+ 747025 words of memory out of 5000000
+ 37820 multiletter control sequences out of 15000+600000
+ 644214 words of font info for 104 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1939b,588s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1939b,589s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx6.pfb></usr/local/te
@@ -1684,10 +1717,10 @@ basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texlive/2025basic/
 texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/texmf-
 dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2025bas
 ic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (27 pages, 2918304 bytes).
+Output written on paper2.pdf (27 pages, 2951605 bytes).
 PDF statistics:
- 836 PDF objects out of 1000 (max. 8388607)
- 672 compressed objects within 7 object streams
+ 833 PDF objects out of 1000 (max. 8388607)
+ 670 compressed objects within 7 object streams
  179 named destinations out of 1000 (max. 500000)
- 18751 words of extra memory for PDF output out of 20736 (max. 10000000)
+ 18239 words of extra memory for PDF output out of 20736 (max. 10000000)
 
