@@ -1570,6 +1570,53 @@ states, and would need restating for procedurally generated ones.
 \end{itemize}
 
 
+\subsection{Running this on a benchmark that is not LIBERO}
+\label{sec:portable}
+
+Both measurements need the same two things, and neither needs a model: a
+statement of where each task's objects \emph{may} start, and the states the
+benchmark actually \emph{ships}. LIBERO supplies the first as BDDL
+\texttt{:ranges} and the second as \texttt{.pruned\_init} arrays. Any benchmark
+with a generator and a released evaluation set has both, in some form.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{2.15cm}p{2.5cm}p{2.6cm}}
+\toprule
+you need & to compute & which tells you \\
+\midrule
+shipped initial states, per task &
+the placement radius $R$ &
+whether one constant per task reproduces every shipped position \\
+\addlinespace
+the declared sampling region &
+declared-versus-shipped &
+whether the released states exercise the randomisation the benchmark
+specifies \\
+\addlinespace
+$+$ a tolerance $\delta$ for the embodiment &
+the admissibility verdict &
+whether that matters for a given robot --- and this is the part that needs a
+policy \\
+\bottomrule
+\end{tabular}
+\caption{What the two diagnostics require. The first two rows are arithmetic on
+shipped files and are what we would ask a benchmark to publish; the third needs
+an embodiment and is where our own result is weakest. The scripts are
+\texttt{scripts/admissibility.py} and
+\texttt{scripts/declared\_vs\_shipped.py}; both read a per-task table of object
+positions and are ${\sim}150$ lines. Porting them is a matter of writing the
+reader for another benchmark's state format, not of reimplementing the
+measurement.}
+\label{tab:portable}
+\end{table}
+
+We flag one thing a porter should not assume. Our region parser reads the
+\emph{assignment} of object to region from the task's own initialisation block,
+because matching regions by name silently picked the plate's region for the
+bowl and reported a task using $152\%$ of its declared area. Whatever the
+target format, the object-to-region binding must be read, not inferred.
+
 \subsection{Recommendation to benchmark authors}
 
 Both quantities are cheap to compute and cheap to report.

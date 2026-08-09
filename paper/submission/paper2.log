@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 01:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 01:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -701,7 +701,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 183--187
  $58$
  []
 
-<../visuals/F12_dependency.png, id=167, 974.12352pt x 433.62pt>
+<../visuals/F12_dependency.png, id=171, 974.12352pt x 433.62pt>
 File: ../visuals/F12_dependency.png Graphic file (type png)
 <use ../visuals/F12_dependency.png>
 Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 196.
@@ -709,12 +709,12 @@ Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 196.
 (pdftex.def)             Requested size: 475.53783pt x 211.68167pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <9> on input line 205.
-<../visuals/F13_all_tasks.png, id=172, 1264.725pt x 304.67511pt>
+<../visuals/F13_all_tasks.png, id=176, 1264.725pt x 304.67511pt>
 File: ../visuals/F13_all_tasks.png Graphic file (type png)
 <use ../visuals/F13_all_tasks.png>
 Package pdftex.def Info: ../visuals/F13_all_tasks.png  used on input line 233.
 (pdftex.def)             Requested size: 500.83388pt x 120.64986pt.
-<../visuals/F10_declared_vs_shipped.png, id=175, 1108.01321pt x 293.64442pt>
+<../visuals/F10_declared_vs_shipped.png, id=179, 1108.01321pt x 293.64442pt>
 File: ../visuals/F10_declared_vs_shipped.png Graphic file (type png)
 <use ../visuals/F10_declared_vs_shipped.png>
 Package pdftex.def Info: ../visuals/F10_declared_vs_shipped.png  used on input 
@@ -767,7 +767,7 @@ ry
 
 
 [4 <../visuals/F13_all_tasks.png> <../visuals/F10_declared_vs_shipped.png>]
-<../visuals/F11_radius_criterion.png, id=234, 1307.32626pt x 251.04315pt>
+<../visuals/F11_radius_criterion.png, id=238, 1307.32626pt x 251.04315pt>
 File: ../visuals/F11_radius_criterion.png Graphic file (type png)
 <use ../visuals/F11_radius_criterion.png>
 Package pdftex.def Info: ../visuals/F11_radius_criterion.png  used on input lin
@@ -775,7 +775,7 @@ e 433.
 (pdftex.def)             Requested size: 490.71391pt x 94.22905pt.
 
 
-<../visuals/F1_placement_forensics.png, id=248, 947.87811pt x 341.57085pt>
+<../visuals/F1_placement_forensics.png, id=252, 947.87811pt x 341.57085pt>
 File: ../visuals/F1_placement_forensics.png Graphic file (type png)
 <use ../visuals/F1_placement_forensics.png>
 Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
@@ -817,7 +817,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-<../visuals/F7_ladder.png, id=283, 896.90874pt x 271.96342pt>
+<../visuals/F7_ladder.png, id=287, 896.90874pt x 271.96342pt>
 File: ../visuals/F7_ladder.png Graphic file (type png)
 <use ../visuals/F7_ladder.png>
 Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 676.
@@ -825,7 +825,7 @@ Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 676.
 
 
 [7]
-<../visuals/F9_suite.png, id=297, 888.16026pt x 278.42969pt>
+<../visuals/F9_suite.png, id=301, 888.16026pt x 278.42969pt>
 File: ../visuals/F9_suite.png Graphic file (type png)
 <use ../visuals/F9_suite.png>
 Package pdftex.def Info: ../visuals/F9_suite.png  used on input line 727.
@@ -847,7 +847,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [8 <../visuals/F7_ladder.png>]
 
-<../visuals/F8_subgoal.png, id=314, 1155.55927pt x 258.27016pt>
+<../visuals/F8_subgoal.png, id=318, 1155.55927pt x 258.27016pt>
 File: ../visuals/F8_subgoal.png Graphic file (type png)
 <use ../visuals/F8_subgoal.png>
 Package pdftex.def Info: ../visuals/F8_subgoal.png  used on input line 847.
@@ -952,7 +952,7 @@ Underfull \hbox (badness 4699) in paragraph at lines 920--920
 
 
 
-<../visuals/F2_dataflow_language.png, id=333, 888.921pt x 384.1721pt>
+<../visuals/F2_dataflow_language.png, id=337, 888.921pt x 384.1721pt>
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
@@ -964,7 +964,7 @@ Underfull \hbox (badness 2027) in paragraph at lines 975--975
 i-tec-tural half of the ar-gu-ment is a code fact:
  []
 
-<../visuals/F6_place_point_map.png, id=334, 768.72458pt x 378.84695pt>
+<../visuals/F6_place_point_map.png, id=338, 768.72458pt x 378.84695pt>
 File: ../visuals/F6_place_point_map.png Graphic file (type png)
 <use ../visuals/F6_place_point_map.png>
 Package pdftex.def Info: ../visuals/F6_place_point_map.png  used on input line 
@@ -1040,7 +1040,7 @@ Underfull \hbox (badness 1226) in paragraph at lines 1280--1281
 
 [14]
 
-<../visuals/F14_errors.png, id=391, 1325.58395pt x 367.4359pt>
+<../visuals/F14_errors.png, id=395, 1325.58395pt x 367.4359pt>
 File: ../visuals/F14_errors.png Graphic file (type png)
 <use ../visuals/F14_errors.png>
 Package pdftex.def Info: ../visuals/F14_errors.png  used on input line 1419.
@@ -1313,101 +1313,170 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1584--1584
-[]\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 R$
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1584--1584
-\OT1/lmr/m/n/8 per ob-ject
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1584--1584
-[]\OT1/lmr/m/n/8 one script, no
- []
-
-
-Underfull \hbox (badness 1668) in paragraph at lines 1584--1585
-[]\OT1/lmr/m/n/8 tells a reader what a
- []
-
-
-Underfull \hbox (badness 2753) in paragraph at lines 1586--1586
-[]\OT1/lmr/m/n/8 set a floor
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1588--1589
-\OT1/lmr/m/n/8 de-pends on dis-place-
- []
-
-
-Underfull \hbox (badness 6542) in paragraph at lines 1588--1589
-\OT1/lmr/m/n/8 ment rel-a-tive to the
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1588--1589
-\OT1/lmr/m/n/8 con-troller's en-ve-lope
- []
-
-
 
 [16 <../visuals/F14_errors.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 1588--1588
+[]\OT1/lmr/m/n/8 shipped ini-tial
+ []
+
+
+Underfull \hbox (badness 1596) in paragraph at lines 1589--1589
+[]\OT1/lmr/m/n/8 the place-ment ra-
+ []
+
+
+Underfull \hbox (badness 7486) in paragraph at lines 1590--1591
+[]\OT1/lmr/m/n/8 whether one con-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1592--1592
+[]\OT1/lmr/m/n/8 the de-clared
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1593--1593
+[]\OT1/lmr/m/n/8 declared-versus-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1596
+[]\OT1/lmr/m/n/8 whether the re-
+ []
+
+
+Underfull \hbox (badness 2205) in paragraph at lines 1594--1596
+\OT1/lmr/m/n/8 leased states ex-er-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1598--1598
+[]\OT1/lmr/m/n/8 the ad-mis-si-bil-ity
+ []
+
+
+Underfull \hbox (badness 1655) in paragraph at lines 1599--1601
+[]\OT1/lmr/m/n/8 whether that mat-
+ []
+
+
+Underfull \hbox (badness 7522) in paragraph at lines 1599--1601
+\OT1/lmr/m/n/8 ters for a given
+ []
+
+
+Underfull \hbox (badness 1014) in paragraph at lines 1610--1610
+\OT1/lmr/m/n/9 two rows are arith-metic on shipped files and are what
+ []
+
+
+Underfull \hbox (badness 1701) in paragraph at lines 1610--1610
+\OT1/lmr/m/n/9 an em-bod-i-ment and is where our own re-sult is weak-
+ []
+
+
+Underfull \hbox (badness 3302) in paragraph at lines 1610--1610
+\OT1/lmr/m/n/9 est. The scripts are \OT1/lmtt/m/n/9 scripts/admissibility.py \O
+T1/lmr/m/n/9 and
+ []
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 1024) in paragraph at lines 1641--1651
+Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+[]\OT1/lmr/m/n/8 publish $\OML/lmm/m/it/8 R$
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+\OT1/lmr/m/n/8 per ob-ject
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1631--1631
+[]\OT1/lmr/m/n/8 one script, no
+ []
+
+
+Underfull \hbox (badness 1668) in paragraph at lines 1631--1632
+[]\OT1/lmr/m/n/8 tells a reader what a
+ []
+
+
+Underfull \hbox (badness 2753) in paragraph at lines 1633--1633
+[]\OT1/lmr/m/n/8 set a floor
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1635--1636
+\OT1/lmr/m/n/8 de-pends on dis-place-
+ []
+
+
+Underfull \hbox (badness 6542) in paragraph at lines 1635--1636
+\OT1/lmr/m/n/8 ment rel-a-tive to the
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1635--1636
+\OT1/lmr/m/n/8 con-troller's en-ve-lope
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+
+
+Underfull \hbox (badness 1024) in paragraph at lines 1688--1698
 \OT1/lmr/m/n/10 clared ob-jects. We there-fore run two passes: the
  []
 
 
-Underfull \hbox (badness 1199) in paragraph at lines 1641--1651
+Underfull \hbox (badness 1199) in paragraph at lines 1688--1698
 \OT1/lmr/m/n/10 map-ping ev-ery col-umn onto a named body. \OT1/lmr/bx/n/10 The
 
  []
 
 
-Underfull \hbox (badness 4001) in paragraph at lines 1641--1651
+Underfull \hbox (badness 4001) in paragraph at lines 1688--1698
 \OT1/lmr/m/n/10 gests), \OT1/lmtt/m/n/10 results/suite[]forensics[]joints.json 
 \OT1/lmr/m/n/10 (per-
  []
 
 
-
-
-Underfull \hbox (badness 6493) in paragraph at lines 1675--1682
+Underfull \hbox (badness 6493) in paragraph at lines 1722--1729
 \OT1/lmr/bx/n/10 Under $\OML/lmm/m/it/10 `[]$ \OT1/lmr/bx/n/10 the ``both are f
 ix-tures'' clause
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 1675--1682
+Underfull \hbox (badness 2486) in paragraph at lines 1722--1729
 \OT1/lmr/bx/n/10 fails. \OT1/lmr/m/n/10 The third LIBERO-Goal task to cross is
  []
 
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 1683.
+(Font)              <14.4> on input line 1730.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1683.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 1683.
+(hyperref)                removing `math shift' on input line 1730.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1683.
+(hyperref)                removing `\delta' on input line 1730.
 
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1730.
+
+
+
+[17]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-
-
-[17] (./paper2.bbl
+(./paper2.bbl
 Underfull \hbox (badness 6944) in paragraph at lines 21--25
 []\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
  []
@@ -1430,19 +1499,25 @@ Underfull \hbox (badness 3701) in paragraph at lines 41--44
 
 
 
-[19] (./paper2.aux)
+[19]
+
+
+
+[20
+
+] (./paper2.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `paper2.out' has not changed.
-(rerunfilecheck)             Checksum: B20E857FCD1395346932F2A68AABEEB9;5469.
+(rerunfilecheck)             Checksum: CF03B5D703779185FD06FC645660950E;5783.
  ) 
 Here is how much of TeX's memory you used:
- 15074 strings out of 474662
- 241712 string characters out of 5751110
- 716951 words of memory out of 5000000
- 37766 multiletter control sequences out of 15000+600000
+ 15080 strings out of 474662
+ 241795 string characters out of 5751110
+ 718543 words of memory out of 5000000
+ 37769 multiletter control sequences out of 15000+600000
  640472 words of font info for 100 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
  75i,12n,79p,1167b,540s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1477,10 +1552,10 @@ l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texl
 ive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/l
 ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb
 >
-Output written on paper2.pdf (19 pages, 2149078 bytes).
+Output written on paper2.pdf (20 pages, 2152146 bytes).
 PDF statistics:
- 621 PDF objects out of 1000 (max. 8388607)
- 496 compressed objects within 5 object streams
- 133 named destinations out of 1000 (max. 500000)
- 16144 words of extra memory for PDF output out of 17280 (max. 10000000)
+ 631 PDF objects out of 1000 (max. 8388607)
+ 504 compressed objects within 6 object streams
+ 136 named destinations out of 1000 (max. 500000)
+ 16152 words of extra memory for PDF output out of 17280 (max. 10000000)
 
