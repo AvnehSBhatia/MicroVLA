@@ -163,7 +163,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $95$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $111$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -309,6 +309,51 @@ simulator --- resting height and table contact after settling --- are listed
 rather than assumed, and the manifest labels the suite a candidate repair.}
 \label{tab:repaired}
 \end{table}
+
+\subsection{The defect is exploitable, and we can now show it}
+\label{sec:e1}
+
+A frozen placement is only interesting if it changes what a policy can do.
+Section~\ref{sec:refute} reports our failure to establish that, and this
+experiment settles the half of it that is settleable: run two policies on task
+$0$ twice --- once on the fifty states LIBERO ships, once on fifty drawn from
+the region its own task file declares --- changing nothing else. Same weights,
+same seed, same trial indices, same machine, same package versions, both
+conditions in one batch.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrl}
+\toprule
+goal supply & shipped & repaired & paired \\
+\midrule
+\textbf{lookup constant} & $\mathbf{25/30}$ & $\mathbf{10/30}$ &
+$17$--$2$, $\mathbf{p = 0.0007}$ \\
+released head & $19/30$ & $13/30$ & $10$--$4$, $p = 0.18$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Sampling the region the benchmark declares costs a lookup
+policy half its score.} Task $0$, $n{=}30$ per cell, exact McNemar over matched
+trial indices --- one variable changes, the fifty initial states. The constant
+is bit-identical to the shipped target position, so against a target that
+actually moves it should degrade, and it does: $0.833 \to 0.333$,
+$p = 0.0007$. \textbf{This is the manipulation check for
+\S\ref{sec:declared}}: it establishes that the shipped states cannot defeat a
+table lookup and the repaired ones can, so the defect is load-bearing rather
+than cosmetic. The trained head drops in the same direction, $0.633 \to 0.433$,
+which this $n$ does not resolve ($p = 0.18$). Artifact:
+\texttt{results/e1\_shipped\_vs\_repaired.json}.}
+\label{tab:e1}
+\end{table}
+
+Two honesties about this cell. The released head reproduces here at
+$19/30 = 0.633$ against its historical $0.700$, inside that interval, so the
+build is sound. But the lookup arm scored $25/30 = 0.833$ where an earlier box
+measured $6/10 = 0.600$ --- same code, different torch. We report both and
+adopt neither, because \S\ref{sec:cert} is about exactly this and it would be
+absurd to quietly keep the flattering one. Nothing above depends on the
+cross-build comparison: both conditions of Table~\ref{tab:e1} ran in one batch
+on one machine.
 
 That leaves the question this paper exists to answer. A frozen placement is
 only a problem if a policy can exploit it, and whether it can is a question
@@ -1442,7 +1487,7 @@ quoted --- and, in the eighth, which parts of a document a retraction reached. \
 number in a paper would have caught none of them}, and ours did not --- it
 recomputed the $2$D distance we chose to compute, and passed.
 
-They also share a direction. All seven made the result look better. A team
+They also share a direction. All nine made the result look better. A team
 that only checks its arithmetic is protected against none of this; what
 catches it is being asked, by someone else, why a particular slice was the one
 reported.

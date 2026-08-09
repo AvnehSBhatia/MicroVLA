@@ -160,6 +160,46 @@ check("both declare the same 5cm box", True,
       all(abs(t["declared_cm"][0] - 5.0) < 1e-6
           for t in DS["libero_object"]["tasks"] + DS["libero_10"]["tasks"]))
 
+print("\n=== §2.4 E1: shipped vs repaired (the manipulation check) ===")
+# Recomputed from raw per-trial outcomes, not read back from the JSON's own
+# summary fields -- reading a p-value back is error 1 of Table 13.
+E1 = J("results/e1_shipped_vs_repaired.json")
+
+
+def mcnemar_exact(a: dict, b: dict) -> tuple[int, int, float]:
+    """Two-sided exact McNemar over trials present in both arms."""
+    keys = sorted(set(a) & set(b), key=int)
+    lost = sum(1 for k in keys if a[k] and not b[k])
+    gained = sum(1 for k in keys if b[k] and not a[k])
+    n = lost + gained
+    if n == 0:
+        return lost, gained, 1.0
+    tail = sum(math.comb(n, i) for i in range(min(lost, gained) + 1))
+    return lost, gained, min(1.0, 2.0 * tail / 2 ** n)
+
+
+for _c, _k in [("blind_shipped", 25), ("blind_repaired", 10),
+               ("head_shipped", 19), ("head_repaired", 13)]:
+    _t = E1["cells"][_c]["trials"]
+    check(f"E1 {_c} successes", float(_k), float(sum(_t.values())), 0.5)
+    check(f"E1 {_c} n = 30 (planned, no early stop)", 30.0, float(len(_t)), 0.5)
+
+for _arm, _lost, _gained, _p, _tol in [("blind", 17, 2, 0.0007, 0.0002),
+                                       ("head", 10, 4, 0.18, 0.005)]:
+    _l, _g, _pv = mcnemar_exact(E1["cells"][f"{_arm}_shipped"]["trials"],
+                                E1["cells"][f"{_arm}_repaired"]["trials"])
+    check(f"E1 {_arm}: trials lost to the repair", float(_lost), float(_l), 0.5)
+    check(f"E1 {_arm}: trials gained", float(_gained), float(_g), 0.5)
+    check(f"E1 {_arm}: exact McNemar p", _p, _pv, _tol)
+
+# The paper's claim is a direction, so check the direction, not just the p.
+check("E1 blind: the repair costs the constant more than half",
+      True, E1["cells"]["blind_shipped"]["rate"]
+      - E1["cells"]["blind_repaired"]["rate"] >= 0.5)
+check("E1 head reproduces its historical 0.700 (inside Wilson)", True,
+      E1["cells"]["head_shipped"]["wilson"][0] <= 0.700
+      <= E1["cells"]["head_shipped"]["wilson"][1])
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
