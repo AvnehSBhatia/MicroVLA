@@ -39,7 +39,7 @@ NAMES = {"0": "task 0  alphabet soup", "3": "task 3  bbq sauce"}
 A = json.loads((REPO / "results/e23_analysis.json").read_text())["e2"]
 tasks = sorted(A, key=int)
 
-fig, axes = plt.subplots(1, len(tasks), figsize=(4.6 * len(tasks), 3.9),
+fig, axes = plt.subplots(1, len(tasks) + 1, figsize=(4.5 * (len(tasks) + 1), 4.0),
                          squeeze=False)
 for ax, t in zip(axes[0], tasks):
     d = A[t]
@@ -59,11 +59,12 @@ for ax, t in zip(axes[0], tasks):
                     xytext=(0, 9), ha="center", fontsize=7.6, color=c)
 
     # the two delta estimates this paper already carries, for scale
-    for est, lab in [(1.41, r"$\delta$ = 1.41"), (1.91, r"$\delta$ = 1.91")]:
+    for est, lab, dy in [(1.41, r"1.41", 1.045), (1.91, r"1.91", 1.095)]:
         if lv[0] <= est <= lv[-1]:
             xi = float(np.interp(est, lv, x))
             ax.axvline(xi, color="#8a6d3b", lw=1.0, ls="--", alpha=0.8)
-            ax.text(xi, 1.045, lab, fontsize=7.4, color="#8a6d3b", ha="center")
+            ax.text(xi, dy, r"$\delta$=" + lab, fontsize=7.4, color="#8a6d3b",
+                    ha="center")
 
     a, b = d["delta_interval_cm"]
     if a is not None and b is not None:
@@ -73,10 +74,17 @@ for ax, t in zip(axes[0], tasks):
                 f"score survives {a:g} cm, breaks by {b:g} cm",
                 transform=ax.transAxes, ha="center", fontsize=8.2,
                 color="#2e8b57", fontweight="bold")
-    elif not d["declines"]:
-        ax.text(0.5, 0.06, "no decline at any displacement",
-                transform=ax.transAxes, ha="center", fontsize=8.4,
-                color="#c0392b", fontweight="bold")
+    else:
+        ph = d.get("post_hoc", {})
+        k0 = d["cells"][f"{lv[0]:g}"]["k"]
+        kN = d["cells"][f"{lv[-1]:g}"]["k"]
+        flat = k0 <= kN
+        ax.text(0.5, 0.30,
+                "no decline: the arm is not using the constant" if flat else
+                f"falls {k0}/10 to {kN}/10, monotonically —\n"
+                "the registered test cannot resolve it at $n$ = 10",
+                transform=ax.transAxes, ha="center", fontsize=8.0,
+                color="#c0392b" if flat else "#b8860b", fontweight="bold")
 
     ax.set_xticks(x)
     ax.set_xticklabels([f"{j:g}" for j in lv])
@@ -89,13 +97,48 @@ for ax, t in zip(axes[0], tasks):
     ax.spines[["top", "right"]].set_visible(False)
 axes[0][0].set_ylabel("success rate", fontsize=9.4)
 
-fig.suptitle("Displacing the lookup constant: the dose-response the "
-             "admissibility argument needs", fontsize=11.4, y=1.02)
-fig.text(0.5, -0.10,
-         "Shaded band is the Wilson 95% interval; the green span brackets the tolerance, between the largest displacement the score survives and the smallest that "
-         "breaks it (Holm-corrected paired tests against r = 0). Each trial is pushed along a ray fixed by its own index, so the four magnitudes are paired in "
-         "direction as well as in initial state. Dashed lines are the two estimates of $\\delta$ this paper already carries, measured on the container rather than on the grocery.",
-         ha="center", fontsize=8.4, color="#43505c")
+# --- the consequence, which is the reason this experiment was worth running --
+ax = axes[0][-1]
+ADM = json.loads((REPO / "results/admissibility.json").read_text())["suites"]
+grid = np.linspace(0.6, 4.4, 400)
+obj, els = [], []
+for dv in grid:
+    o = on = e = en = 0
+    for suite, rec in ADM.items():
+        for tt in rec["tasks"]:
+            ok = tt["identity_R_cm"] <= dv
+            if suite == "libero_object":
+                on += 1; o += ok
+            else:
+                en += 1; e += ok
+    obj.append(o / on); els.append(e / en)
+ax.plot(grid, obj, color="#c0392b", lw=2.0, label="LIBERO-Object")
+ax.plot(grid, els, color="#2c6fbb", lw=2.0, label="the other three suites")
+ax.axvspan(1.17, 1.49, color="#2e8b57", alpha=0.13, lw=0)
+ax.text(1.33, 0.30, "window the\npaper's\nseparation\nholds on", fontsize=7.4,
+        ha="center", color="#2e8b57", fontweight="bold", linespacing=1.3)
+ax.axvspan(2.0, 4.0, color="#c0392b", alpha=0.11, lw=0)
+ax.text(3.0, 0.80, "what this figure\nmeasures", fontsize=8.0, ha="center",
+        color="#c0392b", fontweight="bold", linespacing=1.3)
+ax.annotate("", xy=(2.0, 0.70), xytext=(4.0, 0.70),
+            arrowprops=dict(arrowstyle="<->", color="#c0392b", lw=1.3))
+ax.set_xlabel(r"tolerance $\delta$ (cm)", fontsize=9)
+ax.set_ylabel("fraction of tasks a single constant serves", fontsize=8.8)
+ax.set_ylim(-0.03, 1.06); ax.set_xlim(0.6, 4.4)
+ax.set_title("and what that costs the separation", fontsize=10.2,
+             fontweight="bold", loc="left", color="#1f2933")
+ax.legend(fontsize=8.0, loc="upper left", bbox_to_anchor=(0.02, 0.55),
+          frameon=False)
+ax.grid(color="#eef1f4", lw=0.7); ax.set_axisbelow(True)
+ax.spines[["top", "right"]].set_visible(False)
+
+fig.suptitle("Measuring the tolerance on the quantity that matters — and "
+             "losing the separation to it", fontsize=11.8, y=1.03)
+fig.text(0.5, -0.13,
+         "Left, centre: shaded band is the Wilson 95% interval; each trial is pushed along a ray fixed by its own index, so the magnitudes are paired in direction as\n"
+         "well as in initial state. Task 0's $r$ = 0 cell is E1's lookup arm on the same ten trials, not a separate run. Right: both estimates of $\\delta$ this paper\n"
+         "carries were measured on the container during placing; this one is measured on the grocery during grasping, which is the quantity the criterion acts on.",
+         ha="center", fontsize=8.6, color="#43505c", linespacing=1.5)
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(OUT, dpi=190, bbox_inches="tight")

@@ -170,6 +170,30 @@ def main() -> None:
         }
         if base and not rejected:
             out["e2"][task]["FALSIFIES_BLIND_ARM"] = True
+        # POST-HOC, and labelled as such. The pre-registered rule above asks
+        # whether any level rejects after Holm. It cannot tell a FLAT response
+        # from an UNDERPOWERED one, and on a 10-trial ladder with four
+        # comparisons that distinction is the whole question. We do not touch
+        # the rule -- it stands as written, with its verdict -- and report this
+        # beside it so a reader can see which case fired.
+        if base:
+            k = [cells[j]["k"] for j in levels]
+            out["e2"][task]["post_hoc"] = {
+                "raw_p_min": min(ps.values()) if ps else None,
+                "raw_rejects_at_05": [j for j, pv in ps.items() if pv < 0.05],
+                "strictly_decreasing_endpoints": k[0] > k[-1],
+                "drop_from_zero": k[0] - k[-1],
+                "reading": (
+                    "FLAT: the score does not move, and the arm is not using "
+                    "the constant"
+                    if k[0] <= k[-1] else
+                    "UNDERPOWERED, NOT FLAT: the score falls monotonically to "
+                    f"zero ({k[0]}/{base['n']} to {k[-1]}/{cells[levels[-1]]['n']}) "
+                    "but four Holm-corrected comparisons at n = 10 cannot "
+                    "resolve it"
+                    if not rejected else
+                    "DECLINES, and the pre-registered test rejects"),
+            }
 
     # ---------------------------------------------------------------- E3
     # E3 is last in the run order because it is the least critical of the

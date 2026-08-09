@@ -293,6 +293,59 @@ check("E5 sim-side: the repair moved the object every episode", True,
       len(np.unique(np.asarray(list(OP["fixed_repaired"].values())).round(9),
                     axis=0)) == 30)
 
+print("\n=== §7 E2: the jitter sweep, recomputed from raw trials ===")
+E2 = J("results/e23_trials.json")["e2"]
+for _t, _lv, _want in [("3", [0, 1, 2, 4, 8], [10, 9, 5, 0, 0]),
+                       ("0", [0, 1, 2, 4, 8], [6, 5, 4, 0, 0])]:
+    for _j, _k in zip(_lv, _want):
+        _c = E2[f"{_t}|{_j:g}"]
+        check(f"E2 task {_t} r={_j}", float(_k), float(sum(_c.values())), 0.5)
+        check(f"E2 task {_t} r={_j}: n = 10", 10.0, float(len(_c)), 0.5)
+    _ks = [sum(E2[f"{_t}|{_j:g}"].values()) for _j in _lv]
+    check(f"E2 task {_t}: monotone non-increasing in r", True,
+          all(_ks[i] >= _ks[i + 1] for i in range(len(_ks) - 1)))
+    # Holm over the four r>0 comparisons, recomputed here.
+    _ps = {}
+    for _j in _lv[1:]:
+        _ps[_j] = mcnemar_exact(E2[f"{_t}|0"], E2[f"{_t}|{_j:g}"])[2]
+    _srt = sorted(_ps.items(), key=lambda kv: kv[1])
+    _run, _holm = 0.0, {}
+    for _i, (_j, _pv) in enumerate(_srt):
+        _run = max(_run, min(1.0, (len(_srt) - _i) * _pv))
+        _holm[_j] = _run
+    if _t == "3":
+        check("E2 task 3: Holm p at r=4", 0.0078, _holm[4], 0.0005)
+        check("E2 task 3: Holm p at r=2 does NOT reject", True, _holm[2] >= 0.05)
+        check("E2 task 3: the arm IS using the constant", True, _holm[4] < 0.05)
+    else:
+        check("E2 task 0: no level survives Holm", True,
+              min(_holm.values()) >= 0.05)
+        check("E2 task 0: uncorrected p at r=4", 0.03125, _ps[4], 0.0005)
+        check("E2 task 0: falls to zero anyway", True, _ks[0] > 0 and _ks[-1] == 0)
+
+# What the measured tolerance does to the separation, recomputed from radii.
+ADM = J("results/admissibility.json")["suites"]
+
+
+def contrast(d):
+    o = on = e = en = 0
+    for _s, _rec in ADM.items():
+        for _t in _rec["tasks"]:
+            _ok = _t["identity_R_cm"] <= d
+            if _s == "libero_object":
+                on += 1; o += _ok
+            else:
+                en += 1; e += _ok
+    return o, on, e, en
+
+
+for _d, _o, _e in [(1.41, 10, 2), (1.91, 10, 13), (2.0, 10, 17), (4.0, 10, 29)]:
+    _a, _an, _b, _bn = contrast(_d)
+    check(f"separation at delta={_d}: Object", float(_o), float(_a), 0.5)
+    check(f"separation at delta={_d}: elsewhere", float(_e), float(_b), 0.5)
+check("separation is DISSOLVED at the measured floor (>half elsewhere)", True,
+      contrast(2.0)[2] / contrast(2.0)[3] > 0.5)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
