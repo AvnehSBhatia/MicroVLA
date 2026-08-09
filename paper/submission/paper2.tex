@@ -51,9 +51,17 @@ the radius of the smallest disc containing every position the benchmark ships
 for it. A single task-indexed constant serves that object \emph{if and only if}
 $R \le \delta$, the tolerance below which the embodiment cannot tell two
 placements apart. On the object its tasks are \emph{named} by, LIBERO-Object
-satisfies this on all ten tasks at the tolerance we measure, against two of
-thirty elsewhere. We report in full how weakly $\delta$ is determined --- it is
-the weakest link, and our own two estimates of it disagree.
+satisfies this on all ten tasks at $\delta = 1.41$\,cm, against two of thirty
+elsewhere.
+
+\textbf{And we withdraw that verdict.} We named $\delta$ the weakest link,
+published two disagreeing estimates, drew the window the separation needed
+($[1.17, 1.49)$\,cm), and then measured $\delta$ directly on the grasped
+object for the first time --- displacing the lookup constant until the score
+breaks. It is $\geq 2$\,cm, above the window, and there more than half the
+tasks in the other three suites admit a constant too. The criterion is a
+theorem and survives; \textbf{the suite-level verdict does not}. The defect
+and its exploitability need no $\delta$ and are untouched.
 
 \textbf{What verification did not catch.} We built the lookup policy the
 criterion describes. It settles the manipulation check above and not the
@@ -167,6 +175,13 @@ would have retired the criterion below.
 (\S\ref{sec:adm}). The placement radius $R$, with the exact condition
 $R \le \delta$ --- necessary and sufficient, not merely sufficient --- and a
 measurement of all four LIBERO suites against it.
+\item \textbf{The measurement that withdraws our own verdict}
+(\S\ref{sec:e2}). Displacing the lookup constant until the score breaks gives
+the first estimate of $\delta$ on the grasped object rather than on the
+container: $\geq 2$\,cm, above the $[1.17, 1.49)$\,cm window the separation
+needs. At $2$\,cm, $17$ of $30$ tasks elsewhere are admissible too. We report
+the experiment that cost us the claim, at the length we would have reported a
+confirmation.
 \item \textbf{A behavioural test that fails, with its diagnosis}
 (\S\ref{sec:constant}--\S\ref{sec:refute}). We built the lookup policy and it
 cannot decide the question; we say why, at the correct unit of analysis, and
@@ -700,11 +715,14 @@ Long & 3.10 & $2.85$--$3.28$ & $0.00$--$3.17$ & 0/10 \\
 \bottomrule
 \end{tabular}
 \caption{Placement radius of every LIBERO task, computed from the shipped
-initial states alone --- no policy, no simulator, no training. The last column
-counts tasks whose identity-bearing object a single constant serves at the
-tolerance we measure for this controller (\S\ref{sec:refute}).
-\textbf{LIBERO-Object pins all ten of the objects its tasks are individuated
-by; elsewhere two of thirty}, and $^\dagger$both of those are the fixture tasks
+initial states alone --- no policy, no simulator, no training. The radii need no tolerance; the last
+column does, and counts tasks whose identity-bearing object a single constant
+serves \textbf{at $\delta = 1.41$\,cm} (\S\ref{sec:refute}) --- a value
+\S\ref{sec:e2} goes on to measure directly and overturn, which changes this
+column and nothing to its left.
+\textbf{At that $\delta$, LIBERO-Object pins all ten of the objects its tasks
+are individuated by; elsewhere two of thirty}, and $^\dagger$both of those are
+the fixture tasks
 --- a drawer and a stove --- which have $R = 0$ because they are bolted down,
 not because a randomisable placement was frozen. On the shared container the ordering
 \textbf{reverses}: LIBERO-Object pins it in $0$ of $10$ tasks and LIBERO-Goal
@@ -733,20 +751,28 @@ init-state array are in \texttt{results/suite\_forensics\_columns.json}.}
 Table~\ref{tab:suites} is the measurement, and it says one thing precisely.
 
 \begin{quote}
-\textbf{On the object that individuates its tasks, LIBERO-Object is
-lookup-admissible on all ten. Among the other thirty tasks, two are --- and
-both are fixtures that never move at all.}
+\textbf{At $\delta = 1.41$\,cm: on the object that individuates its tasks,
+LIBERO-Object is lookup-admissible on all ten. Among the other thirty tasks,
+two are --- and both are fixtures that never move at all.}
+
+\smallskip
+\noindent\textcolor{red}{\textbf{This verdict is withdrawn in
+\S\ref{sec:e2}.}} It holds only for $\delta \in [1.17, 1.49)$\,cm, and the
+first direct measurement of $\delta$ on the grasped object puts it at
+$\geq 2$\,cm. We leave the statement standing, here, with its condition
+attached, because the arithmetic beneath it is correct and it is the claim
+\S\ref{sec:e2} goes on to test.
 \end{quote}
 
-\noindent The threshold is not doing the work. LIBERO-Object's largest
-identity radius is $1.171$\,cm; the smallest among the other suites' twenty-eight
-\emph{movable} targets is $1.492$\,cm. Every $\delta$ in that gap returns the
-same verdict, and the radius we measure for this controller
-($\approx 1.41$\,cm, \S\ref{sec:refute}) falls inside it. This is a coincidence, and we treat it as one:
-the window is $0.32$\,cm wide, and at a $2$\,cm tolerance most of LIBERO-Spatial
-and LIBERO-Goal would be admissible as well. Appendix~\ref{app:deltasens} gives
-the whole curve. \textbf{The verdict is conditional on a measurement we make
-from a single $n{=}10$ cell}, and a reader should weight it accordingly.
+\noindent The threshold is not doing the work \emph{within that window}, and the
+window is the problem. LIBERO-Object's largest identity radius is $1.171$\,cm;
+the smallest among the other suites' twenty-eight \emph{movable} targets is
+$1.492$\,cm. Every $\delta$ in that $0.32$\,cm gap returns the same verdict, and
+the radius we measure for this controller ($\approx 1.41$\,cm,
+\S\ref{sec:refute}) falls inside it --- a coincidence we treat as one. At a
+$2$\,cm tolerance most of LIBERO-Spatial and LIBERO-Goal are admissible as
+well, which we wrote as a hypothetical and \S\ref{sec:e2} then measured.
+Appendix~\ref{app:deltasens} gives the whole curve.
 
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} \texttt{float64} values, one unit in the
@@ -2029,9 +2055,15 @@ A manipulation benchmark score is not a measurement of capability until the
 benchmark's admissibility has been measured. The measurement is cheap, it runs
 before any model is trained, and on LIBERO it says something specific: the one
 suite whose tasks are individuated by object identity is also the one that pins
-that object, on all ten tasks, to a radius smaller than the smaller of the two
-tolerances we measure for our own arm --- the larger one dissolves the
-contrast, and we report both.
+that object, on all ten tasks, to a radius of at most $1.4$\,cm.
+
+\emph{Whether that binds} is a separate question and we answer it against
+ourselves. The tolerance it has to beat is the one the embodiment actually has,
+and \S\ref{sec:e2} measures that for the first time on the object being
+grasped rather than on the container being filled: at least $2$\,cm, where
+more than half of the other suites' tasks admit a constant too. We withdraw the
+suite-level verdict. What we do not withdraw is the arithmetic --- the states
+are what they are --- or \S\ref{sec:e1}, which needs no tolerance at all.
 
 One behavioural claim on top of that does stand, and we tested it the way we
 would want someone else to. Sampling the region a task file declares, and

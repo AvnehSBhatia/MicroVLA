@@ -132,6 +132,10 @@ def main() -> None:
             "the suite-level significance claim, withdrawn in sec:refute",
         "identical to within a millimetre":
             "the 2D constant comparison, withdrawn in sec:refute",
+        "lookup-admissible on all ten":
+            "the suite-level verdict, withdrawn in sec:e2",
+        "distinctively admissible":
+            "the suite-level verdict, withdrawn in sec:e2",
     }
     for phrase, what in WITHDRAWN.items():
         hits = [m.start() for m in re.finditer(re.escape(phrase), t)]

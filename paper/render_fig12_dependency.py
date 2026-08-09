@@ -51,11 +51,14 @@ TIERS = [
         "So the collapse is the constant, not the states: 20 discordant\n"
         "trials on identical states, all one way, p = 2×10⁻⁶",
     ]),
-    (AMBER, "Conditional on δ — holds on [1.17, 1.49) cm, and not above", [
+    (GREY, "WITHDRAWN by §7 — the window is [1.17, 1.49) cm and the first\n"
+           "direct measurement of δ on the grasped object is ≥ 2 cm", [
         "LIBERO-Object 10/10 admissible; elsewhere 2/30, both fixtures\n"
         "(at δ = 1.91 cm, our own second estimate, elsewhere becomes 13/30)",
         "δ ≈ 1.4 cm itself: one n = 10 cell, HARKed, confounded with trial\n"
         "index, and measured on the container rather than the grocery",
+        "→ measured on the grocery: the score survives 2 cm and breaks by 4,\n"
+        "   and at 2 cm 17 of 30 tasks elsewhere are admissible too   (§7)",
     ]),
     (GREY, "Withdrawn by this paper", [
         "“a constant beats a trained policy, p = 0.039”  →  pseudoreplication;\n"
