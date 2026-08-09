@@ -37,7 +37,11 @@ ship evaluation states that exercise that region. \textbf{LIBERO-Object does
 not}: it declares the largest region of the four, $5 \times 5$\,cm, and ships
 the smallest spread --- on six of its ten tasks all fifty released states place
 the target at a single point, to the last bit of a \texttt{float64}. This is
-arithmetic on two shipped files. We also ship the repair, and validate it.
+arithmetic on two shipped files. We ship the repair, validate it, and show it
+bites: drawing the fifty states from the region the task file itself declares,
+and changing nothing else, costs a lookup policy half its score
+($25/30 \to 10/30$, paired, exact McNemar $p = 0.0007$). The defect is
+exploitable, not cosmetic.
 
 \textbf{The criterion.} A frozen placement matters only if the robot cannot
 resolve the freezing. Define the \emph{placement radius} $R$ of an object as
@@ -50,7 +54,9 @@ thirty elsewhere. We report in full how weakly $\delta$ is determined --- it is
 the weakest link, and our own two estimates of it disagree.
 
 \textbf{What verification did not catch.} We built the lookup policy the
-criterion describes and it does not settle the question; we say why. Along the
+criterion describes. It settles the manipulation check above and not the
+comparison we wanted --- whether a constant matches a trained policy --- and we
+say why. Along the
 way we made nine errors, each found by adversarial review rather than by us,
 and they share a structure. \textbf{Not one was a wrong computation.} Each was
 a decision about which slice of a correct instrument's output got written down:
