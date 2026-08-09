@@ -111,6 +111,19 @@ def main() -> None:
                     f"'{m.group(0)}' disagrees with the taxonomy's {n_err} "
                     "entries in render_fig14_errors.py")
 
+    # --- 2c. every artifact the paper points a reader at must exist ---------
+    # Cheap, and it fails exactly when a reader would: on a path that was
+    # renamed, or one written before the file was.
+    cited = set()
+    for m in re.finditer(r"\\texttt\{([^}]*)\}", t):
+        c = m.group(1).replace("\\_", "_").replace("\\%", "%").strip()
+        if re.match(r"^(results|scripts|eval|paper|preprocess|train|microvla|"
+                    r"tests)/", c):
+            cited.add(c)
+    for c in sorted(cited):
+        if not (REPO / c).exists():
+            problems.append(f"cited artifact does not exist: {c}")
+
     # --- 3. withdrawn claims still asserted ---------------------------------
     WITHDRAWN = {
         "joint in \\emph{(head, stack)}":
