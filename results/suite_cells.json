@@ -1,0 +1,290 @@
+{
+  "blind_t1": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t2": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t3": {
+    "k": 10,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 1.0,
+    "wilson": [
+      0.7225,
+      1.0
+    ],
+    "trials": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true,
+      "7": true,
+      "8": true,
+      "9": true
+    }
+  },
+  "blind_t4": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t5": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t6": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t7": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t8": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "blind_t9": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "head_t7": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "head_t8": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  },
+  "head_t9": {
+    "k": 0,
+    "n": 10,
+    "planned_n": 10,
+    "complete": true,
+    "missing_trials": [],
+    "rate": 0.0,
+    "wilson": [
+      0.0,
+      0.2775
+    ],
+    "trials": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false,
+      "6": false,
+      "7": false,
+      "8": false,
+      "9": false
+    }
+  }
+}
