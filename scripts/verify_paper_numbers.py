@@ -101,6 +101,26 @@ check("p vs learned head", 0.50, M["blind_t0_vs_P0_ref_heldout"]["p"], 0.001)
 check("p vs random floor", 0.031, M["blind_t0_vs_P2_E5_random"]["p"], 0.0005)
 check("p vs reset-oracle", 0.125, M["blind_t0_vs_P2_E5_fixed"]["p"], 0.001)
 
+print("\n=== the whole suite (Figure 9, Table 5) ===")
+SS = J("results/suite_summary.json")
+check("blind suite k", 16.0, float(SS["totals"]["blind_k"]), 0.5)
+check("head suite k", 8.0, float(SS["totals"]["head_k"]), 0.5)
+check("suite n per policy", 100.0, float(SS["totals"]["n"]), 0.5)
+check("blind suite Wilson lo", 0.10, SS["totals"]["blind_wilson"][0], 0.005)
+check("blind suite Wilson hi", 0.24, SS["totals"]["blind_wilson"][1], 0.005)
+check("head suite Wilson lo", 0.04, SS["totals"]["head_wilson"][0], 0.005)
+check("head suite Wilson hi", 0.15, SS["totals"]["head_wilson"][1], 0.005)
+check("suite paired: blind-only wins", 10.0,
+      float(SS["mcnemar_suite"]["blind_only"]), 0.5)
+check("suite paired: head-only wins", 2.0,
+      float(SS["mcnemar_suite"]["head_only"]), 0.5)
+check("suite paired McNemar p", 0.039, SS["mcnemar_suite"]["p"], 0.001)
+check("task 3 blind", 10.0, float(SS["blind"]["3"]["k"]), 0.5)
+check("task 3 head", 0.0, float(SS["head"]["3"]["k"]), 0.5)
+check("task 3 McNemar p", 0.002, SS["mcnemar_task3"]["p"], 0.0005)
+check_bool("head scores zero on all nine non-trained tasks", True,
+           all(SS["head"][str(t)]["k"] == 0 for t in range(1, 10)))
+
 print("\n=== the within-task split (Figure 8) ===")
 FJ = J("results/suite_forensics_joints.json")
 t0 = FJ["suites"]["libero_object"]["tasks"][0]

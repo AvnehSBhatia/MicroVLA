@@ -52,13 +52,14 @@ one that has never seen the episode}, which is what the corollary says no score
 can do. The same machinery given uninformed goals scores $0/10$, so the task is
 not trivial; the benchmark is.
 
-It is not confined to one task. On \texttt{bbq\_sauce} --- the task carrying
-the suite's \emph{largest} placement diameter --- the same blind constant scores
-$\mathbf{10/10}$ where our released policy scores $0/10$. Where blind does fail
-it fails legibly: on task $0$ the four failing trials are the four shipped
-states whose basket sits furthest from the constant it was handed (exact
-Mann-Whitney $p = 0.019$), which is the paper's tolerance assumption being
-measured rather than assumed.
+Run on \emph{all ten} tasks it does better than that. \textbf{The blind
+constant scores $16/100$ and our released policy $8/100$}; paired over the $100$
+matched trials it wins $10$ and loses $2$, exact McNemar $p = 0.039$. On
+\texttt{bbq\_sauce} --- the task carrying the suite's \emph{largest} placement
+diameter --- it takes $10/10$ where the trained policy takes $0/10$. A suite on
+which a task-indexed constant beats a trained vision-language policy is not
+measuring the capability its name implies; that our own policy is the one being
+beaten is the other half of the result.
 
 Finally, certification. Probes alone cannot certify: two heads whose attribution
 profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
@@ -165,7 +166,7 @@ them.}
 
 \paragraph{Every number is regenerable.} Each artifact cited below is a JSON
 file in the repository, and \texttt{scripts/verify\_paper\_numbers.py}
-re-derives all $60$ load-bearing values in this paper from those files and
+re-derives all $74$ load-bearing values in this paper from those files and
 fails on any disagreement. We wrote it because manuscripts drift --- a value is
 recomputed, the JSON updates, the sentence quoting it does not --- and it
 caught two such drifts in this revision.
@@ -736,53 +737,54 @@ totals with Wilson intervals. Artifacts: \texttt{results/suite\_cells.json},
 \label{fig:suite}
 \end{figure*}
 
-The previous section's cells are one task, and so is every confirmatory cell in
-this paper. Before we audit that policy it is worth stating plainly what it is,
-because the number that names it is not the one a suite-level score would
-report. Running the released head across seven of the suite's ten tasks ---
-taken in index order, not chosen by outcome --- gives that number:
+Every confirmatory cell so far is one task. This section is all ten, for both
+policies, at $n{=}10$ each, every trial recorded --- and it is where the two
+halves of this paper's honesty meet.
 
-\begin{table}[h]\centering\small
-\begin{tabular}{lll}
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llll}
 \toprule
-task & score & Wilson 95\% \\
+policy & reads & suite score & Wilson 95\% \\
 \midrule
-0 (alphabet soup, trained) & \textbf{8/10} & $[0.49,0.94]$ \\
-1--6 (six other objects) & \textbf{0/10} each & $[0.00,0.28]$ \\
-\midrule
-total, seven tasks & \textbf{8/70} & $[0.06,0.21]$ \\
+\textbf{blind} & shipped files & $\mathbf{16/100}$ & $[0.10, 0.24]$ \\
+released head & camera $+$ language & $8/100$ & $[0.04, 0.15]$ \\
 \bottomrule
 \end{tabular}
-\caption{The released head across seven of LIBERO-Object's ten tasks, taken in
-index order rather than chosen by outcome, $n{=}10$ each. Every success falls
-on the single object the head was trained for. This is the number that puts the
-rest of the paper's cells in proportion: the artifact is a one-object solution
-that a suite-level score would have reported as a policy. Three tasks were
-still running when the compute window closed and are omitted; every cell shown
-reached its planned $n$.}
+\caption{All ten LIBERO-Object tasks. \textbf{A policy that never sees the
+episode outscores the one we trained, by a factor of two.} Paired over the
+$100$ matched (task, trial) pairs --- same states, same controller, same
+success predicate --- blind wins $10$ and loses $2$, exact McNemar
+$p = 0.039$. On \texttt{bbq\_sauce} alone the split is $10$--$0$,
+$p = 0.002$. Artifacts: \texttt{results/suite\_summary.json},
+\texttt{results/suite\_cells.json}.}
 \label{tab:fullsuite}
 \end{table}
 
-\noindent \textbf{Eight successes in seventy trials, and every one of them on
-the single object the head was trained for.} Seven of the suite's ten tasks: the
-remaining three were still running when the compute window closed, and we report
-completed cells only --- every cell here is at its planned $n{=}10$.
+\paragraph{What this says about the benchmark.} A suite on which a task-indexed
+constant beats a trained vision-language policy, significantly and on matched
+trials, is not measuring the capability its name implies. This is
+Corollary~\ref{cor:sep} at suite scale: not that the score is a weak instrument
+for separating lookup from perception, but that on this suite it points the
+wrong way.
 
-This is the admissibility argument turning on its author. A suite of ten tasks
-sharing two placements and one basket let a single-object solution be described
-as a policy with a suite-level score. \textbf{The number a reader should carry
-away from this paper is not $0.700$; it is $0.700$ on task 0, with $0.000$ next
-to it six times.}
+\paragraph{What it says about us.} \textbf{Eight successes in a hundred trials,
+every one on the single object the head was trained for.} Our artifact is a
+one-object solution that a suite-level score would have reported as a policy,
+and the number a reader should carry away is not $0.700$ --- it is $0.700$ on
+task $0$, with $0.000$ next to it \emph{nine} times.
 
-It also bounds in advance what the audit and repairs of
-\S\ref{sec:audit}--\S\ref{sec:repairs} can have bought. They made one object
-work and made the failures on the others legible --- the drift case study
-(Table~\ref{tab:audit}, last row) is one of those objects, lifted from $3/50$
-to $22/50$ by DAgger on the policy's own viewpoints. They did not produce a
-general policy, and no cell in this paper should be read as claiming one. We
-put this section before the audit rather than after it so that no reader
-reaches the repairs holding a larger idea of the artifact than the artifact
-supports.
+Both readings are load-bearing and neither rescues the other. The benchmark is
+degenerate \emph{and} our policy is narrow; the first is why the second was
+easy to miss.
+
+\paragraph{And it bounds the audit in advance.} Whatever
+\S\ref{sec:audit}--\S\ref{sec:repairs} bought, it was not a general policy. The
+repairs made one object work and made the failures on the others legible --- the
+drift case study (Table~\ref{tab:audit}, last row) is one of those objects,
+lifted from $3/50$ to $22/50$ by DAgger on the policy's own viewpoints. We put
+this section before the audit rather than after it so that no reader reaches
+the repairs holding a larger idea of the artifact than the artifact supports.
 
 \section{The audit: four layers}
 \label{sec:audit}
