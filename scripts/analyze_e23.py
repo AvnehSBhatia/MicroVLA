@@ -43,6 +43,27 @@ tasks, whose placement radii the criterion says no constant can serve.
     distinguish "a constant cannot serve Spatial" from "our controller cannot
     do Spatial", and we report it as uninformative rather than as support.
 
+  * WHAT THIS CELL NOW TESTS, recorded 2026-08-09 while E3 was still running
+    and before any Spatial outcome was read. E3 was designed when the paper
+    claimed LIBERO-Object was distinctively admissible, so blind failing on
+    Spatial would have been a confirmation. E2 has since withdrawn that claim:
+    at the tolerance E2 measures (>= 2 cm) the criterion says 8 of 10 Spatial
+    tasks ADMIT a constant. The arm did not change and neither did the test.
+    What changed is which outcome supports what, so we fix that here:
+
+      blind does WELL on Spatial   consistent with delta >= 2 cm. Corroborates
+                                   the withdrawal: a constant is not special
+                                   to LIBERO-Object.
+      blind FAILS while the        evidence that delta is smaller than E2's
+      oracle succeeds              floor after all, since the criterion at
+                                   >= 2 cm predicted otherwise. That would
+                                   argue AGAINST the withdrawal, and we would
+                                   report it that way.
+      both at the floor            uninformative, per the precondition above.
+
+    Note the second row is the one that would embarrass E2, and it is on
+    record before the cell was read.
+
 Input:  results/e23_trials.json  (per-trial outcomes fetched from the runner)
 Output: results/e23_analysis.json
 """
