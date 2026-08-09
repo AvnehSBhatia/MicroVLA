@@ -29,6 +29,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "paper" / "visuals" / "F1_placement_forensics.png"
 D = json.loads((REPO / "results/suite_forensics_joints.json").read_text())
+ADM = json.loads((REPO / "results/admissibility.json").read_text())["suites"]
 ENT = json.loads((REPO / "results/placement_entropy.json").read_text())["suites"]
 
 CA, CB = "#2a6f97", "#c1121f"
@@ -74,7 +75,7 @@ for ax, suite, title in ((axA, "libero_object", "A  libero_object — the audite
     ax.set_aspect("equal")
     ax.set_xlabel("table x (m)")
     ax.set_title(f"{title}\n{s['n_target_position_pinned']}/{s['n_resolvable_tasks']} targets pinned"
-                 f"   ·   H = {ENT[suite]['mean_H']['0.0005']:.2f} bits at 0.5 mm",
+                 f"   ·   max radius {max(t['identity_R_cm'] for t in ADM[suite]['tasks']):.2f} cm",
                  loc="left", fontweight="bold", fontsize=10)
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(alpha=0.18, zorder=0)
@@ -131,7 +132,6 @@ ins.set_facecolor("#fafafa")
 # the largest distance between any two shipped placements of a task's target --
 # which has no origin, no grid and no free parameter, and which is what a
 # reader can compare against the controller's tolerance directly.
-ADM = json.loads((REPO / "results/admissibility.json").read_text())["suites"]
 DIAM = {k: [t["identity_R_cm"] for t in v["tasks"]] for k, v in ADM.items()}
 FIXTURE = {k: [t["fixture"] for t in v["tasks"]] for k, v in ADM.items()}
 DELTA_CM = 1.4                       # the tolerance measured in sec:refute

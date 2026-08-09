@@ -1696,44 +1696,6 @@ The experiment that would fix all three is the same one: sweep a deliberate
 displacement of the grasp constant, per object, and read the radius off the
 curve. It is implemented (\texttt{-{}-goal-anchor-jitter-cm}) and unrun.
 
-\section{Sensitivity of $H_\delta$ to the tolerance}
-\label{app:delta}
-
-The quantisation $\delta$ is a modelling choice, so the finding must not depend
-on it. Recomputing placement entropy across five tolerances spanning two orders of
-magnitude:
-
-\begin{table}[h]\centering\small
-\begin{tabular}{lrrrrr}
-\toprule
-suite & $0.5$mm & $2$mm & $5$mm & $1$cm & $5$cm \\
-\midrule
-\textbf{Object} & \textbf{2.11} & \textbf{0.48} & \textbf{0.00} & \textbf{0.00} & 0.00 \\
-Spatial & 5.48 & 4.49 & 2.04 & 0.25 & 0.00 \\
-Goal & 5.59 & 5.08 & 1.53 & 0.02 & 0.00 \\
-Long & 5.63 & 5.40 & 4.27 & 0.37 & 0.00 \\
-\bottomrule
-\end{tabular}
-\caption{Mean placement entropy $H_\delta$ in bits, swept over an order of
-magnitude in the tolerance $\delta$. LIBERO-Object is lowest at every
-tolerance, so the ordering does not depend on the modelling choice --- but
-every suite reaches zero by $\delta = 5$\,cm, which is a statement about coarse
-resolution rather than about LIBERO. That degeneracy is why the paper's claim
-is licensed on the radius $R$ (Table~\ref{tab:suites}), which has no such
-parameter. Artifact: \texttt{results/placement\_entropy.json}.}
-\label{tab:deltasweep}
-\end{table}
-
-\noindent The ordering is unchanged wherever the measure discriminates at all.
-Coarsening $\delta$ lowers every suite's entropy, as it must --- coarser radii
-merge components --- and by $\delta = 5$\,cm every suite reaches zero, which is
-a statement about coarse resolution rather than about LIBERO. This is precisely
-why the paper's claim is licensed on the radius $R$
-(Table~\ref{tab:suites}), which has no such parameter: at
-$\delta = 5$\,cm every suite would look admissible on $H$, while on $D$ only
-LIBERO-Object is, at any tolerance the controller actually has. Artifact:
-\texttt{results/placement\_entropy.json}.
-
 \bibliographystyle{plainnat}
 \bibliography{refs}
 

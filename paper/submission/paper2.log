@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 00:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 00:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -701,7 +701,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 185--189
  $58$
  []
 
-<../visuals/F12_dependency.png, id=171, 974.12352pt x 433.62pt>
+<../visuals/F12_dependency.png, id=167, 974.12352pt x 433.62pt>
 File: ../visuals/F12_dependency.png Graphic file (type png)
 <use ../visuals/F12_dependency.png>
 Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 198.
@@ -709,12 +709,12 @@ Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 198.
 (pdftex.def)             Requested size: 475.53783pt x 211.68167pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <9> on input line 207.
-<../visuals/F13_all_tasks.png, id=176, 1264.725pt x 304.67511pt>
+<../visuals/F13_all_tasks.png, id=172, 1264.725pt x 304.67511pt>
 File: ../visuals/F13_all_tasks.png Graphic file (type png)
 <use ../visuals/F13_all_tasks.png>
 Package pdftex.def Info: ../visuals/F13_all_tasks.png  used on input line 235.
 (pdftex.def)             Requested size: 500.83388pt x 120.64986pt.
-<../visuals/F10_declared_vs_shipped.png, id=179, 1108.01321pt x 293.64442pt>
+<../visuals/F10_declared_vs_shipped.png, id=175, 1108.01321pt x 293.64442pt>
 File: ../visuals/F10_declared_vs_shipped.png Graphic file (type png)
 <use ../visuals/F10_declared_vs_shipped.png>
 Package pdftex.def Info: ../visuals/F10_declared_vs_shipped.png  used on input 
@@ -761,7 +761,7 @@ ry
 
 
 [4 <../visuals/F13_all_tasks.png> <../visuals/F10_declared_vs_shipped.png>]
-<../visuals/F11_radius_criterion.png, id=238, 1307.32626pt x 251.04315pt>
+<../visuals/F11_radius_criterion.png, id=234, 1307.32626pt x 251.04315pt>
 File: ../visuals/F11_radius_criterion.png Graphic file (type png)
 <use ../visuals/F11_radius_criterion.png>
 Package pdftex.def Info: ../visuals/F11_radius_criterion.png  used on input lin
@@ -769,7 +769,7 @@ e 440.
 (pdftex.def)             Requested size: 490.71391pt x 94.22905pt.
 
 
-<../visuals/F1_placement_forensics.png, id=252, 947.87811pt x 341.57085pt>
+<../visuals/F1_placement_forensics.png, id=248, 947.87811pt x 341.57085pt>
 File: ../visuals/F1_placement_forensics.png Graphic file (type png)
 <use ../visuals/F1_placement_forensics.png>
 Package pdftex.def Info: ../visuals/F1_placement_forensics.png  used on input l
@@ -814,7 +814,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-<../visuals/F7_ladder.png, id=287, 896.90874pt x 271.96342pt>
+<../visuals/F7_ladder.png, id=283, 896.90874pt x 271.96342pt>
 File: ../visuals/F7_ladder.png Graphic file (type png)
 <use ../visuals/F7_ladder.png>
 Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 684.
@@ -822,7 +822,7 @@ Package pdftex.def Info: ../visuals/F7_ladder.png  used on input line 684.
 
 
 [7]
-<../visuals/F9_suite.png, id=301, 888.16026pt x 278.42969pt>
+<../visuals/F9_suite.png, id=297, 888.16026pt x 278.42969pt>
 File: ../visuals/F9_suite.png Graphic file (type png)
 <use ../visuals/F9_suite.png>
 Package pdftex.def Info: ../visuals/F9_suite.png  used on input line 735.
@@ -843,7 +843,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 [8 <../visuals/F7_ladder.png>]
-<../visuals/F8_subgoal.png, id=318, 1155.55927pt x 258.27016pt>
+<../visuals/F8_subgoal.png, id=314, 1155.55927pt x 258.27016pt>
 File: ../visuals/F8_subgoal.png Graphic file (type png)
 <use ../visuals/F8_subgoal.png>
 Package pdftex.def Info: ../visuals/F8_subgoal.png  used on input line 855.
@@ -950,7 +950,7 @@ Underfull \hbox (badness 4699) in paragraph at lines 928--928
 
 
 
-<../visuals/F2_dataflow_language.png, id=337, 888.921pt x 384.1721pt>
+<../visuals/F2_dataflow_language.png, id=333, 888.921pt x 384.1721pt>
 File: ../visuals/F2_dataflow_language.png Graphic file (type png)
 <use ../visuals/F2_dataflow_language.png>
 Package pdftex.def Info: ../visuals/F2_dataflow_language.png  used on input lin
@@ -962,7 +962,7 @@ Underfull \hbox (badness 2027) in paragraph at lines 975--975
 i-tec-tural half of the ar-gu-ment is a code fact:
  []
 
-<../visuals/F6_place_point_map.png, id=338, 768.72458pt x 378.84695pt>
+<../visuals/F6_place_point_map.png, id=334, 768.72458pt x 378.84695pt>
 File: ../visuals/F6_place_point_map.png Graphic file (type png)
 <use ../visuals/F6_place_point_map.png>
 Package pdftex.def Info: ../visuals/F6_place_point_map.png  used on input line 
@@ -1324,28 +1324,9 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1699.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1699.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\delta' on input line 1699.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1699.
-
-
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
 (./paper2.bbl
+
+
 Underfull \hbox (badness 6944) in paragraph at lines 21--25
 []\OT1/lmr/m/n/10 Robert Geirhos, J^^?orn-Henrik Ja-cob-sen, Clau-
  []
@@ -1378,16 +1359,16 @@ LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `paper2.out' has not changed.
-(rerunfilecheck)             Checksum: E0F7CAC7C92C0A14F85D1660BFC7BE3D;5801.
+(rerunfilecheck)             Checksum: 663419E975886091074A388DA847FFA7;5576.
  ) 
 Here is how much of TeX's memory you used:
- 15070 strings out of 474662
- 241525 string characters out of 5751110
- 719146 words of memory out of 5000000
- 37761 multiletter control sequences out of 15000+600000
+ 15065 strings out of 474662
+ 241460 string characters out of 5751110
+ 715575 words of memory out of 5000000
+ 37758 multiletter control sequences out of 15000+600000
  640472 words of font info for 100 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,12n,79p,1167b,584s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,12n,79p,1167b,592s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx8.pfb></usr/local/te
@@ -1396,33 +1377,33 @@ xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/texlive/
 basic/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2025basic
 /texmf-dist/fonts/type1/public/lm/lmmi12.pfb></usr/local/texlive/2025basic/texm
 f-dist/fonts/type1/public/lm/lmmi5.pfb></usr/local/texlive/2025basic/texmf-dist
-/fonts/type1/public/lm/lmmi6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
-/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1
-/public/lm/lmmi8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publi
-c/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/l
-mr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr12.p
-fb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr5.pfb></us
-r/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr6.pfb></usr/local
-/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pfb></usr/local/texliv
-e/2025basic/texmf-dist/fonts/type1/public/lm/lmr8.pfb></usr/local/texlive/2025b
-asic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr/local/texlive/2025basic/te
-xmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/texlive/2025basic/texmf-d
-ist/fonts/type1/public/lm/lmri8.pfb></usr/local/texlive/2025basic/texmf-dist/fo
-nts/type1/public/lm/lmri9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/ty
-pe1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/p
-ublic/lm/lmsy5.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/
-lm/lmsy6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lms
-y7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmsy8.pfb
-></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmsy9.pfb></usr
-/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/loca
-l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texl
-ive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/20
-25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/t
-exlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (19 pages, 1996783 bytes).
+/fonts/type1/public/lm/lmmi7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts
+/type1/public/lm/lmmi8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1
+/public/lm/lmmi9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/publi
+c/lm/lmr10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/l
+mr12.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr5.pf
+b></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr6.pfb></usr
+/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr7.pfb></usr/local/
+texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmr8.pfb></usr/local/texlive
+/2025basic/texmf-dist/fonts/type1/public/lm/lmr9.pfb></usr/local/texlive/2025ba
+sic/texmf-dist/fonts/type1/public/lm/lmri10.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/lm/lmri8.pfb></usr/local/texlive/2025basic/texmf-d
+ist/fonts/type1/public/lm/lmri9.pfb></usr/local/texlive/2025basic/texmf-dist/fo
+nts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/t
+ype1/public/lm/lmsy5.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/p
+ublic/lm/lmsy6.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/
+lm/lmsy7.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lms
+y8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmsy9.pfb
+></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></us
+r/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/loca
+l/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texl
+ive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/l
+ocal/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb
+>
+Output written on paper2.pdf (19 pages, 1990236 bytes).
 PDF statistics:
- 623 PDF objects out of 1000 (max. 8388607)
- 499 compressed objects within 5 object streams
- 134 named destinations out of 1000 (max. 500000)
- 16147 words of extra memory for PDF output out of 17280 (max. 10000000)
+ 609 PDF objects out of 1000 (max. 8388607)
+ 488 compressed objects within 5 object streams
+ 132 named destinations out of 1000 (max. 500000)
+ 16139 words of extra memory for PDF output out of 17280 (max. 10000000)
 
