@@ -1601,6 +1601,33 @@ one compute window and run in the next --- and neither does the attribution
 analysis that overturned it (\S\ref{sec:refute}), which was formed after the
 registered hypothesis failed. Neither is reconstructed after the fact.
 
+\textbf{Three more were registered for this revision, in files committed while
+the machines were still running} (\texttt{scripts/analyze\_e5.py},
+\texttt{scripts/analyze\_e23.py}), which is the only form of pre-registration
+we can offer without a registry: the estimator, the decision rule and both
+readings are in version control with a timestamp earlier than the cell.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llp{2.5cm}@{}}
+\toprule
+registered & outcome & note \\
+\midrule
+E1: repairing the states costs the lookup arm & \textbf{held} & $p = 0.0007$ \\
+E5: \texttt{fixed} survives the repaired states & \textbf{held} & $30/30$ \\
+E5 identity: \texttt{fixed} $\equiv$ \texttt{blind} when pinned &
+\textbf{failed} & the premise was wrong, not the harness \\
+\bottomrule
+\end{tabular}
+\caption{Registered before the cells existed. The third is the useful one: a
+check written to catch a harness bug fired on our own assumption instead, and
+it is the only error in this paper that a machine caught rather than a
+reviewer. One amendment is on record --- E5's primary test was changed after
+the identity check failed and before any outcome of the amended test was read,
+with the reasoning and timestamps in the file's own header.}
+\label{tab:prereg}
+\end{table}
+
 \paragraph{Retired cells.} Two cells from earlier rounds are retired rather
 than silently dropped. An $n{=}50$, $\pm4$\,cm displacement cell scoring
 $0.520$ is superseded by the per-radius curve of Table~\ref{tab:sweep}, which
