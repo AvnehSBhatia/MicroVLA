@@ -273,11 +273,16 @@ check("thread comparison horizon (steps)", 40.0,
       float(T["fields"]["4"]["steps"]), 0.5)
 
 print(f"\n{checks - len(failures)}/{checks} checks passed")
-print("\nNOT covered by this script, and stated so rather than implied: the audit\n"
-      "table, the instruction-swap cells, the displacement sweep, the probe\n"
-      "attribution, the positive control, the renderer cell, the parameter\n"
-      "ledger, and the historical 35/50 cell whose per-trial log is not in this\n"
-      "repository.")
+# This list is itself a claim, and a stale one is exactly the failure the
+# paper catalogues -- a correct instrument reporting the wrong slice. The
+# positive control WAS added here (tau sweep, the two between-mode distances)
+# and had to come off the list; what follows is what genuinely has no check.
+print("\nNOT covered by this script, stated rather than implied: the four-layer\n"
+      "audit table, the instruction-swap cells, the displacement sweep, the\n"
+      "probe attribution table, the renderer cell, the parameter ledger, and\n"
+      "the historical 35/50 cell whose per-trial log is not in this repository.\n"
+      "Covered since the last revision, and no longer on this list: the\n"
+      "positive control's tolerance sweep and its between-mode distances.")
 if failures:
     print("\nDRIFT DETECTED:")
     for f in failures:
