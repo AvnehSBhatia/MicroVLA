@@ -67,6 +67,50 @@ def main() -> None:
         if allowed and seen and set(seen) != allowed:
             problems.append(f"'{noun}' counted as {sorted(seen)}, expected {sorted(allowed)}")
 
+    # --- 2b. the taxonomy's count, against its single source of truth -------
+    # This class has now bitten twice in the same way: the taxonomy grew from
+    # seven to nine and two sentences that referred to it by a bare number were
+    # left behind ("All seven made the result look better"; "after the seventh
+    # instance"). Neither carries the noun, so rule 2 above could not see them.
+    # The count is taken from the figure's ERRORS list, which is what the
+    # taxonomy actually IS, rather than from a number typed here.
+    ORD = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
+           "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
+           "eleventh": 11}
+    fig = REPO / "paper" / "render_fig14_errors.py"
+    if fig.exists():
+        src = fig.read_text()
+        blk = src[src.index("ERRORS = ["):]
+        blk = blk[:blk.index("\n]")]
+        n_err = len(re.findall(r"^\s*\(\"", blk, re.M))
+        num = "|".join(WORDS)
+        # "All nine ran ...", "all seven made ..." -- a bare count with no noun.
+        # Only when the sentence is plainly ABOUT the taxonomy: "all ten share
+        # one basket" is a true sentence about LIBERO's tasks, not a stale
+        # count, so the window has to carry a taxonomy word.
+        NEAR = ("error", "flatter", "slice", "instrument", "verifier",
+                "direction that", "adversarial")
+        for m in re.finditer(
+                rf"\ball\s+({num})\s+(made|ran|were|are|share|shared|flattered)\b",
+                t, re.I):
+            win = t[max(0, m.start() - 260):m.end() + 260].lower()
+            if WORDS[m.group(1).lower()] != n_err and any(w in win for w in NEAR):
+                problems.append(
+                    f"bare count '{m.group(0)}' disagrees with the taxonomy's "
+                    f"{n_err} entries in render_fig14_errors.py")
+        # "after the seventh instance", "it took the ninth instance"
+        for m in re.finditer(rf"\b({'|'.join(ORD)})\s+instance\b", t, re.I):
+            if ORD[m.group(1).lower()] != n_err:
+                problems.append(
+                    f"ordinal '{m.group(0)}' disagrees with the taxonomy's "
+                    f"{n_err} entries in render_fig14_errors.py")
+        # "nine instances", "seven errors of our own"
+        for m in re.finditer(rf"\b({num})\s+(instances|errors)\b", t, re.I):
+            if WORDS[m.group(1).lower()] != n_err:
+                problems.append(
+                    f"'{m.group(0)}' disagrees with the taxonomy's {n_err} "
+                    "entries in render_fig14_errors.py")
+
     # --- 3. withdrawn claims still asserted ---------------------------------
     WITHDRAWN = {
         "joint in \\emph{(head, stack)}":
