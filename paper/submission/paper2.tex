@@ -89,13 +89,39 @@ of looking harder at the policy --- two policies can be indistinguishable to a
 probe and opposite in the world, and we exhibit such a pair --- but of first
 measuring the benchmark.
 
-For this task we can now answer it directly. Those fifty initial states place
-the object at a single point, to the last bit of a \texttt{float64}. Draw them
+For this task we can answer it directly. Those fifty initial states place the
+object at a single point, to the last bit of a \texttt{float64}. Draw them
 instead from the region the task's own file declares, change nothing else, and
 a table-lookup policy loses $15$ of its $25$ successes, while a controller
 handed the true position once at reset loses none of its $30$
 (\S\ref{sec:e1}). Part of what the $0.700$ certified was knowing where the
 object always is.
+
+\paragraph{The general question, and the shape of the answer.} One task is an
+anecdote. The question is whether a \emph{benchmark} can be bounded --- and by
+something cheaper than running policies against it. Three claims, in the order
+they constrain each other:
+
+\begin{enumerate}\itemsep2pt
+\item \textbf{There is such a bound, and it is arithmetic.} The placement
+radius $R$ of an object, computed from released files, decides whether a
+task-indexed constant can stand in for perceiving that object:
+Proposition~\ref{prop:lookup} makes $R \le \delta$ necessary \emph{and}
+sufficient. No policy, no simulator, no training.
+\item \textbf{The bound is not vacuous.} On the suite where $R$ is smallest,
+removing the degeneracy costs a lookup policy more than half its score while
+costing a correctly-informed controller nothing (\S\ref{sec:e1}).
+\item \textbf{Turning the bound into a verdict is currently impossible, and
+we can say exactly how impossible.} The verdict needs $\delta$;
+Proposition~\ref{prop:window} converts ``how precisely?'' into a number
+computable from the radii. For LIBERO that number is $0.322$\,cm and the best
+measurement anyone has is $2$\,cm (\S\ref{sec:window}).
+\end{enumerate}
+
+\noindent The third is why this paper withdraws its own headline. It is also
+the contribution we expect to travel: the first two are about LIBERO, and the
+third is about what it takes to say anything of this kind about any benchmark
+at all.
 
 
 \begin{table}[t]\centering\footnotesize
@@ -2278,8 +2304,9 @@ satisfies the second by necessity --- all ten of its targets are the same bowl
 
 \section{Conclusion}
 
-A manipulation benchmark score is not a measurement of capability until the
-benchmark's admissibility has been measured. The measurement is cheap, it runs
+\emph{What does a manipulation benchmark score certify?} Not capability,
+until the benchmark's admissibility has been measured --- and this paper is
+mostly the discovery of how hard that last clause is to discharge. The measurement is cheap, it runs
 before any model is trained, and on LIBERO it says something specific: the one
 suite whose tasks are individuated by object identity is also the one that pins
 that object, on all ten tasks, to a radius of at most $1.4$\,cm.
