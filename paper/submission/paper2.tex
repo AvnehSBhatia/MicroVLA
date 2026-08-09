@@ -889,10 +889,9 @@ a larger idea of the artifact than the artifact supports.
 \label{sec:audit}
 
 ``The policy memorised the location'' is not one hypothesis but four, at four
-stages --- causal confusion~\citep{dehaan2019causal} spread across a pipeline
-rather than confined to a network --- two of which are not in the model at all --- and those two are the ones
-a black-box perturbation study cannot reach.
-
+stages: causal confusion~\citep{dehaan2019causal} spread across a pipeline
+rather than confined to a network. Two of the four are not in the model at all,
+and those two are the ones a black-box perturbation study cannot reach.
 
 
 \begin{table*}[t]\centering\small
@@ -1022,9 +1021,16 @@ $[-0.24,+0.16]$. That interval assumes independent samples and the samples are
 \emph{not} independent: the $n{=}50$ cell spans states $0$--$49$ and so contains
 all thirty untouched states.
 
-The interval is therefore conservative in the wrong direction, and we use it
-only to bound the effect as small. The clean comparison --- untouched-$30$
-against the twenty burned states --- is the one we would run next.
+The interval is therefore conservative in the wrong direction. And the clean
+comparison does not need a new run at all --- it is subtraction, which we had
+missed: the $n{=}50$ cell contains the thirty untouched states, so the twenty
+burned ones scored $35 - 20 = \mathbf{15/20 = 0.750}$.
+
+Against them the untouched band gives $0.667$ versus $0.750$, a difference of
+$\mathbf{-0.083}$ --- two and a half times the $-0.033$ we reported against the
+superset --- with Fisher exact $p = 0.75$. The burn is still not detectable at
+this $n$, but the honest effect size is the larger one, and the direction is
+the one that flatters us less.
 
 We claim exactly this much: not that the burn is zero, but that it is small
 enough to hide inside $\pm 0.20$, which is what $n{=}30$ buys.
@@ -1158,8 +1164,14 @@ change where the head thinks the object is'' and one that measures the
 parameterisation.
 
 \textbf{v2 and v2.1 differ by at most $0.73$\,cm on any channel and score
-$0.000$ and $0.700$ deployed}. One caveat we
-state rather than let a reader discover: the substitution is between a
+$0.000$ and $0.700$ deployed} --- two earlier heads, not the released one.
+
+The absolute framing flatters us and the relative one does not: the largest gap
+is on proprioception, $2.85$ against $2.13$\,cm, which is $34\%$ of the smaller
+value and sits on the exact channel Layer 3 is about. The claim we can defend
+is that no channel \emph{ordering} distinguishes the two heads, and that the
+absolute differences are small beside the behavioural gap. A second caveat: the
+substitution is between a
 \emph{single} pair of recorded ticks --- the two most separated in $uv$ out of
 $329$ --- with no resampling over pairs and therefore no interval on the
 $0.73$\,cm. It is an existence proof that two heads can be probe-identical and
@@ -1202,9 +1214,20 @@ discrimination, not calibrated rates.}
 \end{table}
 
 \noindent The instrument registers difference when difference exists. The
-distances are bimodal --- collisions at ${\sim}0.004$, separations at
-${\sim}0.82$, nothing between --- and a sweep over
-$\tau \in \{0.005,0.01,0.02,0.05\}$ leaves every verdict unchanged. The split is
+distances are close to bimodal --- collisions at ${\sim}0.004$, separations at
+${\sim}0.82$ --- though not perfectly: milk and orange juice sit at $0.573$ and
+$0.576$, and they are excluded by the $n \ge 3$ gate rather than by the
+geometry.
+
+The tolerance sweep needs stating in full, because we first reported only part
+of it. Over $\tau \in \{0.005, 0.01, 0.02, 0.05\}$ every verdict is unchanged.
+At $\tau = 0.1$, which the artifact also computed and our first write-up
+omitted, three of the separating contrasts move from $0.00$ to $0.33$.
+\textbf{Reporting the four tolerances at which nothing moves and not the one at
+which something does is the selective sensitivity reporting this paper is
+about}, so the full sweep is in
+\texttt{results/probe\_positive\_control.json} and the verdict should be read
+as holding for $\tau \le 0.05$. The split is
 interpretable and sharpens the claim: the chains that collide are the cans and
 bottles, the ones that separate are the boxes. \textbf{Deployed binding is blind
 \emph{within a shape class}}, which is precisely the regime LIBERO-Object's

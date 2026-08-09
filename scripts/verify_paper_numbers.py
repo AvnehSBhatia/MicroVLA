@@ -242,6 +242,28 @@ _m = [i for i in range(10) if i != 3]
 check("r flips sign without task 3", -0.25,
       float(np.corrcoef(Rv[_m], bk.astype(float)[_m])[0, 1]), 0.01)
 
+print("\n=== §9 positive control: the full tolerance sweep ===")
+PC = J("results/probe_positive_control.json")
+_tols = PC["tolerances"]
+check("tau = 0.1 is in the artifact", True, 0.1 in _tols)
+_moved = [c["pair"] for c in PC["contrasts"]
+          if c["evaluable"] and c["same_rate_by_tol"]["0.05"] == 0.0
+          and c["same_rate_by_tol"]["0.1"] > 0.0]
+check("contrasts that move at tau = 0.1", 3.0, float(len(_moved)), 0.5)
+_between = [c["median_distance"] for c in PC["contrasts"]
+            if 0.1 < c["median_distance"] < 0.6]
+check("distances between the two modes", 2.0, float(len(_between)), 0.5)
+AT = J("results/attribution_profiles.json")["heads"]
+check("v2 vs v2.1 proprio gap, relative", 0.34,
+      abs(AT["v2"]["proprio"] - AT["v2.1"]["proprio"]) / AT["v2.1"]["proprio"], 0.01)
+
+print("\n=== §8 the burn bound, by subtraction ===")
+check("burned-band successes (35 - 20)", 15.0, 35.0 - 20.0, 0.5)
+check("burned-band rate", 0.750, 15.0 / 20.0, 0.001)
+check("untouched-band rate", 0.667, 20.0 / 30.0, 0.001)
+check("clean difference (not the -0.033 vs the superset)", -0.083,
+      20.0 / 30.0 - 15.0 / 20.0, 0.001)
+
 print("\n=== §7 certification ===")
 T = J("results/thread_determinism.json")
 _f = T["fields"]
