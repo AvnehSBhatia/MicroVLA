@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 13:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 13:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -710,12 +710,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 179--186
 cks
  []
 
-<../visuals/F12_dependency.png, id=164, 974.12352pt x 433.62pt>
+<../visuals/F12_dependency.png, id=164, 1155.55927pt x 515.77957pt>
 File: ../visuals/F12_dependency.png Graphic file (type png)
 <use ../visuals/F12_dependency.png>
 Package pdftex.def Info: ../visuals/F12_dependency.png  used on input line 195.
 
-(pdftex.def)             Requested size: 475.53783pt x 211.68167pt.
+(pdftex.def)             Requested size: 475.53783pt x 212.25801pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <9> on input line 204.
 
@@ -1600,7 +1600,7 @@ live/2025basic/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/local/texlive/2
 025basic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025bas
 ic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texliv
 e/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (22 pages, 2390578 bytes).
+Output written on paper2.pdf (22 pages, 2462347 bytes).
 PDF statistics:
  706 PDF objects out of 1000 (max. 8388607)
  567 compressed objects within 6 object streams

@@ -30,6 +30,7 @@ REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "paper" / "visuals" / "F12_dependency.png"
 
 GREEN, AMBER, GREY = "#2e8b57", "#b8860b", "#9aa5b1"
+BLUE = "#2c6fbb"
 
 TIERS = [
     (GREEN, "Unconditional — arithmetic on shipped files", [
@@ -40,6 +41,15 @@ TIERS = [
         "Six of ten targets take two float64 values, 1 ULP apart   (§3)",
         "Placement radius R, exactly computed, all 40 tasks   (§3, Table 3)",
         "R ≤ δ is necessary AND sufficient for a one-constant table   (Prop. 1)",
+    ]),
+    (BLUE, "Measured, and independent of δ — needs a controller and a simulator,\n"
+           "but no tolerance", [
+        "Sampling the declared region costs a lookup policy half its score:\n"
+        "25/30 → 10/30, paired, exact McNemar p = 0.0007   (§2.1, Table 4)",
+        "The repaired states are not harder: handed the true target once at\n"
+        "reset, the same controller scores 30/30 on them   (§2.1, control row)",
+        "So the collapse is the constant, not the states: 20 discordant\n"
+        "trials on identical states, all one way, p = 2×10⁻⁶",
     ]),
     (AMBER, "Conditional on δ — holds on [1.17, 1.49) cm, and not above", [
         "LIBERO-Object 10/10 admissible; elsewhere 2/30, both fixtures\n"
@@ -58,12 +68,12 @@ TIERS = [
     ]),
 ]
 
-fig, ax = plt.subplots(figsize=(11.4, 6.6))
+fig, ax = plt.subplots(figsize=(11.4, 7.9))
 y = 0.0
 for col, header, items in TIERS:
     ax.text(0.0, y, header, fontsize=10.6, fontweight="bold", color=col,
             va="top")
-    y -= 0.62
+    y -= 0.62 + 0.44 * header.count("\n")
     for it in items:
         n = it.count("\n") + 1
         h = 0.42 * n + 0.20
@@ -79,8 +89,8 @@ ax.set_xlim(-0.1, 10.0)
 ax.set_ylim(y + 0.2, 0.55)
 ax.axis("off")
 fig.text(0.5, 0.005,
-         "Everything in the top tier is checkable from two files the benchmark ships. Nothing in it depends on a tolerance, a controller, a policy, or a statistic — "
-         "so a reader who rejects the middle tier entirely still keeps the top one.",
+         "Everything in the top tier is checkable from two files the benchmark ships. The second tier needs a simulator but still no tolerance — so a reader who rejects δ "
+         "entirely, and with it the whole third tier, keeps the defect AND the demonstration that it is exploitable.",
          ha="center", fontsize=8.8, color="#43505c")
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
