@@ -643,19 +643,14 @@ and less comfortable statement than the one we set out to make, and it is the
 one the data supports. Per-trial outcomes and
 the paired tests are in \texttt{results/blind\_cells.json}.
 
-\paragraph{The whole suite, not one task.} Every cell above is task $0$, and so
-is nearly every confirmatory cell in this paper. We therefore ran the blind arm
-on \emph{all ten} LIBERO-Object tasks, $n{=}10$ each, every trial recorded
-(Figure~\ref{fig:suite}). It scores $\mathbf{16/100}$ $[0.10, 0.24]$: $6/10$ on
-alphabet soup, $\mathbf{10/10}$ on \texttt{bbq\_sauce}, and $0/10$ on the other
-eight.
-
-The $10/10$ is worth pausing on. It is the task with the suite's
-\emph{largest} placement diameter --- $2.34$\,cm, the value that sets the
-admissibility threshold in Table~\ref{tab:suites} --- so admissibility is not
-merely a statement about the most degenerate tasks; a constant saturates the
-suite's hardest one. And a policy with no camera, no language and no learned
-parameter takes it outright.
+\paragraph{One task is not the claim.} Every cell above is task $0$. We ran the
+blind arm on all ten, and \S\ref{sec:fullsuite} reports the result together with
+the same ten tasks for the trained head. One number belongs here, because it
+bears on admissibility rather than on either policy: the blind constant takes
+$\mathbf{10/10}$ on \texttt{bbq\_sauce}, the task carrying the suite's
+\emph{largest} placement diameter --- the $2.34$\,cm that sets the threshold in
+Table~\ref{tab:suites}. \textbf{A constant saturates the suite's hardest task,
+not merely its most degenerate ones.}
 
 \paragraph{The reset-oracle saturates the benchmark, and is statistically
 indistinguishable from the policy.} The oracle scores $10/10$, so the
