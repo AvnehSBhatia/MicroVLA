@@ -214,6 +214,53 @@ _c = sum(abs(np.mean(pm[:30]) - np.mean(pm[30:])) >= _obs - 1e-12
 check("E1 interaction: permutation p (does NOT reach 0.05)", 0.14, _c / 20000, 0.02)
 check("E1 interaction: we are not entitled to claim it", True, _c / 20000 > 0.05)
 
+print("\n=== §2.4 E5: the control, recomputed from raw trials ===")
+E5 = J("results/e5_trials.json")
+check("E5 fixed_shipped", 10.0, float(sum(E5["fixed_shipped"].values())), 0.5)
+check("E5 fixed_shipped n", 10.0, float(len(E5["fixed_shipped"])), 0.5)
+check("E5 fixed_repaired 30/30", 30.0,
+      float(sum(E5["fixed_repaired"].values())), 0.5)
+check("E5 fixed_repaired n = 30 (planned, complete)", 30.0,
+      float(len(E5["fixed_repaired"])), 0.5)
+_l, _g, _p = mcnemar_exact(E5["fixed_repaired"],
+                           E1["cells"]["blind_repaired"]["trials"])
+check("E5 fixed vs blind on repaired: discordant, fixed-only", 20.0, float(_l), 0.5)
+check("E5 fixed vs blind on repaired: blind-only", 0.0, float(_g), 0.5)
+check("E5 fixed vs blind on repaired: exact McNemar p", 2e-06, _p, 1e-06)
+check("E5: the repaired states are NOT harder for a correct static goal",
+      True, sum(E5["fixed_repaired"].values()) == len(E5["fixed_repaired"]))
+
+# The premise that broke: fixed and blind are NOT the same arm on a pinned task.
+_k = [k for k in sorted(set(E5["fixed_shipped"]) &
+                        set(E1["cells"]["blind_shipped"]["trials"]), key=int)]
+_mis = [k for k in _k if bool(E5["fixed_shipped"][k])
+        != bool(E1["cells"]["blind_shipped"]["trials"][k])]
+check("E5 identity check: trials compared", 10.0, float(len(_k)), 0.5)
+check("E5 identity check: mismatches (premise falsified)", 4.0,
+      float(len(_mis)), 0.5)
+
+# The container handicap, and its association with basket displacement.
+_b = np.asarray(next(o for o in J("results/suite_forensics_joints.json")
+                     ["suites"]["libero_object"]["tasks"][0]["objects"]
+                     if o["object"] == "basket_1")["xy_per_state_m"], float)
+_dev = [float(np.linalg.norm(_b[(3 * 20 + i) % 50] - _b.mean(0))) * 100
+        for i in range(10)]
+_bl = E1["cells"]["blind_shipped"]["trials"]
+_f = [_dev[i] for i in range(10) if not _bl[str(i)]]
+_s = [_dev[i] for i in range(10) if _bl[str(i)]]
+check("E5 basket displacement, blind's failures (cm)", 1.59,
+      float(np.mean(_f)), 0.01)
+check("E5 basket displacement, blind's successes (cm)", 1.01,
+      float(np.mean(_s)), 0.01)
+_rank = {v: i + 1 for i, v in enumerate(sorted(_dev))}
+_obs = sum(_rank[x] for x in _f)
+_tot = sum(1 for c in combinations(range(10), len(_f))
+           if sum(_rank[_dev[j]] for j in c) >= _obs)
+check("E5 basket association, exact permutation p", 0.0095,
+      _tot / math.comb(10, len(_f)), 0.0005)
+check("E5 basket spread across shipped states (cm)", 2.949,
+      float((_b.max(0) - _b.min(0)).max()) * 100, 0.01)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")

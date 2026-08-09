@@ -40,8 +40,10 @@ the target at a single point, to the last bit of a \texttt{float64}. This is
 arithmetic on two shipped files. We ship the repair, validate it, and show it
 bites: drawing the fifty states from the region the task file itself declares,
 and changing nothing else, costs a lookup policy half its score
-($25/30 \to 10/30$, paired, exact McNemar $p = 0.0007$). The defect is
-exploitable, not cosmetic.
+($25/30 \to 10/30$, paired, exact McNemar $p = 0.0007$), while a controller
+handed the true target once at reset succeeds on \emph{all thirty} of those
+same repaired states. The states are not harder; the constant is wrong on
+them. The defect is exploitable, not cosmetic.
 
 \textbf{The criterion.} A frozen placement matters only if the robot cannot
 resolve the freezing. Define the \emph{placement radius} $R$ of an object as
@@ -174,7 +176,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $115$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $129$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -356,6 +358,10 @@ goal supply & shipped & repaired & paired \\
 \textbf{lookup constant} & $\mathbf{25/30}$ & $\mathbf{10/30}$ &
 $17$--$2$, $\mathbf{p = 0.0007}$ \\
 released head & $19/30$ & $13/30$ & $10$--$4$, $p = 0.18$ \\
+\midrule
+\emph{control:} true target, & \multirow{2}{*}{$10/10$} &
+\multirow{2}{*}{$\mathbf{30/30}$} & vs lookup, repaired: \\
+read once at reset & & & $20$--$0$, $\mathbf{p = 2\times10^{-6}}$ \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Sampling the region the benchmark declares costs a lookup
@@ -366,7 +372,11 @@ actually moves it should degrade, and it does: $0.833 \to 0.333$,
 $p = 0.0007$. \textbf{This is the manipulation check for
 \S\ref{sec:declared}}: it establishes that the shipped states cannot defeat a
 table lookup and the repaired ones can, so the defect is load-bearing rather
-than cosmetic. The trained head drops in the same direction, $0.633 \to 0.433$,
+than cosmetic. \textbf{The control row closes the obvious hole}: handed the true
+target once at reset, the same controller succeeds on \emph{every one} of the
+thirty repaired states, so those states are not harder --- only the constant
+breaks on them. The trained head drops in the same direction, $0.633 \to
+0.433$,
 which this $n$ does not resolve ($p = 0.18$) --- and which we would not read as
 exploitation even if it did, since the head was trained against the shipped
 states and the repaired ones are out of its training distribution. Drawn per trial in
@@ -377,12 +387,18 @@ Figure~\ref{fig:e1}; artifact \texttt{results/e1\_shipped\_vs\_repaired.json}.}
 \paragraph{The obvious objection, and the arm that answers it.}
 The repaired positions might simply be \emph{harder} --- in which case the drop
 measures difficulty, not exploitability, and the manipulation check proves
-nothing. Nothing in Table~\ref{tab:e1} separates those. So we ran the arm that
-does. \texttt{fixed} differs from \texttt{blind} in exactly one bit: where the
-static goal comes from. \texttt{blind} compiles in a constant read from the
-benchmark's shipped files and never looks at the episode; \texttt{fixed} takes
-one privileged look at reset and holds it, equally static thereafter. Same
-controller, same single static goal.
+nothing. Nothing in the first two rows of Table~\ref{tab:e1} separates those.
+So we ran the arm that does, and wrote both readings down before running it
+(Table~\ref{tab:e5plan}). \texttt{fixed} keeps the controller, the states and
+the single static goal, and changes only where that goal comes from: one
+privileged look at reset instead of a constant compiled from the shipped files.
+
+\textbf{It scores $30/30$.} On the identical thirty repaired states where the
+lookup constant scores $10/30$, a correct static goal never fails --- $20$
+discordant trials, every one favouring \texttt{fixed}, $p = 2\times10^{-6}$.
+The repaired suite is not hard; a stale constant is simply wrong on it. That
+closes the confound, and it is why \S\ref{sec:declared}'s defect is
+load-bearing rather than a curiosity about file contents.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{5pt}
@@ -396,17 +412,52 @@ the repaired states are not harder for a static goal, so the collapse of
 the repaired states are harder, whoever supplies the goal \\[2pt]
 $\Rightarrow$ the check in Table~\ref{tab:e1} stands &
 $\Rightarrow$ E1's drop is confounded, and we say so \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{outcome: $30/30$ --- the left column}} \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{Written before the arm was run.} The two outcomes and what
-each obliges us to conclude, fixed in advance so the reading cannot be chosen
-afterwards --- which is error~7 of \S\ref{sec:neg}. A third cell,
-\texttt{fixed} on \emph{shipped} states, is an identity check rather than a
-condition: on a task whose placement is pinned, the constant \texttt{blind}
-compiles in and the value \texttt{fixed} reads at reset are the same number, so
-it must reproduce $25/30$.}
+\caption{\textbf{Written before the arm was run}, so the reading could not be
+chosen afterwards --- which is error~7 of \S\ref{sec:neg}. Both branches were
+implemented and calibrated on synthetic cells first
+(\texttt{scripts/analyze\_e5.py}); the script also refuses a verdict on an
+incomplete cell, tested on a short cell whose partial data would have
+rejected.}
 \label{tab:e5plan}
 \end{table}
+
+\paragraph{A third arm we did not plan, and what it cost us.}
+Table~\ref{tab:e5plan} came with an identity check: on a task whose target is
+pinned, we reasoned, \texttt{blind}'s compiled constant and \texttt{fixed}'s
+reset reading are the same float, so \texttt{fixed} on \emph{shipped} states
+must reproduce \texttt{blind}'s $25/30$ trial for trial. It did not --- $10/10$
+against $6/10$ on the same ten trials --- and \textbf{the premise was what
+broke, not the harness}. Task $0$ pins the target to a single point and
+\emph{re-places the basket every episode}, over $2.9\times2.8$\,cm.
+\texttt{blind} must supply both goals from shipped files, so it carries the
+\emph{mean} basket; every other arm reads the true one. The two arms never
+received the same goal.
+
+Three consequences, none of them cosmetic. \textbf{(i)} The lookup arm is
+\emph{handicapped}, not favoured, and its $25/30$ was scored while paying for a
+container it is not allowed to look at: across those ten trials its failures
+carry a mean basket displacement of $1.59$\,cm against $1.01$\,cm for its
+successes (exact permutation $p = 0.0095$). \textbf{(ii)} The comparison that
+isolates E1's confound is therefore \texttt{fixed} shipped against
+\texttt{fixed} repaired, where the basket distribution is bit-identical --- the
+repair rewrote state columns $10$--$11$ and the basket lives in $17$--$18$ ---
+and that is the test reported above. \textbf{(iii)} It is an error of ours,
+and we record it --- but \emph{outside} the taxonomy of \S\ref{sec:neg}, on
+purpose. Those nine share one structure: a correct instrument, a chosen slice.
+This one is a false premise about the apparatus, a different animal, and
+folding it in to make the count larger would blunt the only claim that taxonomy
+makes. What it is instead is the first of our errors that no human found: a
+check written to catch a harness bug fired on our own premise, and cost us a
+sentence already typed into this section. Automation caught none of the other
+nine; it caught this one because the prediction was \emph{deterministic} ---
+same float, same states, same controller --- so a single disagreeing trial
+falsified it outright, with no statistics in the way. That is the shape of
+claim a machine can check, and it is worth knowing which of one's claims
+have it.
 
 \paragraph{One reading we are not entitled to.} Inside
 Table~\ref{tab:e1} the lookup arm \emph{leads} the trained head on shipped
@@ -786,8 +837,11 @@ five arms and what each may read. Two need a word. \textbf{random} draws from
 the observed extent of the scene's objects, re-drawn per episode --- the
 controller's floor. \textbf{reset-oracle} reads the true position \emph{once}
 at reset and holds it; on a task with $R=0$ that is numerically a per-task
-constant, but it still reads the simulator, so it is \textbf{not}
-Proposition~\ref{prop:lookup}'s policy.
+constant \emph{for the target}, but it still reads the simulator, so it is
+\textbf{not} Proposition~\ref{prop:lookup}'s policy --- and the equivalence
+stops at the target, because it also reads the true \emph{container}, which
+LIBERO-Object re-places every episode and which \textbf{blind} must supply from
+a shipped mean (\S\ref{sec:e1}).
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.97\linewidth]{../visuals/F7_ladder.png}
