@@ -1601,17 +1601,19 @@ A manipulation benchmark score is not a measurement of capability until the
 benchmark's admissibility has been measured. The measurement is cheap, it runs
 before any model is trained, and on LIBERO it says something specific: the one
 suite whose tasks are individuated by object identity is also the one that pins
-that object, on all ten tasks, to a radius smaller than the tolerance we
-measure for our own arm.
+that object, on all ten tasks, to a radius smaller than the smaller of the two
+tolerances we measure for our own arm --- the larger one dissolves the
+contrast, and we report both.
 
 The behavioural claim we built on that does not stand, and the way it fell is
 the more useful half of this paper. We ran the lookup policy, saw it outscore
 our trained one, tested it at the wrong unit of analysis, and reported a
 significance that a task-level test does not support. The deeper error was
-attributional: tasks handed constants identical to within a millimetre score
-from $0/10$ to $10/10$, so the successes were never evidence about lookup at
-all. Both errors were found by adversarial review of a manuscript we already
-believed, using data we had already published.
+attributional: three tasks handed a constant $0.469$\,mm from a fourth's, in
+all three axes, score $0/10$ where it scores $10/10$ --- so the successes were
+never evidence about lookup at all. Both errors were found by adversarial
+review of a manuscript we already believed, using data we had already
+published, and seven more like them followed.
 
 What survives is the procedure rather than the artifact. Measure the benchmark
 first, at the unit the design randomises over. Check that the variable you
