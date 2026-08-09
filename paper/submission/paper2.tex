@@ -1510,6 +1510,22 @@ The control this needs is osmesa against osmesa at the full horizon. The one we
 have runs $40$ steps and stops before the gripper closes --- the contact phase
 where any such divergence would show.
 
+\paragraph{A partial version of that control arrived by accident.}
+\S\ref{sec:e1}'s lookup arm re-ran ten trials on task $0$ that an earlier run
+had already scored on different hardware and a different \texttt{torch}, same
+backend, and \textbf{the two agree on all ten}, outcome for outcome:
+\texttt{TTTTTTFFFF}. Its limits first, because they are what decide how much it
+buys. The earlier run's flags were not recorded argument-for-argument, so we
+cannot certify the two protocols were identical; the comparison also varies
+hardware and library versions, which if anything should make agreement
+\emph{harder}; and $n$ is ten.
+
+What it does establish is that \texttt{osmesa}'s documented within-backend
+nondeterminism flipped \emph{no} episode in ten at the full horizon --- the
+place the $40$-step control could not look, because the gripper never closes
+there. The $4/10$ stays unattributed. It is simply less comfortable, now, to
+attribute it to nondeterminism alone.
+
 \textbf{We report the disagreement and withdraw the causal reading} --- the
 same error this paper's conclusion warns against. Thread count is a remark rather than a result, for the reason just given:
 three
