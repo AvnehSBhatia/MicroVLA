@@ -52,7 +52,12 @@ for ax, title in ((axA, "A  Released head: one point per COMMAND"),
     ax.set_aspect("equal")
     ax.set_xlim(-18, 18)
     ax.set_ylim(-18, 18)
-    ax.set_xlabel("cm from basket centre")
+    # Only the RADIAL distance in this figure is measured; the angle at which
+    # each point is drawn was chosen for legibility. Labelled Cartesian axes
+    # would invite a reader to read off a coordinate that is not data, so the
+    # ticks are removed and the scale is stated radially in the caption.
+    ax.set_xlabel("radial distance from basket centre (cm)")
+    ax.set_yticks([])
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(alpha=0.18)
     ax.set_title(title, loc="left", fontweight="bold", fontsize=11)
@@ -62,7 +67,7 @@ for ax, title in ((axA, "A  Released head: one point per COMMAND"),
                             lw=1.4, color="#333333", zorder=5))
     ax.text(0, 7.0, "basket, re-placed every episode\n(diameter 3.9 cm, dotted)",
             ha="center", fontsize=7.8, color="#333333")
-axA.set_ylabel("cm from basket centre")
+axA.set_ylabel("")
 
 # ---- A: released head -----------------------------------------------------
 for name, r in RELEASED.items():
