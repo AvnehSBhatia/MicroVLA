@@ -47,8 +47,9 @@ container, LIBERO-Object included.
 
 We then run the lookup policy the proposition describes, on all ten tasks. It
 scores $16/100$ against our released policy's $8/100$ --- and \textbf{that
-comparison supports nothing}, which is the paper's second contribution. All
-twelve discordant trials fall in two tasks and ten of them in one, so the
+comparison supports nothing}, which is the paper's second contribution.
+
+All twelve discordant trials fall in two tasks and ten of them in one, so the
 trial-level test we first reported ($p = 0.039$) is inflated by a design effect
 of $8.4$; at the task level it is $p = 1.0$. Worse for us, tasks handed
 constants identical to within a millimetre score anywhere from $0/10$ to
@@ -60,7 +61,8 @@ So: the benchmark measurement stands on its own and is cheap to run before any
 model is trained; the behavioural claim we built on it does not, and we say
 which experiment would settle it. Along the way, two results about
 certification that do survive: two heads whose attribution profiles agree to
-$0.73$\,cm score $0.000$ and $0.700$ deployed, and holding weights, seeds and
+$0.73$\,cm score $0.000$ and $0.700$ deployed (two \emph{earlier} heads, not
+the released one), and holding weights, seeds and
 every package version fixed while changing only the renderer leaves the success
 \emph{rate} identical and flips $40\%$ of the individual episodes.
 \end{abstract}
@@ -118,7 +120,7 @@ in content and a stronger empirical demonstration of it than ours. Our
 that \citet{thomason2019shifting} established in embodied AI. We claim no
 novelty for either move.
 
-What remains ours is the \emph{a priori} half: their diagnostic requires
+What remains ours is the \emph{a priori} half. Their diagnostic requires
 training a probe and running it; $R$ is a property of the shipped files, so it
 bounds what a score could certify before a GPU is switched on, and it says
 \emph{which} object in a task carries the degeneracy. Their result is the
@@ -199,13 +201,15 @@ smallest disc containing every shipped position,
 
 \noindent $R$ is the quantity the next proposition needs, and it is the
 quantity because a single constant serves $o$ \emph{if and only if}
-$R_t(o) \le \delta$ --- the minimising $c$ is that constant. An earlier version
-of this paper used the \emph{diameter}
+$R_t(o) \le \delta$ --- the minimising $c$ \emph{is} that constant.
+
+An earlier version of this paper used the \emph{diameter}
 $D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$. That criterion is
 sound where it fires ($D \le \delta \Rightarrow R \le \delta$, since
 $R \le D$) but it is not tight: $R \ge D/2$ always, and Jung's theorem gives
 $R \le D/\sqrt{3}$ in the plane. So $D > \delta$ licenses \emph{nothing},
 and we had used it to claim that no task outside LIBERO-Object was admissible.
+
 Recomputed on $R$ at that version's $\delta = 2.5$\,cm, $27$ of $38$ tasks are
 admissible, not $10$. \textbf{The separation we reported was in part an
 artifact of a loose bound.} What survives it is stated below, on the correct
@@ -510,7 +514,9 @@ survived into a previous draft. The constant is the \emph{mean} over all fifty
 shipped states, which contains the ten this cell replays --- it is fitted, very
 weakly, on its own test set. The arm reads the object's identity from the live
 scene's body registry rather than from the task index, so ``reads only the task
-index'' overstates it. And it requires a live simulator to start at all. The
+index'' overstates it. And it requires a live simulator to start at all.
+
+The
 \emph{control} claim survives all three --- with an anchor set, the goal machine
 is driven by proprioception and the constant, and the grasp head is never
 called --- but the \emph{blindness} claim as we first wrote it did not.
@@ -542,7 +548,9 @@ trained vision-language policy.
 ten tasks, and ten of them in one (Table~\ref{tab:fullsuite}). Within that task
 the ten ``trials'' are near-identical replays: blind terminates at steps
 $210$--$214$ (sd $1.08$), the head runs to the $300$ cap on all ten. They are
-one deterministic contrast counted ten times. At the task level --- the unit
+one deterministic contrast counted ten times.
+
+At the task level --- the unit
 the design actually randomises over --- blind wins one task, loses one, and ties
 eight: exact sign test $p = 1.0$, exact sign-flip permutation $p = 1.0$,
 cluster bootstrap on the difference $[-0.06, +0.30]$. The design effect is
@@ -641,9 +649,10 @@ one above.
 \paragraph{What survives.} Two things, and we think they are the more useful
 two. First, on task $3$ a constant scores $10/10$ where the trained head scores
 $0/10$ --- a single task-level event, so we quote no $p$ for it, but a striking
-one: the head is not merely worse there, it never succeeds. Second, and
-independent of any of this, \textbf{eight successes in a hundred trials, every
-one on the single object the head was trained for}. Our artifact is a
+one: the head is not merely worse there, it never succeeds.
+
+Second, and independent of any of this, \textbf{eight successes in a hundred
+trials, every one on the single object the head was trained for}. Our artifact is a
 one-object solution that a suite-level score would have reported as a policy.
 The number a reader should carry away is not $0.700$; it is $0.700$ on task $0$,
 with $0.000$ next to it nine times.
@@ -852,9 +861,9 @@ the same draws separates two things that single number confounded:
 \toprule
 displacement & released head & Wilson 95\% \\
 \midrule
-none & 4/10 & $[0.17,0.69]$ \\
+none$^\ddagger$ & 4/10 & $[0.17,0.69]$ \\
 $\pm2$\,cm & 7/10 & $[0.40,0.89]$ \\
-$\pm4$\,cm & 4/10 & $[0.17,0.69]$ \\
+$\pm4$\,cm$^\ddagger$ & 4/10 & $[0.17,0.69]$ \\
 $\pm6$\,cm (envelope edge) & 2/10 & $[0.06,0.51]$ \\
 $\pm8$\,cm (outside) & 3/10 & $[0.11,0.60]$ \\
 \bottomrule
@@ -863,7 +872,11 @@ $\pm8$\,cm (outside) & 3/10 & $[0.11,0.60]$ \\
 Randomisation robustness is a curve, and at $n{=}10$ this curve is not even
 monotone --- the undisplaced cell sits \emph{below} $\pm2$\,cm, which cannot be
 a real benefit of displacement. Reporting any single radius as ``passes
-randomisation'' would quote a number this sample does not resolve.}
+randomisation'' would quote a number this sample does not resolve, and we do
+not use this table to set any threshold elsewhere in the paper.
+$^\ddagger$Per-trial outcomes for the $\pm2$, $\pm6$ and $\pm8$ rows are in
+\texttt{results/pod\_cells.json}; the two marked rows were measured in an
+earlier session and their trial records are not in the repository.}
 \label{tab:sweep}
 \end{table}
 
@@ -903,7 +916,9 @@ v5 (released) & 0.97 & 1.93 & 3.43 & 6.57 \\
 \caption{Substitution-probe attribution, in cm of movement of the predicted
 grasp \emph{offset}, per input channel. The counterexample is the first two
 rows: v2 and v2.1 agree to within $0.73$\,cm on every channel and score
-$0.000$ and $0.700$ when deployed. A probe evaluated on teacher trajectories
+$0.000$ and $0.700$ when deployed --- these are heads v2 and v2.1, an
+earlier pair, and their $0.700$ is not the released head's $35/50$.
+A probe evaluated on teacher trajectories
 cannot, on its own, certify off-manifold behaviour.}
 \label{tab:probe}
 \end{table}
@@ -1024,9 +1039,15 @@ that difference, and in this stack the detector is the only encoder.
 Two consequences. Matching a published rate is weak evidence of having
 reproduced an experiment: the marginal can be right while the sample is
 different. And \emph{any paired statistic computed across a renderer change is
-invalid}, because pairing assumes the trials are the same trials --- every
-McNemar in this paper is within one backend, which we can now say we checked
-rather than assumed. \texttt{MUJOCO\_GL} belongs in any reported stack; it was
+invalid}, because pairing assumes the trials are the same trials.
+
+We must therefore report our own compliance honestly. Every paired test in
+\S\ref{sec:refute} is within one build, because those cells were produced in
+one sweep. We cannot say the same for the whole paper: the confound test of
+\S\ref{sec:confound} ran on a different machine entirely --- macOS, MuJoCo
+$3.3.0$, robosuite $1.4.0$, Python $3.13$, recorded in its artifact --- and no
+per-cell build ledger exists for the older cells. Given what this subsection
+demonstrates, that is a gap in our own protocol and not a footnote. \texttt{MUJOCO\_GL} belongs in any reported stack; it was
 not in ours, or in any LIBERO evaluation we have read.
 
 \section{Transfer: a negative result}
