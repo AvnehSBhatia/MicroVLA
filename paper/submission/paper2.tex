@@ -1609,17 +1609,20 @@ readings are in version control with a timestamp earlier than the cell.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}llp{2.5cm}@{}}
+\begin{tabular}{@{}p{4.05cm}ll@{}}
 \toprule
 registered & outcome & note \\
 \midrule
-E1: repairing the states costs the lookup arm & \textbf{held} & $p = 0.0007$ \\
-E5: \texttt{fixed} survives the repaired states & \textbf{held} & $30/30$ \\
-E5 identity: \texttt{fixed} $\equiv$ \texttt{blind} when pinned &
-\textbf{failed} & the premise was wrong, not the harness \\
+E1: repairing the states costs the lookup arm &
+\textbf{held} & $p = 0.0007$ \\[2pt]
+E5: \texttt{fixed} survives the repaired states &
+\textbf{held} & $30/30$ \\[2pt]
+E5 identity: \texttt{fixed} $\equiv$ \texttt{blind} on a pinned task &
+\textbf{failed} & \emph{see caption} \\
 \bottomrule
 \end{tabular}
-\caption{Registered before the cells existed. The third is the useful one: a
+\caption{Registered before the cells existed. The third is the useful one ---
+\emph{the premise was wrong, not the harness}: a
 check written to catch a harness bug fired on our own assumption instead, and
 it is the only error in this paper that a machine caught rather than a
 reviewer. One amendment is on record --- E5's primary test was changed after
