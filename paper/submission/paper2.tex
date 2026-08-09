@@ -929,7 +929,15 @@ DAgger on own viewpoints &
 $3/50 \to 22/50$ vs $3/50$ control, $p<10^{-4}$. \textbf{Repaired} \\
 \bottomrule
 \end{tabular}
-\caption{Master audit table. Layers 1--4 are the placement-memorisation layers;
+\caption{Master audit table. \textbf{Provenance, since this is the paper's
+largest table without a per-row artifact:} the swap cells ($8/10 \to 0/20$,
+$23/30 \to 13/30$) and the untouched band ($20/30$) have shipped per-trial
+records in \texttt{results/pod\_cells.json}; the attribution profiles are in
+\texttt{results/attribution\_profiles.json}. The repair figures --- layer 1's
+$0/10 \to 7/10$, layer 4's place points, and the DAgger row's
+$3/50 \to 22/50$ --- were measured in earlier sessions and their per-trial
+records are \emph{not} in this repository. They are reported here as cited
+history, not as cells a reader can recompute. Layers 1--4 are the placement-memorisation layers;
 the last row is a drift case study, \emph{not} one of the four; it appears here
 only because its repair is easily mistaken for one of theirs. Two rows are
 deliberately not marked repaired.}
@@ -1272,7 +1280,15 @@ assumes the trials are the same trials.}
 \label{tab:renderer}
 \end{table}
 
-\noindent \textbf{The aggregate is identical and $40\%$ of the episodes are
+\noindent One disclosure before the reading. The \texttt{egl} cell carries
+\texttt{complete: false} and \texttt{planned\_n: 0} in
+\texttt{results/pod\_cells.json}: it was exploratory, not a planned cell, and
+our own harvester rule --- report nothing that has not reached its planned $n$
+--- should have excluded it. We keep it because it is the only such comparison
+we have and dropping it would bury the disclosure, but it does not meet the
+standard we set in Table~\ref{tab:fooled}.
+
+\textbf{The aggregate is identical and $40\%$ of the episodes are
 not} --- but we can no longer attribute that to the backend \emph{change}.
 
 MuJoCo's software and EGL renderers are documented as nondeterministic

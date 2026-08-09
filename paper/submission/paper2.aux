@@ -96,8 +96,8 @@
 \@writefile{toc}{\contentsline {section}{\numberline {8}Repairs, and one we withdraw}{10}{section.8}\protected@file@percent }
 \newlabel{sec:repairs}{{8}{10}{Repairs, and one we withdraw}{section.8}{}}
 \@writefile{toc}{\contentsline {paragraph}{The untouched band.}{10}{section*.44}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Master audit table. Layers 1--4 are the placement-memorisation layers; the last row is a drift case study, \emph  {not} one of the four; it appears here only because its repair is easily mistaken for one of theirs. Two rows are deliberately not marked repaired.}}{11}{table.caption.38}\protected@file@percent }
-\newlabel{tab:audit}{{9}{11}{Master audit table. Layers 1--4 are the placement-memorisation layers; the last row is a drift case study, \emph {not} one of the four; it appears here only because its repair is easily mistaken for one of theirs. Two rows are deliberately not marked repaired}{table.caption.38}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Master audit table. \textbf  {Provenance, since this is the paper's largest table without a per-row artifact:} the swap cells ($8/10 \to 0/20$, $23/30 \to 13/30$) and the untouched band ($20/30$) have shipped per-trial records in \texttt  {results/pod\_cells.json}; the attribution profiles are in \texttt  {results/attribution\_profiles.json}. The repair figures --- layer 1's $0/10 \to 7/10$, layer 4's place points, and the DAgger row's $3/50 \to 22/50$ --- were measured in earlier sessions and their per-trial records are \emph  {not} in this repository. They are reported here as cited history, not as cells a reader can recompute. Layers 1--4 are the placement-memorisation layers; the last row is a drift case study, \emph  {not} one of the four; it appears here only because its repair is easily mistaken for one of theirs. Two rows are deliberately not marked repaired.}}{11}{table.caption.38}\protected@file@percent }
+\newlabel{tab:audit}{{9}{11}{Master audit table. \textbf {Provenance, since this is the paper's largest table without a per-row artifact:} the swap cells ($8/10 \to 0/20$, $23/30 \to 13/30$) and the untouched band ($20/30$) have shipped per-trial records in \texttt {results/pod\_cells.json}; the attribution profiles are in \texttt {results/attribution\_profiles.json}. The repair figures --- layer 1's $0/10 \to 7/10$, layer 4's place points, and the DAgger row's $3/50 \to 22/50$ --- were measured in earlier sessions and their per-trial records are \emph {not} in this repository. They are reported here as cited history, not as cells a reader can recompute. Layers 1--4 are the placement-memorisation layers; the last row is a drift case study, \emph {not} one of the four; it appears here only because its repair is easily mistaken for one of theirs. Two rows are deliberately not marked repaired}{table.caption.38}{}}
 \@writefile{toc}{\contentsline {paragraph}{A repair we withdraw.}{11}{section*.45}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Substituting a different task's instruction, on a band where each head scores well and at a power the original cell did not have. Both heads lose accuracy, so command coverage does not eliminate the instruction dependence it was built to remove; it halves it. Paired McNemar over matched trial indices (same seed, same initial states, same renderer --- only the instruction differs), exact two-sided.}}{11}{table.caption.46}\protected@file@percent }
 \newlabel{tab:swap}{{10}{11}{Substituting a different task's instruction, on a band where each head scores well and at a power the original cell did not have. Both heads lose accuracy, so command coverage does not eliminate the instruction dependence it was built to remove; it halves it. Paired McNemar over matched trial indices (same seed, same initial states, same renderer --- only the instruction differs), exact two-sided}{table.caption.46}{}}
@@ -132,16 +132,14 @@
 \newlabel{sec:confound}{{11.1}{15}{A confound we had missed}{subsection.11.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{This does not contradict \S  \ref {sec:adm}, and the distinction is worth stating.}{15}{section*.54}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {11.2}Eight ways a result fooled us, and the one thing they share}{15}{subsection.11.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}Discussion}{15}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What a score certifies.}{15}{section*.56}\protected@file@percent }
 \citation{jiang2026benchmarking}
+\@writefile{toc}{\contentsline {section}{\numberline {12}Discussion}{16}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What a score certifies.}{16}{section*.56}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Shortcuts live in pipelines, not only in models.}{16}{section*.57}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Certification is a system property.}{16}{section*.58}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Limitations.}{16}{section*.59}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Recommendation to benchmark authors}{16}{subsection.12.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {13}Conclusion}{16}{section.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}Recovering which column owns which object}{16}{appendix.A}\protected@file@percent }
-\newlabel{app:columns}{{A}{16}{Recovering which column owns which object}{appendix.A}{}}
 \bibstyle{plainnat}
 \bibdata{refs}
 \bibcite{dehaan2019causal}{{1}{2019}{{de~Haan et~al.}}{{de~Haan, Jayaraman, and Levine}}}
@@ -151,14 +149,16 @@
 \bibcite{jiang2026benchmarking}{{5}{2026}{{Jiang et~al.}}{{Jiang, Tan, Wheeler, Sun, Ayalew, and Walter}}}
 \bibcite{kim2024openvla}{{6}{2024}{{Kim et~al.}}{{}}}
 \bibcite{mandlekar2021robomimic}{{7}{2021}{{Mandlekar et~al.}}{{}}}
-\bibcite{mccoy2019hans}{{8}{2019}{{McCoy et~al.}}{{McCoy, Pavlick, and Linzen}}}
-\bibcite{pumacay2024colosseum}{{9}{2024}{{Pumacay et~al.}}{{Pumacay, Singh, Duan, Krishna, Thomason, and Fox}}}
-\bibcite{recht2019imagenet}{{10}{2019}{{Recht et~al.}}{{Recht, Roelofs, Schmidt, and Shankar}}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Recovering which column owns which object}{17}{appendix.A}\protected@file@percent }
+\newlabel{app:columns}{{A}{17}{Recovering which column owns which object}{appendix.A}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {B}The norm, recomputed}{17}{appendix.B}\protected@file@percent }
 \newlabel{sec:norm}{{B}{17}{The norm, recomputed}{appendix.B}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {C}Sensitivity of the verdict to $\delta $}{17}{appendix.C}\protected@file@percent }
 \newlabel{app:deltasens}{{C}{17}{Sensitivity of the verdict to $\delta $}{appendix.C}{}}
 \@writefile{toc}{\contentsline {paragraph}{Three reasons to distrust $\delta $, stated together.}{17}{section*.62}\protected@file@percent }
+\bibcite{mccoy2019hans}{{8}{2019}{{McCoy et~al.}}{{McCoy, Pavlick, and Linzen}}}
+\bibcite{pumacay2024colosseum}{{9}{2024}{{Pumacay et~al.}}{{Pumacay, Singh, Duan, Krishna, Thomason, and Fox}}}
+\bibcite{recht2019imagenet}{{10}{2019}{{Recht et~al.}}{{Recht, Roelofs, Schmidt, and Shankar}}}
 \bibcite{thomason2019shifting}{{11}{2019}{{Thomason et~al.}}{{Thomason, Gordon, and Bisk}}}
 \bibcite{torralba2011bias}{{12}{2011}{{Torralba and Efros}}{{}}}
 \bibcite{zhou2025liberopro}{{13}{2025}{{Zhou et~al.}}{{Zhou, Xu, Tie, Chen, Zhang, Chu, Zhou, and Sun}}}

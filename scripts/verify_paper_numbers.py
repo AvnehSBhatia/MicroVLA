@@ -242,6 +242,15 @@ _m = [i for i in range(10) if i != 3]
 check("r flips sign without task 3", -0.25,
       float(np.corrcoef(Rv[_m], bk.astype(float)[_m])[0, 1]), 0.01)
 
+print("\n=== provenance: which quoted cells have shipped records ===")
+PODC = J("results/pod_cells.json")
+for _k, _v in [("P0_ref_heldout", 8), ("P1_E4_untouched", 20),
+               ("P3_E8_base_cov", 23), ("P3_E8_swap_cov", 13),
+               ("P3_E8_swap_v5", 0)]:
+    check(f"{_k} has a shipped record", float(_v), float(PODC[_k]["k"]), 0.5)
+check("the egl cell is flagged incomplete (disclosed in the text)", True,
+      PODC["P7_GL_egl"]["complete"] is False)
+
 print("\n=== §9 positive control: the full tolerance sweep ===")
 PC = J("results/probe_positive_control.json")
 _tols = PC["tolerances"]
