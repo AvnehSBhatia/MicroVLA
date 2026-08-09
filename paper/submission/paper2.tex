@@ -2003,12 +2003,22 @@ execute a manipulation \emph{given} a correct target pose --- and nothing
 whatever about how it obtained one. That is a statement about what the score
 \emph{could} distinguish, and it is exactly as strong as A1.
 
-The narrow statement is deliberate: we already overreached once. Our own cells do not
-demonstrate that any policy exploited the degeneracy; \S\ref{sec:refute} shows
-they cannot. What the radius buys is a check that runs before training, and a
-prediction --- that a suite with small radii admits a cheap solution --- which
-\citet{jiang2026benchmarking} confirm on LIBERO with a trained probe where we
-did not with a constant.
+Three refinements, each from a cell in this paper rather than an argument.
+\textbf{(i)} A frozen placement \emph{is} exploitable: on the task we test, a
+lookup policy loses $15$ of its $25$ successes when the states are drawn from
+the region the benchmark declares, and a controller handed the true target
+loses none (\S\ref{sec:e1}). \textbf{(ii)} That is not the same as showing a
+\emph{trained} policy exploited it, and we still cannot show that ---
+\S\ref{sec:refute} says why, and the head's own drop is confounded with plain
+distribution shift. \textbf{(iii)} Which suites are affected is now open rather
+than settled: \S\ref{sec:e2} withdraws our suite-level verdict and shows no
+measurement of $\delta$ is sharp enough to replace it.
+
+So what the radius buys is a check that runs before training, and a prediction
+--- that a suite with small radii admits a cheap solution --- which
+\citet{jiang2026benchmarking} confirm on LIBERO with a trained probe, and which
+\S\ref{sec:e1} confirms with a constant on one task. What it does not buy,
+until somebody measures $\delta$ properly, is a verdict about a suite.
 
 \paragraph{Shortcuts live in pipelines, not only in models.} Two of our four
 layers are outside the network: a scripted expert's calibration constant and our
