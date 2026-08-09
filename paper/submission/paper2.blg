@@ -7,45 +7,45 @@ Repeated entry---line 156 of file refs.bib
  : @inproceedings{mandlekar2021robomimic
  :                                      ,
 I'm skipping whatever remains of this entry
-You've used 14 entries,
+You've used 13 entries,
             2773 wiz_defined-function locations,
-            658 strings with 7520 characters,
-and the built_in function-call counts, 7087 in all, are:
-= -- 546
-> -- 588
+            653 strings with 7300 characters,
+and the built_in function-call counts, 6444 in all, are:
+= -- 500
+> -- 522
 < -- 4
-+ -- 197
-- -- 183
-* -- 583
-:= -- 1129
-add.period$ -- 42
-call.type$ -- 14
-change.case$ -- 100
-chr.to.int$ -- 14
-cite$ -- 28
-duplicate$ -- 313
-empty$ -- 530
-format.name$ -- 202
-if$ -- 1455
++ -- 175
+- -- 162
+* -- 524
+:= -- 1026
+add.period$ -- 39
+call.type$ -- 13
+change.case$ -- 90
+chr.to.int$ -- 13
+cite$ -- 26
+duplicate$ -- 289
+empty$ -- 489
+format.name$ -- 180
+if$ -- 1325
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 14
-newline$ -- 78
-num.names$ -- 56
-pop$ -- 237
+missing$ -- 13
+newline$ -- 73
+num.names$ -- 52
+pop$ -- 213
 preamble$ -- 1
-purify$ -- 86
+purify$ -- 77
 quote$ -- 0
-skip$ -- 235
+skip$ -- 216
 stack$ -- 0
-substring$ -- 53
-swap$ -- 23
+substring$ -- 51
+swap$ -- 21
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 154
+type$ -- 143
 warning$ -- 0
-while$ -- 44
+while$ -- 41
 width$ -- 0
-write$ -- 176
+write$ -- 164
 (There was 1 error message)

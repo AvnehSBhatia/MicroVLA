@@ -1,0 +1,432 @@
+{
+  "suites": {
+    "libero_object": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        },
+        {
+          "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.9791,
+            0.9777
+          ],
+          "fraction_of_declared": 0.1958
+        },
+        {
+          "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        },
+        {
+          "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            1.944,
+            1.9045
+          ],
+          "fraction_of_declared": 0.3888
+        },
+        {
+          "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        },
+        {
+          "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        },
+        {
+          "task": "pick_up_the_butter_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.8814,
+            0.9738
+          ],
+          "fraction_of_declared": 0.1948
+        },
+        {
+          "task": "pick_up_the_milk_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.984,
+            0.9715
+          ],
+          "fraction_of_declared": 0.1968
+        },
+        {
+          "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        },
+        {
+          "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            0.0,
+            0.0
+          ],
+          "fraction_of_declared": 0.0
+        }
+      ],
+      "mean_fraction_used": 0.0976,
+      "max_fraction_used": 0.3888,
+      "n_tasks_using_under_5pct": 6
+    },
+    "libero_spatial": {
+      "n_tasks": 5,
+      "tasks": [
+        {
+          "task": "pick_up_the_black_bowl_between_the_plate_and_the_ramekin_and_place_it_on_the_plate",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9018,
+            2.9273
+          ],
+          "fraction_of_declared": 1.4637
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_ramekin_and_place_it_on_the_plate",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9793,
+            2.8641
+          ],
+          "fraction_of_declared": 1.4896
+        },
+        {
+          "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+          "declared_cm": [
+            5.0,
+            2.0
+          ],
+          "used_cm": [
+            0.0,
+            2.9849
+          ],
+          "fraction_of_declared": 1.4925
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.8297,
+            2.8957
+          ],
+          "fraction_of_declared": 1.4478
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_plate_and_place_it_on_the_plate",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9138,
+            2.7462
+          ],
+          "fraction_of_declared": 1.4569
+        }
+      ],
+      "mean_fraction_used": 1.4701,
+      "max_fraction_used": 1.4925,
+      "n_tasks_using_under_5pct": 0
+    },
+    "libero_goal": {
+      "n_tasks": 8,
+      "tasks": [
+        {
+          "task": "put_the_bowl_on_the_stove",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.7689,
+            2.7401
+          ],
+          "fraction_of_declared": 1.3845
+        },
+        {
+          "task": "put_the_wine_bottle_on_top_of_the_cabinet",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9641,
+            2.9456
+          ],
+          "fraction_of_declared": 1.482
+        },
+        {
+          "task": "open_the_top_drawer_and_put_the_bowl_inside",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9388,
+            2.9134
+          ],
+          "fraction_of_declared": 1.4694
+        },
+        {
+          "task": "put_the_bowl_on_top_of_the_cabinet",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.8547,
+            2.8488
+          ],
+          "fraction_of_declared": 1.4273
+        },
+        {
+          "task": "push_the_plate_to_the_front_of_the_stove",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9675,
+            2.8789
+          ],
+          "fraction_of_declared": 1.4837
+        },
+        {
+          "task": "put_the_cream_cheese_in_the_bowl",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            3.9003,
+            3.9528
+          ],
+          "fraction_of_declared": 1.9764
+        },
+        {
+          "task": "put_the_bowl_on_the_plate",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.9845,
+            2.8847
+          ],
+          "fraction_of_declared": 1.4923
+        },
+        {
+          "task": "put_the_wine_bottle_on_the_rack",
+          "declared_cm": [
+            2.0,
+            2.0
+          ],
+          "used_cm": [
+            2.8998,
+            2.8521
+          ],
+          "fraction_of_declared": 1.4499
+        }
+      ],
+      "mean_fraction_used": 1.5207,
+      "max_fraction_used": 1.9764,
+      "n_tasks_using_under_5pct": 0
+    },
+    "libero_10": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.8337,
+            4.9905
+          ],
+          "fraction_of_declared": 0.9981
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_cream_cheese_box_and_the_butter_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.8728,
+            4.8636
+          ],
+          "fraction_of_declared": 0.9746
+        },
+        {
+          "task": "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_moka_pot_on_it",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.8487,
+            4.9501
+          ],
+          "fraction_of_declared": 0.99
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet_and_close_it",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.9279,
+            4.8756
+          ],
+          "fraction_of_declared": 0.9856
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate_and_put_the_yellow_and_white_mug_on_the_right_plate",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.9189,
+            4.9082
+          ],
+          "fraction_of_declared": 0.9838
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_back_compartment_of_the_caddy",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.945,
+            4.6498
+          ],
+          "fraction_of_declared": 0.989
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.849,
+            4.7058
+          ],
+          "fraction_of_declared": 0.9698
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_put_both_the_alphabet_soup_and_the_cream_cheese_box_in_the_basket",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.8518,
+            4.951
+          ],
+          "fraction_of_declared": 0.9902
+        },
+        {
+          "task": "KITCHEN_SCENE8_put_both_moka_pots_on_the_stove",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.8358,
+            4.77
+          ],
+          "fraction_of_declared": 0.9672
+        },
+        {
+          "task": "KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it",
+          "declared_cm": [
+            5.0,
+            5.0
+          ],
+          "used_cm": [
+            4.5416,
+            4.9329
+          ],
+          "fraction_of_declared": 0.9866
+        }
+      ],
+      "mean_fraction_used": 0.9835,
+      "max_fraction_used": 0.9981,
+      "n_tasks_using_under_5pct": 0
+    }
+  }
+}

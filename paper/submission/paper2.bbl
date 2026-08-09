@@ -1,4 +1,4 @@
-\begin{thebibliography}{14}
+\begin{thebibliography}{13}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -41,14 +41,6 @@ Tianchong Jiang, Xiangshan Tan, Samuel Wheeler, Luzhe Sun, Tewodros~W. Ayalew,
 Moo~Jin Kim et~al.
 \newblock {OpenVLA}: An open-source vision-language-action model.
 \newblock \emph{arXiv preprint arXiv:2406.09246}, 2024.
-
-\bibitem[Liu et~al.(2023)Liu, Zhu, Gao, Feng, Liu, Zhu, and
-  Stone]{liu2023libero}
-Bo~Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter
-  Stone.
-\newblock {LIBERO}: Benchmarking knowledge transfer for lifelong robot
-  learning.
-\newblock In \emph{NeurIPS Datasets and Benchmarks}, 2023.
 
 \bibitem[Mandlekar et~al.(2021)]{mandlekar2021robomimic}
 Ajay Mandlekar et~al.

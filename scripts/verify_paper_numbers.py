@@ -141,6 +141,19 @@ for d, o_c, e_c in [(0.5, 6, 2), (1.0, 9, 2), (1.171, 10, 2), (1.4, 10, 2),
     check(f"delta={d}: elsewhere admissible", float(e_c),
           float((others <= d).sum()), 0.5)
 
+print("\n=== §2.3 declared region vs shipped states (needs no delta) ===")
+DS = J("results/declared_vs_shipped.json")["suites"]
+_o = [t["fraction_of_declared"] for t in DS["libero_object"]["tasks"]]
+_l = [t["fraction_of_declared"] for t in DS["libero_10"]["tasks"]]
+check("Object: max fraction of declared region used", 0.389, max(_o), 0.005)
+check("Object: tasks using exactly none of it", 6.0,
+      float(sum(1 for v in _o if v < 1e-9)), 0.5)
+check("Long: min fraction of declared region used", 0.967, min(_l), 0.005)
+check("the two suites do not overlap", True, max(_o) < min(_l))
+check("both declare the same 5cm box", True,
+      all(abs(t["declared_cm"][0] - 5.0) < 1e-6
+          for t in DS["libero_object"]["tasks"] + DS["libero_10"]["tasks"]))
+
 print("\n=== §5 suite: cells and tests RECOMPUTED from per-trial outcomes ===")
 S = J("results/suite_cells.json"); B = J("results/blind_cells.json"); P = J("results/pod_cells.json")
 blind = {0: B["blind_t0"]} | {t: S[f"blind_t{t}"] for t in range(1, 10)}

@@ -36,14 +36,20 @@ tolerance below which the embodiment cannot tell two placements apart; when
 that holds for every object of every task, no function of episode outcomes
 distinguishes a lookup table from a policy that perceives accurately.
 
-Measured across all four LIBERO suites~\citep{liu2023libero} from the shipped
-initial states alone --- no policy, no simulator, no training --- one suite is
-the outlier on the object its tasks are \emph{named} by. All ten
-LIBERO-Object tasks pin that object to $R \le 1.17$\,cm; among the other thirty
-tasks only two do, and both are fixtures bolted to the scene. Six of
-LIBERO-Object's ten targets take just two \texttt{float64} values, one unit in
-the last place apart, across all fifty shipped states. On the shared container the ordering reverses --- LIBERO-Object pins it
-in none of its ten tasks and LIBERO-Goal in six of eight.
+The sharpest version of this needs no tolerance at all, only two files the
+benchmark ships. Every LIBERO task's own BDDL declares a region to sample its
+target from. \textbf{LIBERO-Long exercises its declared $5 \times 5$\,cm box on
+every task ($96.7$--$99.8\%$ of it). LIBERO-Object, given the identical box by
+the same generator, uses $0$--$38.9\%$ --- and on six of ten tasks all fifty
+shipped states are a single point.} The two suites do not overlap, so this is
+not a property of the generator; it is a state-generation defect in one
+release, and the benchmark's own task files already specify the fix.
+
+Measured with a tolerance, the same suite is the outlier on the object its
+tasks are \emph{named} by: all ten LIBERO-Object tasks pin it to
+$R \le 1.17$\,cm, against two of thirty elsewhere, both fixtures. That verdict
+is conditional on $\delta$ in ways we document and partly cannot resolve; the
+paragraph above is not.
 
 We then run the lookup policy the proposition describes, on all ten tasks. It
 scores $16/100$ against our released policy's $8/100$ --- and \textbf{that
@@ -372,12 +378,48 @@ Across tasks the structure is tighter still: the ten targets occupy two table
 positions $22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
 two-constant table covers the identity-bearing half of the whole suite.
 
-\paragraph{This is a property of the shipped files, not of the task
-definition.} The BDDL for task $0$ declares a $5 \times 5$\,cm sampling region
-for the alphabet soup. The fifty shipped states place it at one point. So the
-pinning is an artifact of state generation, not of benchmark design --- which
-makes it cheap to fix, and is the strongest argument in this paper for
-re-sampling rather than redesigning.
+\subsection{The one measurement that needs no tolerance}
+\label{sec:declared}
+
+Everything above is conditional on $\delta$, and \S\ref{sec:refute} will show
+how weakly we know it. This subsection is not. It compares two files the
+benchmark ships and needs no tolerance, no controller, no policy and no
+simulator.
+
+Each LIBERO task declares, in its own BDDL, an axis-aligned region to sample
+its target from. For \texttt{pick\_up\_the\_alphabet\_soup} that region is
+$5 \times 5$\,cm. The fifty shipped initial states place the soup at a single
+point --- the box's exact centre. \textbf{The generator randomises; the
+released evaluation states do not.}
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrr}
+\toprule
+suite & declared & shipped spread & fraction used \\
+\midrule
+\textbf{Object} & $5 \times 5$\,cm & $0.00$--$1.94$\,cm & $\mathbf{0.0}$--$\mathbf{38.9\%}$ \\
+Long & $5 \times 5$\,cm & $4.83$--$4.99$\,cm & $96.7$--$99.8\%$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Two suites of the same benchmark, the same generator, the
+identical declared region --- and no overlap in what they ship.} LIBERO-Long
+exercises its $5 \times 5$\,cm box essentially fully on all ten tasks;
+LIBERO-Object uses a tenth of it on average and \emph{none of it at all} on six
+of ten, where all fifty states are one point. This is arithmetic on two shipped
+files: no $\delta$, no policy, no simulator, and Long is the internal control
+that rules out a generator-wide explanation. LIBERO-Spatial and Goal declare
+regions their shipped states exceed, so we read our region parsing as a lower
+bound there and rest the comparison on the two suites that declare the same
+box. Artifact: \texttt{results/declared\_vs\_shipped.json}.}
+\label{tab:declared}
+\end{table}
+
+So LIBERO-Object's pinning is not a design decision to be argued with. It is a
+\textbf{state-generation defect}, the benchmark's own task files already
+specify the fix, and a suite in the same release demonstrates the fix working.
+That is the most actionable thing in this paper, and it is the only claim here
+that no reviewer can weaken by disputing a tolerance.
 
 \paragraph{How we pick the identity-bearing object, and how much it matters.}
 We take it to be the first entry of the task's declared
