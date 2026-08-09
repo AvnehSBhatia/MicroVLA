@@ -86,6 +86,23 @@ for suite, S in FJ["suites"].items():
     radii[suite] = np.array(rs); fixture[suite] = np.array(fx)
 
 check("Object max identity radius (cm)", 1.17, float(radii["libero_object"].max()))
+# N2: Table 2's mean and the unpinned range, so a stale sentence fails loudly.
+check("Object mean identity radius (cm)", 0.30, float(radii["libero_object"].mean()))
+_unp = radii["libero_object"][radii["libero_object"] > 1e-6]
+check("Object unpinned range lo (cm)", 0.60, float(_unp.min()))
+check("Object unpinned range hi (cm)", 1.17, float(_unp.max()))
+check("Object tasks pinned to a point", 6.0,
+      float((radii["libero_object"] <= 1e-6).sum()), 0.5)
+for _s, _m in [("libero_spatial", 2.15), ("libero_goal", 1.48), ("libero_10", 3.10)]:
+    check(f"{_s} mean identity radius (cm)", _m, float(radii[_s].mean()))
+# the two tolerance estimates the appendix now reports side by side
+_B = J("results/blind_failure_attribution.json")
+check("task-0 tolerance estimate (cm)", 1.41, min(_B["task0"]["failure_disp_cm"]), 0.005)
+check("task-3 tolerance estimate (cm)", 1.91, _B["task3"]["max_tolerated_cm"], 0.005)
+check("the two estimates disagree", True,
+      _B["task3"]["max_tolerated_cm"] > min(_B["task0"]["failure_disp_cm"]) + 0.3)
+check("task-0 classes overlap (no clean threshold)", True,
+      max(_B["task0"]["success_disp_cm"]) > min(_B["task0"]["failure_disp_cm"]))
 check("Object tasks admissible at 1.4 cm", 10.0,
       float((radii["libero_object"] <= 1.4).sum()), 0.5)
 others = np.concatenate([radii[s] for s in radii if s != "libero_object"])
@@ -94,6 +111,8 @@ check("other tasks admissible at 1.4 cm", 2.0, float((others <= 1.4).sum()), 0.5
 check("other tasks total", 30.0, float(len(others)), 0.5)
 check("both exceptions are fixtures", True, bool(othfx[others <= 1.4].all()))
 check("smallest movable radius elsewhere (cm)", 1.49, float(others[~othfx].min()))
+check("elsewhere admissible at the LARGER tolerance estimate", 13.0,
+      float((others <= 1.914).sum()), 0.5)
 check("measured tolerance falls inside the window", True,
       bool(float(radii["libero_object"].max()) <= 1.41 < float(others[~othfx].min())))
 

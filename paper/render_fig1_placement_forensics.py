@@ -29,6 +29,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "paper" / "visuals" / "F1_placement_forensics.png"
 D = json.loads((REPO / "results/suite_forensics_joints.json").read_text())
+ENT = json.loads((REPO / "results/placement_entropy.json").read_text())["suites"]
 
 CA, CB = "#2a6f97", "#c1121f"
 PIN, FREE = "#c1121f", "#2a6f97"
@@ -73,7 +74,7 @@ for ax, suite, title in ((axA, "libero_object", "A  libero_object — the audite
     ax.set_aspect("equal")
     ax.set_xlabel("table x (m)")
     ax.set_title(f"{title}\n{s['n_target_position_pinned']}/{s['n_resolvable_tasks']} targets pinned"
-                 f"   ·   H = {s['mean_target_entropy_bits_at_1mm']:.2f} bits",
+                 f"   ·   H = {ENT[suite]['mean_H']['0.0005']:.2f} bits at 0.5 mm",
                  loc="left", fontweight="bold", fontsize=10)
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(alpha=0.18, zorder=0)
