@@ -1346,7 +1346,7 @@ it, \textbf{the portability of these instruments is unestablished}.
 
 A paper that only reports what worked cannot be checked. This section is the
 ledger: what we predicted before running, what failed, which instruments we
-retired, and the ways our own results fooled us.
+retired, and the eight ways our own results fooled us.
 
 \paragraph{Pre-registration.} Fourteen predictions are on record with their
 outcomes; seven failed. Two failures matter here: the coverage head's swap cell
@@ -1411,17 +1411,17 @@ across three tests does not survive a Bonferroni correction. The confound is
 \emph{disconfirmed as a sufficient explanation}, which is what the design can
 support, and not more.
 
-\subsection{Seven ways a result fooled us, and the one thing they share}
+\subsection{Eight ways a result fooled us, and the one thing they share}
 
 Recorded because the failure modes generalise and \emph{none} was caught by a
 conventional check. In every one of them the instrument was correct
 (Table~\ref{tab:fooled}).
 
-That is the pattern, and it took seven instances to see it. Not one of these
-was a bug in a measurement. Each was a decision about \emph{which slice of a
-correct instrument's output got written down}: which trials had finished, which
-axes were compared, which tolerances were swept, which tasks were counted,
-which of two estimates was quoted. \textbf{A verifier that recomputes every
+That is the pattern, and it took eight instances to see it. Not one of these
+was a bug in a measurement. Each was a decision about \emph{which slice got
+written down}: which trials had finished, which axes were compared, which
+tolerances were swept, which tasks were counted, which of two estimates was
+quoted --- and, in the eighth, which parts of a document a retraction reached. \textbf{A verifier that recomputes every
 number in a paper would have caught none of them}, and ours did not --- it
 recomputed the $2$D distance we chose to compute, and passed.
 
@@ -1476,9 +1476,15 @@ selective sensitivity reporting, in the section arguing against it \\
 an appendix reporting the $\ell_\infty$ variant &
 asserted, never computed; recomputed it says the opposite &
 a sentence with no artifact behind it reads exactly like one that has \\
+\addlinespace
+a claim we had already withdrawn, still standing &
+withdrawn in the section that made it, and left intact in the discussion, the
+contributions list and two captions that cite it &
+\textbf{retracting a claim where it was made does not retract it where it is
+summarised}, and summaries are the last place anyone re-reads \\
 \bottomrule
 \end{tabular}
-\caption{Seven self-inflicted errors and their repairs. Every one was found by
+\caption{Eight self-inflicted errors and their repairs. Every one was found by
 someone checking a choice rather than a computation, and every one ran in the
 direction that flattered us. The third is the one we would most expect others
 to hit: every check we ran had passed, and the defect
