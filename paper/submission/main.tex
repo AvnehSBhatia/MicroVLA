@@ -534,6 +534,27 @@ envelope and separates heads only where visual goals are live; the teacher's
 calibration consumed privileged telemetry offline; single benchmark, single
 simulator.
 
+\paragraph{Cross-stack verification (2026-08-09).} Because \S3's control
+showed behavioural cells are stack-coupled, we state which layer is not, and
+measured it: on a machine sharing nothing with the evaluated stack
+(Apple-silicon laptop, CPU only, Python 3.11, torch 2.13, numpy 2.4, no
+simulator, vs.\ the pinned Linux / 3.10 / 2.8 / 2.2), the full test suite
+passes (616 tests, 31\,s), the parameter ledger re-audits
+($7{,}005{,}837 < 9{\times}10^6$, every module under its cap), the TRM
+contract self-test passes (9{,}968{,}976 params, residual/stateless contract,
+10-pair overfit to loss 0.0000), and the dependency-free \texttt{--mock-env}
+harness runs end-to-end, stamping its own provenance (\texttt{argv}, git
+commit, dirty flag). An open-loop replay of the shipped 30-episode corpus
+through the checkpoint of record measures healthy action magnitude
+(\texttt{std\_ratio} 1.17; the diagnosed collapse of \S4 measured ${\sim}0.12$)
+and a \emph{negative} world-model margin over persistence ($-31.5\%$),
+consistent with the inertness statement above --- though the causal form of
+that claim rests on the persistence ablation at exact parity, not on this
+bench, and the replay pairs the checkpoint with a corpus from a different
+bake. No closed-loop cell is re-verified by this run: it certifies the
+invariant layer (contracts, budgets, parity and provenance tests), which is
+stack-robust in exactly the way the behavioural cells are measured not to be.
+
 \bibliographystyle{plainnat}
 \bibliography{refs}
 
