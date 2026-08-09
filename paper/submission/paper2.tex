@@ -16,8 +16,9 @@
 \newtheorem{corollary}{Corollary}
 
 \captionsetup{font=small}
-\title{\textbf{Declared but Not Sampled:\\
-A Benchmark Defect, and Nine Ways Our Verification Missed Our Own Errors}}
+\title{\textbf{What Does a Manipulation Benchmark Score Certify?\\[2pt]
+\large An Upper Bound Computable Before Training, a Defect It Exposes,\\
+and a Precision Requirement Nobody Currently Meets}}
 \author{Anonymous submission}
 \date{}
 
@@ -26,68 +27,52 @@ A Benchmark Defect, and Nine Ways Our Verification Missed Our Own Errors}}
 
 \begin{abstract}
 \noindent
-This paper reports a benchmark defect, evidence that it is exploitable, a
-criterion for when such defects matter --- which we then \emph{withdraw}, on a
-measurement of our own --- and nine occasions on which our verification passed
-while our claim was false. \textbf{The last two are the parts we expect to
-outlive the first two}: one says what a benchmark score can be shown to
-certify, and the other says why checking arithmetic will not tell you.
+A policy scores $0.700$ on a manipulation benchmark. \textbf{What has been
+certified?} We give three answers, and the third is the one we did not want.
 
-\textbf{The defect.} Every LIBERO task declares, in its own task file, a region
-from which to sample its target's starting position. Three of the four suites
-ship evaluation states that exercise that region. \textbf{LIBERO-Object does
-not}: it declares the largest region of the four, $5 \times 5$\,cm, and ships
-the smallest spread --- on six of its ten tasks all fifty released states place
-the target at a single point, to the last bit of a \texttt{float64}. This is
-arithmetic on two shipped files. We ship the repair, validate it, and show it
-bites: drawing the fifty states from the region the task file itself declares,
-and changing nothing else, costs a lookup policy half its score
-($25/30 \to 10/30$, paired, exact McNemar $p = 0.0007$), while a controller
-handed the true target once at reset succeeds on \emph{all thirty} of those
-same repaired states. The states are not harder; the constant is wrong on
-them. The defect is exploitable, not cosmetic.
+\textbf{An upper bound, computable before training.} Define the
+\emph{placement radius} $R$ of an object as the radius of the smallest disc
+containing every position the benchmark ships for it. A single task-indexed
+constant --- a lookup table, with no perception --- serves that object
+\emph{if and only if} $R \le \delta$, the tolerance below which the embodiment
+cannot tell two placements apart. $R$ is arithmetic on released files: no
+policy, no simulator, no training. It bounds what a score \emph{could}
+certify, in advance, for any benchmark that ships its evaluation states.
 
-\textbf{The criterion.} A frozen placement matters only if the robot cannot
-resolve the freezing. Define the \emph{placement radius} $R$ of an object as
-the radius of the smallest disc containing every position the benchmark ships
-for it. A single task-indexed constant serves that object \emph{if and only if}
-$R \le \delta$, the tolerance below which the embodiment cannot tell two
-placements apart. On the object its tasks are \emph{named} by, LIBERO-Object
-satisfies this on all ten tasks at $\delta = 1.41$\,cm, against two of thirty
-elsewhere.
+\textbf{The bound bites.} Every LIBERO task declares, in its own task file, a
+region from which to sample its target. Three of the four suites ship states
+that exercise it; \textbf{LIBERO-Object does not} --- it declares the largest
+region of the four and ships the smallest spread, placing the target at a
+single point, to the last bit of a \texttt{float64}, on six of ten tasks. We
+ship the repair and it is not cosmetic: drawing the fifty states from the
+region the task file itself declares, and changing nothing else, costs a
+lookup policy $15$ of its $25$ successes ($p = 0.0007$), while a controller
+handed the true target once at reset loses \emph{none} of its $30$. The states
+are not harder; the constant is wrong on them. No tolerance enters any of this.
 
-\textbf{And we withdraw that verdict.} We named $\delta$ the weakest link,
-published two disagreeing estimates, drew the window the separation needed
-($[1.17, 1.49)$\,cm), and then measured $\delta$ directly on the grasped
-object for the first time --- displacing the lookup constant until the score
-breaks. It is $\geq 2$\,cm, above the window, and there $27$ of LIBERO's $40$
-tasks admit a constant. The criterion is a theorem and survives;
-\textbf{the suite-level verdict does not}. The defect and its exploitability
-need no $\delta$ and are untouched.
+\textbf{And the field cannot currently evaluate the bound.} Converting $R$ into
+a verdict about a suite requires $\delta$, and we show the requirement is
+brutal. The claim ``suite $A$ is admissible and its complement is not'' holds
+exactly when $\delta$ lies in a computable interval $W(A)$, so any estimate of
+$\delta$ less precise than $|W(A)|$ decides nothing --- \emph{at any sample
+size}. Of the eight such claims LIBERO can express, \textbf{one} is satisfiable
+at all, on a window $0.322$\,cm wide. We then measured $\delta$ on the grasped
+object, which nobody had done, and resolved it to $2$\,cm: a shortfall of
+$6.2\times$. \textbf{So we withdraw our own suite-level verdict}, and observe
+that no one else's is currently supportable either.
 
-The reason generalises past us. Verdicts of this kind turn on windows of
-$\delta$ about $0.3$\,cm wide --- the runner-up contrast, LIBERO-Long against
-the rest, sits on $0.368$\,cm --- and the best measurement anyone has resolves
-$\delta$ to $2$\,cm. \textbf{The instrument is an order of magnitude too coarse
-for the question}, so what a manipulation benchmark score certifies is at
-present unbounded from below, for every suite including the ones we cleared.
-
-\textbf{What verification did not catch.} We built the lookup policy the
-criterion describes. It settles the manipulation check above and not the
-comparison we wanted --- whether a constant matches a trained policy --- and we
-say why. Along the
-way we made nine errors, each found by adversarial review rather than by us,
-and they share a structure. \textbf{Not one was a wrong computation.} Each was
-a decision about which slice of a correct instrument's output got written down:
-which trials had finished, which axes were compared, which tolerances were
-swept, which of two estimates was quoted, which parts of the document a
-retraction reached. Our verifier recomputes every number in the load-bearing
-sections from raw outcomes --- and it passed, at $76$ checks, while the central
-claim it certified was false, because it recomputed the two-dimensional
-distance we had chosen to compute. \textbf{All nine ran in the direction that
-flattered us.} We give the taxonomy, the artifacts, and the review process that
-produced it, because a field that checks arithmetic is defended against none of
-this.
+\textbf{What verification did not catch.} Along the way we made nine errors,
+each found by adversarial review rather than by us. \textbf{Not one was a wrong
+computation.} Each was a decision about which slice of a correct instrument's
+output got written down: which trials had finished, which axes were compared,
+which tolerances were swept, which of two estimates was quoted, which parts of
+the document a retraction reached. Our verifier recomputes every number in the
+load-bearing sections from raw outcomes --- and it passed, at $76$ checks,
+while the central claim it certified was false, because it recomputed the
+two-dimensional distance we had chosen to compute. \textbf{All nine ran in the
+direction that flattered us.} We give the taxonomy, the artifacts, and the
+review process that produced it, because a field that checks arithmetic is
+defended against none of this.
 \end{abstract}
 
 \section{The question}
@@ -170,37 +155,27 @@ than compete.
 
 \paragraph{Contributions.}
 \begin{enumerate}\itemsep2pt
-\item \textbf{A benchmark defect, measurable from shipped files}
-(\S\ref{sec:declared}). LIBERO-Object's released evaluation states do not
-sample the region its own task files declare; three sibling suites do. No
-tolerance, policy or simulator is required to check this, and the fix is
-already specified by the benchmark.
-\item \textbf{Evidence that it is exploitable, not cosmetic}
-(\S\ref{sec:e1}). Sampling the declared region and changing nothing else costs
-a lookup policy half its score --- $25/30 \to 10/30$, paired, exact McNemar
-$p = 0.0007$. This is the manipulation check for the defect, and a null result
-would have retired the criterion below.
-\item \textbf{A criterion for when such a defect is exploitable}
-(\S\ref{sec:adm}). The placement radius $R$, with the exact condition
-$R \le \delta$ --- necessary and sufficient, not merely sufficient --- and a
-measurement of all four LIBERO suites against it.
-\item \textbf{The measurement that withdraws our own verdict}
-(\S\ref{sec:e2}). Displacing the lookup constant until the score breaks gives
-the first estimate of $\delta$ on the grasped object rather than on the
-container: $\geq 2$\,cm, above the $[1.17, 1.49)$\,cm window the separation
-needs. At $2$\,cm, $17$ of $30$ tasks elsewhere are admissible too. We report
-the experiment that cost us the claim, at the length we would have reported a
-confirmation.
-\item \textbf{A behavioural test that fails, with its diagnosis}
-(\S\ref{sec:constant}--\S\ref{sec:refute}). We built the lookup policy and it
-cannot decide the question; we say why, at the correct unit of analysis, and
-name the experiment that would.
-\item \textbf{Certification methodology} (\S\ref{sec:cert}): a counterexample
-to probe-only certification, and the demonstration that matching a published
-rate is not evidence of having reproduced a sample.
+\item \textbf{An upper bound on what a score can certify, computed before
+training} (\S\ref{sec:adm}). The placement radius $R$, with the exact condition
+$R \le \delta$ --- necessary \emph{and} sufficient --- measured on all forty
+LIBERO tasks from released files alone.
+\item \textbf{A defect the bound exposes, checkable with no tolerance at all}
+(\S\ref{sec:declared}). LIBERO-Object's released states do not sample the
+region its own task files declare; three sibling suites' do. Arithmetic on two
+shipped files.
+\item \textbf{Evidence that the defect is exploitable} (\S\ref{sec:e1}).
+Sampling the declared region costs a lookup policy $15$ of $25$ successes
+($p = 0.0007$); a correct static goal loses none of $30$ on the same states.
+Causal, and free of $\delta$.
+\item \textbf{A precision requirement, and the measurement that fails it}
+(\S\ref{sec:e2}--\S\ref{sec:window}). The decision window $W(A)$ makes
+``how precisely must $\delta$ be known?'' answerable from the radii alone.
+LIBERO admits exactly one suite-level claim, on $0.322$\,cm; the first
+measurement of $\delta$ on the grasped object resolves $2$\,cm. \textbf{We
+withdraw our own verdict} and show none is currently supportable.
 \item \textbf{Nine errors, and what they share} (\S\ref{sec:neg}). Every
-prediction we registered including the failures, every instrument retired at
-its calibration gate, and nine errors of our own --- one found inside the
+registered prediction including the failures, every instrument retired at its
+calibration gate, and nine errors of our own --- one found inside the
 correction of another. \textbf{None was a wrong computation}; each was a choice
 about which slice of a correct instrument's output got reported, and all nine
 ran in the direction that flattered us. Our own verifier passed while the claim
@@ -208,7 +183,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $197$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $206$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -1305,12 +1280,110 @@ correct word for the suite-level verdict is \textbf{unsupported}, not
 disproven. We are not entitled to it, and nobody is entitled to its negation
 either.
 
-\paragraph{The deeper problem is not which suite. It is that no measurement
-of $\delta$ is sharp enough to name one.} Suite-level verdicts of this kind
-live on narrow windows of $\delta$, and ours was not unusually narrow. Read the
-same radii at the tolerance this section measures and a \emph{different}
-contrast appears --- LIBERO-Long against the other three --- on a window barely
-wider than the one we lost:
+\subsection{Why the measurement was never going to be enough}
+\label{sec:window}
+
+The failure above looks like a statement about our experiment. It is not. It is
+a statement about the benchmark, it follows from
+Proposition~\ref{prop:lookup} in two lines, and it is computable from the
+shipped files on the day a suite is released.
+
+\begin{definition}[Decision window]
+\label{def:window}
+Fix a suite $A$ and the claim \emph{every task in $A$ is lookup-admissible and
+no task outside it is}. Write
+\[
+  W(A) \;=\; \Big[\; \max_{t \in A} R_t \;,\;\; \min_{t \notin A} R_t \;\Big).
+\]
+\end{definition}
+
+\begin{proposition}[Precision, not power, is binding]
+\label{prop:window}
+The claim holds if and only if $\delta \in W(A)$. Consequently an estimate of
+$\delta$ whose uncertainty exceeds $|W(A)|$ cannot decide the claim, and no
+increase in the sample size of a behavioural experiment repairs this.
+\end{proposition}
+
+\begin{proof}
+By Proposition~\ref{prop:lookup} a task $t$ is lookup-admissible exactly when
+$R_t \le \delta$. The claim asserts $R_t \le \delta$ for every $t \in A$ and
+$R_t > \delta$ for every $t \notin A$, which are together equivalent to
+$\max_{t \in A} R_t \le \delta$ and $\delta < \min_{t \notin A} R_t$, i.e.\ to
+$\delta \in W(A)$. For the consequence: a behavioural experiment estimates
+$\delta$, and its sample size controls the \emph{uncertainty} of that estimate.
+Deciding the claim requires locating $\delta$ inside or outside an interval of
+width $|W(A)|$, so an interval estimate wider than $|W(A)|$ is consistent with
+both verdicts however it was obtained.
+\end{proof}
+
+\begin{corollary}[The window is knowable in advance]
+\label{cor:window}
+$W(A)$ depends only on the radii, hence only on the shipped initial states. A
+benchmark's authors can compute it before any policy is trained, and learn what
+precision an admissibility claim about their suite will demand.
+\end{corollary}
+
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F17_decision_window.png}
+\caption{\textbf{Definition~\ref{def:window} and
+Proposition~\ref{prop:window}, drawn to scale.} Top: LIBERO's forty placement
+radii, from released files alone. The shaded strip is the decision window of
+the one suite-level claim any tolerance satisfies. Bottom: the same axis with
+what measurement delivers --- our two container-based estimates, and the
+interval the grasp ladder of Figure~\ref{fig:jitter} resolves. The bar is
+$6.2\times$ wider than the strip it would have to fit inside, and
+Proposition~\ref{prop:window} says no sample size closes that. Generated by
+\texttt{paper/render\_fig17\_window.py}.}
+\label{fig:window}
+\end{figure*}
+
+\noindent \textbf{$W(A)$ is empty exactly when the claim is unsatisfiable} ---
+when no embodiment, however precise or however clumsy, makes it true. That
+turns out to be the common case.
+
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrr}
+\toprule
+claim & $W$ (cm) & width \\
+\midrule
+\textbf{Object admits, rest resist} & $\mathbf{[1.171, 1.492)}$ & $\mathbf{0.322}$ \\
+Object resists, rest admit & empty & --- \\
+Spatial admits, rest resist & empty & --- \\
+Spatial resists, rest admit & empty & --- \\
+Goal admits, rest resist & empty & --- \\
+Goal resists, rest admit & empty & --- \\
+Long admits, rest resist & empty & --- \\
+Long resists, rest admit & empty & --- \\
+\midrule
+\multicolumn{2}{@{}l}{what our ladder resolves} & $2.0$ \\
+\multicolumn{2}{@{}l}{\textbf{precision shortfall}} & $\mathbf{6.2\times}$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Of the eight clean suite-level separations LIBERO can express,
+exactly one is satisfiable at all} --- and it is the one we claimed, on a
+window $0.322$\,cm wide. Every other suite-level statement about LIBERO is not
+false but \emph{unstateable}: no tolerance makes it true, so no experiment can
+establish it. Fixture tasks are excluded from both sides (two, both in
+LIBERO-Goal); they have $R=0$ because they are bolted down, and leaving them in
+empties every window by an irrelevance. Computed by
+\texttt{scripts/decision\_window.py} from the radii alone --- no policy, no
+simulator, no training. Artifact: \texttt{results/decision\_windows.json}.}
+\label{tab:window}
+\end{table}
+
+\noindent Figure~\ref{fig:window} draws it. This is what we should have
+computed first: the window was $0.322$\,cm before we ran anything, and we
+brought an instrument that resolves $2$\,cm. \textbf{The experiment was underdetermined at the design stage, and a
+reader can check that in one line of arithmetic on the radii.} It is also the
+form in which the result generalises: the window is a property of a benchmark,
+not of a laboratory, and any suite whose radii cluster tightly will demand a
+precision that behavioural sweeps do not currently deliver.
+
+\paragraph{One contrast survives if exceptions are allowed.} Relaxing the claim
+from \emph{no task outside} to \emph{at most one} makes a second reading
+available --- LIBERO-Long against the rest, $0/10$ against $29/30$, on
+$[2.480, 2.848)$:
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{5pt}

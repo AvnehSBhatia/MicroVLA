@@ -408,6 +408,31 @@ check("E3: episodes run in the analysed pairs", 100.0,
       float(sum(v["oracle"]["n"] + v["blind"]["n"]
                 for v in E3A["per_task"].values())), 0.5)
 
+print("\n=== §7.1 decision windows: recomputed from the radii ===")
+DW = J("results/decision_windows.json")
+check("decision windows: claims enumerated", 8.0,
+      float(DW["claims_enumerated"]), 0.5)
+check("decision windows: claims satisfiable at ALL", 1.0,
+      float(DW["claims_satisfiable"]), 0.5)
+check("decision window: widest anywhere in LIBERO (cm)", 0.322,
+      DW["widest_window_cm"], 0.001)
+check("decision window: precision shortfall", 6.2,
+      DW["precision_shortfall"], 0.05)
+_live = [w for w in DW["windows"] if w["satisfiable"]]
+check("decision window: the only live claim is Object-admits", True,
+      len(_live) == 1 and _live[0]["claim"].startswith("Object admits"))
+check("decision window: its lower edge", 1.1709, _live[0]["lower_cm"], 0.001)
+check("decision window: its upper edge", 1.4925, _live[0]["upper_cm"], 0.001)
+# Independently rebuilt from admissibility.json rather than read back from the
+# file decision_window.py wrote, so the two cannot agree by construction.
+_T = {k: [(t["identity_R_cm"], bool(t.get("fixture", False)))
+          for t in v["tasks"]] for k, v in ADM.items()}
+_mov = {k: [r for r, f in v if not f] for k, v in _T.items()}
+_lo = max(_mov["libero_object"])
+_hi = min(r for k in _mov if k != "libero_object" for r in _mov[k])
+check("decision window: independently rederived width", 0.322, _hi - _lo, 0.001)
+check("decision window: a 2cm ladder cannot decide it", True, (_hi - _lo) < 2.0)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")

@@ -1,0 +1,81 @@
+{
+ "definition": "W(A) = [max_{t in A} R_t, min_{t not in A} R_t); the claim 'A admissible, complement not' is true exactly when delta lies in W(A)",
+ "fixtures_excluded_per_suite": {
+  "Object": 0,
+  "Spatial": 0,
+  "Goal": 2,
+  "Long": 0
+ },
+ "claims_enumerated": 8,
+ "claims_satisfiable": 1,
+ "windows": [
+  {
+   "suite": "Object",
+   "claim": "Object admits, rest resist",
+   "lower_cm": 1.1709,
+   "upper_cm": 1.4925,
+   "width_cm": 0.3216,
+   "satisfiable": true
+  },
+  {
+   "suite": "Object",
+   "claim": "Object resists, rest admit",
+   "lower_cm": 4.4914,
+   "upper_cm": 0.0,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Spatial",
+   "claim": "Spatial admits, rest resist",
+   "lower_cm": 4.4914,
+   "upper_cm": 0.0,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Spatial",
+   "claim": "Spatial resists, rest admit",
+   "lower_cm": 3.2828,
+   "upper_cm": 1.4925,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Goal",
+   "claim": "Goal admits, rest resist",
+   "lower_cm": 2.4797,
+   "upper_cm": 0.0,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Goal",
+   "claim": "Goal resists, rest admit",
+   "lower_cm": 4.4914,
+   "upper_cm": 1.6591,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Long",
+   "claim": "Long admits, rest resist",
+   "lower_cm": 3.2828,
+   "upper_cm": 0.0,
+   "width_cm": 0.0,
+   "satisfiable": false
+  },
+  {
+   "suite": "Long",
+   "claim": "Long resists, rest admit",
+   "lower_cm": 4.4914,
+   "upper_cm": 2.8479,
+   "width_cm": 0.0,
+   "satisfiable": false
+  }
+ ],
+ "widest_window_cm": 0.3216,
+ "ladder_resolution_cm": 2.0,
+ "precision_shortfall": 6.22,
+ "reading": "Of the 8 clean suite-level separations LIBERO can express, 1 is satisfiable by any tolerance whatever. Its window is 0.322 cm wide and the sharpest measurement of delta we can make resolves 2 cm, a shortfall of 6.2x."
+}
