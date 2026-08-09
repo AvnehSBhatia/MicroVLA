@@ -173,8 +173,8 @@ measurement of all four LIBERO suites against it.
 cannot decide the question; we say why, at the correct unit of analysis, and
 name the experiment that would.
 \item \textbf{Certification methodology} (\S\ref{sec:cert}): a counterexample
-to probe-only certification, and the demonstration that a behavioural
-certificate is joint in \emph{(head, stack)}.
+to probe-only certification, and the demonstration that matching a published
+rate is not evidence of having reproduced a sample.
 \item \textbf{A falsification record} (\S\ref{sec:neg}): every prediction we
 registered including the failures, every instrument retired at its calibration
 gate, and four errors of our own --- one of them found inside the correction of
@@ -1241,7 +1241,7 @@ construction, so it compares zero frames. Our first version of the script read
 $\text{same\_rate}=0$ off that empty comparison and printed ``instrument
 discriminates''. A verdict now requires $n \ge 3$.
 
-\subsection{Certificates are joint in (head, stack), down to the renderer}
+\subsection{Matching a rate is not reproducing a sample}
 
 We rebuilt the deployment stack on fresh hardware, pinning every version in
 \S\ref{sec:platform} and verifying both load-bearing checkpoints by
@@ -1263,7 +1263,9 @@ per-trial outcomes & \multicolumn{2}{l}{\textbf{4 of 10 disagree} (2 each way)} 
 \end{tabular}
 \caption{Changing only the OpenGL backend MuJoCo renders through --- same
 seed, same trials, same weights, same package versions. The aggregate is
-identical and $40\%$ of the individual episodes are not. Matching a published
+identical and $40\%$ of the individual episodes are not --- though
+\S\ref{sec:cert} withdraws the attribution of that difference to the backend
+change itself. Matching a published
 rate is therefore weak evidence of having reproduced an experiment, and any
 paired statistic computed across a renderer change is invalid, because pairing
 assumes the trials are the same trials.}
@@ -1506,11 +1508,20 @@ own checkpoint-selection loop. No amount of perturbing a trained model from the
 outside would have found either. This is an argument for glass-box artifacts in
 benchmark-validity work, and it is the main reason our stack is small.
 
-\paragraph{Certification is a system property.} Probes cannot certify alone
-(two heads, $0.73$\,cm apart, $0.000$ vs $0.700$). Behaviour must be paired with
-randomisation. And the certificate is joint in \emph{(head, stack)} down to a
-component no requirements file pins: the same weights on the same seeds give the
-same rate and a different $40\%$ of episodes under a different renderer.
+\paragraph{Certification is a system property.} Probes cannot certify alone:
+two heads whose channel \emph{ordering} a substitution probe cannot separate
+score $0.000$ and $0.700$ deployed. Behaviour must be paired with
+randomisation.
+
+The renderer result points the same way but we state it at the strength it now
+has. Holding weights, seeds and package versions fixed and changing only the
+OpenGL backend leaves the rate identical and $40\%$ of the individual episodes
+different --- and \S\ref{sec:cert} withdraws the attribution of that to the
+backend \emph{change}, because MuJoCo is documented as nondeterministic within
+a backend and our same-backend control runs only to $40$ pre-contact steps.
+What survives is the weaker and still useful claim: \textbf{matching a
+published rate is not evidence of having reproduced a sample}, so a paired
+statistic must be computed within one build.
 
 \paragraph{Limitations.}
 \begin{itemize}\itemsep1pt \parskip0pt \topsep2pt
