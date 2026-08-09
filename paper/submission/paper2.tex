@@ -395,8 +395,11 @@ repair and at one position, to nine decimals, under the shipped states
 (\texttt{results/e5\_object\_positions.json}). The trained head drops in the same direction, $0.633 \to
 0.433$,
 which this $n$ does not resolve ($p = 0.18$) --- and which we would not read as
-exploitation even if it did, since the head was trained against the shipped
-states and the repaired ones are out of its training distribution. Drawn per trial in
+exploitation even if it did, because the two explanations are not separated
+here: the head was fit on this suite's own demonstrations, so a drop on states
+drawn from anywhere else is as consistent with plain distribution shift as with
+losing a memorised placement. Only the lookup arm, whose constant we wrote down
+ourselves, admits the second reading unambiguously. Drawn per trial in
 Figure~\ref{fig:e1}; artifact \texttt{results/e1\_shipped\_vs\_repaired.json}.}
 \label{tab:e1}
 \end{table}
