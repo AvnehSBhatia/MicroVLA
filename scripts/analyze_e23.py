@@ -172,6 +172,30 @@ def main() -> None:
             out["e2"][task]["FALSIFIES_BLIND_ARM"] = True
 
     # ---------------------------------------------------------------- E3
+    # E3 is last in the run order because it is the least critical of the
+    # three. If the machine went away before it started, that is what we say:
+    # a cell that was never run is not a null result, and the paper reports it
+    # as not run.
+    if not raw.get("e3"):
+        out["e3"] = {"status": "NOT RUN",
+                     "why": ("last in the value-ordered queue; the box was "
+                             "CPU-quota-bound at 13.6 cores and the budget "
+                             "went to E1, E5 and E2. Reported as not run, "
+                             "not as a null.")}
+        OUT.write_text(json.dumps(out, indent=1))
+        print(f"wrote {OUT.relative_to(REPO)}")
+        for task, d in out["e2"].items():
+            row = "  ".join(f"r={j:g}:{d['cells'][f'{j:g}']['k']}/"
+                            f"{d['cells'][f'{j:g}']['n']}"
+                            for j in d["levels_cm"])
+            print(f"E2 task {task}: {row}")
+            print(f"   delta bracketed by {d['delta_interval_cm']} cm  "
+                  f"(declines={d['declines']}, monotone={d['monotone_in_r']})")
+            if d.get("FALSIFIES_BLIND_ARM"):
+                print("   *** NO DECLINE AT ANY r: the blind arm is not using "
+                      "the constant. Claims resting on it must be withdrawn.")
+        print("E3: NOT RUN")
+        return
     tasks = sorted({k.split("|")[1] for k in raw["e3"]}, key=int)
     per, pairs, diffs = {}, [], []
     for t in tasks:
