@@ -26,54 +26,50 @@
 \begin{abstract}
 \noindent
 A manipulation success rate can be made of \emph{location} instead of
-\emph{looking}. We make that precise. Define a task's \emph{placement diameter}
-$D$ as the largest distance between any two of the target positions the
-benchmark ships, and call a suite \emph{lookup-admissible} at tolerance $\delta$
-when a table indexed on the task index alone reproduces every shipped position
-to within $\delta$. If $D \le \delta$ and the embodiment cannot resolve
-$\delta$, that table achieves whatever the controller achieves given the true
-position --- and no function of episode outcomes can distinguish it from a
-policy that perceives.
+\emph{looking}. We make that precise, measure it, and then report an experiment
+that refutes our own first reading of it.
 
-Measuring all four LIBERO suites~\citep{liu2023libero}, exactly one is
-lookup-admissible. Every LIBERO-Object task has $D \le 2.34$\,cm; the smallest
-diameter among the other suites' $28$ tasks is $2.98$\,cm. \emph{Every} $\delta$
-in that gap returns the same verdict, $10/10$ against $0/28$, so no choice of
-threshold is doing the work. Six of LIBERO-Object's ten targets take just two
-\texttt{float64} values, one unit in the last place apart, across all fifty
-shipped states.
+Define the \emph{placement radius} $R$ of an object as the radius of the
+smallest disc containing every position a benchmark ships for it. A single
+task-indexed constant serves that object if and only if $R \le \delta$, the
+tolerance below which the embodiment cannot tell two placements apart; when
+that holds for every object of every task, no function of episode outcomes
+distinguishes a lookup table from a policy that perceives accurately.
 
-We then run the policy the proposition describes. It reads the task index,
-opens the benchmark's own shipped files, emits two constants, and consults the
-episode never --- no camera, no language, no simulator, no learned parameter.
-It scores $6/10$ against our released policy's $8/10$, and an exact paired test
-returns $p = 0.50$: \textbf{the benchmark cannot separate a trained policy from
-one that has never seen the episode}, which is what the corollary says no score
-can do. The same machinery given uninformed goals scores $0/10$, so the task is
-not trivial; the benchmark is.
+Measured across all four LIBERO suites~\citep{liu2023libero} from the shipped
+initial states alone --- no policy, no simulator, no training --- one suite is
+the outlier on the object its tasks are \emph{named} by. All ten
+LIBERO-Object tasks pin that object to $R \le 1.17$\,cm; among the other thirty
+tasks only two do, and both are fixtures bolted to the scene. Six of
+LIBERO-Object's ten targets take just two \texttt{float64} values, one unit in
+the last place apart, across all fifty shipped states. No suite pins the shared
+container, LIBERO-Object included.
 
-Run on \emph{all ten} tasks it does better than that. \textbf{The blind
-constant scores $16/100$ and our released policy $8/100$}; paired over the $100$
-matched trials it wins $10$ and loses $2$, exact McNemar $p = 0.039$. On
-\texttt{bbq\_sauce} --- the task carrying the suite's \emph{largest} placement
-diameter --- it takes $10/10$ where the trained policy takes $0/10$. A suite on
-which a task-indexed constant beats a trained vision-language policy is not
-measuring the capability its name implies; that our own policy is the one being
-beaten is the other half of the result.
+We then run the lookup policy the proposition describes, on all ten tasks. It
+scores $16/100$ against our released policy's $8/100$ --- and \textbf{that
+comparison supports nothing}, which is the paper's second contribution. All
+twelve discordant trials fall in two tasks and ten of them in one, so the
+trial-level test we first reported ($p = 0.039$) is inflated by a design effect
+of $8.4$; at the task level it is $p = 1.0$. Worse for us, tasks handed
+constants identical to within a millimetre score anywhere from $0/10$ to
+$10/10$, and success correlates \emph{positively} with placement radius
+($r = +0.52$) where the proposition requires the opposite. The goal supply is
+not what produced the successes.
 
-Finally, certification. Probes alone cannot certify: two heads whose attribution
-profiles agree to $0.73$\,cm score $0.000$ and $0.700$ deployed. And a
-behavioural certificate is joint in \emph{(head, stack)} down to a component no
-requirements file pins --- holding weights, seeds and every package version
-fixed and changing only the renderer leaves the success \emph{rate} identical
-and flips $40\%$ of the individual episodes.
+So: the benchmark measurement stands on its own and is cheap to run before any
+model is trained; the behavioural claim we built on it does not, and we say
+which experiment would settle it. Along the way, two results about
+certification that do survive: two heads whose attribution profiles agree to
+$0.73$\,cm score $0.000$ and $0.700$ deployed, and holding weights, seeds and
+every package version fixed while changing only the renderer leaves the success
+\emph{rate} identical and flips $40\%$ of the individual episodes.
 \end{abstract}
 
 \section{The question}
 
 A policy scores $0.700$ on a manipulation benchmark --- $35$ successes in $50$
-trials on one LIBERO-Object task; it is our own policy, and every number in
-this paper is traceable to a file we ship. What has been certified?
+trials on one LIBERO-Object task, and it is our own policy. What has been
+certified?
 
 The intended reading is a capability claim: the policy perceives the named
 object, locates it, and manipulates it. The reading this paper is about is
@@ -111,8 +107,23 @@ what a score \emph{could} certify rather than report what one model did.}
 \label{tab:related}
 \end{table}
 
-\paragraph{The methodology is not new; the metric is.} Table~\ref{tab:related}
-places this work. Measuring a benchmark's degeneracy before crediting a model is
+\paragraph{The framing is not new either.} While this work was in revision,
+\citet{jiang2026benchmarking} defined \emph{shortcut solvability} --- a
+benchmark score is evidence of capability only if every policy reaching it has
+the capability --- audited five manipulation benchmarks including all of
+LIBERO, and showed a $0.09$B probe with no language encoder scoring at or near
+reported state of the art on LIBERO-Object. That is our Corollary~\ref{cor:sep}
+in content and a stronger empirical demonstration of it than ours. Our
+\emph{blind} arm is likewise the manipulation instance of the unimodal ablation
+that \citet{thomason2019shifting} established in embodied AI. We claim no
+novelty for either move.
+
+What remains ours is the \emph{a priori} half: their diagnostic requires
+training a probe and running it; $R$ is a property of the shipped files, so it
+bounds what a score could certify before a GPU is switched on, and it says
+\emph{which} object in a task carries the degeneracy. Their result is the
+symptom; the radius is a candidate explanation for it that costs a script.
+Table~\ref{tab:related} places the rest. Measuring a benchmark's degeneracy before crediting a model is
 standard outside robotics, and our \emph{blind} arm is the manipulation instance
 of the hypothesis-only baseline; we claim no novelty for the move. That VLAs
 ignore language is likewise not our finding.
@@ -140,13 +151,15 @@ the section that measures it and the artifact it is measured from.
 & contribution & the number \\
 \midrule
 1 & Admissibility defined and measured (\S\ref{sec:adm}) &
-LIBERO-Object: $10/10$ tasks admissible. Every other suite: $0/28$ \\
+on the object its tasks are named by, LIBERO-Object $\mathbf{10/10}$; elsewhere
+$2/30$, both fixtures \\
 \addlinespace
-2 & The proposition executed (\S\ref{sec:constant}) &
-shipped-files constant $6/10$ vs.\ trained policy $8/10$, $p = 0.50$ \\
+2 & A1 measured rather than assumed (\S\ref{sec:refute}) &
+radius $\approx 1.4$\,cm, and \emph{not} the same on every task \\
 \addlinespace
-3 & \dots\ and run on the whole suite (\S\ref{sec:fullsuite}) &
-constant $\mathbf{16/100}$ vs.\ trained policy $8/100$; paired $p = 0.039$ \\
+3 & Our own behavioural reading, withdrawn (\S\ref{sec:refute}) &
+constants identical to $1$\,mm score $0/10$ to $10/10$; $r = +0.52$ where the
+proposition needs $\le 0$; task-level $p = 1.0$, not $0.039$ \\
 \addlinespace
 4 & Four-layer mechanism audit, two layers outside the model (\S\ref{sec:audit}) &
 a scripted expert's constant, and our own checkpoint-selection loop \\
@@ -165,12 +178,17 @@ them.}
 \label{tab:contrib}
 \end{table}
 
-\paragraph{Every number is regenerable.} Each artifact cited below is a JSON
-file in the repository, and \texttt{scripts/verify\_paper\_numbers.py}
-re-derives all $74$ load-bearing values in this paper from those files and
-fails on any disagreement. We wrote it because manuscripts drift --- a value is
-recomputed, the JSON updates, the sentence quoting it does not --- and it
-caught two such drifts in this revision.
+\paragraph{What is regenerable, and what is not.}
+\texttt{scripts/verify\_paper\_numbers.py} recomputes every number in
+\S\ref{sec:adm} and \S\ref{sec:refute} \emph{from the per-trial outcomes and
+the shipped initial states} --- including every hypothesis test --- and fails
+on disagreement. An earlier version of that script checked $p$-values by
+reading them back out of the JSON that wrote them, which is a consistency check
+between two copies of a number and not a re-derivation; a reviewer caught it
+and it is fixed. The script names the claims it does \emph{not} cover, and one
+of them matters: the historical $0.700 = 35/50$ cell that opens this paper was
+measured before we shipped per-trial logs, and its trial record is not in the
+repository.
 
 \paragraph{Scope, stated once and up front.} All results are simulation. Every
 confirmatory cell is one task and one object unless stated. Cell sizes are given
@@ -184,255 +202,194 @@ reproduce.
 \label{sec:adm}
 
 We want a property of a \emph{benchmark}, computable before any model exists,
-that says how much of a score a lookup table could have taken. Two quantities
-give it: how far a target moves across the states a suite ships, and how that
-movement is arranged.
+that bounds how much of a score a lookup table could have taken.
 
-\subsection{Definition}
+\subsection{Definitions}
 
-Fix a benchmark task $t$ that ships a finite set $S_t$ of initial states, and
-let $x_t(s) \in \mathbb{R}^3$ be the pose of the task's target object in state
-$s \in S_t$. Poses are compared at a physical tolerance $\delta$, below which
-two placements are not distinguishable by the embodiment under test.
+Fix a task $t$ that ships a finite set $S_t$ of initial states. A task requires
+the policy to localise one or more objects; write $O_t$ for that set, which the
+benchmark declares (LIBERO ships it as \texttt{obj\_of\_interest}), and
+$x_t^o(s) \in \mathbb{R}^2$ for object $o$'s table position in state $s$. All
+norms are Euclidean unless subscripted; \S\ref{sec:norm} reports the
+$\ell_\infty$ variant, which changes one suite's verdict and not the
+comparison.
 
-$\delta$ does two jobs and we keep them apart. As a \emph{reporting} tolerance
-it is a modelling choice, so we sweep it from $0.5$\,mm to $5$\,cm rather than
-pick one (Appendix~\ref{app:delta}). As an \emph{admissibility} threshold it is
-a physical property of the embodiment, not a choice: $\delta = 2.5$\,cm is the
-tolerance our controller demonstrably has, measured in \S\ref{sec:sweep}, and
-it is the value used wherever this paper calls a task admissible.
-
-\begin{definition}[Placement diameter]
+\begin{definition}[Placement radius]
 \label{def:D}
-The \emph{placement diameter} of task $t$ is the largest distance between any
-two shipped target positions,
+The \emph{placement radius} of object $o$ in task $t$ is the radius of the
+smallest disc containing every shipped position,
 \[
-  D(t) \;=\; \max_{s,s' \in S_t} \lVert x_t(s) - x_t(s') \rVert .
+  R_t(o) \;=\; \min_{c \in \mathbb{R}^2}\; \max_{s \in S_t}\;
+  \lVert x_t^o(s) - c \rVert .
 \]
 \end{definition}
 
-$D$ carries no free parameter, is in centimetres, and is exactly the quantity
-the next proposition needs: if $D(t) \le \delta$ then \emph{some} single
-constant is within $\delta$ of every shipped position. A second, finer question
-is how the variation inside that diameter is distributed --- one tight cluster,
-two clusters, or a spread --- and for that we use an entropy.
-
-\begin{definition}[Placement entropy]
-\label{def:H}
-Partition $\{x_t(s) : s \in S_t\}$ into the connected components of the graph
-joining two placements whenever they lie within $\delta$ --- equivalently,
-single-linkage agglomeration at radius $\delta$. Let $p_i$ be the fraction of
-states in component $i$. The \emph{placement entropy} of task $t$ is
-\[
-  H_\delta(t) \;=\; -\sum_i p_i \log_2 p_i \quad\text{bits},
-\]
-and the placement entropy of a suite is the mean over its tasks.
-\end{definition}
-
-We cluster rather than bin, and the difference is not cosmetic. Quantising onto
-an axis-aligned grid is not translation invariant: a tight cluster straddling a
-cell boundary splits in two, and a pinned task is then scored as diverse. Our
-own first version of this measurement had that defect --- one LIBERO-Object task
-scored $H = 0$ at $\delta = 1$\,cm and $H = 1$ at $\delta = 2$\,cm, purely
-from where the origin fell. Definition~\ref{def:H} reads only pairwise
-distances, so no choice of origin can change it.
-
-$H_\delta(t) = 0$ says the target starts in the same place every time, to within
-$\delta$. The ceiling is $\log_2 |S_t|$, attained when every shipped state
-places the target differently.
-
-Two further choices bound what the definition can be used for. We report the
-mean over tasks rather than pooling states across tasks, because pooling would
-credit a suite for \emph{between}-task variation, and between-task variation is
-exactly what a task-indexed lookup gets for free. And $H_\delta$ is a
-\emph{decreasing} function of $\delta$ under Definition~\ref{def:H} (coarsening
-can only merge components), so it is monotone and the whole curve is
-informative; we report it rather than a point, because $\delta$ is the one place
-an author could tune the answer.
+\noindent $R$ is the quantity the next proposition needs, and it is the
+quantity because a single constant serves $o$ \emph{if and only if}
+$R_t(o) \le \delta$ --- the minimising $c$ is that constant. An earlier version
+of this paper used the \emph{diameter}
+$D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$. That criterion is
+sound where it fires ($D \le \delta \Rightarrow R \le \delta$, since
+$R \le D$) but it is not tight: $R \ge D/2$ always, and Jung's theorem gives
+$R \le D/\sqrt{3}$ in the plane. So $D > \delta$ licenses \emph{nothing},
+and we had used it to claim that no task outside LIBERO-Object was admissible.
+Recomputed on $R$ at that version's $\delta = 2.5$\,cm, $27$ of $38$ tasks are
+admissible, not $10$. \textbf{The separation we reported was in part an
+artifact of a loose bound.} What survives it is stated below, on the correct
+quantity and at a tolerance we measure rather than assert.
 
 \begin{definition}[Order-$k$ lookup-admissibility]
-A suite is \emph{order-$k$ lookup-admissible} if there is a map from the task
-index to a set of at most $k$ position constants reproducing every shipped
-target position to within $\delta$.
+\label{def:H}
+Object $o$ of task $t$ is \emph{lookup-admissible at $\delta$} if
+$R_t(o) \le \delta$. A suite is \emph{order-$1$ lookup-admissible} at $\delta$
+if every object of every task is.
 \end{definition}
 
-The adjective attaches to the \emph{suite} and the consequence to the
-\emph{score}: a suite that is lookup-admissible renders its own scores
-inadmissible as evidence of grounding. We never use ``admissible'' as a virtue.
+\paragraph{Which objects, and why it matters.} Every LIBERO task requires at
+least two: the thing to be moved and the place to put it. We report them
+separately, because the split is the finding rather than a technicality.
+Call $o$ \emph{identity-bearing} if it is what individuates the task from its
+siblings --- the grocery in ``pick up the \emph{alphabet soup} and place it in
+the basket'' --- and \emph{shared} otherwise. LIBERO-Object's ten tasks differ
+only in the identity-bearing object; all ten share one basket.
 
-\paragraph{Assumption A1 ($\delta$-robustness).} The controller's success
-indicator is constant on $\delta$-balls: for every $s \in S_t$ and every $c$
-with $\|x_t(s) - c\|_\infty \le \delta$, supplying $c$ and supplying
-$x_t(s)$ yield the same episode outcome. A1 is an empirical property of the
-embodiment, not a definition, and \S\ref{sec:sweep} measures where it fails.
+An earlier version measured the identity-bearing object alone and called the
+suite admissible. That was measuring half of each task. Measured over both,
+\emph{no} LIBERO-Object task is admissible, because the shared basket has
+$R \in [1.65, 1.98]$\,cm and moves every episode.
+
+\paragraph{Assumption A1 ($\delta$-robustness).} Supplying the controller a
+constant $c$ with $\lVert x_t^o(s) - c\rVert \le \delta$ leaves the episode
+outcome unchanged, for every $s$. A1 is an empirical property of an embodiment,
+not a definition. \S\ref{sec:refute} measures it directly and finds a radius of
+about $1.4$\,cm on this controller --- and finds that the radius is not the
+same number on every task, which is a real limitation of what follows.
 
 \begin{proposition}[Lookup sufficiency]
 \label{prop:lookup}
-If $D(t) \le \delta$ for every task in a suite and A1 holds at $\delta$, then
-the suite is order-$1$ lookup-admissible, and a policy that (i) reads only the
-task index, (ii) emits the corresponding constant, and (iii) is otherwise driven
-by an identity-independent controller, achieves on that suite whatever success
-rate the controller achieves given the true target position.
+If $R_t(o) \le \delta$ for every object of every task in a suite and A1 holds
+at $\delta$, then a policy that reads only the task index, emits the
+corresponding constants, and is otherwise driven by a controller whose
+behaviour depends on the supplied goal and not on object identity, achieves on
+that suite whatever that controller achieves given the true positions.
 \end{proposition}
 
 \begin{proof}
-Take $c_t$ to be any shipped position of task $t$. By Definition~\ref{def:D},
-$\lVert x_t(s) - c_t \rVert \le D(t) \le \delta$ for every $s \in S_t$, so
-$t \mapsto c_t$ witnesses order-$1$ lookup-admissibility. The policy emits
-$c_t$ on every state; A1 applies directly at each state, giving the same episode
-outcome as the true position. Averaging over $S_t$ gives the claim.
+Take $c_t^o$ to be the centre of the minimum enclosing disc. By
+Definition~\ref{def:D}, $\lVert x_t^o(s) - c_t^o \rVert \le R_t(o) \le \delta$
+for every $s$, so $t \mapsto (c_t^o)_{o \in O_t}$ is a lookup table meeting
+Definition~\ref{def:H}. A1 applies at each state, giving the same outcome as
+the true positions; averaging over $S_t$ gives the claim.
 \end{proof}
 
-\noindent The hypothesis is $D \le \delta$ and not $H_\delta = 0$, and the
-distinction is not pedantic: $H_\delta = 0$ under Definition~\ref{def:H} says
-the placements are chain-connected at radius $\delta$, which permits a cloud
-many times wider than $\delta$, and A1 is a single-hop assumption that does not
-compose along such a chain. Four LIBERO-Object tasks are exactly this case
-($H_{5\text{mm}} = 0$ with diameters of $1.19$--$2.34$\,cm), so the proposition
-is stated on the quantity that licenses it.
+\noindent The mathematics is trivial and we do not pretend otherwise. All of
+the content sits in A1, which is why \S\ref{sec:refute} is about measuring A1
+rather than about the proposition.
 
 \begin{corollary}[No score can separate them]
 \label{cor:sep}
-On a suite with $D \le \delta$ throughout, no function of episode outcomes can
-distinguish the lookup policy of Proposition~\ref{prop:lookup} from \emph{any}
-policy supplying the controller a position within $\delta$ of the truth on every
-shipped state, however obtained --- perceptually or otherwise --- because under
-A1 the two induce the same distribution over episode outcomes.
+On a suite satisfying the hypotheses, no function of episode outcomes
+distinguishes the lookup policy from any policy that supplies the controller a
+position within $\delta$ of the truth on every shipped state.
 \end{corollary}
 
-\noindent Corollary~\ref{cor:sep} is the sentence the rest of the paper exists
-to make concrete. It says the failure is not one of statistical power --- no
-number of trials helps, because the two policies are not merely hard to tell
-apart but \emph{identically distributed} in what the benchmark observes.
-
-Proposition~\ref{prop:lookup} is trivial as mathematics and is stated because
-its contrapositive is what benchmark scores are usually read as asserting. A
-suite with $D \le \delta$ cannot, by any score it reports, distinguish a policy
-that perceives from one that looks up --- and the gap between them is exactly
-the capability the score is normally taken to certify. Note what the proposition
-does \emph{not} say: it does not say the task is easy. The controller's own
-success rate under a correct pose is an empirical quantity, and if it is low the
-lookup policy scores low too. We measure both in \S\ref{sec:constant}.
+\noindent Corollary~\ref{cor:sep} is a statement about a \emph{comparison
+class}, and the class is narrow: it contains only policies that are accurate
+everywhere. No policy in this paper is in it, ours least of all. So the
+corollary bounds what a score \emph{could} certify; it does not license reading
+any particular pair of measured cells as confirming it. We flag this because an
+earlier version of this paper made exactly that mistake in both directions.
 
 \subsection{Measurement}
 
-$H_\delta$ is computed from the benchmark's shipped files. No policy, no
-simulator and no training are involved, which is what makes it a property of the
-benchmark rather than of anyone's system.
-
-Extracting a target's position from a shipped state is not quite mechanical ---
-a naive fixed-column layout is wrong for every suite containing an articulated
-fixture --- so we compile each task's model and read \texttt{jnt\_qposadr}.
+Extracting a position from a shipped state is not quite mechanical --- a naive
+fixed-column layout is wrong for every suite containing an articulated fixture
+--- so we compile each task's model and read \texttt{jnt\_qposadr};
 Appendix~\ref{app:columns} gives the procedure and the cross-check.
 
-\begin{table}[t]\centering\small
+Two LIBERO-Goal tasks name a fixture with no free joint (a cabinet drawer, a
+stove). An earlier version excluded them as having ``no placement to measure''.
+That was the wrong call in the direction that flattered us: a fixture that
+never moves has $R = 0$ and is the \emph{most} lookup-admissible object there
+is. They are counted below and identified.
+
+\begin{table}[t]\centering\footnotesize
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrr}
 \toprule
- & \multicolumn{2}{c}{diameter $D$ (cm)} & \multicolumn{2}{c}{$H_\delta$ (bits)} & tasks \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-suite & mean & max & $0.5$mm & $5$mm & $D \le 2.5$cm \\
+ & \multicolumn{2}{c}{identity-bearing $R$ (cm)} & shared $R$ & admissible \\
+\cmidrule(lr){2-3}
+suite & mean & range & mean & at $1.4$\,cm \\
 \midrule
-\textbf{Object} & \textbf{0.60} & \textbf{2.34} & 2.11 & 0.00 & \textbf{10/10} \\
-Spatial & 4.29 & 8.90 & 5.48 & 2.04 & \textbf{0/10} \\
-Goal & 3.65 & 4.94 & 5.59 & 1.53 & \textbf{0/8} \\
-Long & 6.21 & 6.57 & 5.63 & 4.27 & \textbf{0/10} \\
+\textbf{Object} & \textbf{0.30} & $0.00$--$\mathbf{1.17}$ & 1.83 & \textbf{10/10} \\
+Spatial & 2.15 & $1.49$--$4.49$ & 1.83 & 0/10 \\
+Goal & 1.48 & $0.00$--$2.48$ & 0.42 & 2/10$^\dagger$ \\
+Long & 3.10 & $2.85$--$3.28$ & 1.84 & 0/10 \\
 \bottomrule
 \end{tabular}
-\caption{Every LIBERO suite, measured from its shipped initial states alone
-($50$ per task) --- no policy, no simulator, no training. The \textbf{diameter}
-$D$ is the largest distance between any two shipped positions of a task's
-target; it is the quantity Proposition~\ref{prop:lookup} needs, and it has no
-free parameter. The \textbf{entropy} $H_\delta$ says how the variation inside a
-diameter is arranged (ceiling $\log_2 50 = 5.644$ bits), and does have one.
-The last column counts tasks admissible at the $\delta = 2.5$\,cm the
-controller demonstrably has (\S\ref{sec:sweep}): \textbf{LIBERO-Object is
-admissible on all ten of its tasks and no other suite on any of its
-twenty-eight}, and LIBERO-Object's \emph{largest} diameter is smaller than
-every other suite's \emph{mean}. Denominators are \emph{resolvable} tasks: two
-LIBERO-Goal tasks name a fixture with no free joint and so have no placement to
-measure; they are excluded and counted rather than scored as unpinned.
-Artifacts: \texttt{results/placement\_diameter.json},
-\texttt{results/placement\_entropy.json}.}
+\caption{Placement radius of every LIBERO task, computed from the shipped
+initial states alone --- no policy, no simulator, no training. The last column
+counts tasks whose identity-bearing object a single constant serves at the
+tolerance we measure for this controller (\S\ref{sec:refute}).
+\textbf{LIBERO-Object pins all ten of the objects its tasks are individuated
+by; elsewhere two of thirty}, and $^\dagger$both of those are the fixture tasks
+--- a drawer and a stove --- which have $R = 0$ because they are bolted down,
+not because a randomisable placement was frozen. \emph{No} suite is admissible
+on the shared container, LIBERO-Object included. Artifact:
+\texttt{results/admissibility.json}.}
 \label{tab:suites}
 \end{table}
 
-Table~\ref{tab:suites} is the measurement.
-
-\paragraph{The separation is exact, and has no free parameter.} A single
-constant serves task $t$ iff $D(t) \le \delta$. Taking $\delta = 2.5$\,cm --- a
-tolerance the controller demonstrably has, since \S\ref{sec:sweep} shows it
-still succeeding under $\pm2$\,cm of deliberate displacement:
-
-\begin{quote}
-\textbf{All ten LIBERO-Object tasks satisfy $D \le 2.5$\,cm. No task in any
-other suite does} --- $0$ of $28$.
-\end{quote}
-
-\noindent \textbf{And $2.5$ is not load-bearing.} LIBERO-Object's largest
-diameter is $2.34$\,cm; the \emph{smallest} diameter among all $28$ tasks of
-the other three suites is $2.98$\,cm. There is a $0.65$\,cm gap with nothing in
-it, so \emph{every} $\delta \in [2.34, 2.98)$\,cm returns exactly the same
-verdict --- $10/10$ against $0/28$. The choice of threshold cannot be doing the
-work, because a whole interval of thresholds gives one answer.
-
-LIBERO-Object is therefore order-1 lookup-admissible as a whole suite,
-and Corollary~\ref{cor:sep} applies to it without qualification. The margin is
-not narrow: LIBERO-Object's \emph{largest} diameter ($2.34$\,cm) is smaller than
-every other suite's \emph{mean} ($3.65$--$6.21$\,cm), and six of its ten tasks
-have $D = 0$ to the precision \texttt{float64} expresses (two values, one ULP
-apart, ${\sim}3\times10^{-17}$\,m).
-
-The entropy columns say how the variation inside a diameter is arranged, and add
-one fact the diameter cannot: at $\delta = 5$\,mm the six pinned tasks and the
-four jittering ones \emph{both} reach $H = 0$, because each of the four is a
-single chain-connected cloud rather than two separated modes. That is why the
-proposition is stated on $D$: chain-connectedness at $5$\,mm is compatible with a
-$2.34$\,cm cloud, and no constant is within $5$\,mm of that. We report both
-quantities and license the claim on the one that supports it.
-
-\paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
-start position takes exactly \emph{two} distinct \texttt{float64} values, one
-unit in the last place apart ($\sim3\times10^{-17}$\,m) on a single axis ---
-constant to the precision the format can express.
-
-The remaining four have per-axis standard deviations of $0.25$--$0.58$\,cm but
-diameters of $1.19$--$2.34$\,cm --- still inside the $2.5$\,cm tolerance, and a
-reminder that a standard deviation is not a bound.
-
-Across tasks the structure is tighter still: the ten targets occupy two table positions
-$22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
-\emph{two}-constant table covers the whole suite --- order-2
-lookup-admissibility, in the language of Definition~2.
-
-\textbf{This is not carelessness, and saying so sharpens the finding.}
-LIBERO-Spatial's ten tasks all name a ``black bowl'' and are individuated
-\emph{by} position; freezing placement would make the suite unsolvable.
-LIBERO-Object individuates by identity and therefore \emph{can} freeze placement
-without ambiguity; Figure~\ref{fig:forensics}B shows what a suite that cannot
-looks like. The suite that does is precisely the suite whose scores are read as
-evidence of object grounding --- which is where lookup-admissibility is most
-misleading.
-
-\textbf{One property generalises.} The target's start \emph{orientation} is
-bit-identical across all $50$ states in $37$ of the $38$ resolvable tasks in all
-four suites. A policy may assume a canonical target rotation suite-wide and
-never be contradicted.
-
 \begin{figure*}[t]\centering
 \includegraphics[width=0.98\linewidth]{../visuals/F1_placement_forensics.png}
-\caption{Placement forensics. \textbf{A} LIBERO-Object primary targets, $10$
-tasks $\times$ $50$ shipped states; six collapse to a point and the ten task
-means occupy two clusters $22.1$\,cm apart. \textbf{B} LIBERO-Spatial on
-identical axes: every target scatters, and it must, because all ten of its
-targets are a ``black bowl''. \textbf{C} placement entropy per suite against the
-$5.644$-bit ceiling. Generated by
-\texttt{paper/render\_fig1\_placement\_forensics.py} from
-\texttt{results/suite\_forensics\_joints.json}; per-task rows are in that artifact and
-SHA-256 digests of every init-state array are in
-\texttt{results/suite\_forensics\_columns.json}.}
+\caption{Placement forensics. \textbf{A} LIBERO-Object's identity-bearing
+targets, $10$ tasks $\times$ $50$ shipped states; six collapse to a point and
+the ten task means occupy two clusters $22.1$\,cm apart. \textbf{B}
+LIBERO-Spatial on identical axes: every target scatters, and it must, because
+all ten of its targets are a ``black bowl'' and identity cannot disambiguate
+them. \textbf{C} placement radius per task against the tolerance measured for
+this controller. Generated by
+\texttt{paper/render\_fig1\_placement\_forensics.py}; SHA-256 digests of every
+init-state array are in \texttt{results/suite\_forensics\_columns.json}.}
 \label{fig:forensics}
 \end{figure*}
+
+Table~\ref{tab:suites} is the measurement, and it says one thing precisely.
+
+\begin{quote}
+\textbf{On the object that individuates its tasks, LIBERO-Object is
+lookup-admissible on all ten. Among the other thirty tasks, two are --- and
+both are fixtures that never move at all.}
+\end{quote}
+
+\noindent The threshold is not doing the work. LIBERO-Object's largest
+identity radius is $1.171$\,cm; the smallest among the other suites' twenty-eight
+\emph{movable} targets is $1.492$\,cm. Every $\delta$ in that gap returns the
+same verdict, and the radius we measure for this controller
+($\approx 1.41$\,cm, \S\ref{sec:refute}) falls inside it. That is the one
+coincidence in this paper that went our way, and we note it is a coincidence:
+had the measured radius come out at $2$\,cm, LIBERO-Goal would be $10/10$ too.
+
+\paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
+start position takes exactly \emph{two} \texttt{float64} values, one unit in the
+last place apart on a single axis --- constant to the precision the format can
+express. The other four have $R \in [1.17, 1.19]$\,cm.
+
+Across tasks the structure is tighter still: the ten targets occupy two table
+positions $22.1$\,cm apart, five tasks each (Figure~\ref{fig:forensics}A), so a
+two-constant table covers the identity-bearing half of the whole suite.
+
+\paragraph{This is a property of the shipped files, not of the task
+definition.} The BDDL for task $0$ declares a $5 \times 5$\,cm sampling region
+for the alphabet soup. The fifty shipped states place it at one point. So the
+pinning is an artifact of state generation, not of benchmark design --- which
+makes it cheap to fix, and is the strongest argument in this paper for
+re-sampling rather than redesigning.
+
+\paragraph{What we do not claim.} That a low radius \emph{causes} a policy to
+memorise; that any published policy exploits it; or that admissibility on the
+identity-bearing object is sufficient for a constant to solve a task.
+\S\ref{sec:refute} shows the last of those failing on our own stack, decisively.
 
 \section{A glass-box stack}
 \label{sec:platform}
@@ -520,267 +477,208 @@ disjoint from the dev and held-out bands --- they contain them.} Fifty trials ov
 the whole set. The untouched band exists to supply one clean cell, and
 \S\ref{sec:repairs} reports it.
 
-\section{The constant that saturates the benchmark}
+\section{Executing the proposition}
 \label{sec:constant}
 
-Proposition~\ref{prop:lookup} says that on a suite whose placement diameter
-falls below the embodiment's tolerance, a table indexed on the task index
-suffices. \S\ref{sec:adm} showed LIBERO-Object is such a suite. This section
-executes the policy the proposition describes and reports what it scores.
+Proposition~\ref{prop:lookup} describes a policy. This section runs it, on the
+one task where our stack works at all, and \S\ref{sec:refute} runs it on the
+other nine --- where it refutes the reading we had given it.
 
 The vehicle is our own stack (\S\ref{sec:platform}): a learned goal head that
-emits a world grasp point, driving a non-learned pick-and-place controller. That
-factorisation is what makes the experiment clean --- we can replace the
-\emph{goal supply} and change nothing else. Same controller, same trunk, same
-protocol, same seeds, same initial states; only where the goal comes from
-differs.
-
-Figure~\ref{fig:ladder}B lists the five arms and what each may read. Two need a
-word beyond that. \textbf{random} draws from the observed extent of the scene's
-own objects, re-drawn per episode --- the controller's floor, what the machinery
-scores when the goal carries no information about where the object is.
-\textbf{reset-oracle} reads the true position \emph{once} at reset and holds it;
-on a task with $D = 0$ that is numerically a per-task constant, but it still
-reads the simulator, so it is \textbf{not} Proposition~\ref{prop:lookup}'s
-policy. The arm that is appears below.
+emits a world grasp point, driving a non-learned pick-and-place controller.
+That factorisation is what makes the experiment clean --- we replace the
+\emph{goal supply} and change nothing else. Figure~\ref{fig:ladder}B lists the
+five arms and what each may read. Two need a word. \textbf{random} draws from
+the observed extent of the scene's objects, re-drawn per episode --- the
+controller's floor. \textbf{reset-oracle} reads the true position \emph{once}
+at reset and holds it; on a task with $R=0$ that is numerically a per-task
+constant, but it still reads the simulator, so it is \textbf{not}
+Proposition~\ref{prop:lookup}'s policy.
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.97\linewidth]{../visuals/F7_ladder.png}
-\caption{\textbf{The goal-supply ladder.} Five arms, one controller, one trunk,
-one protocol, one set of initial states; the only difference is where the goal
-comes from. \textbf{B} is the experiment: descending the ladder removes
-information, from the simulator every tick, to the simulator once, to a camera
-and a sentence, to nothing but the benchmark's own published files, to nothing.
-\textbf{A} is the result: the benchmark resolves only the final step. Every arm
-above \texttt{random} is within $p = 0.50$ of the trained policy under exact
-McNemar on matched trials, and \texttt{blind} --- which never reads the episode
---- beats \texttt{random} at $p = 0.031$. Artifacts:
+\caption{\textbf{The goal-supply ladder}, on task $0$. Five arms, one
+controller, one trunk, one protocol, one set of initial states; the only
+difference is where the goal comes from. \textbf{B} is the experiment:
+descending the ladder removes information. \textbf{A} is the result --- and the
+honest reading of it is that at $n{=}10$ this cell resolves almost nothing. The
+bracket marks arms the cell fails to separate, which is a statement about its
+power, not a finding of equivalence. Artifacts:
 \texttt{results/pod\_cells.json}, \texttt{results/blind\_cells.json}.}
 \label{fig:ladder}
 \end{figure*}
 
-\paragraph{The floor is zero.} With an uninformed goal (Figure~\ref{fig:ladder})
-the machinery scores
+\paragraph{The floor is zero.} With an uninformed goal the machinery scores
 $0/10$ $[0.00, 0.28]$: eight discordant pairs, all favouring the learned head,
-exact McNemar $p = 0.0078$. \textbf{The task is not trivial.} Whatever the
-constant achieves, it does not achieve it because the controller would have
-succeeded anyway. This is the control that makes the rest of the table mean
-something.
+exact McNemar $p = 0.0078$. \textbf{The controller cannot do this task without
+a goal.} That is the control that makes the rest of the section mean anything.
 
-\paragraph{The strictly-blind policy, and what it cannot see.} The reset-oracle
-still reads the simulator, twice: the target position once at reset, and the
-container position. Proposition~\ref{prop:lookup}'s policy reads \emph{neither}.
-The \textbf{blind} arm takes the task index, opens the benchmark's own shipped
-initial-state files, and emits two constants --- the mean shipped position of
-the target and of the container --- and then never consults the episode again.
-No simulator read, no camera, no detector, no text, no learned parameter
-anywhere in the goal supply.
+\paragraph{The strictly-blind policy.} The \textbf{blind} arm takes the task
+index, opens the shipped initial-state files, and emits two constants --- the
+mean shipped position of the identity-bearing object and of the container. On
+task $0$ those are $(-0.1200, -0.2400, 0.0150)$ and $(0.0023, 0.2605)$.
 
-On task $0$ those constants are $(-0.1200, -0.2400, 0.0150)$ and
-$(0.0023, 0.2605)$: printed by the run, and reproducible from the shipped files
-without a simulator installed.
+On this task the grasp constant is not an approximation of the target position;
+it \emph{is} the target position. All fifty shipped states place the alphabet
+soup at a single $(x,y)$ --- the fifty rows reduce to one --- so whatever the
+blind arm fails at, it cannot be error in where it thinks the object is.
 
-\textbf{On this task the grasp constant is not an approximation of the target
-position --- it \emph{is} the target position.} All fifty shipped states place
-the alphabet soup at a single $(x,y)$; the fifty rows reduce to one unique row,
-with a maximum deviation from their own mean of $2.2 \times 10^{-16}$\,m, which
-is \texttt{float64} rounding and not placement. Whatever the blind arm fails at,
-it cannot be error in where it thinks the object is.
+\textbf{It scores $6/10$} $[0.31, 0.83]$, against the released head's $8/10$.
+We report no inference from that pair. At $n{=}10$ an exact paired test with
+two discordant pairs returns $p = 0.50$, which is the largest value the test
+can return with any discordance at all; a power calculation gives $0.058$
+against the observed effect. \textbf{The cell resolves nothing, and an earlier
+version of this paper reported it as though it resolved indistinguishability.}
+It does not, and the corollary does not rescue it: Corollary~\ref{cor:sep}
+quantifies over policies accurate everywhere, and an $8/100$ policy is not one.
 
-\textbf{It scores $6/10$} $[0.31, 0.83]$ on the same held-out band. Against the
-released head's $8/10$ the two discordant pairs both favour the head and exact
-McNemar returns $p = 0.50$: \textbf{the benchmark cannot separate our trained
-policy from a policy that has never seen the episode.} Against the uninformed
-floor's $0/10$ the six discordant pairs all favour blind, $p = 0.031$: the
-constants carry real information and are not riding a lucky controller.
+Three honest caveats on the arm itself, none of which we found and all of which
+survived into a previous draft. The constant is the \emph{mean} over all fifty
+shipped states, which contains the ten this cell replays --- it is fitted, very
+weakly, on its own test set. The arm reads the object's identity from the live
+scene's body registry rather than from the task index, so ``reads only the task
+index'' overstates it. And it requires a live simulator to start at all. The
+\emph{control} claim survives all three --- with an anchor set, the goal machine
+is driven by proprioception and the constant, and the grasp head is never
+called --- but the \emph{blindness} claim as we first wrote it did not.
 
-Against the reset-oracle's $10/10$, four discordant pairs all favour the oracle
-at $p = 0.125$. One privileged look at reset does buy something the
-shipped-file mean does not, and $n{=}10$ cannot resolve how much.
-
-\paragraph{Where it fails is where the suite randomises.} The per-trial
-telemetry says something sharper than the rate does. In \textbf{all ten}
-trials, failures included, the gripper closed on the target with a minimum
-end-effector-to-object distance of $\mathbf{0.002}$\,m. The blind constant
-\emph{never} missed the object. All four failures ran to the $300$-step cap
-with the object still $8$\,mm from the gripper --- grasped, never placed.
-
-\begin{figure*}[t]\centering
-\includegraphics[width=0.97\linewidth]{../visuals/F8_subgoal.png}
-\caption{\textbf{What the blind constant's failures are made of.}
-\textbf{A} On task $0$, which trials fail is predicted by how far that shipped
-state's basket sits from the single constant the blind arm was given: the four
-failures are the four largest displacements, one rank inversion, exact
-Mann-Whitney $p = 0.019$. \textbf{B} On task $3$ the same quantity runs higher
---- four of ten states exceed task $0$'s largest \emph{success} --- and every
-trial succeeds. So A1 holds at a radius, that radius explains which trials fail
-within a task, and it is not the same radius across tasks. Artifacts:
-\texttt{results/blind\_failure\_attribution.json},
-\texttt{results/suite\_forensics\_joints.json}.}
-\label{fig:subgoal}
-\end{figure*}
-
-\paragraph{A prediction we made, and the task that refuted it.} The obvious
-reading of the above is that the diameter decides each sub-goal: the soup is
-pinned at $D = 0$ so the reach works; the basket is randomised at
-$D = 3.37$\,cm so the place fails; $6/10$ is the composition. We wrote that
-down. Then \texttt{bbq\_sauce} returned $10/10$ with a \emph{larger} target
-diameter ($2.34$\,cm, the suite's largest) \emph{and} a larger basket diameter
-($3.93$\,cm, also the suite's largest). A per-task diameter does not decide a
-per-task outcome, and we retract that reading.
-
-What replaces it is measured per trial rather than argued per task
-(Figure~\ref{fig:subgoal}). Within task $0$, \emph{which} trials fail is
-predicted by how far that state's basket sits from the constant: the four
-failures are the four largest displacements, one rank inversion, exact
-Mann-Whitney $p = 0.019$. Across tasks the radius differs --- task $3$ succeeds
-at displacements up to $1.91$\,cm, above task $0$'s smallest failure at
-$1.41$\,cm.
-
-\textbf{A1 holds at a radius; the radius explains which trials fail inside a
-task; and the radius is not the same number across tasks.} That is a sharper
-and less comfortable statement than the one we set out to make, and it is the
-one the data supports. Per-trial outcomes and
-the paired tests are in \texttt{results/blind\_cells.json}.
-
-\paragraph{One task is not the claim.} Every cell above is task $0$. We ran the
-blind arm on all ten, and \S\ref{sec:fullsuite} reports the result together with
-the same ten tasks for the trained head. One number belongs here, because it
-bears on admissibility rather than on either policy: the blind constant takes
-$\mathbf{10/10}$ on \texttt{bbq\_sauce}, the task carrying the suite's
-\emph{largest} placement diameter --- the $2.34$\,cm that sets the threshold in
-Table~\ref{tab:suites}. \textbf{A constant saturates the suite's hardest task,
-not merely its most degenerate ones.}
-
-\paragraph{The reset-oracle saturates the benchmark, and is statistically
-indistinguishable from the policy.} The oracle scores $10/10$, so the
-controller's envelope is not the binding constraint. The reset-oracle \emph{also} scores $10/10$, against the released head's
-$8/10$ --- and the paired test returns $p = 0.50$.
-
-We do not report that $p$ as a limitation of the cell. \textbf{It is
-Corollary~\ref{cor:sep} arriving on schedule.} For the reset-oracle the
-corollary applies exactly: it supplies the true position, so under A1 it and any
-perceiving policy are not merely hard to tell apart --- they are identically
-distributed in everything the benchmark observes, and a larger $n$ would not
-help.
-
-So the experiment's content is not ``the constant won''. It is that a benchmark
-scored a task-indexed constant and a trained policy the same, which is what
-Proposition~\ref{prop:lookup} and Corollary~\ref{cor:sep} jointly predict.
-
-\paragraph{What this licenses, and what it does not.} It does not show our
-released head is a memoriser; \S\ref{sec:audit} shows what it actually reads,
-and the answer is more interesting. It shows that \textbf{on this suite the
-score cannot distinguish the two}, because the cheapest possible policy
-saturates it. A benchmark on which a constant is at ceiling is not measuring
-grounding, whatever its leaderboard is titled. We report the head--oracle gap as
-\emph{located} rather than measured: two discordant pairs at $n{=}10$ is
-$p = 0.50$, and we will not call that a difference.
-
-\paragraph{A single-variable ablation, obtained by accident.} The reset-oracle
-and blind arms turn out to differ in \emph{one} quantity. Their grasp goals
-coincide, because task $0$'s shipped target pose is constant across all fifty
-states on all three axes (per-axis standard deviation $0.00$\,cm), so reading it
-from the simulator at reset and reading it from the files return the same
-point --- up to whatever the simulator does between loading a state and the
-first observation, and the blind arm's $2$\,mm approach in all ten trials bounds
-that. What differs is the container: the reset-oracle is handed the true basket,
-the blind arm a constant one.
-
-\textbf{$10/10 \to 6/10$, and the only thing that changed is the one quantity
-this suite randomises.} Four discordant pairs, all favouring the true
-container. We did not design this contrast; it fell out of a suite that pins
-one sub-goal and randomises the other.
-
-\paragraph{Where the corollary does \emph{not} apply, and why that matters.}
-A reviewer should press on the blind arm here, and the honest answer is that
-$p = 0.50$ at $n{=}10$ does \emph{not} by itself establish indistinguishability
---- and we do not need it to. The corollary applies sub-goal by sub-goal,
-because A1 is a statement about a supplied position and this task supplies two.
-
-On the \textbf{grasp} the corollary applies with nothing left over: the
-constant is bit-identical to the shipped position, $D = 0$, so no assumption is
-being leaned on and no $n$ could separate the two. The measurement agrees ---
-$10/10$ on reaching, to $2$\,mm.
-
-On the \textbf{place} the corollary does not apply at all: $D = 3.37$\,cm
-exceeds any tolerance this controller has, A1 fails, and the blind arm should
-be \emph{worse} than a policy that looks. It is --- that is the whole of the
-$6/10$ versus $8/10$. \textbf{The gap between the two arms is not noise we are
-explaining away; it is the part of the task the benchmark randomises, showing
-up exactly where the diameter says it should.} What no $n$ can recover is the
-other part, and that part is nine tenths of what the task is usually taken to
-demonstrate.
-
-\paragraph{One asymmetry, stated rather than buried.} The anchors replace the
-\emph{grasp} goal only; the place target is the true container in all arms
-\emph{except} blind, which supplies a constant there too. The random arm is
-therefore a \emph{conservative} floor --- an upper bound on how badly a truly uninformed goal supply would do --- and we read it as such.
-
-\section{What the released policy actually is}
-\label{sec:fullsuite}
+\section{The whole suite, and a refutation of our own reading}
+\label{sec:refute}
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.97\linewidth]{../visuals/F9_suite.png}
-\caption{\textbf{The whole suite, lookup against learning.} All ten
-LIBERO-Object tasks, $n{=}10$ each, every trial recorded; both policies drive
-the identical controller and differ only in where the goal comes from.
-\textbf{A} The trained head wins task $0$ ($8$ vs $6$); the blind constant wins
-task $3$ outright ($10$ vs $0$), the task carrying the suite's largest
-placement diameter; on the remaining eight both score zero. \textbf{B} Suite
-totals with Wilson intervals. Artifacts: \texttt{results/suite\_cells.json},
-\texttt{results/blind\_cells.json}, \texttt{results/pod\_cells.json}.}
+\caption{\textbf{All ten LIBERO-Object tasks}, $n{=}10$ each, every trial
+recorded; both policies drive the identical controller. Eight of ten tasks are
+$0$--$0$. The suite totals in \textbf{B} are shown with i.i.d.\ Wilson
+intervals, which are \emph{too narrow} here by a design effect of $8.4$
+(\S\ref{sec:refute}); they are drawn as reported rather than as believed.
+Artifacts: \texttt{results/suite\_cells.json},
+\texttt{results/suite\_inference.json}.}
 \label{fig:suite}
 \end{figure*}
 
-Every confirmatory cell so far is one task. This section is all ten, for both
-policies, at $n{=}10$ each, every trial recorded --- and it is where the two
-halves of this paper's honesty meet.
+Every cell above is one task. Run on all ten, the blind constant scores
+$16/100$ and the released head $8/100$. An earlier version of this paper led
+with that pair, paired the $100$ trials, ran an exact McNemar, obtained
+$p = 0.039$, and concluded that a task-indexed constant significantly beats a
+trained vision-language policy.
+
+\textbf{That inference is wrong, and the error is instructive.}
+
+\paragraph{The unit of analysis.} All twelve discordant pairs live in two of
+ten tasks, and ten of them in one (Table~\ref{tab:fullsuite}). Within that task
+the ten ``trials'' are near-identical replays: blind terminates at steps
+$210$--$214$ (sd $1.08$), the head runs to the $300$ cap on all ten. They are
+one deterministic contrast counted ten times. At the task level --- the unit
+the design actually randomises over --- blind wins one task, loses one, and ties
+eight: exact sign test $p = 1.0$, exact sign-flip permutation $p = 1.0$,
+cluster bootstrap on the difference $[-0.06, +0.30]$. The design effect is
+$8.4$, so the effective $n$ is about $12$, not $100$.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{llll}
 \toprule
-policy & reads & suite score & Wilson 95\% \\
+unit & test & result & \\
 \midrule
-\textbf{blind} & shipped files & $\mathbf{16/100}$ & $[0.10, 0.24]$ \\
-released head & camera $+$ language & $8/100$ & $[0.04, 0.15]$ \\
+trial ($n{=}100$) & exact McNemar & $10$--$2$, $p = 0.039$ & \emph{invalid} \\
+task ($n{=}10$) & exact sign & $1$--$1$, 8 ties, $p = 1.0$ & valid \\
+task ($n{=}10$) & permutation & $p = 1.0$ & valid \\
+task ($n{=}10$) & cluster bootstrap & $[-0.06, +0.30]$ & valid \\
 \bottomrule
 \end{tabular}
-\caption{All ten LIBERO-Object tasks. \textbf{A policy that never sees the
-episode outscores the one we trained, by a factor of two.} Paired over the
-$100$ matched (task, trial) pairs --- same states, same controller, same
-success predicate --- blind wins $10$ and loses $2$, exact McNemar
-$p = 0.039$. On \texttt{bbq\_sauce} alone the split is $10$--$0$,
-$p = 0.002$. Artifacts: \texttt{results/suite\_summary.json},
-\texttt{results/suite\_cells.json}.}
+\caption{The same comparison at two units of analysis. Trials within a task
+share an object, a scene, a goal supply and a near-deterministic trajectory, so
+the trial-level test is anti-conservative by a design effect of $8.4$.
+\textbf{There is no suite-level difference between the two policies at the
+unit this design randomises over.} Artifact:
+\texttt{results/suite\_inference.json}.}
 \label{tab:fullsuite}
 \end{table}
 
-\paragraph{What this says about the benchmark.} A suite on which a task-indexed
-constant beats a trained vision-language policy, significantly and on matched
-trials, is not measuring the capability its name implies. This is
-Corollary~\ref{cor:sep} at suite scale: not that the score is a weak instrument
-for separating lookup from perception, but that on this suite it points the
-wrong way.
+\paragraph{The constant is not what produced the successes.} This is the
+sharper finding, and it comes from the same run.
 
-\paragraph{What it says about us.} \textbf{Eight successes in a hundred trials,
-every one on the single object the head was trained for.} Our artifact is a
-one-object solution that a suite-level score would have reported as a policy,
-and the number a reader should carry away is not $0.700$ --- it is $0.700$ on
-task $0$, with $0.000$ next to it \emph{nine} times.
+If the blind arm's score came from the constant being close to the truth, tasks
+handed the \emph{same} constant would score alike. Table~\ref{tab:attrib} shows
+they do not. The ten tasks fall into two groups by table position; within each,
+the constants agree to under a millimetre; and within each, the scores range
+from $0$ to $10$.
 
-Both readings are load-bearing and neither rescues the other. The benchmark is
-degenerate \emph{and} our policy is narrow; the first is why the second was
-easy to miss.
+\begin{table}[h]\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llr}
+\toprule
+tasks & constants agree to & blind scores \\
+\midrule
+$0, 4, 6, 7, 8$ & $0.95$\,mm & $6, 0, 0, 0, 0$ \\
+$1, 2, 3, 5, 9$ & $0.63$\,mm & $0, 0, \mathbf{10}, 0, 0$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{The goal supply does not explain the outcome.} Tasks whose
+constants are identical to within a millimetre score anywhere from $0/10$ to
+$10/10$. Tasks given a \emph{bit-exact} constant ($R=0$) score $6/60$; tasks
+given the loosest constants ($R > 1$\,cm) score $10/40$. The correlation
+between placement radius and success is $r = +0.52$, where
+Proposition~\ref{prop:lookup} requires it to be non-positive. Artifact:
+\texttt{results/constant\_attribution.json}.}
+\label{tab:attrib}
+\end{table}
+
+What varies across those tasks is the object, not the number. So the blind
+arm's two non-zero cells are evidence that \emph{this controller can grasp two
+of ten groceries}, and not evidence about lookup. \textbf{We withdraw the
+suite-level claim.}
+
+\paragraph{Where A1 does break, we can see it.} One place in this data does
+behave the way the proposition expects. On task $0$ the blind arm reaches the
+object to within $2$\,mm on all ten trials --- the grasp constant is exact
+there --- and the four failures are the four trials whose \emph{basket} sits
+furthest from the constant, occupying ranks $6$, $8$, $9$ and $10$ of ten
+(exact Mann-Whitney $p = 0.019$, Figure~\ref{fig:subgoal}). Task $3$ tolerates
+$1.91$\,cm and never fails. That gives the $\approx 1.4$\,cm radius
+\S\ref{sec:adm} uses, and shows it is task-dependent.
+
+Two caveats we owe a reader, because this is the number \S\ref{sec:adm} leans
+on. The hypothesis was formed \emph{after} a pre-registered one failed, on the
+same ten points. And the covariate is confounded with trial order: the outcome
+is exactly $\mathbf{1}\{\text{trial} \le 5\}$, trial $i$ replays state $10+i$,
+and displacement correlates with state index at $\rho = 0.65$, so trial index
+alone predicts better ($p = 0.0095$). At $n{=}10$ the design cannot separate
+them.
+
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F8_subgoal.png}
+\caption{\textbf{The one place the constant demonstrably matters.}
+\textbf{A} On task $0$, the trials that fail are those whose basket sits
+furthest from the single constant the blind arm was handed. \textbf{B} On task
+$3$ the same quantity runs higher and every trial succeeds, so the tolerance is
+not one number across tasks. This is the measurement \S\ref{sec:adm}'s
+$\delta \approx 1.4$\,cm comes from; see the confound caveats in the text.
+Artifact: \texttt{results/blind\_failure\_attribution.json}.}
+\label{fig:subgoal}
+\end{figure*}
+
+\paragraph{What would settle it.} Displace the constant by $r$ and sweep $r$:
+if the score is flat in $r$, the arm never used the number. We implemented it
+(\texttt{-{}-goal-anchor-jitter-cm}) and the compute window closed before it
+ran. Until it does, the strongest statement the suite supports is the negative
+one above.
+
+\paragraph{What survives.} Two things, and we think they are the more useful
+two. First, on task $3$ a constant scores $10/10$ where the trained head scores
+$0/10$ --- a single task-level event, so we quote no $p$ for it, but a striking
+one: the head is not merely worse there, it never succeeds. Second, and
+independent of any of this, \textbf{eight successes in a hundred trials, every
+one on the single object the head was trained for}. Our artifact is a
+one-object solution that a suite-level score would have reported as a policy.
+The number a reader should carry away is not $0.700$; it is $0.700$ on task $0$,
+with $0.000$ next to it nine times.
 
 \paragraph{And it bounds the audit in advance.} Whatever
-\S\ref{sec:audit}--\S\ref{sec:repairs} bought, it was not a general policy. The
-repairs made one object work and made the failures on the others legible --- the
-drift case study (Table~\ref{tab:audit}, last row) is one of those objects,
-lifted from $3/50$ to $22/50$ by DAgger on the policy's own viewpoints. We put
-this section before the audit rather than after it so that no reader reaches
-the repairs holding a larger idea of the artifact than the artifact supports.
+\S\ref{sec:audit}--\S\ref{sec:repairs} bought, it was not a general policy. We
+put this section before the audit so that no reader reaches the repairs holding
+a larger idea of the artifact than the artifact supports.
 
 \section{The audit: four layers}
 \label{sec:audit}
@@ -1124,7 +1022,7 @@ discriminates''. A verdict now requires $n \ge 3$.
 \subsection{Certificates are joint in (head, stack), down to the renderer}
 
 We rebuilt the deployment stack on fresh hardware, pinning every version in
-Table~\ref{tab:ledger}'s caption and verifying both load-bearing checkpoints by
+\S\ref{sec:platform} and verifying both load-bearing checkpoints by
 digest. The reference cell reproduces: $8/10$ $[0.49,0.94]$ against a recorded
 $7/10$, with $0.700$ inside the interval.
 
@@ -1151,9 +1049,12 @@ assumes the trials are the same trials.}
 \end{table}
 
 \noindent \textbf{The aggregate is identical and $40\%$ of the episodes are
-not.} Thread count, by contrast, changes nothing: three \texttt{osmesa} runs at
-$1$, $4$ and $128$ threads agree on all eight logged fields to the printed
-precision while the wall clock falls from $220$\,s to $32$\,s
+not.} Thread count, by contrast, changes nothing we could detect: three
+\texttt{osmesa} runs at $1$, $4$ and $128$ threads agree on all eight logged
+fields while the wall clock falls from $220$\,s to $32$\,s. We state the
+limit plainly --- that comparison ran to $40$ steps, a prefix in which the
+gripper never closes, so it does not probe the contact-rich part of an
+episode where the renderer difference showed up
 (\texttt{results/thread\_determinism.json}). Software and GPU
 rasterisation do not produce identical pixels, the detector is not invariant to
 that difference, and in this stack the detector is the only encoder.
@@ -1244,8 +1145,8 @@ placement clusters align with which objects we happened to train on,
 ``blocked'' and ``$22$\,cm from the training position'' were perfectly
 correlated in our design. Tested directly over all ten objects, position
 predicts the effect weakly (Spearman $+0.19$, $p{=}0.60$) and \emph{teleporting
-each object $22$\,cm moves it in the wrong direction} (exact sign test
-$p{=}1.0$), while detector groundability predicts it ($-0.71$, $p{=}0.027$).
+each object $22$\,cm shows no directional effect} ($6/10$, exact sign test
+$p{=}1.0$, the least informative value the test returns), while detector groundability predicts it ($-0.71$, $p{=}0.027$).
 The mechanism is appearance, not position --- position is a nuisance term with
 mean $|\Delta| = 0.0066$, which is not zero either.
 
@@ -1255,8 +1156,8 @@ suite fails to randomise and therefore what a policy \emph{may exploit}: that is
 a property of the benchmark, established from its shipped files, and it is what
 layers 1 and 3 were caught doing. Appearance is what limits \emph{transfer to a
 new object} once that shortcut is repaired: a property of the frozen detector,
-and why the released head works on one object and not on six
-(\S\ref{sec:fullsuite}).
+and why the released head works on one object and not on nine
+(\S\ref{sec:refute}).
 
 A benchmark can be lookup-admissible and a policy can still fail for an
 unrelated reason. Both are true here, neither weakens the other, and what
@@ -1309,16 +1210,18 @@ planned $n$ and refuses to report an incomplete one.}
 
 \section{Discussion}
 
-\paragraph{What a score certifies.} On a suite whose placement diameter sits
+\paragraph{What a score certifies.} On a suite whose placement radius sits
 below the embodiment's tolerance, a success rate certifies that the policy can
 execute a manipulation \emph{given} a correct target pose --- and nothing
-whatever about how it obtained one.
+whatever about how it obtained one. That is a statement about what the score
+\emph{could} distinguish, and it is exactly as strong as A1.
 
-That is not a rhetorical claim. On LIBERO-Object a constant read from the
-benchmark's own files scores within $p = 0.50$ of our trained policy and an
-uninformed goal scores zero, so the score's entire dynamic range sits between
-``has the pose'' and ``does not'' --- with grounding never tested. The
-placement diameter makes this checkable before any policy is trained.
+We are careful here because we already overreached once. Our own cells do not
+demonstrate that any policy exploited the degeneracy; \S\ref{sec:refute} shows
+they cannot. What the radius buys is a check that runs before training, and a
+prediction --- that a suite with small radii admits a cheap solution --- which
+\citet{jiang2026benchmarking} confirm on LIBERO with a trained probe where we
+did not with a constant.
 
 \paragraph{Shortcuts live in pipelines, not only in models.} Two of our four
 layers are outside the network: a scripted expert's calibration constant and our
@@ -1377,20 +1280,25 @@ choice.}
 \section{Conclusion}
 
 A manipulation benchmark score is not a measurement of capability until the
-benchmark's admissibility has been measured. We gave the measurement, showed
-that exactly one LIBERO suite fails it, and ran the policy its failure
-predicts. Across the suite that policy --- which has no camera, no language and
-no learned parameter, and never sees the episode --- \textbf{outscores the one
-we trained}, $16/100$ against $8/100$, $p = 0.039$ on matched trials.
+benchmark's admissibility has been measured. The measurement is cheap, it runs
+before any model is trained, and on LIBERO it says something specific: the one
+suite whose tasks are individuated by object identity is also the one that pins
+that object, on all ten tasks, to a radius smaller than the tolerance we
+measure for our own arm.
 
-We report that as a fact about the benchmark and a fact about our artifact at
-once, because it is both, and because a suite-level score would have let us
-report only the flattering half.
+The behavioural claim we built on that does not stand, and the way it fell is
+the more useful half of this paper. We ran the lookup policy, saw it outscore
+our trained one, tested it at the wrong unit of analysis, and reported a
+significance that a task-level test does not support. The deeper error was
+attributional: tasks handed constants identical to within a millimetre score
+from $0/10$ to $10/10$, so the successes were never evidence about lookup at
+all. Both errors were found by adversarial review of a manuscript we already
+believed, using data we had already published.
 
-What survives is not the artifact but the procedure: measure the benchmark
-first, localise the stage second, repair with data third, certify jointly in
-\emph{(head, stack)} --- and report, as we have, the claims that did not survive
-being powered up, including one of our own from four pages earlier.
+What survives is the procedure rather than the artifact: measure the benchmark
+first, at the unit the design randomises over; check that the variable you
+manipulated is the one that moved; and report the reading that did not survive
+being checked, which in this revision is our own.
 
 \appendix
 
@@ -1411,11 +1319,23 @@ apply}, and only the second is used for suites the first cannot parse.
 Artifacts: \texttt{results/suite\_forensics\_columns.json} (digests),
 \texttt{results/suite\_forensics\_joints.json} (per-object positions).
 
+\section{The norm}
+\label{sec:norm}
+
+Definition~\ref{def:D} uses the Euclidean norm. A1 is naturally stated in
+$\ell_\infty$, because LIBERO randomises placement in an axis-aligned box, and
+the two differ by up to $\sqrt{2}$ in the plane. Recomputing
+Table~\ref{tab:suites} under $\ell_\infty$ at $\delta = 1.4$\,cm leaves
+LIBERO-Object at $10/10$ and moves one LIBERO-Spatial task across the line
+($1/10$ instead of $0/10$). The comparison is unchanged; the exact count in one
+suite is not. We report the Euclidean version throughout and flag the
+dependence here rather than leaving a reader to find it.
+
 \section{Sensitivity of $H_\delta$ to the tolerance}
 \label{app:delta}
 
 The quantisation $\delta$ is a modelling choice, so the finding must not depend
-on it. Recomputing placement entropy across four tolerances spanning an order of
+on it. Recomputing placement entropy across five tolerances spanning two orders of
 magnitude:
 
 \begin{table}[h]\centering\small

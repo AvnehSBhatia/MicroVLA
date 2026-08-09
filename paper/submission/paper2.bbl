@@ -1,4 +1,4 @@
-\begin{thebibliography}{12}
+\begin{thebibliography}{14}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -29,6 +29,13 @@ Suchin Gururangan, Swabha Swayamdipta, Omer Levy, Roy Schwartz, Samuel~R.
   Bowman, and Noah~A. Smith.
 \newblock Annotation artifacts in natural language inference data.
 \newblock In \emph{Proceedings of NAACL-HLT}, 2018.
+
+\bibitem[Jiang et~al.(2026)Jiang, Tan, Wheeler, Sun, Ayalew, and
+  Walter]{jiang2026benchmarking}
+Tianchong Jiang, Xiangshan Tan, Samuel Wheeler, Luzhe Sun, Tewodros~W. Ayalew,
+  and Matthew Walter.
+\newblock What are we actually benchmarking in robot manipulation?
+\newblock \emph{arXiv preprint arXiv:2606.04233}, 2026.
 
 \bibitem[Kim et~al.(2024)]{kim2024openvla}
 Moo~Jin Kim et~al.
@@ -69,6 +76,12 @@ Wilbert Pumacay, Ishika Singh, Jiafei Duan, Ranjay Krishna, Jesse Thomason, and
 Benjamin Recht, Rebecca Roelofs, Ludwig Schmidt, and Vaishaal Shankar.
 \newblock Do imagenet classifiers generalize to imagenet?
 \newblock In \emph{International Conference on Machine Learning (ICML)}, 2019.
+
+\bibitem[Thomason et~al.(2019)Thomason, Gordon, and Bisk]{thomason2019shifting}
+Jesse Thomason, Daniel Gordon, and Yonatan Bisk.
+\newblock Shifting the baseline: Single modality performance on visual
+  navigation and {QA}.
+\newblock In \emph{NAACL}, 2019.
 
 \bibitem[Torralba and Efros(2011)]{torralba2011bias}
 Antonio Torralba and Alexei~A. Efros.

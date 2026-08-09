@@ -1,0 +1,310 @@
+{
+  "per_task": [
+    {
+      "task": 0,
+      "object": "alphabet_soup_1",
+      "constant_xyz": [
+        -0.12,
+        -0.24,
+        0.015
+      ],
+      "D_cm": 0.0,
+      "blind": 6,
+      "head": 8
+    },
+    {
+      "task": 1,
+      "object": "cream_cheese_1",
+      "constant_xyz": [
+        0.049784,
+        -0.10014,
+        0.0
+      ],
+      "D_cm": 1.1888,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 2,
+      "object": "salad_dressing_1",
+      "constant_xyz": [
+        0.05,
+        -0.1,
+        0.035
+      ],
+      "D_cm": 0.0,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 3,
+      "object": "bbq_sauce_1",
+      "constant_xyz": [
+        0.049947,
+        -0.099534,
+        0.035
+      ],
+      "D_cm": 2.3384,
+      "blind": 10,
+      "head": 0
+    },
+    {
+      "task": 4,
+      "object": "ketchup_1",
+      "constant_xyz": [
+        -0.12,
+        -0.24,
+        0.035
+      ],
+      "D_cm": 0.0,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 5,
+      "object": "tomato_sauce_1",
+      "constant_xyz": [
+        0.05,
+        -0.1,
+        0.035
+      ],
+      "D_cm": 0.0,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 6,
+      "object": "butter_1",
+      "constant_xyz": [
+        -0.119784,
+        -0.240408,
+        -0.005
+      ],
+      "D_cm": 1.2658,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 7,
+      "object": "milk_1",
+      "constant_xyz": [
+        -0.120703,
+        -0.240168,
+        0.035
+      ],
+      "D_cm": 1.2066,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 8,
+      "object": "chocolate_pudding_1",
+      "constant_xyz": [
+        -0.12,
+        -0.24,
+        0.035
+      ],
+      "D_cm": 0.0,
+      "blind": 0,
+      "head": 0
+    },
+    {
+      "task": 9,
+      "object": "orange_juice_1",
+      "constant_xyz": [
+        0.05,
+        -0.1,
+        0.035
+      ],
+      "D_cm": 0.0,
+      "blind": 0,
+      "head": 0
+    }
+  ],
+  "constant_pairwise_distance_mm": [
+    [
+      0.0,
+      219.971,
+      220.227,
+      220.483,
+      0.0,
+      220.227,
+      0.462,
+      0.723,
+      0.0,
+      220.227
+    ],
+    [
+      219.971,
+      0.0,
+      0.257,
+      0.628,
+      219.971,
+      0.257,
+      220.065,
+      220.621,
+      219.971,
+      0.257
+    ],
+    [
+      220.227,
+      0.257,
+      0.0,
+      0.469,
+      220.227,
+      0.0,
+      220.32,
+      220.877,
+      220.227,
+      0.0
+    ],
+    [
+      220.483,
+      0.628,
+      0.469,
+      0.0,
+      220.483,
+      0.469,
+      220.577,
+      221.132,
+      220.483,
+      0.469
+    ],
+    [
+      0.0,
+      219.971,
+      220.227,
+      220.483,
+      0.0,
+      220.227,
+      0.462,
+      0.723,
+      0.0,
+      220.227
+    ],
+    [
+      220.227,
+      0.257,
+      0.0,
+      0.469,
+      220.227,
+      0.0,
+      220.32,
+      220.877,
+      220.227,
+      0.0
+    ],
+    [
+      0.462,
+      220.065,
+      220.32,
+      220.577,
+      0.462,
+      220.32,
+      0.0,
+      0.95,
+      0.462,
+      220.32
+    ],
+    [
+      0.723,
+      220.621,
+      220.877,
+      221.132,
+      0.723,
+      220.877,
+      0.95,
+      0.0,
+      0.723,
+      220.877
+    ],
+    [
+      0.0,
+      219.971,
+      220.227,
+      220.483,
+      0.0,
+      220.227,
+      0.462,
+      0.723,
+      0.0,
+      220.227
+    ],
+    [
+      220.227,
+      0.257,
+      0.0,
+      0.469,
+      220.227,
+      0.0,
+      220.32,
+      220.877,
+      220.227,
+      0.0
+    ]
+  ],
+  "near_identical_groups": [
+    {
+      "tasks": [
+        0,
+        4,
+        6,
+        7,
+        8
+      ],
+      "max_pairwise_mm": 0.95,
+      "blind_scores": [
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "tasks": [
+        1,
+        2,
+        3,
+        5,
+        9
+      ],
+      "max_pairwise_mm": 0.628,
+      "blind_scores": [
+        0,
+        0,
+        10,
+        0,
+        0
+      ]
+    }
+  ],
+  "pearson_r_D_vs_blind_successes": 0.521,
+  "bit_exact_constant_tasks": {
+    "tasks": [
+      0,
+      2,
+      4,
+      5,
+      8,
+      9
+    ],
+    "successes": 6,
+    "trials": 60
+  },
+  "loosest_constant_tasks": {
+    "tasks": [
+      1,
+      3,
+      6,
+      7
+    ],
+    "successes": 10,
+    "trials": 40
+  },
+  "verdict": "the per-task outcome is not governed by the constant; Proposition 1 requires r <= 0 and the measured r is +0.52",
+  "settling_experiment": {
+    "flag": "--goal-anchor-jitter-cm",
+    "status": "implemented, not run"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "per_task": {
+    "0": {
+      "blind": 6,
+      "head": 8
+    },
+    "1": {
+      "blind": 0,
+      "head": 0
+    },
+    "2": {
+      "blind": 0,
+      "head": 0
+    },
+    "3": {
+      "blind": 10,
+      "head": 0
+    },
+    "4": {
+      "blind": 0,
+      "head": 0
+    },
+    "5": {
+      "blind": 0,
+      "head": 0
+    },
+    "6": {
+      "blind": 0,
+      "head": 0
+    },
+    "7": {
+      "blind": 0,
+      "head": 0
+    },
+    "8": {
+      "blind": 0,
+      "head": 0
+    },
+    "9": {
+      "blind": 0,
+      "head": 0
+    }
+  },
+  "totals": {
+    "blind_k": 16,
+    "head_k": 8,
+    "n": 100,
+    "blind_wilson_iid": [
+      0.101,
+      0.2442
+    ],
+    "head_wilson_iid": [
+      0.0411,
+      0.15
+    ]
+  },
+  "trial_level_INVALID": {
+    "n01": 10,
+    "n10": 2,
+    "p": 0.03857,
+    "discordant_by_task": {
+      "0": 2,
+      "1": 0,
+      "2": 0,
+      "3": 10,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0
+    },
+    "why_invalid": "trials within a task are not exchangeable; all discordance lives in 2 of 10 tasks and 10 of 12 pairs in one",
+    "design_effect": 8.36,
+    "effective_n": 12.0
+  },
+  "task_level": {
+    "blind_wins": 1,
+    "head_wins": 1,
+    "ties": 8,
+    "sign_test_p": 1.0,
+    "permutation_p": 1.0,
+    "mean_diff": 0.08,
+    "cluster_bootstrap_95ci": [
+      -0.06,
+      0.3
+    ]
+  },
+  "task3_within": {
+    "blind": 10,
+    "head": 0,
+    "n01": 10,
+    "n10": 0,
+    "p": 0.00195,
+    "caveat": "ten near-identical replays of one deterministic contrast; read as a single task-level event, not ten draws"
+  }
+}

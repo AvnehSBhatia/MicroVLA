@@ -1,13 +1,13 @@
-"""Re-derive every load-bearing number in the paper from its artifact.
+"""Re-derive the paper's load-bearing numbers from artifacts, and RECOMPUTE the
+statistics rather than reading them back.
 
-Not a test of the code -- a test of the *manuscript*. Papers drift: a value is
-recomputed, the JSON updates, and the sentence quoting it does not. This script
-reads ``paper/submission/paper2.tex``, pulls the numbers out of it, recomputes
-each from the artifact it cites, and fails loudly on any disagreement.
-
-It caught two real drifts while being written: a basket diameter quoted as the
-suite mean ($3.66$\\,cm) inside a sentence about one task (whose basket is
-$3.37$), and a zero count of $3$ where the table said $6$.
+The previous version of this script had a defect an adversarial reviewer named
+exactly: it "verified" p-values by reading them out of the same JSON that wrote
+them, and it never opened the raw per-trial logs. A consistency check between
+two copies of a number is not a re-derivation. This version recomputes every
+test from the trial outcomes, and states plainly which claims it does NOT
+cover, because "all N load-bearing values" was the paper's own worst instance
+of the drift it claims to police.
 
 Usage:  python scripts/verify_paper_numbers.py
 Exit 0 iff every check passes.
@@ -18,39 +18,29 @@ import json
 import math
 import re
 import sys
+from itertools import combinations, product
 from pathlib import Path
 
 import numpy as np
 
 REPO = Path(__file__).resolve().parent.parent
-TEX = REPO / "paper" / "submission" / "paper2.tex"
 Z = 1.959963984540054
-
 failures: list[str] = []
 checks = 0
 
 
-def check(name: str, claimed: float, actual: float, tol: float = 0.006) -> None:
+def check(name: str, claimed, actual, tol: float = 0.006) -> None:
     global checks
     checks += 1
-    if abs(claimed - actual) > tol:
-        failures.append(f"{name}: paper says {claimed}, artifact gives {actual:.4f}")
-        print(f"FAIL  {name:<46} paper={claimed}  artifact={actual:.4f}")
+    ok = (claimed == actual) if isinstance(claimed, bool) else abs(claimed - actual) <= tol
+    if not ok:
+        failures.append(f"{name}: paper {claimed}, artifact {actual}")
+        print(f"FAIL  {name:<52} paper={claimed} actual={actual}")
     else:
-        print(f"ok    {name:<46} {actual:.4f}")
+        print(f"ok    {name:<52} {actual}")
 
 
-def check_bool(name: str, claimed: bool, actual: bool) -> None:
-    global checks
-    checks += 1
-    if claimed != actual:
-        failures.append(f"{name}: paper says {claimed}, artifact gives {actual}")
-        print(f"FAIL  {name}")
-    else:
-        print(f"ok    {name}")
-
-
-def wilson(k: int, n: int) -> tuple[float, float]:
+def wilson(k, n):
     p = k / n
     den = 1 + Z * Z / n
     c = (p + Z * Z / (2 * n)) / den
@@ -58,121 +48,122 @@ def wilson(k: int, n: int) -> tuple[float, float]:
     return max(0.0, c - h), min(1.0, c + h)
 
 
-tex = TEX.read_text()
-J = lambda p: json.loads((REPO / p).read_text())
+def cheb(P):
+    P = np.unique(np.asarray(P, float), axis=0)
+    if len(P) == 1:
+        return 0.0
+    best = None
+    for a, b in combinations(range(len(P)), 2):
+        c = (P[a] + P[b]) / 2; r = float(np.linalg.norm(P[a] - c))
+        if np.all(np.linalg.norm(P - c, axis=1) <= r + 1e-12):
+            best = r if best is None else min(best, r)
+    for a, b, d in combinations(range(len(P)), 3):
+        A, B, C = P[a], P[b], P[d]
+        den = 2*(A[0]*(B[1]-C[1]) + B[0]*(C[1]-A[1]) + C[0]*(A[1]-B[1]))
+        if abs(den) < 1e-15:
+            continue
+        ux = ((A@A)*(B[1]-C[1]) + (B@B)*(C[1]-A[1]) + (C@C)*(A[1]-B[1]))/den
+        uy = ((A@A)*(C[0]-B[0]) + (B@B)*(A[0]-C[0]) + (C@C)*(B[0]-A[0]))/den
+        c = np.array([ux, uy]); r = float(np.linalg.norm(A - c))
+        if np.all(np.linalg.norm(P - c, axis=1) <= r + 1e-12):
+            best = r if best is None else min(best, r)
+    return float(best)
 
-print("=== Table 1: placement diameter, per suite ===")
-D = J("results/placement_diameter.json")
-SUITES = [("libero_object", "Object", 0.60, 2.34, 10, 10),
-          ("libero_spatial", "Spatial", 4.29, 8.90, 0, 10),
-          ("libero_goal", "Goal", 3.65, 4.94, 0, 8),
-          ("libero_10", "Long", 6.21, 6.57, 0, 10)]
-for key, label, mean_c, max_c, adm_c, n_c in SUITES:
-    v = np.asarray(D[key], dtype=float)
-    check(f"{label} mean D (cm)", mean_c, float(v.mean()))
-    check(f"{label} max D (cm)", max_c, float(v.max()))
-    check(f"{label} tasks with D<=2.5cm", adm_c, float((v <= 2.5).sum()), 0.5)
-    check(f"{label} resolvable tasks", n_c, float(len(v)), 0.5)
 
-print("\n=== the headline separation ===")
-allother = np.concatenate([np.asarray(D[k], float) for k, *_ in SUITES[1:]])
-obj = np.asarray(D["libero_object"], float)
-check_bool("Object's max D < every other suite's mean",
-           True, bool(obj.max() < min(np.asarray(D[k], float).mean()
-                                      for k, *_ in SUITES[1:])))
-check("other suites: tasks admissible at 2.5cm", 0.0,
-      float((allother <= 2.5).sum()), 0.5)
-check("other suites: total tasks", 28.0, float(len(allother)), 0.5)
-check("Object max D (cm)", 2.34, float(obj.max()))
-check("smallest non-Object D (cm)", 2.98, float(allother.min()))
-check("gap between them (cm)", 0.65, float(allother.min() - obj.max()))
+J = lambda q: json.loads((REPO / q).read_text())
 
-print("\n=== the blind arm ===")
-B = J("results/blind_cells.json")
-c = B["blind_t0"]
-check_bool("blind cell is complete (all planned trials)", True, c["complete"])
-check("blind k", 6.0, float(c["k"]), 0.5)
-check("blind n", 10.0, float(c["n"]), 0.5)
-lo, hi = wilson(c["k"], c["n"])
-check("blind Wilson lo", 0.31, lo, 0.005)
-check("blind Wilson hi", 0.83, hi, 0.005)
-M = B["mcnemar"]
-check("p vs learned head", 0.50, M["blind_t0_vs_P0_ref_heldout"]["p"], 0.001)
-check("p vs random floor", 0.031, M["blind_t0_vs_P2_E5_random"]["p"], 0.0005)
-check("p vs reset-oracle", 0.125, M["blind_t0_vs_P2_E5_fixed"]["p"], 0.001)
-
-print("\n=== the whole suite (Figure 9, Table 5) ===")
-SS = J("results/suite_summary.json")
-check("blind suite k", 16.0, float(SS["totals"]["blind_k"]), 0.5)
-check("head suite k", 8.0, float(SS["totals"]["head_k"]), 0.5)
-check("suite n per policy", 100.0, float(SS["totals"]["n"]), 0.5)
-check("blind suite Wilson lo", 0.10, SS["totals"]["blind_wilson"][0], 0.005)
-check("blind suite Wilson hi", 0.24, SS["totals"]["blind_wilson"][1], 0.005)
-check("head suite Wilson lo", 0.04, SS["totals"]["head_wilson"][0], 0.005)
-check("head suite Wilson hi", 0.15, SS["totals"]["head_wilson"][1], 0.005)
-check("suite paired: blind-only wins", 10.0,
-      float(SS["mcnemar_suite"]["blind_only"]), 0.5)
-check("suite paired: head-only wins", 2.0,
-      float(SS["mcnemar_suite"]["head_only"]), 0.5)
-check("suite paired McNemar p", 0.039, SS["mcnemar_suite"]["p"], 0.001)
-check("task 3 blind", 10.0, float(SS["blind"]["3"]["k"]), 0.5)
-check("task 3 head", 0.0, float(SS["head"]["3"]["k"]), 0.5)
-check("task 3 McNemar p", 0.002, SS["mcnemar_task3"]["p"], 0.0005)
-check_bool("head scores zero on all nine non-trained tasks", True,
-           all(SS["head"][str(t)]["k"] == 0 for t in range(1, 10)))
-
-print("\n=== the within-task split (Figure 8) ===")
+print("=== §2 admissibility: radii RECOMPUTED from the shipped states ===")
 FJ = J("results/suite_forensics_joints.json")
-t0 = FJ["suites"]["libero_object"]["tasks"][0]
-diam = {}
-for o in t0["objects"]:
-    xy = np.asarray(o.get("xy_per_state_m", []), dtype=float)
-    if len(xy):
-        diam[o["object"]] = float(
-            np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=-1).max() * 100)
-check("task 0 target diameter (cm)", 0.00, diam["alphabet_soup_1"], 0.005)
-xy0 = np.asarray(next(o for o in t0["objects"]
-                      if o["object"] == "alphabet_soup_1")["xy_per_state_m"], float)
-check("task 0 target: unique shipped (x,y) rows", 1.0,
-      float(len(np.unique(xy0, axis=0))), 0.5)
-check("task 0 target: max dev from mean (log10 m)", -15.66,
-      float(np.log10(np.linalg.norm(xy0 - xy0.mean(axis=0), axis=1).max())), 0.5)
-check("task 0 basket diameter (cm)", 3.37, diam["basket_1"], 0.006)
+radii, fixture = {}, {}
+for suite, S in FJ["suites"].items():
+    rs, fx = [], []
+    for t in S["tasks"]:
+        o = next((o for o in t["objects"] if o["object"] == t["primary_target"]), None)
+        if o and o.get("xy_per_state_m"):
+            rs.append(cheb(np.asarray(o["xy_per_state_m"])) * 100); fx.append(False)
+        else:
+            rs.append(0.0); fx.append(True)      # fixture: never moves
+    radii[suite] = np.array(rs); fixture[suite] = np.array(fx)
 
-lines = (REPO / "results/blind_logs/blind_t0_trials.txt").read_text().splitlines()
-mins, finals, succ = [], [], []
-for ln in lines:
-    f = dict(re.findall(r"([a-z_0-9]+)=([-\w.]+)", ln))
-    mins.append(float(f["eef_obj_dist_min"]))
-    finals.append(float(f["eef_obj_dist_final"]))
-    succ.append(f["success"] == "True")
-check("trials logged", 10.0, float(len(mins)), 0.5)
-check("successes", 6.0, float(sum(succ)), 0.5)
-check("max closest-approach over ALL trials (m)", 0.002, max(mins), 0.0005)
-check("failures' final object dist (m)", 0.008,
-      max(f for f, s in zip(finals, succ) if not s), 0.0005)
+check("Object max identity radius (cm)", 1.17, float(radii["libero_object"].max()))
+check("Object tasks admissible at 1.4 cm", 10.0,
+      float((radii["libero_object"] <= 1.4).sum()), 0.5)
+others = np.concatenate([radii[s] for s in radii if s != "libero_object"])
+othfx = np.concatenate([fixture[s] for s in radii if s != "libero_object"])
+check("other tasks admissible at 1.4 cm", 2.0, float((others <= 1.4).sum()), 0.5)
+check("other tasks total", 30.0, float(len(others)), 0.5)
+check("both exceptions are fixtures", True, bool(othfx[others <= 1.4].all()))
+check("smallest movable radius elsewhere (cm)", 1.49, float(others[~othfx].min()))
+check("measured tolerance falls inside the window", True,
+      bool(float(radii["libero_object"].max()) <= 1.41 < float(others[~othfx].min())))
 
-print("\n=== renderer / thread determinism ===")
+print("\n=== §5 suite: cells and tests RECOMPUTED from per-trial outcomes ===")
+S = J("results/suite_cells.json"); B = J("results/blind_cells.json"); P = J("results/pod_cells.json")
+blind = {0: B["blind_t0"]} | {t: S[f"blind_t{t}"] for t in range(1, 10)}
+head = {0: P["P0_ref_heldout"]} | {t: S[f"head_t{t}"] for t in range(1, 10)}
+bk = np.array([blind[t]["k"] for t in range(10)])
+hk = np.array([head[t]["k"] for t in range(10)])
+check("blind suite total", 16.0, float(bk.sum()), 0.5)
+check("head suite total", 8.0, float(hk.sum()), 0.5)
+check("head is zero on all nine untrained tasks", True, bool((hk[1:] == 0).all()))
+
+n01 = sum(1 for t in range(10) for r in blind[t]["trials"]
+          if blind[t]["trials"][r] and not head[t]["trials"].get(r))
+n10 = sum(1 for t in range(10) for r in blind[t]["trials"]
+          if head[t]["trials"].get(r) and not blind[t]["trials"][r])
+d = n01 + n10
+p_trial = min(1.0, sum(math.comb(d, i) for i in range(min(n01, n10) + 1)) / 2 ** d * 2)
+check("trial-level McNemar p (reported as INVALID)", 0.039, p_trial, 0.001)
+disc = {t: sum(1 for r in blind[t]["trials"]
+               if blind[t]["trials"][r] != head[t]["trials"].get(r)) for t in range(10)}
+check("discordant pairs confined to 2 tasks", 2.0,
+      float(sum(1 for t in disc if disc[t])), 0.5)
+check("discordant pairs in task 3", 10.0, float(disc[3]), 0.5)
+
+wb, wh = int((bk > hk).sum()), int((hk > bk).sum())
+dd = wb + wh
+p_task = min(1.0, sum(math.comb(dd, i) for i in range(min(wb, wh) + 1)) / 2 ** dd * 2)
+check("task-level sign test p", 1.0, p_task, 0.001)
+check("task-level: blind wins", 1.0, float(wb), 0.5)
+check("task-level: head wins", 1.0, float(wh), 0.5)
+diff = (bk - hk) / 10.0
+nz = np.flatnonzero(diff != 0)
+obs = float(diff.mean()); cnt = tot = 0
+for sg in product([1, -1], repeat=len(nz)):
+    d2 = diff.copy(); d2[nz] = diff[nz] * np.array(sg)
+    tot += 1; cnt += abs(float(d2.mean())) >= abs(obs) - 1e-12
+check("task-level permutation p", 1.0, cnt / tot, 0.001)
+
+print("\n=== §5 attribution: the refutation, recomputed ===")
+tasks = FJ["suites"]["libero_object"]["tasks"]
+C = np.array([next(o for o in t["objects"]
+                   if o["object"] == t["primary_target"])["mean_xyz_m"][:2] for t in tasks])
+dmm = np.linalg.norm(C[:, None, :] - C[None, :, :], axis=-1) * 1000
+gA, gB = [0, 4, 6, 7, 8], [1, 2, 3, 5, 9]
+check("group A constants agree to (mm)", 0.95, float(dmm[np.ix_(gA, gA)].max()), 0.02)
+check("group B constants agree to (mm)", 0.63, float(dmm[np.ix_(gB, gB)].max()), 0.02)
+check("group A blind scores span 0..6", True,
+      [int(bk[i]) for i in gA] == [6, 0, 0, 0, 0])
+check("group B blind scores span 0..10", True,
+      [int(bk[i]) for i in gB] == [0, 0, 10, 0, 0])
+Rv = radii["libero_object"]
+check("r(radius, blind successes)", 0.52,
+      float(np.corrcoef(Rv, bk.astype(float))[0, 1]), 0.02)
+
+print("\n=== §7 certification ===")
 T = J("results/thread_determinism.json")
-check_bool("all logged fields identical across 1/4/128 threads",
-           True, T["all_identical"])
-check("fields compared", 8.0, float(T["n_fields"]), 0.5)
-
-print("\n=== appendix: entropy sweep ===")
-E = J("results/placement_entropy.json")
-APP = {"libero_object": [2.11, 0.48, 0.00, 0.00, 0.00],
-       "libero_spatial": [5.48, 4.49, 2.04, 0.25, 0.00],
-       "libero_goal": [5.59, 5.08, 1.53, 0.02, 0.00],
-       "libero_10": [5.63, 5.40, 4.27, 0.37, 0.00]}
-for key, row in APP.items():
-    mh = E["suites"][key]["mean_H"]
-    for d, claimed in zip(["0.0005", "0.002", "0.005", "0.01", "0.05"], row):
-        check(f"{key} H at {d}m", claimed, mh[d])
+check("thread fields identical", True, bool(T["all_identical"]))
+check("thread comparison horizon (steps)", 40.0,
+      float(T["fields"]["4"]["steps"]), 0.5)
 
 print(f"\n{checks - len(failures)}/{checks} checks passed")
+print("\nNOT covered by this script, and stated so rather than implied: the audit\n"
+      "table, the instruction-swap cells, the displacement sweep, the probe\n"
+      "attribution, the positive control, the renderer cell, the parameter\n"
+      "ledger, and the historical 35/50 cell whose per-trial log is not in this\n"
+      "repository.")
 if failures:
     print("\nDRIFT DETECTED:")
     for f in failures:
         print("  " + f)
     sys.exit(1)
-print("every load-bearing number in the paper matches its artifact.")

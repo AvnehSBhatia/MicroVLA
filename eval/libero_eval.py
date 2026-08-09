@@ -290,6 +290,7 @@ def _run_real_trial(
     video_path: str | None = None,
     randomize_source: float = 0.0,
     goal_anchor: str = "",
+    goal_anchor_jitter_cm: float = 0.0,
 ) -> tuple[bool, list[dict]]:
     """Runs one episode against a real LIBERO ``OffScreenRenderEnv``.
 
@@ -365,7 +366,8 @@ def _run_real_trial(
         # every other knob is identical to the normal cell.
         if goal_anchor:
             policy.goal_anchor, policy.place_anchor = _make_goal_anchor(
-                env, goal_anchor, np.random.default_rng(555_000 + trial_seed))
+                env, goal_anchor, np.random.default_rng(555_000 + trial_seed),
+                jitter_cm=goal_anchor_jitter_cm)
         policy.reset(task.instruction)
 
         from microvla.utils.proprio import proprio_from_obs
@@ -582,7 +584,7 @@ def randomize_source_xy(env, rng, radius: float) -> list[float] | None:
     return [dx, dy]
 
 
-def _make_goal_anchor(env, mode: str, rng):
+def _make_goal_anchor(env, mode: str, rng, jitter_cm: float = 0.0):
     """Goal supply that replaces the learned heads (referee E5, M3).
 
     Returns ``(grasp_fn, place_xy)`` where ``grasp_fn() -> (xy, z)``.
@@ -642,8 +644,12 @@ def _make_goal_anchor(env, mode: str, rng):
         from pathlib import Path as _Path
         fp = _Path(__file__).resolve().parent.parent / "results" / \
             "suite_forensics_joints.json"
-        tasks = _json.loads(fp.read_text())["suites"]["libero_object"]["tasks"]
-        rec = next((t for t in tasks
+        suites = _json.loads(fp.read_text())["suites"]
+        # Search every suite rather than assuming libero_object. The arm is the
+        # negative control on the NON-admissible suites as much as it is the
+        # headline on the admissible one, and hardcoding a suite would have
+        # silently given a LIBERO-Spatial run LIBERO-Object's constants.
+        rec = next((t for S in suites.values() for t in S["tasks"]
                     if any(o["object"] == tgt for o in t["objects"])), None)
         if rec is None:
             raise RuntimeError(
@@ -652,6 +658,19 @@ def _make_goal_anchor(env, mode: str, rng):
                 "peeking one.")
         o = next(o for o in rec["objects"] if o["object"] == tgt)
         cx, cy, cz = (float(v) for v in o["mean_xyz_m"])
+        # Deliberate corruption of the constant, in cm, for the A1 sweep. An
+        # adversarial review found that four LIBERO-Object tasks receive
+        # constants identical to within 0.47 mm and score {0,0,0,10}, so the
+        # outcome cannot be read as evidence that the CONSTANT is doing the
+        # work. This flag settles it: displace the constant by r and see
+        # whether the score moves at all. If it does not, the arm is not using
+        # the number and every claim resting on it must be withdrawn.
+        if jitter_cm:
+            ang = float(rng.uniform(0.0, 2.0 * np.pi))
+            cx += jitter_cm * 0.01 * float(np.cos(ang))
+            cy += jitter_cm * 0.01 * float(np.sin(ang))
+            logger.info("goal anchor blind: constant DISPLACED by %.1f cm -> "
+                        "(%.4f, %.4f)", jitter_cm, cx, cy)
         logger.info("goal anchor blind: %s constant (%.4f, %.4f, %.4f) from "
                     "shipped files", tgt, cx, cy, cz)
 
@@ -664,10 +683,21 @@ def _make_goal_anchor(env, mode: str, rng):
         # whole point of this arm is that NOTHING is read from the episode.
         dst = next((o for o in rec["objects"]
                     if o["is_target"] and o["object"] != tgt), None)
-        if dst is not None:
-            place_xy = (float(dst["mean_xyz_m"][0]), float(dst["mean_xyz_m"][1]))
-            logger.info("goal anchor blind: place constant %s from shipped files",
-                        place_xy)
+        if dst is None:
+            # Adversarial review caught this as an unguarded silent fallback:
+            # place_xy is initialised from the live sim above, so a task with
+            # no shipped destination record would have left the "blind" arm
+            # holding the TRUE container position -- a peek in exactly the
+            # quantity the suite randomises. It never fired on LIBERO-Object
+            # (all ten tasks declare a basket), which is why it survived. Now
+            # it raises.
+            raise RuntimeError(
+                f"no shipped destination record for {tgt}; refusing to fall "
+                "back to the live container position, which would make the "
+                "blind arm peek in the one place this suite randomises.")
+        place_xy = (float(dst["mean_xyz_m"][0]), float(dst["mean_xyz_m"][1]))
+        logger.info("goal anchor blind: place constant %s from shipped files",
+                    place_xy)
     elif mode == "oracle":
         def grasp():
             p = sim.data.body_xpos[body_ids[tgt]]
@@ -795,6 +825,7 @@ def run_eval(
     success_video_dir: str | Path | None = None,
     randomize_source: float = 0.0,
     goal_anchor: str = "",
+    goal_anchor_jitter_cm: float = 0.0,
     trial_offset: int = 0,
 ) -> dict:
     """Runs ``n_trials`` seeded episodes of every task in ``suite``.
@@ -849,6 +880,7 @@ def run_eval(
                 video_path=video_path,
                 randomize_source=randomize_source,
                 goal_anchor=goal_anchor,
+                goal_anchor_jitter_cm=goal_anchor_jitter_cm,
             )
     if success_video_dir:
         Path(success_video_dir).mkdir(parents=True, exist_ok=True)
@@ -1253,6 +1285,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         "[OFFSET, OFFSET+n) are byte-identical to the same "
                         "trials of a serial run. --workers shards by task and "
                         "cannot split a one-task cell.")
+    p.add_argument("--goal-anchor-jitter-cm", type=float, default=0.0,
+                   help="displace the blind constant by this many cm in a "
+                        "per-trial random direction; sweeps A1's radius directly")
     p.add_argument("--goal-anchor", choices=["", "oracle", "random", "fixed", "blind"],
                    default="",
                    help="replace the learned goal heads with a non-learned goal "
@@ -1517,6 +1552,7 @@ def _parallel_worker(payload: dict) -> dict:
         success_video_dir=getattr(args, "success_video_dir", "") or None,
         randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
         goal_anchor=str(getattr(args, "goal_anchor", "") or ""),
+        goal_anchor_jitter_cm=float(getattr(args, "goal_anchor_jitter_cm", 0.0) or 0.0),
         trial_offset=int(getattr(args, "trial_offset", 0) or 0),
     )
 
@@ -1744,6 +1780,7 @@ def main(argv: list[str] | None = None) -> None:
             success_video_dir=getattr(args, "success_video_dir", "") or None,
             randomize_source=float(getattr(args, "randomize_source_xy", 0.0) or 0.0),
         goal_anchor=str(getattr(args, "goal_anchor", "") or ""),
+        goal_anchor_jitter_cm=float(getattr(args, "goal_anchor_jitter_cm", 0.0) or 0.0),
         trial_offset=int(getattr(args, "trial_offset", 0) or 0),
         )
     # Carried in the results file, not only the log: a scored number whose

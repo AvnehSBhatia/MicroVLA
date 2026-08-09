@@ -1,0 +1,463 @@
+{
+  "delta_cm": 2.5,
+  "suites": {
+    "libero_object": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+          "identity_object": "alphabet_soup_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.373
+          },
+          "shared_D_cm_max": 3.373,
+          "all_required_D_cm_max": 3.373
+        },
+        {
+          "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+          "identity_object": "cream_cheese_1",
+          "identity_D_cm": 1.1888,
+          "shared_objects": {
+            "basket_1": 3.343
+          },
+          "shared_D_cm_max": 3.343,
+          "all_required_D_cm_max": 3.343
+        },
+        {
+          "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+          "identity_object": "salad_dressing_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.7131
+          },
+          "shared_D_cm_max": 3.7131,
+          "all_required_D_cm_max": 3.7131
+        },
+        {
+          "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+          "identity_object": "bbq_sauce_1",
+          "identity_D_cm": 2.3384,
+          "shared_objects": {
+            "basket_1": 3.9256
+          },
+          "shared_D_cm_max": 3.9256,
+          "all_required_D_cm_max": 3.9256
+        },
+        {
+          "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+          "identity_object": "ketchup_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.6607
+          },
+          "shared_D_cm_max": 3.6607,
+          "all_required_D_cm_max": 3.6607
+        },
+        {
+          "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+          "identity_object": "tomato_sauce_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.8064
+          },
+          "shared_D_cm_max": 3.8064,
+          "all_required_D_cm_max": 3.8064
+        },
+        {
+          "task": "pick_up_the_butter_and_place_it_in_the_basket",
+          "identity_object": "butter_1",
+          "identity_D_cm": 1.2658,
+          "shared_objects": {
+            "basket_1": 3.3036
+          },
+          "shared_D_cm_max": 3.3036,
+          "all_required_D_cm_max": 3.3036
+        },
+        {
+          "task": "pick_up_the_milk_and_place_it_in_the_basket",
+          "identity_object": "milk_1",
+          "identity_D_cm": 1.2066,
+          "shared_objects": {
+            "basket_1": 3.7904
+          },
+          "shared_D_cm_max": 3.7904,
+          "all_required_D_cm_max": 3.7904
+        },
+        {
+          "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+          "identity_object": "chocolate_pudding_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.7147
+          },
+          "shared_D_cm_max": 3.7147,
+          "all_required_D_cm_max": 3.7147
+        },
+        {
+          "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+          "identity_object": "orange_juice_1",
+          "identity_D_cm": 0.0,
+          "shared_objects": {
+            "basket_1": 3.9556
+          },
+          "shared_D_cm_max": 3.9556,
+          "all_required_D_cm_max": 3.9556
+        }
+      ],
+      "identity": {
+        "mean": 0.6,
+        "max": 2.3384,
+        "min": 0.0,
+        "n_admissible": 10
+      },
+      "shared": {
+        "mean": 3.6586,
+        "max": 3.9556,
+        "min": 3.3036,
+        "n_admissible": 0
+      },
+      "all_required": {
+        "mean": 3.6586,
+        "max": 3.9556,
+        "min": 3.3036,
+        "n_admissible": 0
+      }
+    },
+    "libero_spatial": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "pick_up_the_black_bowl_between_the_plate_and_the_ramekin_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.8408,
+          "shared_objects": {
+            "plate_1": 3.4352
+          },
+          "shared_D_cm_max": 3.4352,
+          "all_required_D_cm_max": 3.8408
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_ramekin_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.5397,
+          "shared_objects": {
+            "plate_1": 3.2885
+          },
+          "shared_D_cm_max": 3.2885,
+          "all_required_D_cm_max": 3.5397
+        },
+        {
+          "task": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 2.9849,
+          "shared_objects": {
+            "plate_1": 3.6532
+          },
+          "shared_D_cm_max": 3.6532,
+          "all_required_D_cm_max": 3.6532
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_cookie_box_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.8991,
+          "shared_objects": {
+            "plate_1": 3.672
+          },
+          "shared_D_cm_max": 3.672,
+          "all_required_D_cm_max": 3.8991
+        },
+        {
+          "task": "pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabinet_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.7325,
+          "shared_objects": {
+            "plate_1": 3.8519
+          },
+          "shared_D_cm_max": 3.8519,
+          "all_required_D_cm_max": 3.8519
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_ramekin_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.9262,
+          "shared_objects": {
+            "plate_1": 3.7978
+          },
+          "shared_D_cm_max": 3.7978,
+          "all_required_D_cm_max": 3.9262
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.8783,
+          "shared_objects": {
+            "plate_1": 3.7426
+          },
+          "shared_D_cm_max": 3.7426,
+          "all_required_D_cm_max": 3.8783
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_stove_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 4.8455,
+          "shared_objects": {
+            "plate_1": 4.018
+          },
+          "shared_D_cm_max": 4.018,
+          "all_required_D_cm_max": 4.8455
+        },
+        {
+          "task": "pick_up_the_black_bowl_next_to_the_plate_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.3449,
+          "shared_objects": {
+            "plate_1": 3.46
+          },
+          "shared_D_cm_max": 3.46,
+          "all_required_D_cm_max": 3.46
+        },
+        {
+          "task": "pick_up_the_black_bowl_on_the_wooden_cabinet_and_place_it_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 8.9006,
+          "shared_objects": {
+            "plate_1": 3.6597
+          },
+          "shared_D_cm_max": 3.6597,
+          "all_required_D_cm_max": 8.9006
+        }
+      ],
+      "identity": {
+        "mean": 4.2893,
+        "max": 8.9006,
+        "min": 2.9849,
+        "n_admissible": 0
+      },
+      "shared": {
+        "mean": 3.6579,
+        "max": 4.018,
+        "min": 3.2885,
+        "n_admissible": 0
+      },
+      "all_required": {
+        "mean": 4.3795,
+        "max": 8.9006,
+        "min": 3.46,
+        "n_admissible": 0
+      }
+    },
+    "libero_goal": {
+      "n_tasks": 8,
+      "tasks": [
+        {
+          "task": "put_the_bowl_on_the_stove",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.3002,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.3002
+        },
+        {
+          "task": "put_the_wine_bottle_on_top_of_the_cabinet",
+          "identity_object": "wine_bottle_1",
+          "identity_D_cm": 3.2251,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.2251
+        },
+        {
+          "task": "open_the_top_drawer_and_put_the_bowl_inside",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.4715,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.4715
+        },
+        {
+          "task": "put_the_bowl_on_top_of_the_cabinet",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.6975,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.6975
+        },
+        {
+          "task": "push_the_plate_to_the_front_of_the_stove",
+          "identity_object": "plate_1",
+          "identity_D_cm": 3.738,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.738
+        },
+        {
+          "task": "put_the_cream_cheese_in_the_bowl",
+          "identity_object": "cream_cheese_1",
+          "identity_D_cm": 4.937,
+          "shared_objects": {
+            "akita_black_bowl_1": 3.305
+          },
+          "shared_D_cm_max": 3.305,
+          "all_required_D_cm_max": 4.937
+        },
+        {
+          "task": "put_the_bowl_on_the_plate",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 3.6549,
+          "shared_objects": {
+            "plate_1": 3.4015
+          },
+          "shared_D_cm_max": 3.4015,
+          "all_required_D_cm_max": 3.6549
+        },
+        {
+          "task": "put_the_wine_bottle_on_the_rack",
+          "identity_object": "wine_bottle_1",
+          "identity_D_cm": 3.1996,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 3.1996
+        }
+      ],
+      "identity": {
+        "mean": 3.653,
+        "max": 4.937,
+        "min": 3.1996,
+        "n_admissible": 0
+      },
+      "shared": {
+        "mean": 3.3533,
+        "max": 3.4015,
+        "min": 3.305,
+        "n_admissible": 0
+      },
+      "all_required": {
+        "mean": 3.653,
+        "max": 4.937,
+        "min": 3.1996,
+        "n_admissible": 0
+      }
+    },
+    "libero_10": {
+      "n_tasks": 10,
+      "tasks": [
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_alphabet_soup_and_the_tomato_sauce_in_the_basket",
+          "identity_object": "alphabet_soup_1",
+          "identity_D_cm": 6.5654,
+          "shared_objects": {
+            "tomato_sauce_1": 6.054,
+            "basket_1": 2.2872
+          },
+          "shared_D_cm_max": 6.054,
+          "all_required_D_cm_max": 6.5654
+        },
+        {
+          "task": "LIVING_ROOM_SCENE2_put_both_the_cream_cheese_box_and_the_butter_in_the_basket",
+          "identity_object": "cream_cheese_1",
+          "identity_D_cm": 6.0053,
+          "shared_objects": {
+            "butter_1": 6.3414,
+            "basket_1": 2.5893
+          },
+          "shared_D_cm_max": 6.3414,
+          "all_required_D_cm_max": 6.3414
+        },
+        {
+          "task": "KITCHEN_SCENE3_turn_on_the_stove_and_put_the_moka_pot_on_it",
+          "identity_object": "moka_pot_1",
+          "identity_D_cm": 6.2409,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 6.2409
+        },
+        {
+          "task": "KITCHEN_SCENE4_put_the_black_bowl_in_the_bottom_drawer_of_the_cabinet_and_close_it",
+          "identity_object": "akita_black_bowl_1",
+          "identity_D_cm": 6.3867,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 6.3867
+        },
+        {
+          "task": "LIVING_ROOM_SCENE5_put_the_white_mug_on_the_left_plate_and_put_the_yellow_and_white_mug_on_the_right_plate",
+          "identity_object": "plate_1",
+          "identity_D_cm": 6.3396,
+          "shared_objects": {
+            "porcelain_mug_1": 6.2458,
+            "white_yellow_mug_1": 6.11,
+            "plate_2": 6.3121
+          },
+          "shared_D_cm_max": 6.3121,
+          "all_required_D_cm_max": 6.3396
+        },
+        {
+          "task": "STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_back_compartment_of_the_caddy",
+          "identity_object": "black_book_1",
+          "identity_D_cm": 6.3978,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 6.3978
+        },
+        {
+          "task": "LIVING_ROOM_SCENE6_put_the_white_mug_on_the_plate_and_put_the_chocolate_pudding_to_the_right_of_the_plate",
+          "identity_object": "plate_1",
+          "identity_D_cm": 5.6922,
+          "shared_objects": {
+            "porcelain_mug_1": 6.2193,
+            "chocolate_pudding_1": 5.9604
+          },
+          "shared_D_cm_max": 6.2193,
+          "all_required_D_cm_max": 6.2193
+        },
+        {
+          "task": "LIVING_ROOM_SCENE1_put_both_the_alphabet_soup_and_the_cream_cheese_box_in_the_basket",
+          "identity_object": "alphabet_soup_1",
+          "identity_D_cm": 6.3265,
+          "shared_objects": {
+            "cream_cheese_1": 5.5926,
+            "basket_1": 2.4519
+          },
+          "shared_D_cm_max": 5.5926,
+          "all_required_D_cm_max": 6.3265
+        },
+        {
+          "task": "KITCHEN_SCENE8_put_both_moka_pots_on_the_stove",
+          "identity_object": "moka_pot_1",
+          "identity_D_cm": 6.0663,
+          "shared_objects": {
+            "moka_pot_2": 6.2697
+          },
+          "shared_D_cm_max": 6.2697,
+          "all_required_D_cm_max": 6.2697
+        },
+        {
+          "task": "KITCHEN_SCENE6_put_the_yellow_and_white_mug_in_the_microwave_and_close_it",
+          "identity_object": "white_yellow_mug_1",
+          "identity_D_cm": 6.0512,
+          "shared_objects": {},
+          "shared_D_cm_max": null,
+          "all_required_D_cm_max": 6.0512
+        }
+      ],
+      "identity": {
+        "mean": 6.2072,
+        "max": 6.5654,
+        "min": 5.6922,
+        "n_admissible": 0
+      },
+      "shared": {
+        "mean": 6.1315,
+        "max": 6.3414,
+        "min": 5.5926,
+        "n_admissible": 0
+      },
+      "all_required": {
+        "mean": 6.3139,
+        "max": 6.5654,
+        "min": 6.0512,
+        "n_admissible": 0
+      }
+    }
+  }
+}

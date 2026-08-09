@@ -130,8 +130,10 @@ ins.set_facecolor("#fafafa")
 # the largest distance between any two shipped placements of a task's target --
 # which has no origin, no grid and no free parameter, and which is what a
 # reader can compare against the controller's tolerance directly.
-DIAM = json.loads((REPO / "results/placement_diameter.json").read_text())
-DELTA_CM = 2.5                       # the tolerance sec:sweep shows the controller has
+ADM = json.loads((REPO / "results/admissibility.json").read_text())["suites"]
+DIAM = {k: [t["identity_R_cm"] for t in v["tasks"]] for k, v in ADM.items()}
+FIXTURE = {k: [t["fixture"] for t in v["tasks"]] for k, v in ADM.items()}
+DELTA_CM = 1.4                       # the tolerance measured in sec:refute
 order = ["libero_object", "libero_spatial", "libero_goal", "libero_10"]
 order = [s for s in order if s in DIAM]
 y = np.arange(len(order))
@@ -139,38 +141,47 @@ for yi, s in zip(y, order):
     vals = np.asarray(DIAM[s], dtype=float)
     col = PIN if s == "libero_object" else "#9aa5b1"
     jit = (np.arange(len(vals)) % 5 - 2) * 0.055
-    axC.scatter(vals, np.full(len(vals), yi) + jit, s=26, color=col,
+    fx = np.asarray(FIXTURE[s], bool)
+    axC.scatter(vals[~fx], (np.full(len(vals), yi) + jit)[~fx], s=26, color=col,
                 edgecolor="white", linewidth=0.5, zorder=3)
+    axC.scatter(vals[fx], (np.full(len(vals), yi) + jit)[fx], s=30,
+                facecolor="none", edgecolor="#8a6d3b", linewidth=1.3, zorder=3,
+                label="_fixture")
     n_adm = int((vals <= DELTA_CM).sum())
-    axC.text(9.3, yi, f"{n_adm}/{len(vals)}", va="center", ha="right",
+    if s == "libero_goal":
+        axC.text(4.9, yi - 0.30, "(both fixtures)", va="center", ha="right",
+                 fontsize=6.6, color="#8a6d3b")
+    axC.text(4.9, yi, f"{n_adm}/{len(vals)}", va="center", ha="right",
              fontsize=8.2, fontweight="bold" if n_adm else "normal",
              color=PIN if n_adm else "#5b6670")
-# The gap is the result: Object's largest diameter and the smallest diameter
-# anywhere else bracket an interval containing no task at all, so every
-# threshold inside it returns the same 10/10 vs 0/28. Drawing it makes the
-# separation visibly independent of where the dashed line is placed.
+# The separating window is computed over MOVABLE targets only. Two
+# LIBERO-Goal tasks name a fixture with no free joint; they have R = 0 and are
+# admissible for a trivial reason, so including them in the "smallest R
+# elsewhere" would collapse a window that is really about randomised
+# placements. They are plotted (as open markers) and excluded from the window.
 _obj = np.asarray(DIAM["libero_object"], float)
-_oth = np.concatenate([np.asarray(DIAM[s], float) for s in order if s != "libero_object"])
+_oth = np.concatenate([np.asarray([v for v, f in zip(DIAM[s], FIXTURE[s]) if not f], float)
+                       for s in order if s != "libero_object"])
 GAP_LO, GAP_HI = float(_obj.max()), float(_oth.min())
 axC.axvspan(GAP_LO, GAP_HI, color="#f2d8a8", alpha=0.55, zorder=1)
 axC.annotate("", xy=(GAP_LO, -0.42), xytext=(GAP_HI, -0.42),
              arrowprops=dict(arrowstyle="<->", color="#8a6d3b", lw=1.1))
 axC.text((GAP_LO + GAP_HI) / 2, -0.55,
-         f"no task in [{GAP_LO:.2f}, {GAP_HI:.2f}]:\nany $\\delta$ here gives the same answer",
+         f"no movable target in [{GAP_LO:.2f}, {GAP_HI:.2f}]",
          fontsize=6.8, ha="center", va="top", color="#8a6d3b")
 axC.axvline(DELTA_CM, color="black", ls="--", lw=1.1, zorder=2)
 axC.text(DELTA_CM + 0.15, len(order) - 0.35,
-         f"$\\delta$ = {DELTA_CM:g} cm\n(controller tolerance)",
+         f"$\\delta$ = {DELTA_CM:g} cm\n(measured tolerance)",
          fontsize=7.4, va="top")
-axC.text(9.3, len(order) - 0.62, "tasks with\n$D \\leq \\delta$", fontsize=7.2,
+axC.text(4.9, len(order) - 0.62, "tasks with\n$D \\leq \\delta$", fontsize=7.2,
          ha="right", va="top", color="#5b6670")
 axC.set_yticks(y)
 axC.set_yticklabels([s.replace("libero_", "").replace("10", "long")
                      for s in order], fontsize=9)
 axC.set_ylim(-1.15, len(order) - 0.18)
-axC.set_xlim(-0.3, 10.0)
-axC.set_xlabel("placement diameter $D$ per task (cm)")
-axC.set_title("C  One suite is lookup-admissible; no other task is",
+axC.set_xlim(-0.15, 5.2)
+axC.set_xlabel("placement radius $R$ of the identity-bearing target (cm)")
+axC.set_title("C  Only one suite pins the object its tasks are named by",
               loc="left", fontweight="bold", fontsize=10)
 axC.spines[["top", "right"]].set_visible(False)
 
