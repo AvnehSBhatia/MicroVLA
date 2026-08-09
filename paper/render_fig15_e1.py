@@ -41,6 +41,7 @@ TASK = "pick_up_the_alphabet_soup_and_place_it_in_the_basket"
 HIT, MISS = "#2e8b57", "#c0392b"
 
 E1 = json.loads((REPO / "results/e1_shipped_vs_repaired.json").read_text())
+E5 = json.loads((REPO / "results/e5_trials.json").read_text())
 MAN = json.loads((REPO / "results/resampled_init/MANIFEST.json").read_text())
 rec = next(t for t in MAN["tasks"] if t["task"] == TASK)
 
@@ -58,8 +59,8 @@ try:
 except Exception:                      # torch absent: fall back to the manifest
     rep_xy = None
 
-fig = plt.figure(figsize=(11.6, 6.0))
-gs = fig.add_gridspec(2, 4, height_ratios=[1.0, 1.55], hspace=0.30, wspace=0.55)
+fig = plt.figure(figsize=(11.6, 7.6))
+gs = fig.add_gridspec(2, 4, height_ratios=[1.0, 2.35], hspace=0.30, wspace=0.55)
 
 for col, (title, xy, c) in enumerate([
         ("what LIBERO ships", np.zeros((50, 2)), MISS),
@@ -90,7 +91,7 @@ axn.text(0.0, 0.97,
          fontweight="bold", va="top")
 axn.text(0.0, 0.74,
          "Same weights, same seed, same trial indices, same machine,\n"
-         "same package versions. Both conditions ran in one batch.\n\n"
+         "same package versions, back to back in one invocation.\n\n"
          "The lookup arm's constant is bit-identical to the shipped\n"
          "target position. Against a target that actually moves it\n"
          "should degrade — so this is the manipulation check for §2,\n"
@@ -98,49 +99,76 @@ axn.text(0.0, 0.74,
          fontsize=8.8, va="top", color="#43505c", linespacing=1.45)
 
 # --- what happened ----------------------------------------------------------
+# Three blocks. The control is placed directly under the lookup arm because
+# that adjacency IS the argument: the same thirty repaired states, red under a
+# stale constant and green under a correct one.
 ax = fig.add_subplot(gs[1, :])
 N = 30
-BLOCKS = [("blind", "lookup constant", 3.75), ("head", "released head", 0.85)]
-for arm, label, y0 in BLOCKS:
-    a = E1["cells"][f"{arm}_shipped"]["trials"]
-    b = E1["cells"][f"{arm}_repaired"]["trials"]
-    for row, (cond, t) in enumerate([("shipped", a), ("repaired", b)]):
-        y = y0 - row * 0.92
-        for j in range(N):
-            ax.add_patch(Rectangle((j, y), 0.86, 0.80,
-                                   facecolor=HIT if t[str(j)] else MISS,
-                                   alpha=0.92 if t[str(j)] else 0.80,
+BLOCKS = [
+    ("lookup constant, from the shipped files", 5.55,
+     [("shipped", E1["cells"]["blind_shipped"]["trials"]),
+      ("repaired", E1["cells"]["blind_repaired"]["trials"])]),
+    ("control: true target, read once at reset", 3.05,
+     [("shipped", E5["fixed_shipped"]),
+      ("repaired", E5["fixed_repaired"])]),
+    ("released head", 0.55,
+     [("shipped", E1["cells"]["head_shipped"]["trials"]),
+      ("repaired", E1["cells"]["head_repaired"]["trials"])]),
+]
+for label, y0, rows in BLOCKS:
+    for r, (cond, t) in enumerate(rows):
+        y = y0 - r * 0.92
+        for j2 in range(N):
+            k2 = str(j2)
+            if k2 not in t:
+                ax.add_patch(Rectangle((j2, y), 0.86, 0.80, facecolor="none",
+                                       edgecolor="#d7dce1", lw=0.6, ls=":"))
+                continue
+            ax.add_patch(Rectangle((j2, y), 0.86, 0.80,
+                                   facecolor=HIT if t[k2] else MISS,
+                                   alpha=0.92 if t[k2] else 0.80,
                                    edgecolor="none"))
-        k = sum(t.values())
+        k, n = sum(bool(v) for v in t.values()), len(t)
         ax.text(-0.6, y + 0.40, cond, fontsize=8.8, ha="right", va="center")
-        ax.text(N + 0.5, y + 0.40, f"{k}/{N}", fontsize=9.2, ha="left",
+        ax.text(N + 0.5, y + 0.40, f"{k}/{n}", fontsize=9.2, ha="left",
                 va="center", fontweight="bold",
-                color=HIT if k > N / 2 else MISS)
-    lost = sum(1 for k in a if a[k] and not b[k])
-    gained = sum(1 for k in a if b[k] and not a[k])
+                color=HIT if k > n / 2 else MISS)
+    a, b = rows[0][1], rows[1][1]
+    keys = sorted(set(a) & set(b), key=int)
+    lost = sum(1 for k in keys if a[k] and not b[k])
+    gained = sum(1 for k in keys if b[k] and not a[k])
     n = lost + gained
-    p = min(1.0, 2 * sum(math.comb(n, i) for i in
+    p = min(1.0, 2 * sum(math.comb(n, i2) for i2 in
                          range(min(lost, gained) + 1)) / 2 ** n) if n else 1.0
     ax.text(-0.6, y0 + 1.12, label, fontsize=9.8, ha="right",
             fontweight="bold", va="center")
-    star = r"$\bf{p = %.4f}$" % p if p < 0.01 else f"p = {p:.2f}"
-    ax.text(0.0, y0 + 1.12,
-            f"{lost} trials lost to the repair,  {gained} gained     " + star,
-            fontsize=9.0, ha="left", va="center",
-            color="#1f2933" if p < 0.01 else "#5b6670")
+    if lost or gained:
+        star = r"$\bf{p = %.4f}$" % p if p < 0.01 else f"p = {p:.2f}"
+        note = f"{lost} trials lost to the repair,  {gained} gained     " + star
+    else:
+        note = "no trial changes: the repair costs a correct goal nothing"
+    ax.text(0.0, y0 + 1.12, note, fontsize=9.0, ha="left", va="center",
+            color="#1f2933" if (lost or gained) and p < 0.01 else "#5b6670")
 
-ax.set_xlim(-8.8, N + 3.6); ax.set_ylim(-0.95, 5.20)
+# the contrast the paper turns on, drawn once
+ax.annotate("", xy=(N + 3.6, 5.43), xytext=(N + 3.6, 2.13),
+            arrowprops=dict(arrowstyle="-", color="#8a6d3b", lw=1.4))
+for _y in (5.43, 2.13):
+    ax.plot([N + 3.6, N + 4.0], [_y, _y], color="#8a6d3b", lw=1.4)
+ax.text(N + 4.3, 3.78, "the same thirty\nrepaired states:\nred under a stale\nconstant, green\nunder a correct one",
+        fontsize=8.4, va="center", color="#8a6d3b", fontweight="bold",
+        linespacing=1.35)
+
+ax.set_xlim(-9.6, N + 13.5); ax.set_ylim(-1.05, 7.05)
 ax.axis("off")
-ax.text(N / 2, -0.68, "trial index, matched across conditions", fontsize=8.4,
+ax.text(N / 2, -0.78, "trial index, matched across conditions", fontsize=8.4,
         ha="center", color="#5b6670")
 
 fig.suptitle("The defect is exploitable: sampling the declared region costs a "
              "lookup policy half its score", fontsize=11.6, y=1.005)
-fig.text(0.5, -0.035,
-         "One variable changes between the two rows of each block — the fifty initial states — and both conditions ran in one batch on one machine. "
-         "Green is a success. The constant the lookup arm uses is bit-identical to the shipped target position, so a target that actually moves should defeat it, and does "
-         "(exact McNemar on matched trials). The trained head moves the same way at a size this $n$ cannot resolve.",
-         ha="center", fontsize=8.5, color="#43505c")
+fig.text(0.5, -0.045,
+         "Green is a success. One variable changes between the two rows of a block — the fifty initial states — and every cell ran back to back in one invocation on one machine.",
+         ha="center", fontsize=9.0, color="#43505c")
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(OUT, dpi=190, bbox_inches="tight")
