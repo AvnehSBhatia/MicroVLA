@@ -87,6 +87,14 @@ of looking harder at the policy --- two policies can be indistinguishable to a
 probe and opposite in the world, and we exhibit such a pair --- but of first
 measuring the benchmark.
 
+For this task we can now answer it directly. Those fifty initial states place
+the object at a single point, to the last bit of a \texttt{float64}. Draw them
+instead from the region the task's own file declares, change nothing else, and
+a table-lookup policy loses $15$ of its $25$ successes, while a controller
+handed the true position once at reset loses none of its $30$
+(\S\ref{sec:e1}). Part of what the $0.700$ certified was knowing where the
+object always is.
+
 
 \begin{table}[t]\centering\footnotesize
 \setlength{\tabcolsep}{3.5pt}
