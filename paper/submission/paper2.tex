@@ -641,6 +641,20 @@ and less comfortable statement than the one we set out to make, and it is the
 one the data supports. Per-trial outcomes and
 the paired tests are in \texttt{results/blind\_cells.json}.
 
+\paragraph{The whole suite, not one task.} Every cell above is task $0$, and so
+is nearly every confirmatory cell in this paper. We therefore ran the blind arm
+on \emph{all ten} LIBERO-Object tasks, $n{=}10$ each, every trial recorded
+(Figure~\ref{fig:suite}). It scores $\mathbf{16/100}$ $[0.10, 0.24]$: $6/10$ on
+alphabet soup, $\mathbf{10/10}$ on \texttt{bbq\_sauce}, and $0/10$ on the other
+eight.
+
+The $10/10$ is worth pausing on. It is the task with the suite's
+\emph{largest} placement diameter --- $2.34$\,cm, the value that sets the
+admissibility threshold in Table~\ref{tab:suites} --- so admissibility is not
+merely a statement about the most degenerate tasks; a constant saturates the
+suite's hardest one. And a policy with no camera, no language and no learned
+parameter takes it outright.
+
 \paragraph{The reset-oracle saturates the benchmark, and is statistically
 indistinguishable from the policy.} The oracle scores $10/10$, so the
 controller's envelope is not the binding constraint. The reset-oracle \emph{also} scores $10/10$, against the released head's
@@ -708,6 +722,19 @@ therefore a \emph{conservative} floor --- an upper bound on how badly a truly un
 
 \section{What the released policy actually is}
 \label{sec:fullsuite}
+
+\begin{figure*}[t]\centering
+\includegraphics[width=0.97\linewidth]{../visuals/F9_suite.png}
+\caption{\textbf{The whole suite, lookup against learning.} All ten
+LIBERO-Object tasks, $n{=}10$ each, every trial recorded; both policies drive
+the identical controller and differ only in where the goal comes from.
+\textbf{A} The trained head wins task $0$ ($8$ vs $6$); the blind constant wins
+task $3$ outright ($10$ vs $0$), the task carrying the suite's largest
+placement diameter; on the remaining eight both score zero. \textbf{B} Suite
+totals with Wilson intervals. Artifacts: \texttt{results/suite\_cells.json},
+\texttt{results/blind\_cells.json}, \texttt{results/pod\_cells.json}.}
+\label{fig:suite}
+\end{figure*}
 
 The previous section's cells are one task, and so is every confirmatory cell in
 this paper. Before we audit that policy it is worth stating plainly what it is,
