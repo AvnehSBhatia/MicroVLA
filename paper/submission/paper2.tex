@@ -1108,10 +1108,14 @@ Artifact: \texttt{results/blind\_failure\_attribution.json}.}
 \subsection{What would settle it}
 \label{sec:whatwouldsettle}
  Displace the constant by $r$ and sweep $r$:
-if the score is flat in $r$, the arm never used the number. We implemented it
-(\texttt{-{}-goal-anchor-jitter-cm}) and the compute window closed before it
-ran. Until it does, the strongest statement the suite supports is the negative
-one above.
+if the score is flat in $r$, the arm never used the number.
+
+\textbf{This has now run} (\S\ref{sec:e2}), and it answers the question here in
+the arm's favour: on task $3$ the response is monotone and Holm-rejects at
+$4$\,cm, so the arm \emph{is} using the constant. It also takes the
+suite-level verdict of \S\ref{sec:adm} away, because the tolerance it measures
+lands above the window that verdict needs. Both readings were written down
+before it ran.
 
 \paragraph{What survives.} Two things, First, on task $3$ a constant scores $10/10$ where the trained head scores
 $0/10$ --- a single task-level event, so we quote no $p$ for it, but one worth stating: the head is not merely worse there, it never succeeds.
