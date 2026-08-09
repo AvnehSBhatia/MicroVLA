@@ -13,8 +13,46 @@ thereafter. Same controller, same single static goal, same initial states.
 
 FIXED IN ADVANCE, AND WRITTEN DOWN BEFORE THE CELLS EXIST
 --------------------------------------------------------
-PRIMARY   paired exact McNemar, fixed_repaired vs blind_repaired, n = 30,
-          matched trial indices.
+AMENDMENT, 2026-08-09, recorded before the primary cell was read
+----------------------------------------------------------------
+The IDENTITY check below fired, and it was this file's premise that was wrong,
+not the harness. fixed_shipped scored 10/10 where blind_shipped scored 6/10 on
+the same ten trials. The reason is in the shipped states: task 0 pins the
+TARGET to a single point (0.000 cm across all fifty states) but re-places the
+BASKET every episode, over 2.9 x 2.8 cm. blind must supply both goals from the
+shipped files, so it carries the MEAN basket; fixed reads the true one. The two
+arms therefore differ in the container, not only in the target, and the claim
+that they "receive the same number" was false for half the goal.
+
+Consequence for the primary test. fixed_repaired vs blind_repaired confounds
+two changes at once and can no longer isolate the difficulty of the repaired
+states. The comparison that does isolate it is fixed_shipped vs fixed_repaired:
+both read the true basket, the basket's distribution is IDENTICAL in the two
+conditions (the repair rewrote columns 10-11 only; the basket lives in columns
+17-18 and is bit-identical between the two suites), so the sole difference is
+where the target starts. That becomes the primary test.
+
+Provenance, because an amendment made after data exists is worth distrusting:
+the identity check was run at 19:11 UTC, when E5B had just been launched and
+fixed_repaired did not exist; the cell completed at ~20:10 UTC; this amendment
+was written and committed before any fixed_repaired outcome was read. The
+ledger /workspace/jobs/e6_ledger.txt carries the timestamps. Nothing about the
+old test is deleted -- it is still computed and reported below as a secondary,
+with its confound named.
+
+PRIMARY   unpaired exact test, fixed_shipped (n = 10) vs fixed_repaired
+          (n = 30). Both arms read the true container; only the target's
+          starting distribution differs.
+
+            fixed_repaired holds up  ->  the repaired target positions are not
+                                         intrinsically harder for a correct
+                                         static goal, so blind's collapse in
+                                         E1 is the lookup failing. E1 stands.
+            fixed_repaired collapses ->  the repaired positions ARE harder and
+                                         E1's drop stays confounded. We say so.
+
+SECONDARY-A (retained, confounded) paired exact McNemar, fixed_repaired vs
+          blind_repaired, n = 30, matched trial indices.
 
             rejects, fixed > blind  ->  a correct static goal SUCCEEDS on the
                                         very states the lookup fails on, so
@@ -30,12 +68,12 @@ PRIMARY   paired exact McNemar, fixed_repaired vs blind_repaired, n = 30,
           harder, it just fails to rule it out, and the paper must not read a
           failure to separate as support. That is error 1 of its own taxonomy.
 
-IDENTITY  fixed_shipped must reproduce blind_shipped TRIAL BY TRIAL on trials
-          0-9. On a task whose placement is pinned, the constant blind compiles
-          in and the value fixed reads at reset are the same float, the initial
-          states are the same, and the controller is deterministic -- so any
-          disagreement at all is a harness bug, not a result, and is reported
-          as one. This check can only fail; it cannot flatter us.
+IDENTITY  fixed_shipped against blind_shipped, trial by trial, on trials 0-9.
+          Written on the premise that a pinned task hands both arms the same
+          float. IT DID NOT, and the premise was the error: the target is
+          pinned but the container is not. Kept exactly as it was, with its
+          result, because a check that fires is worth more than one that was
+          quietly rewritten to pass.
 
 SECONDARY (descriptive, no test, no threshold) the rate of fixed_repaired
           beside blind_shipped. If a correct static goal on repaired states
