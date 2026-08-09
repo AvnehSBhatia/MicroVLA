@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  9 AUG 2026 15:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1619,7 +1619,7 @@ Package rerunfilecheck Info: File `paper2.out' has not changed.
 Here is how much of TeX's memory you used:
  15154 strings out of 474662
  243066 string characters out of 5751110
- 744318 words of memory out of 5000000
+ 744423 words of memory out of 5000000
  37808 multiletter control sequences out of 15000+600000
  644586 words of font info for 105 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
@@ -1657,10 +1657,10 @@ xlive/2025basic/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive
 asic/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local/texlive/2025basic/t
 exmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/20
 25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on paper2.pdf (25 pages, 2735274 bytes).
+Output written on paper2.pdf (25 pages, 2735765 bytes).
 PDF statistics:
- 783 PDF objects out of 1000 (max. 8388607)
- 630 compressed objects within 7 object streams
+ 787 PDF objects out of 1000 (max. 8388607)
+ 633 compressed objects within 7 object streams
  166 named destinations out of 1000 (max. 500000)
  18738 words of extra memory for PDF output out of 20736 (max. 10000000)
 

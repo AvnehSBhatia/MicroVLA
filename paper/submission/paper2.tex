@@ -2248,12 +2248,13 @@ in, and we flag that this is a choice the result is sensitive to.
 \section{Sensitivity of the verdict to $\delta$}
 \label{app:deltasens}
 
-This appendix is where the paper's headline is most vulnerable, so
-Table~\ref{tab:deltasens} gives the curve at fine granularity rather than at
-the points that suit us. A previous
-version of this table stepped from $1.49$ directly to $2.0$\,cm, which happens
-to skip the interval containing our \emph{own} second tolerance estimate. That
-was not deliberate and it was not defensible.
+This appendix was where the paper's headline was most vulnerable, and
+\S\ref{sec:e2} is where it fell. Table~\ref{tab:deltasens} is kept in full ---
+it is the curve that made the fall predictable, and it is how a reader checks
+\S\ref{sec:e2}'s arithmetic against ours. A previous version of this table
+stepped from $1.49$ directly to $2.0$\,cm, skipping the interval containing our
+\emph{own} second tolerance estimate. That was not deliberate and it was not
+defensible; it is also the interval in which the verdict dies.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -2274,7 +2275,9 @@ $2.50$ & 10/10 & 19/30 & \\
 \end{tabular}
 \caption{Tasks whose identity-bearing object one constant serves, against the
 tolerance. \textbf{The separation is real at $1.4$\,cm and gone by
-$1.9$\,cm}, and those two numbers are our own two measurements of the same
+$1.9$\,cm --- and \S\ref{sec:e2} measures $\delta$ at $\geq 2$}, so the row a
+reader should look at is the last one, not the first. The $1.4$ and $1.9$ are
+our own two measurements of the same
 assumption (\S\ref{sec:refute}): task $0$ fails at basket displacements from
 $1.41$\,cm, task $3$ tolerates $1.91$\,cm. We report the headline at the
 smaller one, which is the value that favours us. At the larger one
