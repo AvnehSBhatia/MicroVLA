@@ -58,6 +58,34 @@ def declared_box(task: str, target: str):
     return None
 
 
+def other_boxes(task: str, target: str):
+    """Every declared region except the target's, as (name, box)."""
+    txt = (LIB / "bddl_files" / SUITE / f"{task}.bddl").read_text()
+    init = re.search(r"\(:init(.*?)\n\s*\)", txt, re.S).group(1)
+    imap = dict(re.findall(r"\(On\s+(\S+)\s+(\S+)\)", init))
+    regs = {}
+    for m in re.finditer(
+            r"\((\w+)\s*\(:target[^)]*\)\s*\(:ranges\s*\(\s*\(([^)]*)\)", txt):
+        a_, b_, c_, d_ = (float(v) for v in m.group(2).split())
+        regs[m.group(1)] = (min(a_, c_), min(b_, d_), max(a_, c_), max(b_, d_))
+    out = []
+    for obj, rname in imap.items():
+        if obj == target:
+            continue
+        box = regs.get(rname) or next(
+            (v for k, v in regs.items() if rname.endswith(k)), None)
+        if box is not None:
+            out.append((obj, box))
+    return out
+
+
+def box_point_gap_cm(box, q) -> float:
+    """Distance in cm from point q to axis-aligned box (0 if inside)."""
+    dx = max(box[0] - q[0], q[0] - box[2], 0.0)
+    dy = max(box[1] - q[1], q[1] - box[3], 0.0)
+    return float(np.hypot(dx, dy) * 100)
+
+
 def target_columns(A: np.ndarray, xy: np.ndarray) -> tuple[int, int]:
     """The (x, y) columns of the target, matched against the forensics values.
 
@@ -79,11 +107,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="results/resampled_init")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--clear-cm", type=float, default=7.42,
+                    help="minimum centre-to-region clearance; default is twice "
+                         "the largest grocery footprint radius measured from "
+                         "the asset collision geoms (milk/orange juice, 3.71 cm)")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
     J = json.loads((REPO / "results/suite_forensics_joints.json").read_text())
     rng = np.random.default_rng(a.seed)
+    clear_cm = a.clear_cm
     outdir = REPO / a.out
     if not a.dry_run:
         outdir.mkdir(parents=True, exist_ok=True)
@@ -114,12 +147,33 @@ def main() -> None:
                 np.all(xy[:, 1] > y0 - m) and np.all(xy[:, 1] < y1 + m)):
             skipped.append((task, "shipped states outside declared region")); continue
 
+        # Draw under a clearance constraint rather than from the whole box.
+        # Validating the first version of this script found the reason: on five
+        # of ten tasks the target's declared region comes within 5.0 cm of a
+        # distractor's, and the objects' own collision geoms (read from the
+        # asset XMLs, footprint radii 2.2-3.7 cm) need 7.4 cm centre-to-centre.
+        # Sampling the full box would have placed objects in contact on half
+        # the suite. We keep every draw inside the declared region AND at least
+        # `clear` from every other declared region, and report the fraction of
+        # the box that survives.
+        others = [regs for name, regs in other_boxes(task, tgt)]
+        pts, tries = [], 0
+        while len(pts) < len(A) and tries < 200000:
+            tries += 1
+            q = np.array([rng.uniform(x0, x1), rng.uniform(y0, y1)])
+            if all(box_point_gap_cm(bx, q) >= clear_cm for bx in others):
+                pts.append(q)
+        if len(pts) < len(A):
+            skipped.append((task, "could not draw enough clear positions")); continue
+        P = np.asarray(pts)
         B = A.copy()
-        B[:, cx] = rng.uniform(x0, x1, size=len(B))
-        B[:, cy] = rng.uniform(y0, y1, size=len(B))
+        B[:, cx] = P[:, 0]
+        B[:, cy] = P[:, 1]
         before = float((xy.max(0) - xy.min(0)).max() * 100)
         after = float((B[:, [cx, cy]].max(0) - B[:, [cx, cy]].min(0)).max() * 100)
         report.append({"task": task, "target": tgt, "columns": [cx, cy],
+                       "accept_rate": round(len(pts) / max(tries, 1), 4),
+                       "clearance_cm": clear_cm,
                        "declared_cm": [round((x1 - x0) * 100, 3),
                                        round((y1 - y0) * 100, 3)],
                        "spread_before_cm": round(before, 4),

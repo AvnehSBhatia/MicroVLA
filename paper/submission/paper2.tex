@@ -301,17 +301,23 @@ them.
 \toprule
 & shipped & repaired \\
 \midrule
-spread, LIBERO-Object (10 tasks) & $0.00$--$1.94$\,cm & $4.83$--$4.97$\,cm \\
+spread, LIBERO-Object (10 tasks) & $0.00$--$1.94$\,cm & $4.44$--$4.96$\,cm \\
 spread, LIBERO-Long (unmodified) & \multicolumn{2}{c}{$4.84$--$4.99$\,cm} \\
+clearance to any other region & --- & $\ge 7.42$\,cm \\
 \bottomrule
 \end{tabular}
 \caption{The repaired LIBERO-Object states span the region their task files
-declare, and land on the same spread as the sibling suite that never needed
-repairing. The candidate suite is in \texttt{results/resampled\_init}. We
-state its limit plainly: positions are drawn from the region the benchmark
-itself declares valid, so they should be admissible by construction, but we
-have not run them through a simulator to confirm no interpenetration. It is a
-candidate repair, and the manifest says so.}
+declare and land on the sibling suite's spread. Positions are drawn under a
+clearance constraint, not from the whole box: \textbf{the first version of this
+script sampled the box freely, and validation showed it would have placed
+objects in contact on five of ten tasks}, because those targets' declared
+regions come within $5.0$\,cm of a distractor's while the assets' own collision
+geoms (footprint radii $2.2$--$3.7$\,cm) need $7.42$\,cm centre-to-centre.
+\texttt{scripts/validate\_resampled.py} now checks every written position
+against every declared region and against the free-body clearances the shipped
+states exhibit; all ten tasks pass. Two things it cannot settle without a
+simulator --- resting height and table contact after settling --- are listed
+rather than assumed, and the manifest labels the suite a candidate repair.}
 \label{tab:repaired}
 \end{table}
 

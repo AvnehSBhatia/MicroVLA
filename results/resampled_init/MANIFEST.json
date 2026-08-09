@@ -9,12 +9,14 @@
         10,
         11
       ],
+      "accept_rate": 1.0,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.9724
+      "spread_after_cm": 4.9618
     },
     {
       "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
@@ -23,12 +25,14 @@
         10,
         11
       ],
+      "accept_rate": 0.6757,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.9791,
-      "spread_after_cm": 4.9425
+      "spread_after_cm": 4.8777
     },
     {
       "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
@@ -37,12 +41,14 @@
         10,
         11
       ],
+      "accept_rate": 0.625,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.9686
+      "spread_after_cm": 4.9094
     },
     {
       "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
@@ -51,12 +57,14 @@
         10,
         11
       ],
+      "accept_rate": 0.6024,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 1.944,
-      "spread_after_cm": 4.9243
+      "spread_after_cm": 4.937
     },
     {
       "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
@@ -65,12 +73,14 @@
         10,
         11
       ],
+      "accept_rate": 1.0,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.9292
+      "spread_after_cm": 4.8214
     },
     {
       "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
@@ -79,12 +89,14 @@
         10,
         11
       ],
+      "accept_rate": 0.5208,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.937
+      "spread_after_cm": 4.9393
     },
     {
       "task": "pick_up_the_butter_and_place_it_in_the_basket",
@@ -93,12 +105,14 @@
         10,
         11
       ],
+      "accept_rate": 1.0,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.9738,
-      "spread_after_cm": 4.8669
+      "spread_after_cm": 4.4438
     },
     {
       "task": "pick_up_the_milk_and_place_it_in_the_basket",
@@ -107,12 +121,14 @@
         10,
         11
       ],
+      "accept_rate": 1.0,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.984,
-      "spread_after_cm": 4.917
+      "spread_after_cm": 4.7884
     },
     {
       "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
@@ -121,12 +137,14 @@
         10,
         11
       ],
+      "accept_rate": 1.0,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.8838
+      "spread_after_cm": 4.893
     },
     {
       "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
@@ -135,12 +153,14 @@
         10,
         11
       ],
+      "accept_rate": 0.5747,
+      "clearance_cm": 7.42,
       "declared_cm": [
         5.0,
         5.0
       ],
       "spread_before_cm": 0.0,
-      "spread_after_cm": 4.8333
+      "spread_after_cm": 4.8616
     }
   ],
   "skipped": [],

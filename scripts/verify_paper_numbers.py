@@ -165,8 +165,10 @@ import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")
 _sp = [r["spread_after_cm"] for r in _man["tasks"]]
 check("repaired tasks", 10.0, float(len(_man["tasks"])), 0.5)
-check("repaired spread, min (cm)", 4.83, min(_sp), 0.02)
-check("repaired spread, max (cm)", 4.97, max(_sp), 0.02)
+check("repaired spread, min (cm)", 4.44, min(_sp), 0.02)
+check("repaired spread, max (cm)", 4.96, max(_sp), 0.02)
+check("repair sampled under a clearance constraint", True,
+      all(abs(r["clearance_cm"] - 7.42) < 1e-6 for r in _man["tasks"]))
 _src = REPO / ".libero_src/libero/libero/init_files/libero_object"
 _dst = REPO / "results/resampled_init"
 _ncols = []
