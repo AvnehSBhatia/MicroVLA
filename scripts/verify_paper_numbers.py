@@ -433,6 +433,35 @@ _hi = min(r for k in _mov if k != "libero_object" for r in _mov[k])
 check("decision window: independently rederived width", 0.322, _hi - _lo, 0.001)
 check("decision window: a 2cm ladder cannot decide it", True, (_hi - _lo) < 2.0)
 
+# R4-1: the coverage row. A referee caught a printed discordant split that did
+# not match its own p-value; both are now recomputed from per-trial records.
+POD = J("results/pod_cells.json")
+
+
+def _cell(name):
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == name and isinstance(v, dict):
+                    return v
+                if isinstance(v, dict):
+                    r = walk(v)
+                    if r:
+                        return r
+    return walk(POD)["trials"]
+
+
+_bc, _sc = _cell("P3_E8_base_cov"), _cell("P3_E8_swap_cov")
+check("coverage: base cell", 23.0, float(sum(_bc.values())), 0.5)
+check("coverage: swap cell", 13.0, float(sum(_sc.values())), 0.5)
+_l, _g, _p = mcnemar_exact(_bc, _sc)
+check("coverage: discordant split, base-only", 14.0, float(_l), 0.5)
+check("coverage: discordant split, swap-only", 4.0, float(_g), 0.5)
+check("coverage: exact McNemar p", 0.031, _p, 0.001)
+_hb, _hs = _cell("P0_ref_heldout"), _cell("P3_E8_swap_v5")
+check("coverage: released-head row p", 0.0078,
+      mcnemar_exact(_hb, _hs)[2], 0.0005)
+
 print("\n=== §2 the shipped repair ===")
 import torch as _t
 _man = J("results/resampled_init/MANIFEST.json")

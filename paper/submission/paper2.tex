@@ -62,13 +62,17 @@ $6.2\times$. \textbf{So we withdraw our own suite-level verdict}, and observe
 that no one else's is currently supportable either.
 
 \textbf{What verification did not catch.} Along the way we made nine errors,
-each found by adversarial review rather than by us. \textbf{Not one was a wrong
+\emph{most} found by adversarial review rather than by us --- and the word is
+``most'' deliberately, because at least one was caught by our own validation
+and writing ``each'' would be a chosen slice inside the section about chosen
+slices (\S\ref{sec:neg}). \textbf{Not one was a wrong
 computation.} Each was a decision about which slice of a correct instrument's
 output got written down: which trials had finished, which axes were compared,
 which tolerances were swept, which of two estimates was quoted, which parts of
 the document a retraction reached. Our verifier recomputes every number in the
-load-bearing sections from raw outcomes --- and it passed, at $76$ checks,
-while the central claim it certified was false, because it recomputed the
+load-bearing sections from raw outcomes --- and it passed, at the $76$ checks
+it carried then and would still pass at the $206$ it carries now, while the
+central claim it certified was false, because it recomputed the
 two-dimensional distance we had chosen to compute. \textbf{All nine ran in the
 direction that flattered us.} We give the taxonomy, the artifacts, and the
 review process that produced it, because a field that checks arithmetic is
@@ -157,10 +161,13 @@ what a score \emph{could} certify rather than report what one model did.}
 \citet{jiang2026benchmarking} defined \emph{shortcut solvability}: a benchmark
 score is evidence of capability only if every policy reaching it has the
 capability. That is our Corollary~\ref{cor:sep} in content. They audit five
-manipulation benchmarks including all of LIBERO and show a $0.09$B probe with
-no language encoder scoring within one point of the best published result on
-three of LIBERO's four splits, and $100.0\%$ on LIBERO-Object --- a stronger
-demonstration of it than ours.
+manipulation benchmarks including all of LIBERO and show a $0.09$B DINO+MLP
+probe with no language encoder scoring $99.0/\mathbf{100.0}/98.8/92.4\%$ on
+Spatial/Object/Goal/Long against best-reported $99.8/100.0/99.5/98.8\%$ --- within
+one point on three of the four splits and \emph{exactly} the published
+$100.0\%$ on LIBERO-Object (their Table~1). That is a stronger demonstration of
+shortcut solvability than ours: a trained probe reaching the ceiling is direct
+evidence, where our constant reaches only $16/100$.
 
 Our \emph{blind} arm is the manipulation instance of the unimodal ablation
 \citet{thomason2019shifting} established in embodied AI, and measuring a
@@ -209,7 +216,7 @@ it certified was false.
 \end{enumerate}
 
 \paragraph{What is regenerable, and what is not.}
-\texttt{scripts/verify\_paper\_numbers.py} recomputes $206$ values across
+\texttt{scripts/verify\_paper\_numbers.py} recomputes $212$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
 shipped initial states --- including the tests those sections turn on --- and
 fails on disagreement. A second script,
@@ -259,7 +266,17 @@ no statistics enter it.
 
 Each LIBERO task declares, in its own BDDL, an axis-aligned region to sample
 its target from. For \texttt{pick\_up\_the\_alphabet\_soup} that region is
-$5 \times 5$\,cm. The fifty shipped initial states place the soup at a single
+$5 \times 5$\,cm.
+
+Two quantities recur below, so we fix them once. Writing $x_j(s)$ for
+coordinate $j \in \{1,2\}$ of a task's target in shipped state $s$, the
+\textbf{spread} is
+$\max_{j} \big( \max_s x_j(s) - \min_s x_j(s) \big)$ --- the longer side of the
+axis-aligned bounding box of the shipped placements, in centimetres --- and the
+\textbf{exercised fraction} is that longer side divided by the corresponding
+declared side. Both are properties of two files. Neither involves a policy, a
+simulator or a tolerance, and the spread is the number printed under each panel
+of Figures~\ref{fig:alltasks} and~\ref{fig:declared}. The fifty shipped initial states place the soup at a single
 point --- the box's exact centre (Figure~\ref{fig:declared}). \textbf{The
 generator randomises; the released evaluation states do not.}
 Figure~\ref{fig:alltasks} shows this is not one chosen task: it draws all
@@ -1001,7 +1018,10 @@ At the task level --- the unit
 the design actually randomises over --- blind wins one task, loses one, and ties
 eight: exact sign test $p = 1.0$, exact sign-flip permutation $p = 1.0$,
 cluster bootstrap on the difference $[-0.06, +0.30]$. The design effect is
-$8.4$, so the effective $n$ is about $12$, not $100$.
+$\approx 8$ (bootstrap $[5.4, 10.0]$), which would put the effective $n$ near
+$12$ rather than $100$ --- but we use it as a \emph{description} of how far
+from i.i.d.\ this design sits, not as a correction, because it is estimated
+from a single non-degenerate cluster and no test above applies it.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -1609,11 +1629,24 @@ all thirty untouched states.
 The interval is therefore conservative in the wrong direction. And the clean
 comparison does not need a new run at all --- it is subtraction, which we had
 missed: the $n{=}50$ cell contains the thirty untouched states, so the twenty
-burned ones scored $35 - 20 = \mathbf{15/20 = 0.750}$.
+burned ones scored $35 - 20 \approx \mathbf{15/20 = 0.750}$.
+
+\textbf{The approximation sign is doing work.} That subtraction takes the
+new untouched cell (seed $40$, current build) out of the historical $n{=}50$
+cell (seed $20$, pre-rebuild, no per-trial record survives), so it presumes the
+released head returns the same outcome on the same state across two seeds and
+two builds. The lookup arm does --- \S\ref{sec:cert} shows it matching
+outcome-for-outcome across the rebuild --- but that is a constant-goal arm, and
+\emph{this} head flipped one trial in ten across the same rebuild ($7/10$
+recorded, $8/10$ reproduced). A one- or two-trial discrepancy moves the burned
+band to $14/20$ or $16/20$, i.e.\ $0.700$--$0.800$, and the difference below
+from $-0.033$ to $-0.133$. Every conclusion in this paragraph survives that
+range; the equality does not, which is why it is not written as one.
 
 Against them the untouched band gives $0.667$ versus $0.750$, a difference of
-$\mathbf{-0.083}$ --- two and a half times the $-0.033$ we reported against the
-superset --- with Fisher exact $p = 0.75$. The burn is still not detectable at
+$\mathbf{-0.083}$ (sensitivity range $-0.033$ to $-0.133$ under the
+$\pm$one-trial caveat above) --- against the $-0.033$ we reported comparing
+with the superset --- with Fisher exact $p = 0.75$. The burn is still not detectable at
 this $n$, but the honest effect size is the larger one, and the direction is
 the one that flatters us less.
 
@@ -2059,7 +2092,8 @@ right-hand columns are the finding: the instrument was never wrong, a checker
 that recomputes every number would not have caught it, and every error ran in
 the direction that flattered us. The fifth row is fact rather than
 counterfactual --- our verifier recomputes every number in the load-bearing
-sections from raw per-trial outcomes, it passed $76$ checks, and the claim it
+sections from raw per-trial outcomes, it passed the $76$ checks it carried at
+the time ($206$ today), and the claim it
 certified was false, because it recomputed the two-dimensional distance we had
 chosen to compute. Generated by \texttt{paper/render\_fig14\_errors.py}.}
 \label{fig:errors}
@@ -2068,7 +2102,16 @@ chosen to compute. Generated by \texttt{paper/render\_fig14\_errors.py}.}
 \subsection{Nine ways a result fooled us, and the one thing they share}
 
 Recorded because the failure modes generalise and \emph{none} was caught by a
-conventional check. In every one of them the instrument was correct
+conventional check.
+
+\paragraph{Who found them, since a blanket answer would flatter the thesis.}
+Seven were found by adversarial review of a manuscript we already believed.
+Error~$6$ --- the repaired suite we shipped before validating it --- was caught
+by our own geometric validator, after shipping and before a reviewer saw it.
+Error~$3$ was found internally in an earlier draft. The taxonomy's claim is
+about the errors' \emph{structure} and \emph{direction}, both of which hold for
+all nine; it is not a claim that external review is the only thing that finds
+them, and the two counterexamples are ours. In every one of them the instrument was correct
 (Figure~\ref{fig:errors}; repairs in Table~\ref{tab:fooled}).
 
 That is the pattern (Figure~\ref{fig:errors}), and it took nine instances to
@@ -2228,6 +2271,14 @@ states, and would need restating for procedurally generated ones.
 
 \subsection{Running this on a benchmark that is not LIBERO}
 \label{sec:portable}
+
+\noindent\emph{Build caveat, stated here rather than only in
+\S\ref{sec:cert}.} The port described below was exercised on macOS with MuJoCo
+$3.3.0$, not the pinned deployment build of \S\ref{sec:platform} (Linux, MuJoCo
+$2.3.7$). Nothing in this subsection depends on a simulator --- both
+measurements read files --- but the \emph{scripts} were last run under the
+unpinned build, and a replicator pinning \S\ref{sec:platform} exactly should
+expect to re-run them rather than trust these paths verbatim.
 
 Both measurements need the same two things (Table~\ref{tab:portable}), and
 neither needs a model: a
