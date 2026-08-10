@@ -1,0 +1,89 @@
+{
+ "note": "figure number -> generating script -> image digest. LaTeX assigns figure numbers; the script names are historical and do not track them, which is why this file exists.",
+ "figures": [
+  {
+   "figure": 1,
+   "image": "F12_dependency.png",
+   "script": "render_fig12_dependency.py",
+   "sha256_12": "7fd486958b0f"
+  },
+  {
+   "figure": 2,
+   "image": "F13_all_tasks.png",
+   "script": "render_fig13_allsmall.py",
+   "sha256_12": "12d9c20413f4"
+  },
+  {
+   "figure": 3,
+   "image": "F10_declared_vs_shipped.png",
+   "script": "render_fig10_declared.py",
+   "sha256_12": "b79f61f4f1f8"
+  },
+  {
+   "figure": 4,
+   "image": "F15_e1_manipulation.png",
+   "script": "render_fig15_e1.py",
+   "sha256_12": "90ba72eb29fb"
+  },
+  {
+   "figure": 5,
+   "image": "F11_radius_criterion.png",
+   "script": "render_fig11_radius.py",
+   "sha256_12": "14f1359f2af5"
+  },
+  {
+   "figure": 6,
+   "image": "F1_placement_forensics.png",
+   "script": "render_fig1_placement_forensics.py",
+   "sha256_12": "50b77ab8859d"
+  },
+  {
+   "figure": 7,
+   "image": "F7_ladder.png",
+   "script": "render_fig7_ladder.py",
+   "sha256_12": "b464af3053ed"
+  },
+  {
+   "figure": 8,
+   "image": "F9_suite.png",
+   "script": "render_fig9_suite.py",
+   "sha256_12": "0ba8c08555bb"
+  },
+  {
+   "figure": 9,
+   "image": "F8_subgoal.png",
+   "script": "render_fig8_subgoal.py",
+   "sha256_12": "da167709eb00"
+  },
+  {
+   "figure": 10,
+   "image": "F16_jitter.png",
+   "script": "render_fig16_jitter.py",
+   "sha256_12": "fc428ddf4ec6"
+  },
+  {
+   "figure": 11,
+   "image": "F17_decision_window.png",
+   "script": "render_fig17_window.py",
+   "sha256_12": "c418159b46b3"
+  },
+  {
+   "figure": 12,
+   "image": "F2_dataflow_language.png",
+   "script": "render_fig2_dataflow.py",
+   "sha256_12": "d35c2e531924"
+  },
+  {
+   "figure": 13,
+   "image": "F6_place_point_map.png",
+   "script": "render_fig6_placepoint.py",
+   "sha256_12": "0f4e0d77d815"
+  },
+  {
+   "figure": 14,
+   "image": "F14_errors.png",
+   "script": "render_fig14_errors.py",
+   "sha256_12": "ca6f059c3d9b"
+  }
+ ]
+}

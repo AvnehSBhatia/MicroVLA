@@ -24,6 +24,7 @@ Usage: python scripts/check_manuscript_consistency.py
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from collections import defaultdict
@@ -123,6 +124,28 @@ def main() -> None:
     for c in sorted(cited):
         if not (REPO / c).exists():
             problems.append(f"cited artifact does not exist: {c}")
+
+    # --- 2d. the figure manifest must cover every figure the paper includes --
+    # A stale committed PNG survived four drafts and was caught by a referee
+    # reading annotations the generator no longer produces (R4-5). This makes
+    # the mapping explicit and fails if a figure is added without it.
+    import hashlib
+    man_p = REPO / "results" / "figure_manifest.json"
+    if man_p.exists():
+        man = json.loads(man_p.read_text())["figures"]
+        included = re.findall(r"includegraphics\[[^\]]*\]\{\.\./visuals/([^}]+)\}", t)
+        listed = {m["image"] for m in man}
+        for img in included:
+            if img not in listed:
+                problems.append(f"figure not in results/figure_manifest.json: {img}")
+        for m in man:
+            f = REPO / "paper" / "visuals" / m["image"]
+            if not f.exists():
+                problems.append(f"manifest names a missing image: {m['image']}")
+            elif hashlib.sha256(f.read_bytes()).hexdigest()[:12] != m["sha256_12"]:
+                problems.append(
+                    f"figure changed since the manifest was written (re-run "
+                    f"its script and refresh the manifest): {m['image']}")
 
     # --- 3. withdrawn claims still asserted ---------------------------------
     WITHDRAWN = {
