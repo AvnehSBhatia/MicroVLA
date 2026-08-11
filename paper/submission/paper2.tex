@@ -32,23 +32,23 @@ certified?} We give three answers, and the third is the one we did not want.
 
 \textbf{An upper bound, computable before training.} Define the
 \emph{placement radius} $R$ of an object as the radius of the smallest disc
-containing every position the benchmark ships for it. A single task-indexed
+containing every position the benchmark releases for it. A single task-indexed
 constant --- a lookup table, with no perception --- serves that object
 \emph{if and only if} $R \le \delta$, the tolerance below which the embodiment
 cannot tell two placements apart. $R$ is arithmetic on released files: no
 policy, no simulator, no training. It bounds what a score \emph{could}
-certify, in advance, for any benchmark that ships its evaluation states.
+certify, in advance, for any benchmark that releases its evaluation states.
 
 \textbf{The bound bites.} Every LIBERO task declares, in its own task file, a
 region from which to sample its target. Three of the four suites ship states
 that exercise it; \textbf{LIBERO-Object does not} --- it declares the largest
 region of the four and ships the smallest spread, placing the target at a
 single point, to the last bit of a \texttt{float64}, on six of ten tasks. We
-ship the repair and it is not cosmetic: drawing the fifty states from the
+release the repair. Drawing the fifty states from the
 region the task file itself declares, and changing nothing else, costs a
 lookup policy $15$ of its $25$ successes ($p = 0.0007$), while a controller
-handed the true target once at reset loses \emph{none} of its $30$. The states
-are not harder; the constant is wrong on them. No tolerance enters any of this.
+handed the true target once at reset loses \emph{none} of its $30$. No
+tolerance enters any of this.
 
 \textbf{And the field cannot currently evaluate the bound.} Converting $R$ into
 a verdict about a suite requires $\delta$, and we show the requirement is
@@ -81,7 +81,7 @@ defended against none of this.
 
 \section{The question}
 
-A policy scores $0.700$ on a manipulation benchmark --- $35$ successes in $50$
+A policy scores $0.700$ on a manipulation benchmark: $35$ successes in $50$
 trials on one LIBERO-Object task, and it is our own policy. What has been
 certified?
 
@@ -89,9 +89,9 @@ The intended reading is a capability claim: the policy perceives the named
 object, locates it, and manipulates it. The reading this paper is about is
 narrower and much cheaper: the policy has learned \emph{where the object always
 is}. Both readings produce the same number. Distinguishing them is not a matter
-of looking harder at the policy --- two policies can be indistinguishable to a
-probe and opposite in the world, and we exhibit such a pair --- but of first
-measuring the benchmark.
+of looking harder at the policy; two policies can be indistinguishable to a
+probe and opposite in the world, and we exhibit such a pair. It is a matter of
+first measuring the benchmark.
 
 For this task we can answer it directly. Those fifty initial states place the
 object at a single point, to the last bit of a \texttt{float64}. Draw them
@@ -143,7 +143,7 @@ Shortcuts~\citep{geirhos2020shortcut} & general statement & --- \\
 \multicolumn{3}{l}{\emph{Perturbation, in robotics}} \\
 LIBERO-PRO~\citep{zhou2025liberopro} & re-running with perturbed scenes & how much was gameable \emph{a priori} \\
 LIBERO-Plus~\citep{fei2025liberoplus} & seven axes, ten VLAs & which stage reads the shortcut \\
-robomimic~\citep{mandlekar2021robomimic}, COLOSSEUM~\citep{pumacay2024colosseum} & re-collection, perturbation & what the shipped files already permit \\
+robomimic~\citep{mandlekar2021robomimic}, COLOSSEUM~\citep{pumacay2024colosseum} & re-collection, perturbation & what the released files already permit \\
 \addlinespace
 \textbf{This paper} & \textbf{shipped files, before training} &
 \textbf{whether the radius binds: that needs $\delta$, and $\delta$ needs a
@@ -177,7 +177,7 @@ ignore language is not our finding.
 
 \paragraph{What is ours is the \emph{a priori} half.} Every \emph{prior} diagnostic in Table~\ref{tab:related} needs a trained model
 and a run. $R$ is a property of
-the shipped files: it bounds what a score could certify before a GPU is
+the released files: it bounds what a score could certify before a GPU is
 switched on, and it names \emph{which} object in a task carries the degeneracy.
 
 It is also not the whole story. Jiang et al.'s probe succeeds on Spatial, Goal and Long, where our own
@@ -195,7 +195,7 @@ LIBERO tasks from released files alone.
 \item \textbf{A defect the bound exposes, checkable with no tolerance at all}
 (\S\ref{sec:declared}). LIBERO-Object's released states do not sample the
 region its own task files declare; three sibling suites' do. Arithmetic on two
-shipped files.
+released files.
 \item \textbf{Evidence that the defect is exploitable} (\S\ref{sec:e1}).
 Sampling the declared region costs a lookup policy $15$ of $25$ successes
 ($p = 0.0007$); a correct static goal loses none of $30$ on the same states.
@@ -218,7 +218,7 @@ it certified was false.
 \paragraph{What is regenerable, and what is not.}
 \texttt{scripts/verify\_paper\_numbers.py} recomputes $212$ values across
 \S\ref{sec:declared}--\S\ref{sec:refute} from the per-trial outcomes and the
-shipped initial states --- including the tests those sections turn on --- and
+released initial states --- including the tests those sections turn on --- and
 fails on disagreement. Every figure is regenerable, and
 \texttt{results/figure\_manifest.json} maps each figure \emph{number} to the
 script that draws it and the digest of the image it produced --- LaTeX assigns
@@ -232,7 +232,7 @@ An earlier version of that script checked $p$-values by reading them back out
 of the JSON that wrote them --- a consistency check between two copies of a
 number, not a re-derivation. A reviewer caught it; it is fixed. The script names the claims it does \emph{not} cover, and one
 of them matters: the historical $0.700 = 35/50$ cell that opens this paper was
-measured before we shipped per-trial logs, and its trial record is not in the
+measured before we published per-trial logs, and its trial record is not in the
 repository.
 
 \begin{figure*}[t]\centering
@@ -242,16 +242,15 @@ $\delta$ is this work's weakest link --- our two measurements of it disagree by
 a factor of $1.4$, and the separation it licenses lives on a $0.32$\,cm window
 --- so rather than leave a reader to reconstruct the dependency from prose, we
 draw it. \textbf{Nothing in the top tier depends on $\delta$, on a controller,
-on a policy, or on a statistic}: it is arithmetic on files the benchmark ships.
+on a policy, or on a statistic}: it is arithmetic on files the benchmark releases.
 A reader who rejects the middle tier outright still keeps the top one. The
 bottom tier is claims this paper made and withdrew, kept visible so the record
 is legible. Generated by \texttt{paper/render\_fig12\_dependency.py}.}
 \label{fig:dependency}
 \end{figure*}
 
-Figure~\ref{fig:dependency} is the map: it tiers every claim below by what it
-rests on, so a reader can see at once which survive if the tolerance is
-disputed.
+Figure~\ref{fig:dependency} tiers every claim below by what it rests on, so a
+reader can see which survive if the tolerance is disputed.
 
 \paragraph{Scope, stated once and up front.} All results are simulation. Every
 confirmatory cell is one task and one object unless stated. Cell sizes are given
@@ -265,7 +264,7 @@ reproduce.
 \label{sec:declared}
 
 We begin with the fact that needs the least machinery. It compares two files
-the benchmark ships. No tolerance, no controller, no policy, no simulator, and
+the benchmark releases. No tolerance, no controller, no policy, no simulator, and
 no statistics enter it.
 
 Each LIBERO task declares, in its own BDDL, an axis-aligned region to sample
@@ -275,13 +274,13 @@ $5 \times 5$\,cm.
 Two quantities recur below, so we fix them once. Writing $x_j(s)$ for
 coordinate $j \in \{1,2\}$ of a task's target in shipped state $s$, the
 \textbf{spread} is
-$\max_{j} \big( \max_s x_j(s) - \min_s x_j(s) \big)$ --- the longer side of the
-axis-aligned bounding box of the shipped placements, in centimetres --- and the
+$\max_{j} \big( \max_s x_j(s) - \min_s x_j(s) \big)$, the longer side of the
+axis-aligned bounding box of the shipped placements in centimetres; and the
 \textbf{exercised fraction} is that longer side divided by the corresponding
 declared side. Both are properties of two files. Neither involves a policy, a
 simulator or a tolerance, and the spread is the number printed under each panel
-of Figures~\ref{fig:alltasks} and~\ref{fig:declared}. The fifty shipped initial states place the soup at a single
-point --- the box's exact centre (Figure~\ref{fig:declared}). \textbf{The
+of Figures~\ref{fig:alltasks} and~\ref{fig:declared}. The fifty released initial states place the soup at a single
+point, the box's exact centre (Figure~\ref{fig:declared}). \textbf{The
 generator randomises; the released evaluation states do not.}
 Figure~\ref{fig:alltasks} shows this is not one chosen task: it draws all
 twenty tasks of the two suites that declare the same box.
@@ -307,7 +306,7 @@ the dots are the fifty shipped initial states. \textbf{A} LIBERO-Object task
 $0$: a $5 \times 5$\,cm declaration, and all fifty states at one point.
 \textbf{B} LIBERO-Long task $0$, same generator, the identical $5 \times 5$\,cm
 declaration, drawn on the same scale: the states fill it. No tolerance,
-controller, policy or simulator enters this comparison --- it is two shipped
+controller, policy or simulator enters this comparison: it is two released
 files. Generated by \texttt{paper/render\_fig10\_declared.py}.}
 \label{fig:declared}
 \end{figure*}
@@ -327,12 +326,12 @@ Long & $5.0$\,cm & $4.9$\,cm & yes \\
 \caption{\textbf{Three LIBERO suites ship states that exercise the region their
 task files declare. One does not.} Mean declared box side against mean shipped
 spread. LIBERO's sampler places within the declared box plus a margin, so a
-suite doing its job ships a spread at or slightly \emph{above} its declaration
---- Spatial, Goal and Long all do. LIBERO-Object declares the largest box of
+suite doing its job ships a spread at or slightly \emph{above} its
+declaration; Spatial, Goal and Long all do. LIBERO-Object declares the largest box of
 the four and ships the smallest spread, $0.0$ cm on six of ten tasks, where all
 fifty states are one point. Long is the sharpest control: it declares the
 \emph{identical} $5$\,cm box and ships $96.7$--$99.8\%$ of it, so this is not a
-property of the generator. Arithmetic on two shipped files --- no $\delta$, no
+property of the generator. Arithmetic on two released files: no $\delta$, no
 policy, no simulator. Artifact:
 \texttt{results/declared\_vs\_shipped.json}.}
 \label{tab:declared}
@@ -343,11 +342,11 @@ not a design decision to be argued with. It is a \textbf{state-generation
 defect}: the benchmark's own task files specify the
 fix, and a suite in the same release demonstrates it working.
 
-\paragraph{We ship the repair, not a recommendation.} The fix requires no
+\paragraph{We release the repair.} The fix requires no
 redesign: draw the target's position from the box the task file already
 declares. \texttt{scripts/resample\_init\_states.py} does this for all ten
 LIBERO-Object tasks (Table~\ref{tab:repaired}), changing \emph{only} the two
-state-array columns holding the target's $x$ and $y$ --- every other object, every joint velocity and the
+state-array columns holding the target's $x$ and $y$; every other object, every joint velocity and the
 time field are bit-identical to the released file, which we verify by diffing
 them.
 
@@ -370,9 +369,9 @@ objects in contact on five of ten tasks}, because those targets' declared
 regions come within $5.0$\,cm of a distractor's while the assets' own collision
 geoms (footprint radii $2.2$--$3.7$\,cm) need $7.42$\,cm centre-to-centre.
 \texttt{scripts/validate\_resampled.py} now checks every written position
-against every declared region and against the free-body clearances the shipped
-states exhibit; all ten tasks pass. Two things it cannot settle without a
-simulator --- resting height and table contact after settling --- are listed
+against every declared region and against the free-body clearances the
+released states exhibit; all ten tasks pass. Two things it cannot settle without a
+simulator (resting height and table contact after settling) are listed
 rather than assumed, and the manifest labels the suite a candidate repair.}
 \label{tab:repaired}
 \end{table}
@@ -383,7 +382,7 @@ rather than assumed, and the manifest labels the suite a candidate repair.}
 A frozen placement is only interesting if it changes what a policy can do.
 Section~\ref{sec:refute} reports our failure to establish that, and this
 experiment settles the half of it that is settleable: run two policies on task
-$0$ twice --- once on the fifty states LIBERO ships, once on fifty drawn from
+$0$ twice --- once on the fifty states LIBERO releases, once on fifty drawn from
 the region its own task file declares --- changing nothing else. Same weights,
 same seed, same trial indices, same machine, same package versions, one
 invocation of one script that runs the shipped condition, swaps the initial
@@ -425,22 +424,20 @@ read once at reset & & & $20$--$0$, $\mathbf{p = 2\times10^{-6}}$ \\
 \end{tabular}
 \caption{\textbf{Sampling the region the benchmark declares costs a lookup
 policy half its score.} Task $0$, $n{=}30$ per cell, exact McNemar over matched
-trial indices --- one variable changes, the fifty initial states. The constant
+trial indices: one variable changes, the fifty initial states. The constant
 is bit-identical to the shipped target position, so against a target that
 actually moves it should degrade, and it does: $0.833 \to 0.333$,
 $p = 0.0007$. \textbf{This is the manipulation check for
 \S\ref{sec:declared}}: it establishes that the shipped states cannot defeat a
-table lookup and the repaired ones can, so the defect is load-bearing rather
-than cosmetic. \textbf{The control row closes the obvious hole}: handed the true
+table lookup and the repaired ones can, so the defect is exploitable. \textbf{The control row closes the obvious hole}: handed the true
 target once at reset, the same controller succeeds on \emph{every one} of the
-thirty repaired states, so those states are not harder --- only the constant
-breaks on them. That the manipulation reached the \emph{simulator} and not
+thirty repaired states, so difficulty cannot explain the collapse. That the manipulation reached the \emph{simulator} and not
 merely the files is checked there too: at step $0$ the physics engine placed
 the object at $30$ distinct positions spanning $4.8\times4.7$\,cm under the
 repair and at one position, to nine decimals, under the shipped states
 (\texttt{results/e5\_object\_positions.json}). The trained head drops in the same direction, $0.633 \to
 0.433$,
-which this $n$ does not resolve ($p = 0.18$) --- and which we would not read as
+which this $n$ does not resolve ($p = 0.18$), and which we would not read as
 exploitation even if it did, because the two explanations are not separated
 here: the head was fit on this suite's own demonstrations, so a drop on states
 drawn from anywhere else is as consistent with plain distribution shift as with
@@ -451,20 +448,20 @@ Figure~\ref{fig:e1}; artifact \texttt{results/e1\_shipped\_vs\_repaired.json}.}
 \end{table}
 
 \paragraph{The obvious objection, and the arm that answers it.}
-The repaired positions might simply be \emph{harder} --- in which case the drop
+The repaired positions might simply be \emph{harder}, in which case the drop
 measures difficulty, not exploitability, and the manipulation check proves
 nothing. Nothing in the first two rows of Table~\ref{tab:e1} separates those.
 So we ran the arm that does, and wrote both readings down before running it
 (Table~\ref{tab:e5plan}). \texttt{fixed} keeps the controller, the states and
 the single static goal, and changes only where that goal comes from: one
-privileged look at reset instead of a constant compiled from the shipped files.
+privileged look at reset instead of a constant compiled from the released files.
 
 \textbf{It scores $30/30$.} On the identical thirty repaired states where the
-lookup constant scores $10/30$, a correct static goal never fails --- $20$
+lookup constant scores $10/30$, a correct static goal never fails: $20$
 discordant trials, every one favouring \texttt{fixed}, $p = 2\times10^{-6}$.
-The repaired suite is not hard; a stale constant is simply wrong on it. That
-closes the confound, and it is why \S\ref{sec:declared}'s defect is
-load-bearing rather than a curiosity about file contents.
+That closes the confound: difficulty cannot explain the collapse, so
+\S\ref{sec:declared}'s defect is exploitable rather than a curiosity about
+file contents.
 
 \begin{table}[h]\centering\footnotesize
 \setlength{\tabcolsep}{5pt}
@@ -503,12 +500,12 @@ broke, not the harness}. Task $0$ pins the target to a single point and
 \emph{mean} basket; every other arm reads the true one. The two arms never
 received the same goal.
 
-Three consequences, none of them cosmetic.
+Three consequences.
 
 \textbf{(i) The lookup arm is handicapped, not favoured.} Its $25/30$ was
 scored while paying for a container it is not allowed to look at. This is not a
-new observation --- \S\ref{sec:refute} already reports it, with its confound ---
-and what \emph{is} new is that a run on different hardware and a different
+new observation; \S\ref{sec:refute} already reports it, with its confound. What
+\emph{is} new is that a run on different hardware and a different
 \texttt{torch} reproduced the historical cell \textbf{trial for trial}: the
 same six successes, the same four failures, the same $4$--$0$ discordance
 against an arm that reads the true container ($p = 0.125$ at $n{=}10$, then as
@@ -516,9 +513,8 @@ now).
 
 \textbf{(ii) The isolating comparison is \texttt{fixed} against
 \texttt{fixed}.} Shipped versus repaired, where the basket distribution is
-bit-identical --- the repair rewrote state columns $10$--$11$ and the basket
-lives in $17$--$18$. That is the test reported above, and it is why the control
-row is a control.
+bit-identical: the repair rewrote state columns $10$--$11$ and the basket
+lives in $17$--$18$. That is the test reported above.
 
 \textbf{(iii) It is an error of ours, and it goes \emph{outside}
 \S\ref{sec:neg}'s taxonomy.} Those nine share one structure: a correct
@@ -530,8 +526,7 @@ What it is instead is the first of our errors that no human found. Automation
 caught none of the other nine; it caught this one because the prediction was
 \emph{deterministic} --- same float, same states, same controller --- so a
 single disagreeing trial falsified it outright, with no statistics in the way.
-That is the shape of claim a machine can check, and it is worth knowing which
-of one's claims have it.
+That is the shape of claim a machine can check.
 
 \paragraph{One reading we are not entitled to.} Inside
 Table~\ref{tab:e1} the lookup arm \emph{leads} the trained head on shipped
@@ -554,9 +549,8 @@ predict. It is not one. The two runs share ten trials and agree on
 is the twenty trials only the newer cell ran, where the arm scores $19/20$. We
 had compared a ten-trial slice with a thirty-trial one and called the
 difference a platform. That is the structure of \S\ref{sec:neg}'s nine
-exactly, and it is the only instance we have caught of it running
-\emph{against} us --- which is worth saying, because it puts the danger in the
-invisibility of the slice rather than in a bias of direction.
+exactly, and the only instance we have caught running \emph{against} us. What
+makes a slice dangerous is that it is invisible, whichever way it runs.
 
 That leaves the question this paper exists to answer. A frozen placement is
 only a problem if a policy can exploit it, and whether it can is a question
@@ -575,12 +569,12 @@ perceiving policy would have supplied.
 
 \subsection{Definitions}
 
-Fix a task $t$ that ships a finite set $S_t$ of initial states. A task requires
+Fix a task $t$ that releases a finite set $S_t$ of initial states. A task requires
 the policy to localise one or more objects; write $O_t$ for that set, which the
-benchmark declares (LIBERO ships it as \texttt{obj\_of\_interest}), and
+benchmark declares (LIBERO gives it as \texttt{obj\_of\_interest}), and
 $x_t^o(s) \in \mathbb{R}^2$ for object $o$'s table position in state $s$. All
 norms are Euclidean unless subscripted. \S\ref{sec:norm} recomputes everything
-in $\ell_\infty$ --- the norm A1 is naturally stated in --- where the count
+in $\ell_\infty$ (the norm A1 is naturally stated in), where the count
 elsewhere rises to $3/30$, the third task is a movable target rather than a
 fixture, and the separating window no longer contains the $\delta$ we use. The
 choice of norm is one this result is sensitive to.
@@ -597,10 +591,10 @@ smallest disc containing every shipped position,
 
 \noindent $R$ is the quantity the next proposition needs, and it is the
 quantity because a single constant serves $o$ \emph{if and only if}
-$R_t(o) \le \delta$ --- the minimising $c$ \emph{is} that constant.
+$R_t(o) \le \delta$: the minimising $c$ \emph{is} that constant.
 
 The distinction from the \emph{diameter}
-$D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$ is not cosmetic.
+$D_t(o) = \max_{s,s'} \lVert x^o_t(s) - x^o_t(s')\rVert$ matters.
 $D \le \delta$ implies $R \le \delta$ but not conversely: $R \ge D/2$ always,
 and Jung's theorem gives $R \le D/\sqrt{3}$ in the plane, so $D > \delta$
 licenses nothing. An earlier version of this paper used $D$ to claim that no
@@ -621,8 +615,7 @@ least two: the thing to be moved and the place to put it. Call $o$
 basket'' --- and \emph{shared} otherwise. LIBERO-Object's ten tasks differ only
 in the identity-bearing object; all ten share one basket.
 
-We report the two separately, because the split is the finding rather than a
-technicality.
+We report the two separately, because the split is itself the finding.
 
 Measured over both, \emph{no} LIBERO-Object task is admissible: the shared
 basket has $R \in [1.67, 1.98]$\,cm and moves every episode. An earlier version
@@ -634,7 +627,7 @@ We take it to be the first entry of the task's declared
 to this task'': in $22$ of $40$ tasks the first entry is shared with a sibling
 task, and LIBERO-Object is the one suite where the two rules coincide.
 
-Under the stated semantics instead --- take the entry unique to the task --- the
+Under the stated semantics instead (take the entry unique to the task), the
 count elsewhere goes from $2/30$ to $\mathbf{8/30}$; taking the last entry (the
 destination) reverses the result entirely, to $0/10$ against $16/30$. The
 verdict is a function of a labelling choice, and we report all three
@@ -665,7 +658,7 @@ identity-bearing object is sufficient for a constant to solve a task.
 constant $c$ with $\lVert x_t^o(s) - c\rVert \le \delta$ leaves the episode
 outcome unchanged, for every $s$. A1 is an empirical property of an embodiment,
 not a definition. \S\ref{sec:refute} measures it directly and finds a radius of
-about $1.4$\,cm on this controller --- and finds that the radius is not the
+about $1.4$\,cm on this controller, and finds that the radius is not the
 same number on every task, which is a real limitation of what follows.
 
 \begin{figure*}[t]\centering
@@ -709,7 +702,7 @@ rather than about the proposition.
 \label{cor:sep}
 On a suite satisfying the hypotheses, no function of episode outcomes
 distinguishes the lookup policy from any policy that supplies the controller a
-position within $\delta$ of the truth on every shipped state.
+position within $\delta$ of the truth on every released state.
 \end{corollary}
 
 \noindent Corollary~\ref{cor:sep} is a statement about a \emph{comparison
@@ -721,7 +714,7 @@ though they could is a mistake we have made in both directions.
 
 \subsection{Measurement}
 
-Extracting a position from a shipped state is not mechanical --- a naive
+Extracting a position from a released state is not mechanical --- a naive
 fixed-column layout is wrong for every suite containing an articulated fixture
 --- so we compile each task's model and read \texttt{jnt\_qposadr};
 Appendix~\ref{app:columns} gives the procedure and the cross-check.
@@ -746,9 +739,9 @@ Long & 3.10 & $2.85$--$3.28$ & $0.00$--$3.17$ & 0/10 \\
 \bottomrule
 \end{tabular}
 \caption{Placement radius of every LIBERO task, computed from the shipped
-initial states alone --- no policy, no simulator, no training. The radii need no tolerance; the last
+initial states alone: no policy, no simulator, no training. The radii need no tolerance; the last
 column does, and counts tasks whose identity-bearing object a single constant
-serves \textbf{at $\delta = 1.41$\,cm} (\S\ref{sec:refute}) --- a value
+serves \textbf{at $\delta = 1.41$\,cm} (\S\ref{sec:refute}), a value
 \S\ref{sec:e2} goes on to measure directly and overturn, which changes this
 column and nothing to its left.
 \textbf{At that $\delta$, LIBERO-Object pins all ten of the objects its tasks
@@ -757,10 +750,10 @@ the fixture tasks
 --- a drawer and a stove --- which have $R = 0$ because they are bolted down,
 not because a randomisable placement was frozen. On the shared container the ordering
 \textbf{reverses}: LIBERO-Object pins it in $0$ of $10$ tasks and LIBERO-Goal
-in $6$ of $8$, whose shared objects are fixtures. So LIBERO-Object is not the
-suite that pins the most --- it is the suite that pins the object its tasks are
-\emph{named} by, which is the distinction this paper is about and the reason
-the two columns are reported separately. Artifact:
+in $6$ of $8$, whose shared objects are fixtures. The ordering is therefore
+object-specific: LIBERO-Object pins the object its tasks are \emph{named} by,
+and LIBERO-Goal pins the container more often. The two columns are reported
+separately for that reason. Artifact:
 \texttt{results/admissibility.json}.}
 \label{tab:suites}
 \end{table}
@@ -800,14 +793,14 @@ window is the problem. LIBERO-Object's largest identity radius is $1.171$\,cm;
 the smallest among the other suites' twenty-eight \emph{movable} targets is
 $1.492$\,cm. Every $\delta$ in that $0.32$\,cm gap returns the same verdict, and
 the radius we measure for this controller ($\approx 1.41$\,cm,
-\S\ref{sec:refute}) falls inside it --- a coincidence we treat as one. At a
+\S\ref{sec:refute}) falls inside it, a coincidence we treat as one. At a
 $2$\,cm tolerance most of LIBERO-Spatial and LIBERO-Goal are admissible as
 well, which we wrote as a hypothetical and \S\ref{sec:e2} then measured.
 Appendix~\ref{app:deltasens} gives the whole curve.
 
 \paragraph{How pinned is pinned.} In $6$ of Object's $10$ tasks the target's
 start position takes exactly \emph{two} \texttt{float64} values, one unit in the
-last place apart on a single axis --- constant to the precision the format can
+last place apart on a single axis: constant to the precision the format can
 express. The other four have $R \in [0.60, 1.17]$\,cm, consistent with the sub-centimetre jitter in Figure~\ref{fig:forensics}A.
 
 Across tasks the structure is tighter still: the ten targets occupy two table
@@ -856,7 +849,7 @@ converts goals into servo commands within a $\pm6$\,cm probe envelope.
 \begin{itemize}\itemsep1pt \parskip0pt \topsep2pt \leftmargin0pt
 \item \textbf{cell} --- one evaluation: a fixed (head, flags, seed, $n$) run to
 completion, always quoted with its $n$ and its interval.
-\item \textbf{band} --- the set of shipped initial states a cell replays. The
+\item \textbf{band} --- the set of released initial states a cell replays. The
 harness fixes it; it is not sampled.
 \item \textbf{burned} --- a band we have looked at and let influence a choice.
 From that moment it no longer measures generalisation, and no amount of
@@ -918,7 +911,7 @@ This is not in tension with the $25/30$ of \S\ref{sec:e1}. That cell is one
 task at $n{=}30$, chosen because it is one of the two on which anything scores
 at all; the ceiling quoted here is over ten tasks, eight of which score zero
 for every arm we ran. The suite-level number is low \emph{because} of those
-eight, and it is the reason a suite-level comparison cannot decide anything.
+eight, so a suite-level comparison cannot decide anything.
 
 The vehicle is our own stack (\S\ref{sec:platform}): a learned goal head that
 emits a world grasp point, driving a non-learned pick-and-place controller.
@@ -953,7 +946,7 @@ exact McNemar $p = 0.0078$. \textbf{The controller cannot do this task without
 a goal.} That is the control that makes the rest of the section mean anything.
 
 \paragraph{The strictly-blind policy.} The \textbf{blind} arm takes the task
-index, opens the shipped initial-state files, and emits two constants --- the
+index, opens the released initial-state files, and emits two constants --- the
 mean shipped position of the identity-bearing object and of the container. On
 task $0$ those are $(-0.1200, -0.2400, 0.0150)$ and $(0.0023, 0.2605)$.
 
@@ -972,7 +965,7 @@ quantifies over policies accurate everywhere, and an $8/100$ policy is not one.
 
 Three caveats on the arm itself, none of which we found ourselves. The
 constant is the \emph{mean} over all fifty
-shipped states, which contains the ten this cell replays --- it is fitted, very
+released states, which contains the ten this cell replays --- it is fitted, very
 weakly, on its own test set. The arm reads the object's identity from the live
 scene's body registry rather than from the task index, so ``reads only the task
 index'' overstates it. And it requires a live simulator to start at all.
@@ -1210,7 +1203,7 @@ is displaced and the basket is read truly. Task $0$ agrees with task $3$ on the
 grasp side, incidentally, holding $4/10$ at $2$\,cm and collapsing only at $4$.
 
 The phases are not interchangeable, and the criterion needs the grasping one.
-$R$ is the radius of the \emph{target's} shipped start positions, so
+$R$ is the radius of the \emph{target's} released start positions, so
 $R \le \delta$ asks whether one constant can stand in for where the object is
 \emph{picked up}. That the placing tolerance is the tighter of the two is a
 fact about this controller and this basket, and it is why applying it to $R$
@@ -1273,7 +1266,7 @@ admissible.} It was always stated as conditional on $\delta$ and
 Figure~\ref{fig:dependency} drew the window it needed, $[1.17, 1.49)$\,cm. The
 first direct measurement of $\delta$ on the grasped object lands above that
 window, and at $2$\,cm more than half the tasks in the other three suites admit
-a constant too. What survives is \S\ref{sec:declared} (arithmetic on shipped
+a constant too. What survives is \S\ref{sec:declared} (arithmetic on released
 files), \S\ref{sec:e1} (no $\delta$ anywhere in it) and
 Proposition~\ref{prop:lookup} (a theorem). What does not is the
 \emph{verdict}.}
@@ -1333,10 +1326,10 @@ either.
 \subsection{Why the measurement was never going to be enough}
 \label{sec:window}
 
-The failure above looks like a statement about our experiment. It is not. It is
-a statement about the benchmark, it follows from
-Proposition~\ref{prop:lookup} in two lines, and it is computable from the
-shipped files on the day a suite is released.
+The failure above looks like a statement about our experiment. It is a
+statement about the benchmark: it follows from Proposition~\ref{prop:lookup} in
+two lines, and it is computable from the benchmark's own files on the day a
+suite is published.
 
 \begin{definition}[Decision window]
 \label{def:window}
@@ -1368,7 +1361,7 @@ both verdicts however it was obtained.
 
 \begin{corollary}[The window is knowable in advance]
 \label{cor:window}
-$W(A)$ depends only on the radii, hence only on the shipped initial states. A
+$W(A)$ depends only on the radii, hence only on the released initial states. A
 benchmark's authors can compute it before any policy is trained, and learn what
 precision an admissibility claim about their suite will demand.
 \end{corollary}
@@ -1460,7 +1453,7 @@ because we believe it.}
 \end{table}
 
 \noindent One thing about that second row is worth more than the row. It agrees
-with \S\ref{sec:declared}, which is arithmetic on shipped files and admits no
+with \S\ref{sec:declared}, which is arithmetic on released files and admits no
 tolerance at all: LIBERO-Long is the suite that exercises $96.7$--$99.8\%$ of
 its declared sampling regions, and LIBERO-Object the one that exercises none.
 Two independent measurements --- one needing $\delta$ and one needing nothing
@@ -1654,8 +1647,8 @@ with the superset --- with Fisher exact $p = 0.75$. The burn is still not detect
 this $n$, but the honest effect size is the larger one, and the direction is
 the one that flatters us less.
 
-We claim exactly this much: not that the burn is zero, but that it is small
-enough to hide inside $\pm 0.20$, which is what $n{=}30$ buys.
+We claim exactly this much: the burn is small enough to hide inside
+$\pm 0.20$, which is what $n{=}30$ buys.
 
 \paragraph{A repair we withdraw.} Command coverage was reported as repairing
 the instruction-swap behaviour on the strength of $3/10$ against a $4/10$
@@ -2068,7 +2061,7 @@ mean $|\Delta| = 0.0066$, which is not zero either.
 \paragraph{This does not contradict \S\ref{sec:adm}, and the distinction is
 worth stating.} Those sections answer different questions. Placement is what the
 suite fails to randomise and therefore what a policy \emph{may exploit}: that is
-a property of the benchmark, established from its shipped files, and it is what
+a property of the benchmark, established from its released files, and it is what
 layers 1 and 3 were caught doing. Appearance is what limits \emph{transfer to a
 new object} once that shortcut is repaired: a property of the frozen detector,
 and why the released head works on one object and not on nine
@@ -2199,7 +2192,7 @@ planned $n$ and refuses to report an incomplete one.}
 
 \paragraph{What a score certifies.} On a suite whose placement radius sits
 below the embodiment's tolerance, a success rate certifies that the policy can
-execute a manipulation \emph{given} a correct target pose --- and nothing
+execute a manipulation \emph{given} a correct target pose, and nothing
 whatever about how it obtained one. That is a statement about what the score
 \emph{could} distinguish, and it is exactly as strong as A1.
 
@@ -2208,7 +2201,7 @@ Three refinements, each from a cell in this paper rather than an argument.
 lookup policy loses $15$ of its $25$ successes when the states are drawn from
 the region the benchmark declares, and a controller handed the true target
 loses none (\S\ref{sec:e1}). \textbf{(ii)} That is not the same as showing a
-\emph{trained} policy exploited it, and we still cannot show that ---
+\emph{trained} policy exploited it, and we still cannot show that:
 \S\ref{sec:refute} says why, and the head's own drop is confounded with plain
 distribution shift. \textbf{(iii)} Which suites are affected is now open rather
 than settled: \S\ref{sec:e2} withdraws our suite-level verdict and shows no
@@ -2234,7 +2227,7 @@ randomisation.
 The renderer result points the same way but we state it at the strength it now
 has. Holding weights, seeds and package versions fixed and changing only the
 OpenGL backend leaves the rate identical and $40\%$ of the individual episodes
-different --- and \S\ref{sec:cert} withdraws the attribution of that to the
+different, and \S\ref{sec:cert} withdraws the attribution of that to the
 backend \emph{change}, because MuJoCo is documented as nondeterministic within
 a backend and our same-backend control runs only to $40$ pre-contact steps.
 What survives is the weaker and still useful claim: \textbf{matching a
@@ -2268,7 +2261,7 @@ reproduction check. It is one sample, not five.
 instruments, not only on others'.
 \item Transfer to an external policy is \textbf{unestablished}
 (\S\ref{sec:transfer}).
-\item $R$ is defined for suites shipping enumerable initial
+\item $R$ is defined for suites releasing enumerable initial
 states, and would need restating for procedurally generated ones.
 \end{itemize}
 
@@ -2308,12 +2301,12 @@ specifies \\
 \addlinespace
 $+$ a tolerance $\delta$ for the embodiment &
 the admissibility verdict &
-whether that matters for a given robot --- and this is the part that needs a
+whether that matters for a given robot, and this is the part that needs a
 policy \\
 \bottomrule
 \end{tabular}
 \caption{What the two diagnostics require. The first two rows are arithmetic on
-shipped files and are what we would ask a benchmark to publish; the third needs
+released files and are what we would ask a benchmark to publish; the third needs
 an embodiment and is where our own result is weakest. The scripts are
 \texttt{scripts/admissibility.py} and
 \texttt{scripts/declared\_vs\_shipped.py}; both read a per-task table of object
@@ -2344,7 +2337,7 @@ publish $R$ per object per task & one script, no training & tells a reader what 
 \addlinespace
 set a floor on $R$ & re-sample the init files & a suite individuated by identity must randomise placement, or identity is never load-bearing \\
 \addlinespace
-ship a tier of radii & $k$ extra eval configs & where a policy degrades depends on displacement relative to the controller's envelope (Table~\ref{tab:sweep}); one radius is a calibration, not a result \\
+publish a tier of radii & $k$ extra eval configs & where a policy degrades depends on displacement relative to the controller's envelope (Table~\ref{tab:sweep}); one radius is a calibration, not a result \\
 \addlinespace
 \textbf{publish the decision window $W$} & one line of arithmetic on the radii & \textbf{do this first.} It says, before any experiment exists, how precisely $\delta$ must be known for a claim about the suite to be decidable --- and whether the claim is satisfiable at all (Cor.~\ref{cor:window}). Seven of LIBERO's eight are not \\
 \addlinespace
@@ -2352,7 +2345,7 @@ publish $\delta$, or publish no verdict & a displacement ladder, fine spacing, $
 \bottomrule
 \end{tabular}
 \caption{Five practices, in increasing order of cost. The fourth is the one we
-wish we had run first --- it is arithmetic, it costs nothing, and it would have
+wish we had run first: it is arithmetic, it costs nothing, and it would have
 told us at the design stage that the experiment we were planning could not
 decide what we wanted it to. The fifth is the one we failed at. LIBERO-Spatial already
 satisfies the second by necessity --- all ten of its targets are the same bowl
@@ -2363,7 +2356,7 @@ satisfies the second by necessity --- all ten of its targets are the same bowl
 \section{Conclusion}
 
 \emph{What does a manipulation benchmark score certify?} Not capability,
-until the benchmark's admissibility has been measured --- and this paper is
+until the benchmark's admissibility has been measured, and this paper is
 mostly the discovery of how hard that last clause is to discharge. The measurement is cheap, it runs
 before any model is trained, and on LIBERO it says something specific: the one
 suite whose tasks are individuated by object identity is also the one that pins
@@ -2388,7 +2381,7 @@ that is the sentence we would keep.
 One behavioural claim on top of that does stand, and we tested it the way we
 would want someone else to. Sampling the region a task file declares, and
 changing nothing else, costs a lookup policy half its score
-($25/30 \to 10/30$, $p = 0.0007$): the defect is exploitable, not cosmetic.
+($25/30 \to 10/30$, $p = 0.0007$): the defect is exploitable.
 That is the only causal statement in this paper, it is one task at $n{=}30$,
 and its own obvious confound gets an arm of its own rather than a paragraph.
 
@@ -2428,15 +2421,15 @@ underlying data and take full responsibility for the content of this paper.
 \section{Recovering which column owns which object}
 \label{app:columns}
 
-LIBERO ships each task's initial states as a MuJoCo flattened state
-$[\,t \mid q \mid \dot q\,]$; every shipped $\dot q$ is zero, so the columns
+LIBERO stores each task's initial states as a MuJoCo flattened state
+$[\,t \mid q \mid \dot q\,]$; every released $\dot q$ is zero, so the columns
 that vary across states are exactly the position degrees of freedom the suite
 randomises.
 
 Recovering \emph{which} object owns which column requires care. The fixed
 layout $[\,t \mid 9 \mid N\!\times\!7 \mid \dot q\,]$ that works for
 LIBERO-Object predicts a width of $19+13N$ and fails for every suite containing
-an articulated fixture --- LIBERO-Spatial ships width $92$ against $5$ declared
+an articulated fixture --- LIBERO-Spatial has width $92$ against $5$ declared
 objects. We therefore run two passes: the fixed-layout one, and one that
 compiles each task's model and reads \texttt{jnt\_qposadr} with the joint names,
 mapping every column onto a named body. \textbf{The two agree wherever both
